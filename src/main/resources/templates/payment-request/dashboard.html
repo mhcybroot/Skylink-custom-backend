@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <title>Payment Dashboard</title>
+    <!-- Chart.js via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <div th:replace="~{layout :: layout(~{::section}, ~{::script}, 'payment-dashboard')}">
+        <section>
+            <div class="container-fluid p-0">
+                <!-- Header -->
+                <div class="d-flex justify-content-between align-items-center mb-4 fade-in-up">
+                    <div>
+                        <h2 class="mb-0 fw-bold text-gradient-primary">Payment Dashboard</h2>
+                        <p class="text-muted mb-0">Overview of payment request activities and action items.</p>
+                    </div>
+                </div>
+
+                <!-- Row 1: Key Daily Stats (4 Widgets) -->
+                <div class="row g-4 mb-4 fade-in-up" style="animation-delay: 0.1s;">
+                    <!-- 1. Requests Today -->
+                    <div class="col-md-6 col-xl-3">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <h6 class="text-uppercase text-muted small fw-bold mb-0">Requests Today</h6>
+                                    <div
+                                        class="avatar-sm bg-light-primary text-primary rounded-circle d-flex align-items-center justify-content-center">
+                                        <i class="fas fa-calendar-day"></i>
+                                    </div>
+                                </div>
+                                <h3 class="fw-bold text-dark mb-0" th:text="${stats.requestsToday}">0</h3>
+                                <small class="text-muted">Submissions received today</small>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 2. Amount Requested Today -->
+                    <div class="col-md-6 col-xl-3">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <h6 class="text-uppercase text-muted small fw-bold mb-0">Requested Today</h6>
+                                    <div
+                                        class="avatar-sm bg-light-info text-info rounded-circle d-flex align-items-center justify-content-center">
+                                        <i class="fas fa-dollar-sign"></i>
+                                    </div>
+                                </div>
+                                <h3 class="fw-bold text-dark mb-0" th:text="${'$' + stats.amountRequestedToday}">$0.00
+                                </h3>
+                                <small class="text-muted">Total value of daily requests</small>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 3. Action Items -->
+                    <div class="col-md-6 col-xl-3">
+                        <div class="card border-0 shadow-sm h-100 border-start border-4 border-warning">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <h6 class="text-uppercase text-muted small fw-bold mb-0">My Action Items</h6>
+                                    <div
+                                        class="avatar-sm bg-light-warning text-warning rounded-circle d-flex align-items-center justify-content-center">
+                                        <i class="fas fa-bell"></i>
+                                    </div>
+                                </div>
+                                <h3 class="fw-bold text-dark mb-0" th:text="${stats.myActionItems}">0</h3>
+                                <small class="text-secondary">Pending requests awaiting review</small>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 4. Urgent Pending -->
+                    <div class="col-md-6 col-xl-3">
+                        <div class="card border-0 shadow-sm h-100 border-start border-4 border-danger">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <h6 class="text-uppercase text-danger small fw-bold mb-0">Urgent & Pending</h6>
+                                    <div
+                                        class="avatar-sm bg-light-danger text-danger rounded-circle d-flex align-items-center justify-content-center">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                    </div>
+                                </div>
+                                <h3 class="fw-bold text-danger mb-0" th:text="${stats.urgentPendingRequests}">0</h3>
+                                <small class="text-danger">High priority items needing attention</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Row 2: Detailed Stats & Charts (2 Cols) -->
+                <div class="row g-4 mb-4 fade-in-up" style="animation-delay: 0.2s;">
+                    <!-- Pending Overview -->
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-header bg-transparent border-0 py-3">
+                                <h6 class="mb-0 fw-bold"><i class="fas fa-clock me-2 text-warning"></i>Pending Overview
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row text-center mb-4">
+                                    <div class="col-6 border-end">
+                                        <div class="text-muted small text-uppercase">Count</div>
+                                        <div class="fs-4 fw-bold text-dark" th:text="${stats.pendingRequests}">0</div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="text-muted small text-uppercase">Value</div>
+                                        <div class="fs-4 fw-bold text-dark" th:text="${'$' + stats.pendingAmount}">$0.00
+                                        </div>
+                                    </div>
+                                </div>
+                                <hr class="opacity-25 my-3">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="small text-muted">Total Paid (All Time)</span>
+                                    <span class="fw-bold text-success"
+                                        th:text="${'$' + stats.totalPaidAmount}">$0.00</span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                    <span class="small text-muted">Total Approved (All Time)</span>
+                                    <span class="fw-bold text-primary" th:text="${stats.totalApproved}">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chart: Status Distribution -->
+                    <div class="col-md-6 col-lg-8">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div
+                                class="card-header bg-transparent border-0 py-3 d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0 fw-bold"><i class="fas fa-chart-pie me-2 text-primary"></i>Request
+                                    Status Distribution</h6>
+                            </div>
+                            <div class="card-body">
+                                <div style="height: 250px; width: 100%;">
+                                    <canvas id="statusChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Row 3: Recent Activity (Table) -->
+                <div class="card border-0 shadow-sm fade-in-up" style="animation-delay: 0.3s;">
+                    <div
+                        class="card-header bg-transparent border-bottom py-3 d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold text-primary"><i class="fas fa-history me-2"></i>Recent Activity</h6>
+                        <a href="/payment-requests" class="btn btn-sm btn-light rounded-pill">View All</a>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="bg-light small text-uppercase text-secondary">
+                                    <tr>
+                                        <th class="ps-4">ID</th>
+                                        <th>Date</th>
+                                        <th>Requester</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                        <th class="text-end pe-4">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="req : ${stats.recentActivity}">
+                                        <td class="ps-4 fw-bold" th:text="${'#' + req.id}"></td>
+                                        <td th:text="${req.requestDate}"></td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar-xs bg-light text-primary rounded-circle d-flex align-items-center justify-content-center me-2"
+                                                    style="width: 24px; height: 24px;">
+                                                    <i class="fas fa-user" style="font-size: 0.7rem;"></i>
+                                                </div>
+                                                <span
+                                                    th:text="${req.requester != null ? req.requester.username : (req.employeeRequester != null ? req.employeeRequester.name : 'Unknown')}"
+                                                    class="small fw-medium"></span>
+                                            </div>
+                                        </td>
+                                        <td class="fw-bold text-dark" th:text="${'$' + req.amount}"></td>
+                                        <td>
+                                            <span th:text="${req.status}"
+                                                th:class="${'badge rounded-pill ' + 
+                                                (req.status.name() == 'APPROVED' ? 'bg-success' : 
+                                                (req.status.name() == 'REJECTED' ? 'bg-danger' : 'bg-warning text-dark'))}">
+                                            </span>
+                                        </td>
+                                        <td class="text-end pe-4">
+                                            <a th:href="@{/payment-requests/{id}(id=${req.id})}"
+                                                class="btn btn-sm btn-icon btn-light">
+                                                <i class="fas fa-chevron-right"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    <tr th:if="${#lists.isEmpty(stats.recentActivity)}">
+                                        <td colspan="6" class="text-center py-4 text-muted">No recent activity found.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <script th:inline="javascript">
+            document.addEventListener('DOMContentLoaded', function () {
+                var ctx = document.getElementById('statusChart').getContext('2d');
+                var approved = /*[[${stats.approvedCount}]]*/ 0;
+                var pending = /*[[${stats.pendingCount}]]*/ 0;
+                var rejected = /*[[${stats.rejectedCount}]]*/ 0;
+
+                var myChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Approved', 'Pending', 'Rejected'],
+                        datasets: [{
+                            data: [approved, pending, rejected],
+                            backgroundColor: [
+                                '#1cc88a', // Success Green
+                                '#f6c23e', // Warning Yellow
+                                '#e74a3b'  // Danger Red
+                            ],
+                            borderWidth: 0,
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    usePointStyle: true,
+                                    padding: 20
+                                }
+                            }
+                        },
+                        cutout: '70%'
+                    }
+                });
+            });
+        </script>
+    </div>
+</body>
+
+</html>

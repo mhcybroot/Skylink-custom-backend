@@ -45,6 +45,10 @@
                     th:classappend="${activeLink == 'payment-requests'} ? 'active'">
                     <i class="fas fa-money-check-alt me-2"></i> Payment Requests
                 </a>
+                <a href="/admin/payment-dashboard" class="list-group-item list-group-item-action"
+                    th:classappend="${activeLink == 'payment-dashboard'} ? 'active'">
+                    <i class="fas fa-chart-pie me-2"></i> Payment Dashboard
+                </a>
 
                 <div class="sidebar-heading border-bottom bg-dark text-muted small py-2">FINANCE</div>
                 <a href="/payroll" class="list-group-item list-group-item-action"
