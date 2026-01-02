@@ -41,6 +41,10 @@
                     th:classappend="${activeLink == 'leave-calendar'} ? 'active'">
                     <i class="fas fa-calendar-check me-2"></i> Leave Calendar
                 </a>
+                <a href="/payment-requests" class="list-group-item list-group-item-action"
+                    th:classappend="${activeLink == 'payment-requests'} ? 'active'">
+                    <i class="fas fa-money-check-alt me-2"></i> Payment Requests
+                </a>
 
                 <div class="sidebar-heading border-bottom bg-dark text-muted small py-2">FINANCE</div>
                 <a href="/payroll" class="list-group-item list-group-item-action"
@@ -67,6 +71,10 @@
                     th:classappend="${activeLink == 'payroll'} ? 'active'">
                     <i class="fas fa-file-invoice-dollar me-2"></i> My Payslips
                 </a>
+                <a href="/payment-requests" class="list-group-item list-group-item-action"
+                    th:classappend="${activeLink == 'payment-requests'} ? 'active'">
+                    <i class="fas fa-money-check-alt me-2"></i> Payment Requests
+                </a>
                 <a href="/employee/change-password" class="list-group-item list-group-item-action"
                     th:classappend="${activeLink == 'change-password'} ? 'active'">
                     <i class="fas fa-key me-2"></i> Change Password
@@ -79,6 +87,10 @@
                 <a href="/supervisor/dashboard" class="list-group-item list-group-item-action"
                     th:classappend="${activeLink == 'supervisor-dashboard'} ? 'active'">
                     <i class="fas fa-chart-line me-2"></i> Team Dashboard
+                </a>
+                <a href="/payment-requests?view=team" class="list-group-item list-group-item-action"
+                    th:classappend="${activeLink == 'payment-requests' and param.view != null and param.view[0] == 'team'} ? 'active'">
+                    <i class="fas fa-users-cog me-2"></i> Team Requests
                 </a>
             </div>
 

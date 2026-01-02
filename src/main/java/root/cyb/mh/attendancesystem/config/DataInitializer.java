@@ -14,8 +14,17 @@ public class DataInitializer {
 
     @Bean
     public CommandLineRunner loadData(DeviceRepository deviceRepository, UserRepository userRepository,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder, org.springframework.jdbc.core.JdbcTemplate jdbcTemplate) {
         return args -> {
+            try {
+                // Fix for payment_requests schema (drop NOT NULL on requester_id)
+                jdbcTemplate.execute("ALTER TABLE payment_requests ALTER COLUMN requester_id DROP NOT NULL");
+                System.out.println("Schema Update: Dropped NOT NULL from requester_id in payment_requests");
+            } catch (Exception e) {
+                // Ignore if fails (e.g. table not found or already dropped)
+                System.out.println("Schema Update Check: " + e.getMessage());
+            }
+
             // Devices
             if (deviceRepository.count() == 0) {
                 Device device = new Device();

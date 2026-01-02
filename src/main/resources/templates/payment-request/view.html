@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head>
+    <title>Request Details</title>
+</head>
+
+<body>
+    <div th:replace="~{layout :: layout(~{::section}, ~{::script}, 'payment-requests')}">
+        <section>
+            <div class="container-fluid p-0">
+                <div class="row justify-content-center">
+                    <div class="col-lg-10 col-xl-9">
+
+                        <div class="d-flex justify-content-between align-items-center mb-4 fade-in-up">
+                            <div class="d-flex align-items-center">
+                                <a th:href="@{/payment-requests}"
+                                    class="btn btn-white rounded-circle me-3 shadow-sm text-secondary"
+                                    style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-arrow-left"></i>
+                                </a>
+                                <div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <h3 class="mb-0 fw-bold text-dark">Request Details</h3>
+                                        <span class="badge rounded-pill bg-light text-dark border"
+                                            th:text="${'#' + paymentRequest.id}"></span>
+                                    </div>
+                                    <p class="text-muted mb-0">View and manage request information</p>
+                                </div>
+                            </div>
+
+                            <div th:if="${paymentRequest.status.name() == 'PENDING'}"
+                                sec:authorize="hasAnyRole('ADMIN', 'HR')">
+                                <span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i> Awaiting
+                                    Review</span>
+                            </div>
+                            <div th:if="${paymentRequest.status.name() == 'APPROVED'}">
+                                <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i> Approved</span>
+                            </div>
+                            <div th:if="${paymentRequest.status.name() == 'REJECTED'}">
+                                <span class="badge bg-danger"><i class="fas fa-times-circle me-1"></i> Rejected</span>
+                            </div>
+                        </div>
+
+                        <!-- Main Details Card -->
+                        <div class="card border-0 shadow-lg mb-4 fade-in-up" style="animation-delay: 0.1s;">
+                            <div class="card-header bg-transparent border-bottom py-3">
+                                <h6 class="mb-0 text-primary fw-bold text-uppercase small"><i
+                                        class="fas fa-info-circle me-2"></i>General Information</h6>
+                            </div>
+                            <div class="card-body p-4">
+                                <div class="row g-4">
+                                    <div class="col-md-6 col-lg-3">
+                                        <label class="text-muted small text-uppercase fw-bold mb-1">Work Order</label>
+                                        <div class="fs-5 fw-bold text-dark" th:text="${paymentRequest.workOrderNumber}">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 col-lg-3">
+                                        <label class="text-muted small text-uppercase fw-bold mb-1">Date</label>
+                                        <div class="fs-5 text-dark" th:text="${paymentRequest.requestDate}"></div>
+                                    </div>
+                                    <div class="col-md-6 col-lg-3">
+                                        <label class="text-muted small text-uppercase fw-bold mb-1">Amount</label>
+                                        <div class="fs-5 fw-bold text-success" th:text="${'$' + paymentRequest.amount}">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 col-lg-3">
+                                        <label class="text-muted small text-uppercase fw-bold mb-1">Contractor</label>
+                                        <div class="fs-5 text-dark" th:text="${paymentRequest.contractorName}"></div>
+                                    </div>
+
+                                    <div class="col-12">
+                                        <hr class="text-muted opacity-25">
+                                    </div>
+
+                                    <div class="col-md-6 col-lg-3">
+                                        <label class="text-muted small text-uppercase fw-bold mb-1">Payment
+                                            Method</label>
+                                        <div class="text-dark"
+                                            th:text="${paymentRequest.paymentMethodId != null ? paymentRequest.paymentMethodId : '-'}">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 col-lg-3">
+                                        <label class="text-muted small text-uppercase fw-bold mb-1">Client Code</label>
+                                        <div class="text-dark"
+                                            th:text="${paymentRequest.clientCode != null ? paymentRequest.clientCode : '-'}">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 col-lg-3">
+                                        <label class="text-muted small text-uppercase fw-bold mb-1">Requester</label>
+                                        <div class="d-flex align-items-center mt-1">
+                                            <div class="avatar-xs bg-light text-primary rounded-circle d-flex align-items-center justify-content-center me-2"
+                                                style="width: 24px; height: 24px;">
+                                                <i class="fas fa-user" style="font-size: 0.7rem;"></i>
+                                            </div>
+                                            <span class="text-dark fw-medium"
+                                                th:text="${paymentRequest.requester != null ? paymentRequest.requester.username : (paymentRequest.employeeRequester != null ? paymentRequest.employeeRequester.name : 'Unknown')}"></span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 col-lg-3">
+                                        <label class="text-muted small text-uppercase fw-bold mb-1">Priority</label>
+                                        <div>
+                                            <span th:text="${paymentRequest.priority}"
+                                                th:class="${'badge rounded-pill ' + (paymentRequest.priority.name() == 'URGENT' ? 'bg-danger' : (paymentRequest.priority.name() == 'HOLD' ? 'bg-secondary' : 'bg-success'))}">
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12">
+                                        <label class="text-muted small text-uppercase fw-bold mb-1">Reason</label>
+                                        <div class="p-3 bg-light rounded-3 text-dark border-0"
+                                            th:text="${paymentRequest.reason}"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Admin/Supervisor Action Card -->
+                        <div class="card border-0 shadow-lg mb-4 fade-in-up" style="animation-delay: 0.2s;"
+                            th:if="${canReview}">
+                            <div class="card-header bg-gradient-primary text-white py-3">
+                                <h6 class="mb-0 fw-bold"><i class="fas fa-user-shield me-2"></i>Review Area</h6>
+                            </div>
+                            <div class="card-body p-4">
+                                <form th:action="@{/payment-requests/{id}/review(id=${paymentRequest.id})}"
+                                    method="post">
+                                    <div class="row g-3 mb-4">
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-bold small text-secondary">Broad Approval
+                                                Status</label>
+                                            <select name="status" class="form-select bg-light border-0">
+                                                <option th:each="s : ${requestStatuses}" th:value="${s}" th:text="${s}"
+                                                    th:selected="${s == paymentRequest.status}"></option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-bold small text-secondary">Payment Processing
+                                                Status</label>
+                                            <select name="paymentStatus" class="form-select bg-light border-0">
+                                                <option value="" th:selected="${paymentRequest.paymentStatus == null}">
+                                                    -- Select --</option>
+                                                <option th:each="Ps : ${paymentStatuses}" th:value="${Ps}"
+                                                    th:text="${Ps}" th:selected="${Ps == paymentRequest.paymentStatus}">
+                                                </option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="row g-3 mb-4">
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-bold small text-secondary">Check Status
+                                                (Auto-Logged)</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text bg-light border-0"><i
+                                                        class="fas fa-glasses text-secondary"></i></span>
+                                                <input type="text" name="checkStatus"
+                                                    class="form-control bg-light border-0"
+                                                    th:value="${paymentRequest.checkStatus}" readonly>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-bold small text-secondary">PPW Update
+                                                Status</label>
+                                            <select name="ppwUpdateStatus" class="form-select bg-light border-0">
+                                                <option value=""
+                                                    th:selected="${paymentRequest.ppwUpdateStatus == null}">-- Select --
+                                                </option>
+                                                <option th:each="ppw : ${ppwStatuses}" th:value="${ppw}"
+                                                    th:text="${ppw}"
+                                                    th:selected="${ppw == paymentRequest.ppwUpdateStatus}"></option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-4">
+                                        <label class="form-label fw-bold small text-secondary">Remarks / Internal
+                                            Notes</label>
+                                        <textarea name="remarks" class="form-control bg-light border-0" rows="3"
+                                            th:text="${paymentRequest.remarks}"
+                                            placeholder="Enter any specific notes about this decision..."></textarea>
+                                    </div>
+
+                                    <div class="d-flex justify-content-end">
+                                        <button type="submit" class="btn btn-success rounded-pill px-4 shadow">
+                                            <i class="fas fa-save me-2"></i>Update Review & Decision
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Read-only Review Status (For those who cannot review) -->
+                        <div class="card border-0 shadow-lg mb-4 fade-in-up" style="animation-delay: 0.2s;"
+                            th:unless="${canReview}">
+                            <div class="card-header bg-light border-bottom py-3">
+                                <h6 class="mb-0 text-dark fw-bold"><i class="fas fa-clipboard-check me-2"></i>Review
+                                    Outcome</h6>
+                            </div>
+                            <div class="card-body p-4">
+                                <div class="row g-4 text-center">
+                                    <div class="col-md-3 border-end">
+                                        <div class="text-uppercase small text-muted mb-1 fw-bold">Current Status</div>
+                                        <div class="fw-bold"
+                                            th:classappend="${paymentRequest.status.name() == 'APPROVED' ? 'text-success' : (paymentRequest.status.name() == 'REJECTED' ? 'text-danger' : 'text-warning')}"
+                                            th:text="${paymentRequest.status}"></div>
+                                    </div>
+                                    <div class="col-md-3 border-end">
+                                        <div class="text-uppercase small text-muted mb-1 fw-bold">Payment Status</div>
+                                        <div class="text-dark"
+                                            th:text="${paymentRequest.paymentStatus != null ? paymentRequest.paymentStatus : 'Pending'}">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 border-end">
+                                        <div class="text-uppercase small text-muted mb-1 fw-bold">Reviewed By</div>
+                                        <div class="text-dark">
+                                            <span th:if="${paymentRequest.approvalAuthority != null}"
+                                                th:text="${paymentRequest.approvalAuthority.username}"></span>
+                                            <span
+                                                th:if="${paymentRequest.approvalAuthority == null and paymentRequest.approvalEmployee != null}"
+                                                th:text="${paymentRequest.approvalEmployee.name}"></span>
+                                            <span
+                                                th:if="${paymentRequest.approvalAuthority == null and paymentRequest.approvalEmployee == null}">Pending...</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="text-uppercase small text-muted mb-1 fw-bold">Check Status</div>
+                                        <div class="small text-muted"
+                                            th:text="${paymentRequest.checkStatus != null ? paymentRequest.checkStatus : 'Not Checked'}">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mt-4"
+                                    th:if="${paymentRequest.remarks != null && !paymentRequest.remarks.isEmpty()}">
+                                    <div class="alert alert-light border">
+                                        <i class="fas fa-comment-alt me-2 text-secondary"></i>
+                                        <span class="fw-bold me-1">Remarks:</span>
+                                        <span th:text="${paymentRequest.remarks}"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </section>
+        <script>
+            // View specific scripts
+        </script>
+    </div>
+</body>
+
+</html>

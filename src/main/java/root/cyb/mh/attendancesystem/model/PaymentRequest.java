@@ -1,0 +1,84 @@
+package root.cyb.mh.attendancesystem.model;
+
+import jakarta.persistence.*;
+import lombok.Data;
+import root.cyb.mh.attendancesystem.model.enums.PPWStatus;
+import root.cyb.mh.attendancesystem.model.enums.PaymentPriority;
+import root.cyb.mh.attendancesystem.model.enums.PaymentStatus;
+import root.cyb.mh.attendancesystem.model.enums.RequestStatus;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+
+@Entity
+@Data
+@Table(name = "payment_requests")
+public class PaymentRequest {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false)
+    private LocalDate requestDate;
+
+    private java.time.LocalDateTime lastModified;
+
+    @PrePersist
+    @PreUpdate
+    public void updateTimestamp() {
+        lastModified = java.time.LocalDateTime.now();
+    }
+
+    @ManyToOne
+    @JoinColumn(name = "requester_id")
+    private User requester;
+
+    @ManyToOne
+    @JoinColumn(name = "employee_requester_id")
+    private root.cyb.mh.attendancesystem.model.Employee employeeRequester;
+
+    @Column(nullable = false)
+    private String workOrderNumber;
+
+    @Column(nullable = false)
+    private BigDecimal amount;
+
+    @Column(nullable = false)
+    private String contractorName;
+
+    private String paymentMethodId; // Optional, e.g., CashApp ID, Zelle
+
+    private String clientCode;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private PaymentPriority priority;
+
+    @Column(columnDefinition = "TEXT")
+    private String reason;
+
+    // Review Fields
+    private String checkStatus;
+
+    @Enumerated(EnumType.STRING)
+    private PaymentStatus paymentStatus;
+
+    @ManyToOne
+    @JoinColumn(name = "approval_authority_id")
+    private User approvalAuthority;
+
+    @ManyToOne
+    @JoinColumn(name = "approval_employee_id")
+    private root.cyb.mh.attendancesystem.model.Employee approvalEmployee;
+
+    @Enumerated(EnumType.STRING)
+    private PPWStatus ppwUpdateStatus;
+
+    @Column(columnDefinition = "TEXT")
+    private String remarks;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private RequestStatus status = RequestStatus.PENDING;
+}

@@ -13,4 +13,6 @@ public interface EmployeeRepository extends JpaRepository<Employee, String> {
 
     // Find all subordinates for a supervisor (Primary OR Assistant)
     java.util.List<Employee> findByReportsTo_IdOrReportsToAssistant_Id(String primaryId, String assistantId);
+
+    java.util.Optional<Employee> findByUsername(String username);
 }
