@@ -202,4 +202,94 @@ public class DataImportExportService {
         }
     }
 
+    // --- PAYMENT REQUEST EXPORTS ---
+
+    public void exportPaymentRequestsToCsv(PrintWriter writer, List<PaymentRequest> requests) throws IOException {
+        CSVPrinter printer = new CSVPrinter(writer, CSVFormat.DEFAULT.withHeader(
+                "ID", "Date", "Work Order", "Requester", "Contractor", "Client", "Amount", "Priority", "Status",
+                "Payment Status"));
+
+        for (PaymentRequest p : requests) {
+            String requester = p.getRequester() != null ? p.getRequester().getUsername()
+                    : (p.getEmployeeRequester() != null ? p.getEmployeeRequester().getName() : "Unknown");
+
+            printer.printRecord(
+                    p.getId(),
+                    p.getRequestDate(),
+                    p.getWorkOrderNumber(),
+                    requester,
+                    p.getContractor() != null ? p.getContractor().getName() : "",
+                    p.getClient() != null ? p.getClient().getCode() : "",
+                    p.getAmount(),
+                    p.getPriority(),
+                    p.getStatus(),
+                    p.getPaymentStatus());
+        }
+        printer.flush();
+    }
+
+    public void exportPaymentRequestsToPdf(java.io.OutputStream out, List<PaymentRequest> requests, String title) {
+        try {
+            com.lowagie.text.Document document = new com.lowagie.text.Document(com.lowagie.text.PageSize.A4.rotate());
+            com.lowagie.text.pdf.PdfWriter.getInstance(document, out);
+            document.open();
+
+            // Title
+            com.lowagie.text.Font titleFont = com.lowagie.text.FontFactory
+                    .getFont(com.lowagie.text.FontFactory.HELVETICA_BOLD, 18);
+            com.lowagie.text.Paragraph titlePara = new com.lowagie.text.Paragraph(title, titleFont);
+            titlePara.setAlignment(com.lowagie.text.Element.ALIGN_CENTER);
+            titlePara.setSpacingAfter(20);
+            document.add(titlePara);
+
+            // Table
+            com.lowagie.text.pdf.PdfPTable table = new com.lowagie.text.pdf.PdfPTable(8);
+            table.setWidthPercentage(100);
+            table.setWidths(new float[] { 1.5f, 2.5f, 3f, 3f, 3f, 2f, 2f, 2f }); // Relative widths
+
+            // Header
+            String[] headers = { "ID", "Date", "Work Order", "Requester", "Contractor", "Amount", "Status",
+                    "Pay Status" };
+            com.lowagie.text.Font headFont = com.lowagie.text.FontFactory
+                    .getFont(com.lowagie.text.FontFactory.HELVETICA_BOLD, 10);
+
+            for (String h : headers) {
+                com.lowagie.text.pdf.PdfPCell cell = new com.lowagie.text.pdf.PdfPCell(
+                        new com.lowagie.text.Phrase(h, headFont));
+                cell.setHorizontalAlignment(com.lowagie.text.Element.ALIGN_CENTER);
+                cell.setBackgroundColor(java.awt.Color.LIGHT_GRAY);
+                cell.setPadding(5);
+                table.addCell(cell);
+            }
+
+            // Rows
+            com.lowagie.text.Font bodyFont = com.lowagie.text.FontFactory
+                    .getFont(com.lowagie.text.FontFactory.HELVETICA, 9);
+            for (PaymentRequest p : requests) {
+                String requester = p.getRequester() != null ? p.getRequester().getUsername()
+                        : (p.getEmployeeRequester() != null ? p.getEmployeeRequester().getName() : "Unknown");
+
+                addCell(table, String.valueOf(p.getId()), bodyFont);
+                addCell(table, p.getRequestDate().toString(), bodyFont);
+                addCell(table, p.getWorkOrderNumber(), bodyFont);
+                addCell(table, requester, bodyFont);
+                addCell(table, p.getContractor() != null ? p.getContractor().getName() : "", bodyFont);
+                addCell(table, "$" + p.getAmount(), bodyFont);
+                addCell(table, p.getStatus().name(), bodyFont);
+                addCell(table, p.getPaymentStatus() != null ? p.getPaymentStatus().name() : "-", bodyFont);
+            }
+
+            document.add(table);
+            document.close();
+        } catch (Exception e) {
+            throw new RuntimeException("Error generating PDF", e);
+        }
+    }
+
+    private void addCell(com.lowagie.text.pdf.PdfPTable table, String text, com.lowagie.text.Font font) {
+        com.lowagie.text.pdf.PdfPCell cell = new com.lowagie.text.pdf.PdfPCell(
+                new com.lowagie.text.Phrase(text != null ? text : "", font));
+        cell.setPadding(4);
+        table.addCell(cell);
+    }
 }

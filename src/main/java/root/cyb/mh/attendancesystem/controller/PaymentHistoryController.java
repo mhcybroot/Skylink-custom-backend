@@ -25,172 +25,238 @@ import java.util.List;
 @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
 public class PaymentHistoryController {
 
-    @Autowired
-    private PaymentRequestRepository paymentRequestRepository;
-    @Autowired
-    private ContractorRepository contractorRepository;
-    @Autowired
-    private ClientRepository clientRepository;
-    @Autowired
-    private PaymentMethodRepository paymentMethodRepository;
+        @Autowired
+        private PaymentRequestRepository paymentRequestRepository;
+        @Autowired
+        private ContractorRepository contractorRepository;
+        @Autowired
+        private ClientRepository clientRepository;
+        @Autowired
+        private PaymentMethodRepository paymentMethodRepository;
+        @Autowired
+        private root.cyb.mh.attendancesystem.service.DataImportExportService dataImportExportService;
 
-    @GetMapping("/daily")
-    public String dailyHistory(
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            // Filters
-            @RequestParam(required = false) Long contractorId,
-            @RequestParam(required = false) Long clientId,
-            @RequestParam(required = false) Long paymentMethodId,
-            @RequestParam(required = false) String workOrderNumber,
-            @RequestParam(required = false) String requesterName,
-            @RequestParam(required = false) PaymentPriority priority,
-            @RequestParam(required = false) RequestStatus status,
-            @RequestParam(required = false) PaymentStatus paymentStatus,
-            @RequestParam(required = false) PPWStatus ppwUpdateStatus,
-            Model model) {
+        @RequestMapping("/export")
+        public void exportHistory(
+                        @RequestParam(defaultValue = "pdf") String format,
+                        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+                        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+                        @RequestParam(required = false) Integer year,
+                        @RequestParam(required = false) Integer month,
+                        // Filters
+                        @RequestParam(required = false) Long contractorId,
+                        @RequestParam(required = false) Long clientId,
+                        @RequestParam(required = false) Long paymentMethodId,
+                        @RequestParam(required = false) String workOrderNumber,
+                        @RequestParam(required = false) String requesterName,
+                        @RequestParam(required = false) PaymentPriority priority,
+                        @RequestParam(required = false) RequestStatus status,
+                        @RequestParam(required = false) PaymentStatus paymentStatus,
+                        @RequestParam(required = false) PPWStatus ppwUpdateStatus,
+                        jakarta.servlet.http.HttpServletResponse response) throws java.io.IOException {
 
-        if (date == null)
-            date = LocalDate.now();
+                // Determine Date Range based on parameters
+                LocalDate rangeStart = null;
+                LocalDate rangeEnd = null;
+                String title = "Payment History";
 
-        Specification<PaymentRequest> spec = PaymentRequestSpecification.getFilterSpec(
-                date, date,
-                contractorId, clientId, paymentMethodId,
-                workOrderNumber, requesterName,
-                priority, status, paymentStatus, ppwUpdateStatus);
+                if (year != null && month != null) {
+                        // Monthly
+                        LocalDate start = LocalDate.of(year, month, 1);
+                        rangeStart = start;
+                        rangeEnd = start.with(TemporalAdjusters.lastDayOfMonth());
+                        title = "Monthly Report - " + start.getMonth().name() + " " + year;
+                } else if (startDate != null) {
+                        // Weekly
+                        rangeStart = startDate;
+                        rangeEnd = startDate.plusDays(6);
+                        title = "Weekly Report - " + startDate + " to " + rangeEnd;
+                } else {
+                        // Daily (Default)
+                        LocalDate d = date != null ? date : LocalDate.now();
+                        rangeStart = d;
+                        rangeEnd = d;
+                        title = "Daily Report - " + d;
+                }
 
-        List<PaymentRequest> requests = paymentRequestRepository.findAll(spec,
-                Sort.by(Sort.Direction.DESC, "requestDate", "lastModified"));
+                Specification<PaymentRequest> spec = PaymentRequestSpecification.getFilterSpec(
+                                rangeStart, rangeEnd,
+                                contractorId, clientId, paymentMethodId,
+                                workOrderNumber, requesterName,
+                                priority, status, paymentStatus, ppwUpdateStatus);
 
-        calculateSummary(model, requests);
-        populateModelAttributes(model, date, null, null, null, null, contractorId, clientId, paymentMethodId,
-                workOrderNumber, requesterName, priority, status, paymentStatus, ppwUpdateStatus);
+                List<PaymentRequest> requests = paymentRequestRepository.findAll(spec,
+                                Sort.by(Sort.Direction.DESC, "requestDate", "lastModified"));
 
-        model.addAttribute("selectedDate", date);
-        model.addAttribute("pageTitle", "Daily Payment History");
-        return "admin/history/daily";
-    }
-
-    @GetMapping("/weekly")
-    public String weeklyHistory(
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            // Filters
-            @RequestParam(required = false) Long contractorId,
-            @RequestParam(required = false) Long clientId,
-            @RequestParam(required = false) Long paymentMethodId,
-            @RequestParam(required = false) String workOrderNumber,
-            @RequestParam(required = false) String requesterName,
-            @RequestParam(required = false) PaymentPriority priority,
-            @RequestParam(required = false) RequestStatus status,
-            @RequestParam(required = false) PaymentStatus paymentStatus,
-            @RequestParam(required = false) PPWStatus ppwUpdateStatus,
-            Model model) {
-
-        if (startDate == null) {
-            startDate = LocalDate.now().with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
+                if ("csv".equalsIgnoreCase(format)) {
+                        response.setContentType("text/csv");
+                        response.setHeader("Content-Disposition", "attachment; filename=\"payment_history.csv\"");
+                        dataImportExportService.exportPaymentRequestsToCsv(response.getWriter(), requests);
+                } else {
+                        response.setContentType("application/pdf");
+                        response.setHeader("Content-Disposition", "attachment; filename=\"payment_history.pdf\"");
+                        dataImportExportService.exportPaymentRequestsToPdf(response.getOutputStream(), requests, title);
+                }
         }
-        LocalDate endDate = startDate.plusDays(6);
 
-        Specification<PaymentRequest> spec = PaymentRequestSpecification.getFilterSpec(
-                startDate, endDate,
-                contractorId, clientId, paymentMethodId,
-                workOrderNumber, requesterName,
-                priority, status, paymentStatus, ppwUpdateStatus);
+        @GetMapping("/daily")
+        public String dailyHistory(
+                        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+                        // Filters
+                        @RequestParam(required = false) Long contractorId,
+                        @RequestParam(required = false) Long clientId,
+                        @RequestParam(required = false) Long paymentMethodId,
+                        @RequestParam(required = false) String workOrderNumber,
+                        @RequestParam(required = false) String requesterName,
+                        @RequestParam(required = false) PaymentPriority priority,
+                        @RequestParam(required = false) RequestStatus status,
+                        @RequestParam(required = false) PaymentStatus paymentStatus,
+                        @RequestParam(required = false) PPWStatus ppwUpdateStatus,
+                        Model model) {
 
-        List<PaymentRequest> requests = paymentRequestRepository.findAll(spec,
-                Sort.by(Sort.Direction.DESC, "requestDate", "lastModified"));
+                if (date == null)
+                        date = LocalDate.now();
 
-        calculateSummary(model, requests);
-        populateModelAttributes(model, null, startDate, endDate, null, null, contractorId, clientId, paymentMethodId,
-                workOrderNumber, requesterName, priority, status, paymentStatus, ppwUpdateStatus);
+                Specification<PaymentRequest> spec = PaymentRequestSpecification.getFilterSpec(
+                                date, date,
+                                contractorId, clientId, paymentMethodId,
+                                workOrderNumber, requesterName,
+                                priority, status, paymentStatus, ppwUpdateStatus);
 
-        model.addAttribute("startDate", startDate);
-        model.addAttribute("endDate", endDate);
-        model.addAttribute("pageTitle", "Weekly Payment History");
-        return "admin/history/weekly";
-    }
+                List<PaymentRequest> requests = paymentRequestRepository.findAll(spec,
+                                Sort.by(Sort.Direction.DESC, "requestDate", "lastModified"));
 
-    @GetMapping("/monthly")
-    public String monthlyHistory(
-            @RequestParam(required = false) Integer year,
-            @RequestParam(required = false) Integer month,
-            // Filters
-            @RequestParam(required = false) Long contractorId,
-            @RequestParam(required = false) Long clientId,
-            @RequestParam(required = false) Long paymentMethodId,
-            @RequestParam(required = false) String workOrderNumber,
-            @RequestParam(required = false) String requesterName,
-            @RequestParam(required = false) PaymentPriority priority,
-            @RequestParam(required = false) RequestStatus status,
-            @RequestParam(required = false) PaymentStatus paymentStatus,
-            @RequestParam(required = false) PPWStatus ppwUpdateStatus,
-            Model model) {
+                calculateSummary(model, requests);
+                populateModelAttributes(model, date, null, null, null, null, contractorId, clientId, paymentMethodId,
+                                workOrderNumber, requesterName, priority, status, paymentStatus, ppwUpdateStatus);
 
-        LocalDate now = LocalDate.now();
-        if (year == null)
-            year = now.getYear();
-        if (month == null)
-            month = now.getMonthValue();
+                model.addAttribute("selectedDate", date);
+                model.addAttribute("pageTitle", "Daily Payment History");
+                return "admin/history/daily";
+        }
 
-        LocalDate startDate = LocalDate.of(year, month, 1);
-        LocalDate endDate = startDate.with(TemporalAdjusters.lastDayOfMonth());
+        @GetMapping("/weekly")
+        public String weeklyHistory(
+                        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+                        // Filters
+                        @RequestParam(required = false) Long contractorId,
+                        @RequestParam(required = false) Long clientId,
+                        @RequestParam(required = false) Long paymentMethodId,
+                        @RequestParam(required = false) String workOrderNumber,
+                        @RequestParam(required = false) String requesterName,
+                        @RequestParam(required = false) PaymentPriority priority,
+                        @RequestParam(required = false) RequestStatus status,
+                        @RequestParam(required = false) PaymentStatus paymentStatus,
+                        @RequestParam(required = false) PPWStatus ppwUpdateStatus,
+                        Model model) {
 
-        Specification<PaymentRequest> spec = PaymentRequestSpecification.getFilterSpec(
-                startDate, endDate,
-                contractorId, clientId, paymentMethodId,
-                workOrderNumber, requesterName,
-                priority, status, paymentStatus, ppwUpdateStatus);
+                if (startDate == null) {
+                        startDate = LocalDate.now().with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
+                }
+                LocalDate endDate = startDate.plusDays(6);
 
-        List<PaymentRequest> requests = paymentRequestRepository.findAll(spec,
-                Sort.by(Sort.Direction.DESC, "requestDate", "lastModified"));
+                Specification<PaymentRequest> spec = PaymentRequestSpecification.getFilterSpec(
+                                startDate, endDate,
+                                contractorId, clientId, paymentMethodId,
+                                workOrderNumber, requesterName,
+                                priority, status, paymentStatus, ppwUpdateStatus);
 
-        calculateSummary(model, requests);
-        populateModelAttributes(model, null, null, null, year, month, contractorId, clientId, paymentMethodId,
-                workOrderNumber, requesterName, priority, status, paymentStatus, ppwUpdateStatus);
+                List<PaymentRequest> requests = paymentRequestRepository.findAll(spec,
+                                Sort.by(Sort.Direction.DESC, "requestDate", "lastModified"));
 
-        model.addAttribute("selectedYear", year);
-        model.addAttribute("selectedMonth", month);
-        model.addAttribute("monthName", startDate.getMonth().name());
-        model.addAttribute("pageTitle", "Monthly Payment History");
-        return "admin/history/monthly";
-    }
+                calculateSummary(model, requests);
+                populateModelAttributes(model, null, startDate, endDate, null, null, contractorId, clientId,
+                                paymentMethodId,
+                                workOrderNumber, requesterName, priority, status, paymentStatus, ppwUpdateStatus);
 
-    private void calculateSummary(Model model, List<PaymentRequest> requests) {
-        long totalCount = requests.size();
-        BigDecimal totalAmount = requests.stream()
-                .map(PaymentRequest::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                model.addAttribute("startDate", startDate);
+                model.addAttribute("endDate", endDate);
+                model.addAttribute("pageTitle", "Weekly Payment History");
+                return "admin/history/weekly";
+        }
 
-        model.addAttribute("requests", requests);
-        model.addAttribute("totalCount", totalCount);
-        model.addAttribute("totalAmount", totalAmount);
-    }
+        @GetMapping("/monthly")
+        public String monthlyHistory(
+                        @RequestParam(required = false) Integer year,
+                        @RequestParam(required = false) Integer month,
+                        // Filters
+                        @RequestParam(required = false) Long contractorId,
+                        @RequestParam(required = false) Long clientId,
+                        @RequestParam(required = false) Long paymentMethodId,
+                        @RequestParam(required = false) String workOrderNumber,
+                        @RequestParam(required = false) String requesterName,
+                        @RequestParam(required = false) PaymentPriority priority,
+                        @RequestParam(required = false) RequestStatus status,
+                        @RequestParam(required = false) PaymentStatus paymentStatus,
+                        @RequestParam(required = false) PPWStatus ppwUpdateStatus,
+                        Model model) {
 
-    private void populateModelAttributes(Model model,
-            LocalDate date, LocalDate wStart, LocalDate wEnd,
-            Integer year, Integer month,
-            Long contractorId, Long clientId, Long paymentMethodId,
-            String workOrderNumber, String requesterName,
-            PaymentPriority priority, RequestStatus status,
-            PaymentStatus paymentStatus, PPWStatus ppwUpdateStatus) {
+                LocalDate now = LocalDate.now();
+                if (year == null)
+                        year = now.getYear();
+                if (month == null)
+                        month = now.getMonthValue();
 
-        // Master Data for Dropdowns
-        model.addAttribute("activeContractors", contractorRepository.findByActiveTrue());
-        model.addAttribute("activeClients", clientRepository.findByActiveTrue());
-        model.addAttribute("activePaymentMethods", paymentMethodRepository.findByActiveTrue());
-        model.addAttribute("priorities", PaymentPriority.values());
-        model.addAttribute("requestStatuses", RequestStatus.values());
-        model.addAttribute("paymentStatuses", PaymentStatus.values());
-        model.addAttribute("ppwStatuses", PPWStatus.values());
+                LocalDate startDate = LocalDate.of(year, month, 1);
+                LocalDate endDate = startDate.with(TemporalAdjusters.lastDayOfMonth());
 
-        // Selected Values
-        model.addAttribute("contractorId", contractorId);
-        model.addAttribute("clientId", clientId);
-        model.addAttribute("paymentMethodId", paymentMethodId);
-        model.addAttribute("workOrderNumber", workOrderNumber);
-        model.addAttribute("requesterName", requesterName);
-        model.addAttribute("priority", priority);
-        model.addAttribute("status", status);
-        model.addAttribute("paymentStatus", paymentStatus);
-        model.addAttribute("ppwUpdateStatus", ppwUpdateStatus);
-    }
+                Specification<PaymentRequest> spec = PaymentRequestSpecification.getFilterSpec(
+                                startDate, endDate,
+                                contractorId, clientId, paymentMethodId,
+                                workOrderNumber, requesterName,
+                                priority, status, paymentStatus, ppwUpdateStatus);
+
+                List<PaymentRequest> requests = paymentRequestRepository.findAll(spec,
+                                Sort.by(Sort.Direction.DESC, "requestDate", "lastModified"));
+
+                calculateSummary(model, requests);
+                populateModelAttributes(model, null, null, null, year, month, contractorId, clientId, paymentMethodId,
+                                workOrderNumber, requesterName, priority, status, paymentStatus, ppwUpdateStatus);
+
+                model.addAttribute("selectedYear", year);
+                model.addAttribute("selectedMonth", month);
+                model.addAttribute("monthName", startDate.getMonth().name());
+                model.addAttribute("pageTitle", "Monthly Payment History");
+                return "admin/history/monthly";
+        }
+
+        private void calculateSummary(Model model, List<PaymentRequest> requests) {
+                long totalCount = requests.size();
+                BigDecimal totalAmount = requests.stream()
+                                .map(PaymentRequest::getAmount)
+                                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                model.addAttribute("requests", requests);
+                model.addAttribute("totalCount", totalCount);
+                model.addAttribute("totalAmount", totalAmount);
+        }
+
+        private void populateModelAttributes(Model model,
+                        LocalDate date, LocalDate wStart, LocalDate wEnd,
+                        Integer year, Integer month,
+                        Long contractorId, Long clientId, Long paymentMethodId,
+                        String workOrderNumber, String requesterName,
+                        PaymentPriority priority, RequestStatus status,
+                        PaymentStatus paymentStatus, PPWStatus ppwUpdateStatus) {
+
+                // Master Data for Dropdowns
+                model.addAttribute("activeContractors", contractorRepository.findByActiveTrue());
+                model.addAttribute("activeClients", clientRepository.findByActiveTrue());
+                model.addAttribute("activePaymentMethods", paymentMethodRepository.findByActiveTrue());
+                model.addAttribute("priorities", PaymentPriority.values());
+                model.addAttribute("requestStatuses", RequestStatus.values());
+                model.addAttribute("paymentStatuses", PaymentStatus.values());
+                model.addAttribute("ppwStatuses", PPWStatus.values());
+
+                // Selected Values
+                model.addAttribute("contractorId", contractorId);
+                model.addAttribute("clientId", clientId);
+                model.addAttribute("paymentMethodId", paymentMethodId);
+                model.addAttribute("workOrderNumber", workOrderNumber);
+                model.addAttribute("requesterName", requesterName);
+                model.addAttribute("priority", priority);
+                model.addAttribute("status", status);
+                model.addAttribute("paymentStatus", paymentStatus);
+                model.addAttribute("ppwUpdateStatus", ppwUpdateStatus);
+        }
 }
