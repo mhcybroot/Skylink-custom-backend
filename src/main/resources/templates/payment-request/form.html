@@ -43,9 +43,12 @@
                                         <div class="input-group">
                                             <span class="input-group-text bg-light border-0"><i
                                                     class="fas fa-hard-hat text-secondary"></i></span>
-                                            <input type="text" class="form-control bg-light border-0"
-                                                th:field="*{contractorName}" placeholder="e.g. ABC Construction"
+                                            <select class="form-select bg-light border-0" th:field="*{contractor}"
                                                 required>
+                                                <option value="">-- Select Contractor --</option>
+                                                <option th:each="c : ${activeContractors}" th:value="${c.id}"
+                                                    th:text="${c.name}"></option>
+                                            </select>
                                         </div>
                                     </div>
 
@@ -68,12 +71,15 @@
 
                                     <div class="col-md-6">
                                         <label class="form-label fw-bold text-secondary text-uppercase small">Payment
-                                            Method ID</label>
+                                            Method</label>
                                         <div class="input-group">
                                             <span class="input-group-text bg-light border-0"><i
                                                     class="fas fa-credit-card text-secondary"></i></span>
-                                            <input type="text" class="form-control bg-light border-0"
-                                                th:field="*{paymentMethodId}" placeholder="e.g. Zelle / CashApp">
+                                            <select class="form-select bg-light border-0" th:field="*{paymentMethod}">
+                                                <option value="">-- Select Method --</option>
+                                                <option th:each="pm : ${activePaymentMethods}" th:value="${pm.id}"
+                                                    th:text="${pm.methodName}"></option>
+                                            </select>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
@@ -82,8 +88,11 @@
                                         <div class="input-group">
                                             <span class="input-group-text bg-light border-0"><i
                                                     class="fas fa-code text-secondary"></i></span>
-                                            <input type="text" class="form-control bg-light border-0"
-                                                th:field="*{clientCode}" placeholder="Optional">
+                                            <select class="form-select bg-light border-0" th:field="*{client}">
+                                                <option value="">-- Select Client --</option>
+                                                <option th:each="cl : ${activeClients}" th:value="${cl.id}"
+                                                    th:text="${cl.name + ' (' + cl.code + ')'}"></option>
+                                            </select>
                                         </div>
                                     </div>
 

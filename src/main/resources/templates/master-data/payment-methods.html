@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <title>Manage Payment Methods</title>
+</head>
+
+<body>
+    <div th:replace="~{layout :: layout(~{::section}, ~{::script}, 'master-data-methods')}">
+        <section>
+            <div class="row justify-content-center">
+                <div class="col-lg-10">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2 class="fw-bold text-gradient-primary">Manage Payment Methods</h2>
+                    </div>
+
+                    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+                        <span th:text="${successMessage}"></span>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <span th:text="${errorMessage}"></span>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+
+                    <div class="card shadow-sm mb-4 border-0">
+                        <div class="card-header bg-light border-bottom-0 py-3">
+                            <h6 class="mb-0 fw-bold text-primary"><i class="fas fa-plus-circle me-2"></i>Add New Method
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <form th:action="@{/master-data/payment-methods}" th:object="${newMethod}" method="post"
+                                class="row g-3 align-items-end">
+                                <div class="col-md-5">
+                                    <label class="form-label small fw-bold text-secondary">Method Name</label>
+                                    <input type="text" class="form-control" th:field="*{methodName}" required
+                                        placeholder="Name (e.g. Zelle)">
+                                </div>
+                                <div class="col-md-5">
+                                    <label class="form-label small fw-bold text-secondary">Description
+                                        (Optional)</label>
+                                    <input type="text" class="form-control" th:field="*{description}"
+                                        placeholder="Description">
+                                </div>
+                                <div class="col-md-2">
+                                    <button type="submit" class="btn btn-primary w-100"><i class="fas fa-save me-1"></i>
+                                        Save</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="card shadow-sm border-0">
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="bg-light text-uppercase small text-secondary">
+                                        <tr>
+                                            <th class="ps-4">ID</th>
+                                            <th>Method Name</th>
+                                            <th>Description</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr th:each="m : ${methods}">
+                                            <td class="ps-4 fw-bold" th:text="${m.id}"></td>
+                                            <td class="fw-bold" th:text="${m.methodName}"></td>
+                                            <td th:text="${m.description}"></td>
+                                            <td>
+                                                <span class="badge bg-success" th:if="${m.active}">Active</span>
+                                                <span class="badge bg-secondary" th:unless="${m.active}">Inactive</span>
+                                            </td>
+                                        </tr>
+                                        <tr th:if="${#lists.isEmpty(methods)}">
+                                            <td colspan="4" class="text-center py-4 text-muted">No methods found.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <script></script>
+    </div>
+</body>
+
+</html>

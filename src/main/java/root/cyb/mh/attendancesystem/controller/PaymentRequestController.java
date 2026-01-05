@@ -26,6 +26,13 @@ public class PaymentRequestController {
     private PaymentRequestService paymentRequestService;
 
     @Autowired
+    private root.cyb.mh.attendancesystem.repository.ContractorRepository contractorRepository;
+    @Autowired
+    private root.cyb.mh.attendancesystem.repository.ClientRepository clientRepository;
+    @Autowired
+    private root.cyb.mh.attendancesystem.repository.PaymentMethodRepository paymentMethodRepository;
+
+    @Autowired
     private UserRepository userRepository;
 
     @Autowired
@@ -73,6 +80,12 @@ public class PaymentRequestController {
     public String newRequestForm(Model model) {
         model.addAttribute("paymentRequest", new PaymentRequest());
         model.addAttribute("priorities", PaymentPriority.values());
+
+        // Master Data
+        model.addAttribute("activeContractors", contractorRepository.findByActiveTrue());
+        model.addAttribute("activeClients", clientRepository.findByActiveTrue());
+        model.addAttribute("activePaymentMethods", paymentMethodRepository.findByActiveTrue());
+
         return "payment-request/form";
     }
 

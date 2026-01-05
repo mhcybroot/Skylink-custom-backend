@@ -44,12 +44,24 @@ public class PaymentRequest {
     @Column(nullable = false)
     private BigDecimal amount;
 
-    @Column(nullable = false)
+    // @Column(nullable = false) - Deprecated
     private String contractorName;
 
-    private String paymentMethodId; // Optional, e.g., CashApp ID, Zelle
+    @ManyToOne
+    @JoinColumn(name = "contractor_id")
+    private Contractor contractor;
 
-    private String clientCode;
+    private String paymentMethodId; // Optional, e.g., CashApp ID, Zelle -> Deprecated
+
+    @ManyToOne
+    @JoinColumn(name = "payment_method_ref_id")
+    private PaymentMethod paymentMethod;
+
+    private String clientCode; // -> Deprecated
+
+    @ManyToOne
+    @JoinColumn(name = "client_id")
+    private Client client;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

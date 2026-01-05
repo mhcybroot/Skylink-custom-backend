@@ -79,6 +79,10 @@
                     th:classappend="${activeLink == 'payment-requests'} ? 'active'">
                     <i class="fas fa-money-check-alt me-2"></i> Payment Requests
                 </a>
+                <a href="/master-data/contractors" class="list-group-item list-group-item-action"
+                    th:classappend="${activeLink == 'master-data-contractors'} ? 'active'">
+                    <i class="fas fa-hard-hat me-2"></i> Contractors
+                </a>
                 <a href="/employee/change-password" class="list-group-item list-group-item-action"
                     th:classappend="${activeLink == 'change-password'} ? 'active'">
                     <i class="fas fa-key me-2"></i> Change Password
@@ -103,6 +107,18 @@
             <!-- Management Section (Admin & HR) -->
             <div sec:authorize="hasAnyRole('ADMIN', 'HR')">
                 <div class="sidebar-heading border-bottom bg-dark text-muted small py-2">MANAGEMENT</div>
+                <a href="/master-data/contractors" class="list-group-item list-group-item-action"
+                    th:classappend="${activeLink == 'master-data-contractors'} ? 'active'">
+                    <i class="fas fa-hard-hat me-2"></i> Contractors
+                </a>
+                <a href="/master-data/clients" class="list-group-item list-group-item-action"
+                    th:classappend="${activeLink == 'master-data-clients'} ? 'active'">
+                    <i class="fas fa-briefcase me-2"></i> Clients
+                </a>
+                <a href="/master-data/payment-methods" class="list-group-item list-group-item-action"
+                    th:classappend="${activeLink == 'master-data-methods'} ? 'active'">
+                    <i class="fas fa-wallet me-2"></i> Payment Types
+                </a>
                 <a href="/leave/manage" class="list-group-item list-group-item-action"
                     th:classappend="${activeLink == 'leave-manage'} ? 'active'">
                     <i class="fas fa-envelope-open-text me-2"></i> Leave Requests
