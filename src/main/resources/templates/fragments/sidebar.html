@@ -46,7 +46,7 @@
                     <i class="fas fa-money-check-alt me-2"></i> Payment Requests
                 </a>
                 <a href="/admin/payment-dashboard" class="list-group-item list-group-item-action"
-                    th:classappend="${activeLink == 'payment-dashboard'} ? 'active'">
+                    sec:authorize="hasRole('ADMIN')" th:classappend="${activeLink == 'payment-dashboard'} ? 'active'">
                     <i class="fas fa-chart-pie me-2"></i> Payment Dashboard
                 </a>
 
@@ -125,8 +125,8 @@
                 </a>
             </div>
 
-            <!-- History & Reports (Admin & HR) -->
-            <div sec:authorize="hasAnyRole('ADMIN', 'HR')">
+            <!-- History & Reports (Admin Only) -->
+            <div sec:authorize="hasRole('ADMIN')">
                 <div class="sidebar-heading border-bottom bg-dark text-muted small py-2">HISTORY</div>
                 <a href="/admin/history/daily" class="list-group-item list-group-item-action"
                     th:classappend="${activeLink == 'history-daily'} ? 'active'">

@@ -10,6 +10,7 @@ import root.cyb.mh.attendancesystem.service.PaymentDashboardService;
 
 @Controller
 @RequestMapping("/admin/payment-dashboard")
+@org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
 public class PaymentDashboardController {
 
     @Autowired

@@ -22,7 +22,7 @@ import java.util.List;
 
 @Controller
 @RequestMapping("/admin/history")
-@PreAuthorize("hasAnyRole('ADMIN', 'HR')")
+@PreAuthorize("hasRole('ADMIN')")
 public class PaymentHistoryController {
 
         @Autowired
