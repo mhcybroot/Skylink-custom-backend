@@ -88,60 +88,222 @@
                     </div>
                 </div>
 
-                <!-- Row 2: Detailed Stats & Charts (2 Cols) -->
+                <!-- Row 1.5: Financial Deep Dive (4 Widgets) -->
+                <div class="row g-4 mb-4 fade-in-up" style="animation-delay: 0.15s;">
+                    <div class="col-md-6 col-xl-3">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-body">
+                                <h6 class="text-uppercase text-muted small fw-bold">Paid This Month</h6>
+                                <h4 class="fw-bold text-success mb-0" th:text="${'$' + stats.paidThisMonth}">$0.00</h4>
+                                <small class="text-muted">Month to Date</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-xl-3">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-body">
+                                <h6 class="text-uppercase text-muted small fw-bold">Avg Request Size</h6>
+                                <h4 class="fw-bold text-primary mb-0" th:text="${'$' + stats.averageRequestAmount}">
+                                    $0.00</h4>
+                                <small class="text-muted">Historical Average</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-xl-3">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-body">
+                                <h6 class="text-uppercase text-muted small fw-bold">Approved Liability</h6>
+                                <h4 class="fw-bold text-warning mb-0" th:text="${'$' + stats.unpaidApprovedLiability}">
+                                    $0.00</h4>
+                                <small class="text-muted">Approved but Unpaid</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-xl-3">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <h6 class="text-uppercase text-muted small fw-bold">Rejection Rate</h6>
+                                    <span class="badge bg-danger rounded-pill"
+                                        th:text="${#numbers.formatDecimal(stats.rejectionRate, 1, 1) + '%'}">0.0%</span>
+                                </div>
+                                <div class="progress mt-2" style="height: 6px;">
+                                    <div class="progress-bar bg-danger" role="progressbar"
+                                        th:style="'width: ' + ${stats.rejectionRate} + '%'"></div>
+                                </div>
+                                <small class="text-muted mt-2 d-block">Requests Rejected</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Row 2: Trends (2 Charts) -->
                 <div class="row g-4 mb-4 fade-in-up" style="animation-delay: 0.2s;">
-                    <!-- Pending Overview -->
-                    <div class="col-md-6 col-lg-4">
+                    <div class="col-lg-8">
                         <div class="card border-0 shadow-sm h-100">
                             <div class="card-header bg-transparent border-0 py-3">
-                                <h6 class="mb-0 fw-bold"><i class="fas fa-clock me-2 text-warning"></i>Pending Overview
-                                </h6>
+                                <h6 class="mb-0 fw-bold"><i class="fas fa-chart-line me-2 text-primary"></i>6-Month
+                                    Spending Trend</h6>
                             </div>
                             <div class="card-body">
-                                <div class="row text-center mb-4">
-                                    <div class="col-6 border-end">
-                                        <div class="text-muted small text-uppercase">Count</div>
-                                        <div class="fs-4 fw-bold text-dark" th:text="${stats.pendingRequests}">0</div>
-                                    </div>
-                                    <div class="col-6">
-                                        <div class="text-muted small text-uppercase">Value</div>
-                                        <div class="fs-4 fw-bold text-dark" th:text="${'$' + stats.pendingAmount}">$0.00
-                                        </div>
-                                    </div>
-                                </div>
-                                <hr class="opacity-25 my-3">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <span class="small text-muted">Total Paid (All Time)</span>
-                                    <span class="fw-bold text-success"
-                                        th:text="${'$' + stats.totalPaidAmount}">$0.00</span>
-                                </div>
-                                <div class="d-flex justify-content-between align-items-center mt-2">
-                                    <span class="small text-muted">Total Approved (All Time)</span>
-                                    <span class="fw-bold text-primary" th:text="${stats.totalApproved}">0</span>
+                                <div style="height: 300px;">
+                                    <canvas id="spendingTrendChart"></canvas>
                                 </div>
                             </div>
                         </div>
                     </div>
-
-                    <!-- Chart: Status Distribution -->
-                    <div class="col-md-6 col-lg-8">
+                    <div class="col-lg-4">
                         <div class="card border-0 shadow-sm h-100">
-                            <div
-                                class="card-header bg-transparent border-0 py-3 d-flex justify-content-between align-items-center">
-                                <h6 class="mb-0 fw-bold"><i class="fas fa-chart-pie me-2 text-primary"></i>Request
-                                    Status Distribution</h6>
+                            <div class="card-header bg-transparent border-0 py-3">
+                                <h6 class="mb-0 fw-bold"><i class="fas fa-chart-bar me-2 text-info"></i>6-Month Volume
+                                </h6>
                             </div>
                             <div class="card-body">
-                                <div style="height: 250px; width: 100%;">
-                                    <canvas id="statusChart"></canvas>
+                                <div style="height: 300px;">
+                                    <canvas id="volumeTrendChart"></canvas>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Row 3: Recent Activity (Table) -->
-                <div class="card border-0 shadow-sm fade-in-up" style="animation-delay: 0.3s;">
+                <!-- Row 3: Operational Analysis (4 Charts) -->
+                <div class="row g-4 mb-4 fade-in-up" style="animation-delay: 0.25s;">
+                    <div class="col-md-6 col-lg-3">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-header bg-transparent border-0 pt-3">
+                                <h6 class="small fw-bold text-uppercase text-center">Payment Methods</h6>
+                            </div>
+                            <div class="card-body">
+                                <div style="height: 200px;">
+                                    <canvas id="methodChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-header bg-transparent border-0 pt-3">
+                                <h6 class="small fw-bold text-uppercase text-center">Client Costs</h6>
+                            </div>
+                            <div class="card-body">
+                                <div style="height: 200px;">
+                                    <canvas id="clientChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-header bg-transparent border-0 pt-3">
+                                <h6 class="small fw-bold text-uppercase text-center">Requests by Priority</h6>
+                            </div>
+                            <div class="card-body">
+                                <div style="height: 200px;">
+                                    <canvas id="priorityChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-header bg-transparent border-0 pt-3">
+                                <h6 class="small fw-bold text-uppercase text-center">Payment Status</h6>
+                            </div>
+                            <div class="card-body">
+                                <div style="height: 200px;">
+                                    <canvas id="paymentStatusChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Row 4: Leaderboards (3 Tables) -->
+                <div class="row g-4 mb-4 fade-in-up" style="animation-delay: 0.3s;">
+                    <!-- Top Contractors -->
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div
+                                class="card-header bg-transparent border-0 py-3 d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0 fw-bold">Top 5 Contractors</h6>
+                                <span class="badge bg-light text-secondary rounded-pill"
+                                    th:text="${stats.activeContractorsCount + ' Active'}">0 Active</span>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover align-middle mb-0">
+                                    <thead class="bg-light small text-uppercase">
+                                        <tr>
+                                            <th>Name</th>
+                                            <th class="text-end">Total Spend</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr th:each="entry : ${stats.topContractors}">
+                                            <td th:text="${entry.key}"></td>
+                                            <td class="text-end fw-bold text-dark" th:text="${'$' + entry.value}"></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Top Requesters -->
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-header bg-transparent border-0 py-3">
+                                <h6 class="mb-0 fw-bold">Top 5 Requesters</h6>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover align-middle mb-0">
+                                    <thead class="bg-light small text-uppercase">
+                                        <tr>
+                                            <th>User</th>
+                                            <th class="text-end">Requests</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr th:each="entry : ${stats.topRequesters}">
+                                            <td th:text="${entry.key}"></td>
+                                            <td class="text-end fw-bold text-primary" th:text="${entry.value}"></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- High Value Requests -->
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-header bg-transparent border-0 py-3">
+                                <h6 class="mb-0 fw-bold text-danger">High Value Ops (> $1k)</h6>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover align-middle mb-0">
+                                    <thead class="bg-light small text-uppercase">
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Date</th>
+                                            <th class="text-end">Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr th:each="req : ${stats.highValueRequests}">
+                                            <td><a th:href="@{/payment-requests/{id}(id=${req.id})}"
+                                                    th:text="${'#'+req.id}" class="text-decoration-none fw-bold"></a>
+                                            </td>
+                                            <td th:text="${req.requestDate}"></td>
+                                            <td class="text-end fw-bold text-danger" th:text="${'$' + req.amount}"></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Row 5: Recent Activity (Table) -->
+                <div class="card border-0 shadow-sm fade-in-up" style="animation-delay: 0.35s;">
                     <div
                         class="card-header bg-transparent border-bottom py-3 d-flex justify-content-between align-items-center">
                         <h6 class="mb-0 fw-bold text-primary"><i class="fas fa-history me-2"></i>Recent Activity</h6>
@@ -205,41 +367,110 @@
 
         <script th:inline="javascript">
             document.addEventListener('DOMContentLoaded', function () {
-                var ctx = document.getElementById('statusChart').getContext('2d');
-                var approved = /*[[${stats.approvedCount}]]*/ 0;
-                var pending = /*[[${stats.pendingCount}]]*/ 0;
-                var rejected = /*[[${stats.rejectedCount}]]*/ 0;
+                // Common Chart Options
+                const commonOptions = {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 15 } } }
+                };
 
-                var myChart = new Chart(ctx, {
-                    type: 'doughnut',
+                // --- 1. Spending Trend (Line) ---
+                var spendingData = /*[[${stats.monthlySpendingTrend}]]*/ {};
+                new Chart(document.getElementById('spendingTrendChart'), {
+                    type: 'line',
                     data: {
-                        labels: ['Approved', 'Pending', 'Rejected'],
+                        labels: Object.keys(spendingData),
                         datasets: [{
-                            data: [approved, pending, rejected],
-                            backgroundColor: [
-                                '#1cc88a', // Success Green
-                                '#f6c23e', // Warning Yellow
-                                '#e74a3b'  // Danger Red
-                            ],
-                            borderWidth: 0,
-                            hoverOffset: 4
+                            label: 'Approved Spend ($)',
+                            data: Object.values(spendingData),
+                            borderColor: '#4e73df',
+                            backgroundColor: 'rgba(78, 115, 223, 0.05)',
+                            tension: 0.3,
+                            fill: true
                         }]
                     },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                position: 'bottom',
-                                labels: {
-                                    usePointStyle: true,
-                                    padding: 20
-                                }
-                            }
-                        },
-                        cutout: '70%'
-                    }
+                    options: { ...commonOptions, scales: { y: { beginAtZero: true } } }
                 });
+
+                // --- 2. Volume Trend (Bar) ---
+                var volumeData = /*[[${stats.monthlyVolumeTrend}]]*/ {};
+                new Chart(document.getElementById('volumeTrendChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(volumeData),
+                        datasets: [{
+                            label: 'Total Requests',
+                            data: Object.values(volumeData),
+                            backgroundColor: '#36b9cc',
+                            borderRadius: 4
+                        }]
+                    },
+                    options: { ...commonOptions, scales: { y: { beginAtZero: true } } }
+                });
+
+                // --- 3. Payment Methods (Pie) ---
+                var methodData = /*[[${stats.paymentMethodDistribution}]]*/ {};
+                new Chart(document.getElementById('methodChart'), {
+                    type: 'pie',
+                    data: {
+                        labels: Object.keys(methodData),
+                        datasets: [{
+                            data: Object.values(methodData),
+                            backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: commonOptions
+                });
+
+                // --- 4. Client Costs (Doughnut) ---
+                var clientData = /*[[${stats.clientCostDistribution}]]*/ {};
+                new Chart(document.getElementById('clientChart'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: Object.keys(clientData),
+                        datasets: [{
+                            data: Object.values(clientData),
+                            backgroundColor: ['#6f42c1', '#fd7e14', '#0dcaf0', '#20c997', '#e83e8c'],
+                            borderWidth: 0,
+                            cutout: '60%'
+                        }]
+                    },
+                    options: commonOptions
+                });
+
+                // --- 5. Priority (Bar) ---
+                var priorityData = /*[[${stats.priorityDistribution}]]*/ {};
+                new Chart(document.getElementById('priorityChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(priorityData),
+                        datasets: [{
+                            label: 'Count',
+                            data: Object.values(priorityData),
+                            backgroundColor: ['#858796', '#4e73df', '#f6c23e', '#e74a3b'], // Low(Gray), Normal(Blue), High(Yellow), Urgent(Red)
+                            borderRadius: 4
+                        }]
+                    },
+                    options: { ...commonOptions, indexAxis: 'y', plugins: { legend: { display: false } } }
+                });
+
+                // --- 6. Payment Status (Bar) ---
+                var payStatusData = /*[[${stats.paymentStatusDistribution}]]*/ {};
+                new Chart(document.getElementById('paymentStatusChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(payStatusData),
+                        datasets: [{
+                            label: 'Count',
+                            data: Object.values(payStatusData),
+                            backgroundColor: ['#1cc88a', '#f6c23e', '#e74a3b', '#858796'], // PAID, UNPAID...
+                            borderRadius: 4
+                        }]
+                    },
+                    options: { ...commonOptions, plugins: { legend: { display: false } } }
+                });
+
             });
         </script>
     </div>

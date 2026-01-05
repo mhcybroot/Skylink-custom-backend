@@ -21,45 +21,117 @@ public class PaymentDashboardService {
         DashboardStatsDTO stats = new DashboardStatsDTO();
         LocalDate today = LocalDate.now();
 
-        // 1. Requests Today
+        // 1. Key Daily Stats (Existing)
         stats.setRequestsToday(paymentRequestRepository.countByRequestDate(today));
-
-        // 2. Amount Requested Today
         BigDecimal todayAmt = paymentRequestRepository.sumAmountByRequestDate(today);
         stats.setAmountRequestedToday(todayAmt != null ? todayAmt : BigDecimal.ZERO);
-
-        // 3. Pending Requests
-        long pending = paymentRequestRepository.countByStatus(RequestStatus.PENDING);
-        stats.setPendingRequests(pending);
-        stats.setPendingCount(pending); // Chart data
-
-        // 4. Pending Amount
-        BigDecimal pendingAmt = paymentRequestRepository.sumAmountByStatus(RequestStatus.PENDING);
-        stats.setPendingAmount(pendingAmt != null ? pendingAmt : BigDecimal.ZERO);
-
-        // 5. Urgent Pending
+        stats.setMyActionItems(paymentRequestRepository.countPendingRequests());
         stats.setUrgentPendingRequests(
                 paymentRequestRepository.countByStatusAndPriority(RequestStatus.PENDING, PaymentPriority.URGENT));
 
-        // 6. Total Approved
+        // 2. Financials (Enhanced)
+        long pending = paymentRequestRepository.countByStatus(RequestStatus.PENDING);
+        stats.setPendingRequests(pending);
+        stats.setPendingCount(pending);
+
+        BigDecimal pendingAmt = paymentRequestRepository.sumAmountByStatus(RequestStatus.PENDING);
+        stats.setPendingAmount(pendingAmt != null ? pendingAmt : BigDecimal.ZERO);
+
         long approved = paymentRequestRepository.countByStatus(RequestStatus.APPROVED);
         stats.setTotalApproved(approved);
-        stats.setApprovedCount(approved); // Chart data
+        stats.setApprovedCount(approved);
 
-        // 7. Total Paid Amount
         BigDecimal paidAmt = paymentRequestRepository.sumAmountByPaymentStatus(PaymentStatus.PAID);
         stats.setTotalPaidAmount(paidAmt != null ? paidAmt : BigDecimal.ZERO);
 
-        // 8. Recent Activity
-        stats.setRecentActivity(paymentRequestRepository.findTop5ByOrderByLastModifiedDesc());
+        // New Financial Metrics
+        LocalDate startOfMonth = today.withDayOfMonth(1);
+        BigDecimal paidMonth = paymentRequestRepository.sumPaidAmountBetween(startOfMonth, today);
+        stats.setPaidThisMonth(paidMonth != null ? paidMonth : BigDecimal.ZERO);
 
-        // 9. Status Dist (Rejected)
+        BigDecimal avgAmt = paymentRequestRepository.findAverageRequestAmount();
+        stats.setAverageRequestAmount(avgAmt != null ? avgAmt : BigDecimal.ZERO);
+
+        BigDecimal liability = paymentRequestRepository.findUnpaidApprovedLiability();
+        stats.setUnpaidApprovedLiability(liability != null ? liability : BigDecimal.ZERO);
+
+        // 3. Trends & Distributions (New)
         stats.setRejectedCount(paymentRequestRepository.countByStatus(RequestStatus.REJECTED));
 
-        // 10. My Action Items (Ideally filtered by user, currently mapped to all
-        // pending for Admin)
-        stats.setMyActionItems(paymentRequestRepository.countPendingRequests());
+        // Rejection Rate
+        long totalReqs = stats.getApprovedCount() + stats.getRejectedCount() + stats.getPendingCount();
+        stats.setRejectionRate(totalReqs > 0 ? (double) stats.getRejectedCount() / totalReqs * 100 : 0.0);
+
+        // Map Data
+        stats.setMonthlySpendingTrend(
+                convertTrendData(paymentRequestRepository.findMonthlySpendingTrend(today.minusMonths(6))));
+        stats.setMonthlyVolumeTrend(
+                convertTrendCountData(paymentRequestRepository.findMonthlyVolumeTrend(today.minusMonths(6))));
+
+        stats.setPaymentMethodDistribution(convertCountData(paymentRequestRepository.countByPaymentMethodGroup()));
+        stats.setClientCostDistribution(convertAmountData(paymentRequestRepository.sumAmountByClientGroup()));
+        stats.setPriorityDistribution(convertCountData(paymentRequestRepository.countByPriorityGroup()));
+        stats.setPpwStatusDistribution(convertCountData(paymentRequestRepository.countByPpwStatusGroup()));
+        stats.setPaymentStatusDistribution(convertCountData(paymentRequestRepository.countByPaymentStatusGroup()));
+
+        // 4. Leaderboards & Activity
+        stats.setRecentActivity(paymentRequestRepository.findTop5ByOrderByLastModifiedDesc());
+        stats.setTopContractors(convertAmountData(paymentRequestRepository
+                .findTopContractorsBySpend(org.springframework.data.domain.PageRequest.of(0, 5))));
+        stats.setTopRequesters(convertCountData(
+                paymentRequestRepository.findTopRequesters(org.springframework.data.domain.PageRequest.of(0, 5))));
+        stats.setHighValueRequests(
+                paymentRequestRepository.findTop5ByAmountGreaterThanOrderByRequestDateDesc(new BigDecimal("1000")));
+        stats.setActiveContractorsCount(paymentRequestRepository.countActiveContractors());
+        stats.setInactiveContractorsCount(paymentRequestRepository.countInactiveContractors());
 
         return stats;
+    }
+
+    // Helpers
+    private java.util.Map<String, BigDecimal> convertAmountData(java.util.List<Object[]> data) {
+        java.util.Map<String, BigDecimal> map = new java.util.LinkedHashMap<>();
+        for (Object[] row : data) {
+            String key = row[0] != null ? row[0].toString() : "Unknown";
+            BigDecimal value = (BigDecimal) row[1];
+            map.put(key, value);
+        }
+        return map;
+    }
+
+    private java.util.Map<String, Long> convertCountData(java.util.List<Object[]> data) {
+        java.util.Map<String, Long> map = new java.util.LinkedHashMap<>();
+        for (Object[] row : data) {
+            String key = row[0] != null ? row[0].toString() : "Unknown";
+            Long value = (Long) row[1];
+            map.put(key, value);
+        }
+        return map;
+    }
+
+    // Specialized for Year, Month, Sum schema
+    private java.util.Map<String, BigDecimal> convertTrendData(java.util.List<Object[]> data) {
+        java.util.Map<String, BigDecimal> map = new java.util.LinkedHashMap<>();
+        for (Object[] row : data) {
+            int year = (int) row[0];
+            int month = (int) row[1];
+            BigDecimal value = (BigDecimal) row[2];
+            String key = java.time.Month.of(month).name().substring(0, 3) + " " + year;
+            map.put(key, value);
+        }
+        return map;
+    }
+
+    // Specialized for Year, Month, Count schema
+    private java.util.Map<String, Long> convertTrendCountData(java.util.List<Object[]> data) {
+        java.util.Map<String, Long> map = new java.util.LinkedHashMap<>();
+        for (Object[] row : data) {
+            int year = (int) row[0];
+            int month = (int) row[1];
+            Long value = (Long) row[2];
+            String key = java.time.Month.of(month).name().substring(0, 3) + " " + year;
+            map.put(key, value);
+        }
+        return map;
     }
 }

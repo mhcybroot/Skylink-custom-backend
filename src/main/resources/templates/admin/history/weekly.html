@@ -55,158 +55,157 @@
                                 <span th:text="${totalAmount}">0.00</span>
                             </h3>
                         </div>
-                        <!-- Filters -->
-                        <div class="card border-0 shadow-sm mb-4">
-                            <div class="card-header bg-light py-2" role="button" data-bs-toggle="collapse"
-                                data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <h6 class="mb-0 text-secondary fw-bold"><i class="fas fa-filter me-2"></i>Advanced
-                                        Filters</h6>
-                                    <i class="fas fa-chevron-down small text-muted"></i>
-                                </div>
-                            </div>
-                            <div class="collapse show" id="filterCollapse">
-                                <div class="card-body">
-                                    <form th:action="@{/admin/history/weekly}" method="get">
-                                        <input type="hidden" name="startDate" th:value="${startDate}">
-                                        <div class="row g-3">
-                                            <div class="col-md-3">
-                                                <label class="form-label small fw-bold text-muted">Contractor</label>
-                                                <select name="contractorId" class="form-select form-select-sm">
-                                                    <option value="">All Contractors</option>
-                                                    <option th:each="c : ${activeContractors}" th:value="${c.id}"
-                                                        th:text="${c.name}" th:selected="${c.id == contractorId}">
-                                                    </option>
-                                                </select>
-                                            </div>
-                                            <div class="col-md-3">
-                                                <label class="form-label small fw-bold text-muted">Client</label>
-                                                <select name="clientId" class="form-select form-select-sm">
-                                                    <option value="">All Clients</option>
-                                                    <option th:each="c : ${activeClients}" th:value="${c.id}"
-                                                        th:text="${c.code + ' - ' + c.name}"
-                                                        th:selected="${c.id == clientId}"></option>
-                                                </select>
-                                            </div>
-                                            <div class="col-md-3">
-                                                <label class="form-label small fw-bold text-muted">Payment
-                                                    Method</label>
-                                                <select name="paymentMethodId" class="form-select form-select-sm">
-                                                    <option value="">All Methods</option>
-                                                    <option th:each="p : ${activePaymentMethods}" th:value="${p.id}"
-                                                        th:text="${p.methodName}"
-                                                        th:selected="${p.id == paymentMethodId}"></option>
-                                                </select>
-                                            </div>
-                                            <div class="col-md-3">
-                                                <label class="form-label small fw-bold text-muted">Work Order</label>
-                                                <input type="text" name="workOrderNumber"
-                                                    class="form-control form-control-sm" placeholder="Search WO#"
-                                                    th:value="${workOrderNumber}">
-                                            </div>
-                                            <div class="col-md-3">
-                                                <label class="form-label small fw-bold text-muted">Requester</label>
-                                                <input type="text" name="requesterName"
-                                                    class="form-control form-control-sm" placeholder="Name or Username"
-                                                    th:value="${requesterName}">
-                                            </div>
-                                            <div class="col-md-3">
-                                                <label class="form-label small fw-bold text-muted">Priority</label>
-                                                <select name="priority" class="form-select form-select-sm">
-                                                    <option value="">All Priorities</option>
-                                                    <option th:each="p : ${priorities}" th:value="${p}" th:text="${p}"
-                                                        th:selected="${p == priority}"></option>
-                                                </select>
-                                            </div>
-                                            <div class="col-md-3">
-                                                <label class="form-label small fw-bold text-muted">Approval
-                                                    Status</label>
-                                                <select name="status" class="form-select form-select-sm">
-                                                    <option value="">All Statuses</option>
-                                                    <option th:each="s : ${requestStatuses}" th:value="${s}"
-                                                        th:text="${s}" th:selected="${s == status}"></option>
-                                                </select>
-                                            </div>
-                                            <div class="col-md-3">
-                                                <label class="form-label small fw-bold text-muted">Payment
-                                                    Status</label>
-                                                <select name="paymentStatus" class="form-select form-select-sm">
-                                                    <option value="">All Payment Statuses</option>
-                                                    <option th:each="ps : ${paymentStatuses}" th:value="${ps}"
-                                                        th:text="${ps}" th:selected="${ps == paymentStatus}"></option>
-                                                </select>
-                                            </div>
-                                            <div class="col-md-3">
-                                                <label class="form-label small fw-bold text-muted">PPW Status</label>
-                                                <select name="ppwUpdateStatus" class="form-select form-select-sm">
-                                                    <option value="">All PPW Statuses</option>
-                                                    <option th:each="ppw : ${ppwStatuses}" th:value="${ppw}"
-                                                        th:text="${ppw}" th:selected="${ppw == ppwUpdateStatus}">
-                                                    </option>
-                                                </select>
-                                            </div>
-                                            <div class="col-md-12 d-flex justify-content-end gap-2 mt-3">
-                                                <a th:href="@{/admin/history/weekly(startDate=${startDate})}"
-                                                    class="btn btn-sm btn-outline-secondary">Clear Filters</a>
-                                                <button type="submit" class="btn btn-sm btn-primary px-4">Apply
-                                                    Filters</button>
-                                            </div>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
+            </div>
 
-                <div class="card border-0 shadow-sm">
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0">
-                                <thead class="bg-light text-uppercase text-secondary small">
-                                    <tr>
-                                        <th class="ps-4">ID</th>
-                                        <th>Date</th>
-                                        <th>Work Order</th>
-                                        <th>Amount</th>
-                                        <th>Requester</th>
-                                        <th>Contractor</th>
-                                        <th>Status</th>
-                                        <th>Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr th:each="req : ${requests}">
-                                        <td class="ps-4 fw-bold" th:text="${'#' + req.id}"></td>
-                                        <td th:text="${req.requestDate}"></td>
-                                        <td th:text="${req.workOrderNumber}"></td>
-                                        <td class="fw-bold text-success" th:text="${'$' + req.amount}"></td>
-                                        <td
-                                            th:text="${req.requester != null ? req.requester.username : (req.employeeRequester != null ? req.employeeRequester.name : 'Unknown')}">
-                                        </td>
-                                        <td th:text="${req.contractorName}"></td>
-                                        <td>
-                                            <span th:text="${req.status}"
-                                                th:class="${'badge rounded-pill ' + 
+            <!-- Filters -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-light py-2" role="button" data-bs-toggle="collapse"
+                    data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 text-secondary fw-bold"><i class="fas fa-filter me-2"></i>Advanced
+                            Filters</h6>
+                        <i class="fas fa-chevron-down small text-muted"></i>
+                    </div>
+                </div>
+                <div class="collapse show" id="filterCollapse">
+                    <div class="card-body">
+                        <form th:action="@{/admin/history/weekly}" method="get">
+                            <input type="hidden" name="startDate" th:value="${startDate}">
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label class="form-label small fw-bold text-muted">Contractor</label>
+                                    <select name="contractorId" class="form-select form-select-sm">
+                                        <option value="">All Contractors</option>
+                                        <option th:each="c : ${activeContractors}" th:value="${c.id}"
+                                            th:text="${c.name}" th:selected="${c.id == contractorId}">
+                                        </option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small fw-bold text-muted">Client</label>
+                                    <select name="clientId" class="form-select form-select-sm">
+                                        <option value="">All Clients</option>
+                                        <option th:each="c : ${activeClients}" th:value="${c.id}"
+                                            th:text="${c.code + ' - ' + c.name}" th:selected="${c.id == clientId}">
+                                        </option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small fw-bold text-muted">Payment
+                                        Method</label>
+                                    <select name="paymentMethodId" class="form-select form-select-sm">
+                                        <option value="">All Methods</option>
+                                        <option th:each="p : ${activePaymentMethods}" th:value="${p.id}"
+                                            th:text="${p.methodName}" th:selected="${p.id == paymentMethodId}"></option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small fw-bold text-muted">Work Order</label>
+                                    <input type="text" name="workOrderNumber" class="form-control form-control-sm"
+                                        placeholder="Search WO#" th:value="${workOrderNumber}">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small fw-bold text-muted">Requester</label>
+                                    <input type="text" name="requesterName" class="form-control form-control-sm"
+                                        placeholder="Name or Username" th:value="${requesterName}">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small fw-bold text-muted">Priority</label>
+                                    <select name="priority" class="form-select form-select-sm">
+                                        <option value="">All Priorities</option>
+                                        <option th:each="p : ${priorities}" th:value="${p}" th:text="${p}"
+                                            th:selected="${p == priority}"></option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small fw-bold text-muted">Approval
+                                        Status</label>
+                                    <select name="status" class="form-select form-select-sm">
+                                        <option value="">All Statuses</option>
+                                        <option th:each="s : ${requestStatuses}" th:value="${s}" th:text="${s}"
+                                            th:selected="${s == status}"></option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small fw-bold text-muted">Payment
+                                        Status</label>
+                                    <select name="paymentStatus" class="form-select form-select-sm">
+                                        <option value="">All Payment Statuses</option>
+                                        <option th:each="ps : ${paymentStatuses}" th:value="${ps}" th:text="${ps}"
+                                            th:selected="${ps == paymentStatus}"></option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small fw-bold text-muted">PPW Status</label>
+                                    <select name="ppwUpdateStatus" class="form-select form-select-sm">
+                                        <option value="">All PPW Statuses</option>
+                                        <option th:each="ppw : ${ppwStatuses}" th:value="${ppw}" th:text="${ppw}"
+                                            th:selected="${ppw == ppwUpdateStatus}">
+                                        </option>
+                                    </select>
+                                </div>
+                                <div class="col-md-12 d-flex justify-content-end gap-2 mt-3">
+                                    <a th:href="@{/admin/history/weekly(startDate=${startDate})}"
+                                        class="btn btn-sm btn-outline-secondary">Clear Filters</a>
+                                    <button type="submit" class="btn btn-sm btn-primary px-4">Apply
+                                        Filters</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light text-uppercase text-secondary small">
+                                <tr>
+                                    <th class="ps-4">ID</th>
+                                    <th>Date</th>
+                                    <th>Work Order</th>
+                                    <th>Amount</th>
+                                    <th>Requester</th>
+                                    <th>Contractor</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="req : ${requests}">
+                                    <td class="ps-4 fw-bold" th:text="${'#' + req.id}"></td>
+                                    <td th:text="${req.requestDate}"></td>
+                                    <td th:text="${req.workOrderNumber}"></td>
+                                    <td class="fw-bold text-success" th:text="${'$' + req.amount}"></td>
+                                    <td
+                                        th:text="${req.requester != null ? req.requester.username : (req.employeeRequester != null ? req.employeeRequester.name : 'Unknown')}">
+                                    </td>
+                                    <td th:text="${req.contractorName}"></td>
+                                    <td>
+                                        <span th:text="${req.status}"
+                                            th:class="${'badge rounded-pill ' + 
                                             (req.status.name() == 'APPROVED' ? 'bg-success' : 
                                             (req.status.name() == 'REJECTED' ? 'bg-danger' : 'bg-warning text-dark'))}">
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <a th:href="@{/payment-requests/{id}(id=${req.id})}"
-                                                class="btn btn-sm btn-outline-primary rounded-pill">View</a>
-                                        </td>
-                                    </tr>
-                                    <tr th:if="${#lists.isEmpty(requests)}">
-                                        <td colspan="8" class="text-center py-4 text-muted">No requests found for this
-                                            week.
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a th:href="@{/payment-requests/{id}(id=${req.id})}"
+                                            class="btn btn-sm btn-outline-primary rounded-pill">View</a>
+                                    </td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(requests)}">
+                                    <td colspan="8" class="text-center py-4 text-muted">No requests found for this
+                                        week.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
+            </div>
         </section>
         <script></script>
     </div>

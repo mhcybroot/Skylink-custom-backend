@@ -54,4 +54,67 @@ public interface PaymentRequestRepository extends JpaRepository<PaymentRequest, 
 
         List<PaymentRequest> findByRequestDateBetweenOrderByRequestDateDesc(java.time.LocalDate startDate,
                         java.time.LocalDate endDate);
+
+        // --- NEW AGGREGATIONS FOR DASHBOARD ENHANCEMENTS ---
+
+        // 1. Financials
+        @org.springframework.data.jpa.repository.Query("SELECT SUM(p.amount) FROM PaymentRequest p WHERE p.paymentStatus = 'PAID' AND p.requestDate BETWEEN :startDate AND :endDate")
+        java.math.BigDecimal sumPaidAmountBetween(java.time.LocalDate startDate, java.time.LocalDate endDate);
+
+        @org.springframework.data.jpa.repository.Query("SELECT AVG(p.amount) FROM PaymentRequest p")
+        java.math.BigDecimal findAverageRequestAmount();
+
+        @org.springframework.data.jpa.repository.Query("SELECT SUM(p.amount) FROM PaymentRequest p WHERE p.status = 'APPROVED' AND p.paymentStatus != 'PAID'")
+        java.math.BigDecimal findUnpaidApprovedLiability();
+
+        // 2. Trends (Last 6 Months)
+        @org.springframework.data.jpa.repository.Query("SELECT extract(year from p.requestDate), extract(month from p.requestDate), SUM(p.amount) "
+                        +
+                        "FROM PaymentRequest p WHERE p.status = 'APPROVED' AND p.requestDate >= :startDate " +
+                        "GROUP BY extract(year from p.requestDate), extract(month from p.requestDate) " +
+                        "ORDER BY extract(year from p.requestDate), extract(month from p.requestDate)")
+        List<Object[]> findMonthlySpendingTrend(java.time.LocalDate startDate);
+
+        @org.springframework.data.jpa.repository.Query("SELECT extract(year from p.requestDate), extract(month from p.requestDate), COUNT(p) "
+                        +
+                        "FROM PaymentRequest p WHERE p.requestDate >= :startDate " +
+                        "GROUP BY extract(year from p.requestDate), extract(month from p.requestDate) " +
+                        "ORDER BY extract(year from p.requestDate), extract(month from p.requestDate)")
+        List<Object[]> findMonthlyVolumeTrend(java.time.LocalDate startDate);
+
+        // 3. Operational Analysis
+        @org.springframework.data.jpa.repository.Query("SELECT p.paymentMethod.methodName, COUNT(p) FROM PaymentRequest p WHERE p.paymentMethod IS NOT NULL GROUP BY p.paymentMethod.methodName")
+        List<Object[]> countByPaymentMethodGroup();
+
+        @org.springframework.data.jpa.repository.Query("SELECT p.client.name, SUM(p.amount) FROM PaymentRequest p WHERE p.client IS NOT NULL GROUP BY p.client.name")
+        List<Object[]> sumAmountByClientGroup();
+
+        @org.springframework.data.jpa.repository.Query("SELECT p.priority, COUNT(p) FROM PaymentRequest p GROUP BY p.priority")
+        List<Object[]> countByPriorityGroup();
+
+        @org.springframework.data.jpa.repository.Query("SELECT p.ppwUpdateStatus, COUNT(p) FROM PaymentRequest p WHERE p.ppwUpdateStatus IS NOT NULL GROUP BY p.ppwUpdateStatus")
+        List<Object[]> countByPpwStatusGroup();
+
+        @org.springframework.data.jpa.repository.Query("SELECT p.paymentStatus, COUNT(p) FROM PaymentRequest p WHERE p.paymentStatus IS NOT NULL GROUP BY p.paymentStatus")
+        List<Object[]> countByPaymentStatusGroup();
+
+        // 4. Leaderboards
+        @org.springframework.data.jpa.repository.Query("SELECT p.contractor.name, SUM(p.amount) FROM PaymentRequest p WHERE p.contractor IS NOT NULL GROUP BY p.contractor.name ORDER BY SUM(p.amount) DESC")
+        List<Object[]> findTopContractorsBySpend(org.springframework.data.domain.Pageable pageable);
+
+        @org.springframework.data.jpa.repository.Query("SELECT COALESCE(r.username, e.name), COUNT(p) " +
+                        "FROM PaymentRequest p " +
+                        "LEFT JOIN p.requester r " +
+                        "LEFT JOIN p.employeeRequester e " +
+                        "GROUP BY r.username, e.name " +
+                        "ORDER BY COUNT(p) DESC")
+        List<Object[]> findTopRequesters(org.springframework.data.domain.Pageable pageable);
+
+        List<PaymentRequest> findTop5ByAmountGreaterThanOrderByRequestDateDesc(java.math.BigDecimal amount);
+
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(c) FROM Contractor c WHERE c.active = true")
+        long countActiveContractors();
+
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(c) FROM Contractor c WHERE c.active = false")
+        long countInactiveContractors();
 }
