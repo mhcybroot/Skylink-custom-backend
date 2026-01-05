@@ -204,37 +204,55 @@ public class DataImportExportService {
 
     // --- PAYMENT REQUEST EXPORTS ---
 
-    public void exportPaymentRequestsToCsv(PrintWriter writer, List<PaymentRequest> requests) throws IOException {
-        CSVPrinter printer = new CSVPrinter(writer, CSVFormat.DEFAULT.builder()
-                .setHeader("Date of Request", "Requested By", "Work Order", "Amount", "Contractor", "Method ID",
-                        "Client Code", "Priority", "Approval Authority", "Reason", "Status", "PPW Update")
-                .build());
+    // Key -> Header Name
+    private static final java.util.LinkedHashMap<String, String> EXPORT_COLUMNS = new java.util.LinkedHashMap<>();
+    static {
+        EXPORT_COLUMNS.put("date", "Date of Request");
+        EXPORT_COLUMNS.put("requester", "Requested By");
+        EXPORT_COLUMNS.put("workOrder", "Work Order");
+        EXPORT_COLUMNS.put("amount", "Amount");
+        EXPORT_COLUMNS.put("contractor", "Contractor");
+        EXPORT_COLUMNS.put("method", "Method ID");
+        EXPORT_COLUMNS.put("client", "Client Code");
+        EXPORT_COLUMNS.put("priority", "Priority");
+        EXPORT_COLUMNS.put("approval", "Approval Authority");
+        EXPORT_COLUMNS.put("reason", "Reason");
+        EXPORT_COLUMNS.put("status", "Status");
+        EXPORT_COLUMNS.put("ppw", "PPW Update");
+    }
+
+    public void exportPaymentRequestsToCsv(PrintWriter writer, List<PaymentRequest> requests,
+            List<String> selectedColumns) throws IOException {
+        // Default to all if empty
+        if (selectedColumns == null || selectedColumns.isEmpty()) {
+            selectedColumns = new java.util.ArrayList<>(EXPORT_COLUMNS.keySet());
+        }
+
+        // Build Header
+        String[] headers = selectedColumns.stream()
+                .map(key -> EXPORT_COLUMNS.getOrDefault(key, key))
+                .toArray(String[]::new);
+
+        CSVPrinter printer = new CSVPrinter(writer, CSVFormat.DEFAULT.builder().setHeader(headers).build());
 
         for (PaymentRequest p : requests) {
-            String requester = p.getRequester() != null ? p.getRequester().getUsername()
-                    : (p.getEmployeeRequester() != null ? p.getEmployeeRequester().getName() : "Unknown");
-            String approver = p.getApprovalAuthority() != null ? p.getApprovalAuthority().getUsername()
-                    : (p.getApprovalEmployee() != null ? p.getApprovalEmployee().getName() : "");
-
-            printer.printRecord(
-                    p.getRequestDate(),
-                    requester,
-                    p.getWorkOrderNumber(),
-                    p.getAmount(),
-                    p.getContractor() != null ? p.getContractor().getName() : "",
-                    p.getPaymentMethod() != null ? p.getPaymentMethod().getMethodName() : "",
-                    p.getClient() != null ? p.getClient().getCode() : "",
-                    p.getPriority(),
-                    approver,
-                    p.getReason(),
-                    p.getStatus(),
-                    p.getPpwUpdateStatus());
+            List<Object> record = new java.util.ArrayList<>();
+            for (String col : selectedColumns) {
+                record.add(getColumnValue(p, col));
+            }
+            printer.printRecord(record);
         }
         printer.flush();
         printer.close();
     }
 
-    public void exportPaymentRequestsToPdf(java.io.OutputStream out, List<PaymentRequest> requests, String title) {
+    public void exportPaymentRequestsToPdf(java.io.OutputStream out, List<PaymentRequest> requests, String title,
+            List<String> selectedColumns) {
+        // Default to all if empty
+        if (selectedColumns == null || selectedColumns.isEmpty()) {
+            selectedColumns = new java.util.ArrayList<>(EXPORT_COLUMNS.keySet());
+        }
+
         try {
             com.lowagie.text.Document document = new com.lowagie.text.Document(com.lowagie.text.PageSize.A4.rotate(),
                     10, 10, 10, 10);
@@ -250,19 +268,21 @@ public class DataImportExportService {
             document.add(titlePara);
 
             // Table
-            com.lowagie.text.pdf.PdfPTable table = new com.lowagie.text.pdf.PdfPTable(12);
+            com.lowagie.text.pdf.PdfPTable table = new com.lowagie.text.pdf.PdfPTable(selectedColumns.size());
             table.setWidthPercentage(100);
-            // Relative widths: Date, ReqBy, WO, Amt, Contr, Meth, Cli, Prio, Auth, Reas,
-            // Stat, PPW
-            table.setWidths(new float[] { 2.5f, 2.5f, 2.5f, 2f, 3f, 2.5f, 1.5f, 2f, 2.5f, 3f, 2f, 2f });
+
+            // Dynamic Widths
+            float[] widths = new float[selectedColumns.size()];
+            for (int i = 0; i < selectedColumns.size(); i++) {
+                widths[i] = getColumnWidth(selectedColumns.get(i));
+            }
+            table.setWidths(widths);
 
             // Header
-            String[] headers = { "Date", "Requester", "WO #", "Amount", "Contractor", "Method", "Client", "Priority",
-                    "Approver", "Reason", "Status", "PPW" };
             com.lowagie.text.Font headFont = com.lowagie.text.FontFactory
                     .getFont(com.lowagie.text.FontFactory.HELVETICA_BOLD, 8);
-
-            for (String h : headers) {
+            for (String col : selectedColumns) {
+                String h = EXPORT_COLUMNS.getOrDefault(col, col);
                 com.lowagie.text.pdf.PdfPCell cell = new com.lowagie.text.pdf.PdfPCell(
                         new com.lowagie.text.Phrase(h, headFont));
                 cell.setHorizontalAlignment(com.lowagie.text.Element.ALIGN_CENTER);
@@ -275,29 +295,79 @@ public class DataImportExportService {
             com.lowagie.text.Font bodyFont = com.lowagie.text.FontFactory
                     .getFont(com.lowagie.text.FontFactory.HELVETICA, 7);
             for (PaymentRequest p : requests) {
-                String requester = p.getRequester() != null ? p.getRequester().getUsername()
-                        : (p.getEmployeeRequester() != null ? p.getEmployeeRequester().getName() : "Unknown");
-                String approver = p.getApprovalAuthority() != null ? p.getApprovalAuthority().getUsername()
-                        : (p.getApprovalEmployee() != null ? p.getApprovalEmployee().getName() : "");
-
-                addCell(table, p.getRequestDate().toString(), bodyFont);
-                addCell(table, requester, bodyFont);
-                addCell(table, p.getWorkOrderNumber(), bodyFont);
-                addCell(table, "$" + p.getAmount(), bodyFont);
-                addCell(table, p.getContractor() != null ? p.getContractor().getName() : "", bodyFont);
-                addCell(table, p.getPaymentMethod() != null ? p.getPaymentMethod().getMethodName() : "", bodyFont);
-                addCell(table, p.getClient() != null ? p.getClient().getCode() : "", bodyFont);
-                addCell(table, String.valueOf(p.getPriority()), bodyFont);
-                addCell(table, approver, bodyFont);
-                addCell(table, p.getReason(), bodyFont);
-                addCell(table, p.getStatus().name(), bodyFont);
-                addCell(table, p.getPpwUpdateStatus() != null ? p.getPpwUpdateStatus().name() : "-", bodyFont);
+                for (String col : selectedColumns) {
+                    addCell(table, getColumnValue(p, col), bodyFont);
+                }
             }
 
             document.add(table);
             document.close();
         } catch (Exception e) {
             throw new RuntimeException("Error generating PDF", e);
+        }
+    }
+
+    private String getColumnValue(PaymentRequest p, String key) {
+        switch (key) {
+            case "date":
+                return p.getRequestDate().toString();
+            case "requester":
+                return p.getRequester() != null ? p.getRequester().getUsername()
+                        : (p.getEmployeeRequester() != null ? p.getEmployeeRequester().getName() : "Unknown");
+            case "workOrder":
+                return p.getWorkOrderNumber();
+            case "amount":
+                return "$" + p.getAmount(); // CSV might prefer raw number, but stick to string for consistency
+            case "contractor":
+                return p.getContractor() != null ? p.getContractor().getName() : "";
+            case "method":
+                return p.getPaymentMethod() != null ? p.getPaymentMethod().getMethodName() : "";
+            case "client":
+                return p.getClient() != null ? p.getClient().getCode() : "";
+            case "priority":
+                return String.valueOf(p.getPriority());
+            case "approval":
+                return p.getApprovalAuthority() != null ? p.getApprovalAuthority().getUsername()
+                        : (p.getApprovalEmployee() != null ? p.getApprovalEmployee().getName() : "");
+            case "reason":
+                return p.getReason();
+            case "status":
+                return p.getStatus().name();
+            case "ppw":
+                return p.getPpwUpdateStatus() != null ? p.getPpwUpdateStatus().name() : "-";
+            default:
+                return "";
+        }
+    }
+
+    private float getColumnWidth(String key) {
+        switch (key) {
+            case "date":
+                return 2.5f;
+            case "requester":
+                return 2.5f;
+            case "workOrder":
+                return 2.5f;
+            case "amount":
+                return 2f;
+            case "contractor":
+                return 3f;
+            case "method":
+                return 2.5f;
+            case "client":
+                return 1.5f;
+            case "priority":
+                return 2f;
+            case "approval":
+                return 2.5f;
+            case "reason":
+                return 3f;
+            case "status":
+                return 2f;
+            case "ppw":
+                return 2f;
+            default:
+                return 2f;
         }
     }
 

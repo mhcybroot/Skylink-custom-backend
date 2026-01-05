@@ -76,7 +76,7 @@
                 </div>
                 <div class="collapse show" id="filterCollapse">
                     <div class="card-body">
-                        <form th:action="@{/admin/history/monthly}" method="get">
+                        <form th:action="@{/admin/history/monthly}" method="get" id="filterForm">
                             <input type="hidden" name="year" th:value="${selectedYear}">
                             <input type="hidden" name="month" th:value="${selectedMonth}">
                             <div class="row g-3">
@@ -148,13 +148,9 @@
                                     </select>
                                 </div>
                                 <div class="col-md-12 d-flex justify-content-end gap-2 mt-3">
-                                    <button type="submit" formaction="/admin/history/export" name="format" value="pdf"
-                                        class="btn btn-sm btn-outline-danger">
-                                        <i class="fas fa-file-pdf me-1"></i> Export PDF
-                                    </button>
-                                    <button type="submit" formaction="/admin/history/export" name="format" value="csv"
-                                        class="btn btn-sm btn-outline-success">
-                                        <i class="fas fa-file-csv me-1"></i> Export CSV
+                                    <button type="button" class="btn btn-sm btn-outline-dark" data-bs-toggle="modal"
+                                        data-bs-target="#exportModal">
+                                        <i class="fas fa-cog me-1"></i> Export Options
                                     </button>
                                     <div class="vr mx-2"></div>
                                     <a th:href="@{/admin/history/monthly(year=${selectedYear}, month=${selectedMonth})}"
@@ -163,6 +159,97 @@
                                 </div>
                             </div>
                         </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Export Modal -->
+            <div class="modal fade" id="exportModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title fw-bold">Export Options</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <h6 class="mb-3 text-muted">Select Columns to Include:</h6>
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="columns" value="date"
+                                            id="col_date" checked form="filterForm">
+                                        <label class="form-check-label" for="col_date">Date of Request</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="columns" value="requester"
+                                            id="col_req" checked form="filterForm">
+                                        <label class="form-check-label" for="col_req">Requested By</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="columns" value="workOrder"
+                                            id="col_wo" checked form="filterForm">
+                                        <label class="form-check-label" for="col_wo">Work Order</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="columns" value="amount"
+                                            id="col_amt" checked form="filterForm">
+                                        <label class="form-check-label" for="col_amt">Amount</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="columns"
+                                            value="contractor" id="col_cont" checked form="filterForm">
+                                        <label class="form-check-label" for="col_cont">Contractor</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="columns" value="method"
+                                            id="col_meth" checked form="filterForm">
+                                        <label class="form-check-label" for="col_meth">Method ID</label>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="columns" value="client"
+                                            id="col_cli" checked form="filterForm">
+                                        <label class="form-check-label" for="col_cli">Client Code</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="columns" value="priority"
+                                            id="col_prio" checked form="filterForm">
+                                        <label class="form-check-label" for="col_prio">Priority</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="columns" value="approval"
+                                            id="col_auth" checked form="filterForm">
+                                        <label class="form-check-label" for="col_auth">Approval Auth</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="columns" value="reason"
+                                            id="col_reas" checked form="filterForm">
+                                        <label class="form-check-label" for="col_reas">Reason</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="columns" value="status"
+                                            id="col_stat" checked form="filterForm">
+                                        <label class="form-check-label" for="col_stat">Status</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="columns" value="ppw"
+                                            id="col_ppw" checked form="filterForm">
+                                        <label class="form-check-label" for="col_ppw">PPW Update</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="submit" form="filterForm" formaction="/admin/history/export" name="format"
+                                value="pdf" class="btn btn-danger">
+                                <i class="fas fa-file-pdf me-1"></i> Export PDF
+                            </button>
+                            <button type="submit" form="filterForm" formaction="/admin/history/export" name="format"
+                                value="csv" class="btn btn-success">
+                                <i class="fas fa-file-csv me-1"></i> Export CSV
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

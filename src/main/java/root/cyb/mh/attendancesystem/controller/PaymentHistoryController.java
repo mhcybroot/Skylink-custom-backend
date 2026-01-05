@@ -39,6 +39,7 @@ public class PaymentHistoryController {
         @RequestMapping("/export")
         public void exportHistory(
                         @RequestParam(defaultValue = "pdf") String format,
+                        @RequestParam(required = false) List<String> columns,
                         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
                         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
                         @RequestParam(required = false) Integer year,
@@ -91,11 +92,12 @@ public class PaymentHistoryController {
                 if ("csv".equalsIgnoreCase(format)) {
                         response.setContentType("text/csv");
                         response.setHeader("Content-Disposition", "attachment; filename=\"payment_history.csv\"");
-                        dataImportExportService.exportPaymentRequestsToCsv(response.getWriter(), requests);
+                        dataImportExportService.exportPaymentRequestsToCsv(response.getWriter(), requests, columns);
                 } else {
                         response.setContentType("application/pdf");
                         response.setHeader("Content-Disposition", "attachment; filename=\"payment_history.pdf\"");
-                        dataImportExportService.exportPaymentRequestsToPdf(response.getOutputStream(), requests, title);
+                        dataImportExportService.exportPaymentRequestsToPdf(response.getOutputStream(), requests, title,
+                                        columns);
                 }
         }
 
