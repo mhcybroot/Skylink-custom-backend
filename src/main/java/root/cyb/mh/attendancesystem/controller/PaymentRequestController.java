@@ -39,7 +39,10 @@ public class PaymentRequestController {
     private root.cyb.mh.attendancesystem.repository.EmployeeRepository employeeRepository;
 
     @GetMapping
-    public String listRequests(@RequestParam(required = false) String view, Model model,
+    public String listRequests(@RequestParam(required = false) String view,
+            @RequestParam(required = false, defaultValue = "lastModified") String sortField,
+            @RequestParam(required = false, defaultValue = "desc") String sortDir,
+            Model model,
             @AuthenticationPrincipal UserDetails userDetails) {
         boolean isAdminOrHr = userDetails.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_HR"));
@@ -48,11 +51,9 @@ public class PaymentRequestController {
         String title = "Payment Requests";
 
         if (isAdminOrHr) {
-            // Admin sees all by default, or filtered if we implement filter
             requests = paymentRequestService.getAllRequests();
             title = "All Payment Requests";
         } else {
-            // Check if it's an Employee
             Optional<root.cyb.mh.attendancesystem.model.Employee> empOpt = employeeRepository
                     .findById(userDetails.getUsername());
             if (empOpt.isPresent()) {
@@ -66,13 +67,21 @@ public class PaymentRequestController {
                     title = "My Payment Requests";
                 }
             } else {
-                // Fallback for non-employee users (shouldn't happen with current auth)
                 requests = List.of();
             }
         }
 
+        // Apply Sorting
+        paymentRequestService.sortRequests(requests, sortField, sortDir);
+
         model.addAttribute("requests", requests);
         model.addAttribute("pageTitle", title);
+
+        // Sorting params for UI
+        model.addAttribute("sortField", sortField);
+        model.addAttribute("sortDir", sortDir);
+        model.addAttribute("reverseSortDir", sortDir.equals("asc") ? "desc" : "asc");
+
         return "payment-request/list";
     }
 

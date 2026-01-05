@@ -31,14 +31,62 @@
                         <table class="table table-hover align-middle mb-0">
                             <thead class="bg-light text-uppercase text-secondary small">
                                 <tr>
-                                    <th class="ps-4">ID</th>
-                                    <th>Date</th>
-                                    <th>Requester</th>
-                                    <th>Work Order</th>
-                                    <th>Amount</th>
-                                    <th>Contractor</th>
-                                    <th>Priority</th>
-                                    <th>Status</th>
+                                    <th class="ps-4">
+                                        <a th:href="@{/payment-requests(view=${param.view}, sortField='id', sortDir=${sortField == 'id' ? reverseSortDir : 'asc'})}"
+                                            class="text-decoration-none text-secondary">
+                                            ID <i class="fas"
+                                                th:classappend="${sortField == 'id'} ? (${sortDir == 'asc'} ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort'"></i>
+                                        </a>
+                                    </th>
+                                    <th>
+                                        <a th:href="@{/payment-requests(view=${param.view}, sortField='requestDate', sortDir=${sortField == 'requestDate' ? reverseSortDir : 'asc'})}"
+                                            class="text-decoration-none text-secondary">
+                                            Date <i class="fas"
+                                                th:classappend="${sortField == 'requestDate'} ? (${sortDir == 'asc'} ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort'"></i>
+                                        </a>
+                                    </th>
+                                    <th>
+                                        <a th:href="@{/payment-requests(view=${param.view}, sortField='requester', sortDir=${sortField == 'requester' ? reverseSortDir : 'asc'})}"
+                                            class="text-decoration-none text-secondary">
+                                            Requester <i class="fas"
+                                                th:classappend="${sortField == 'requester'} ? (${sortDir == 'asc'} ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort'"></i>
+                                        </a>
+                                    </th>
+                                    <th>
+                                        <a th:href="@{/payment-requests(view=${param.view}, sortField='workOrderNumber', sortDir=${sortField == 'workOrderNumber' ? reverseSortDir : 'asc'})}"
+                                            class="text-decoration-none text-secondary">
+                                            Work Order <i class="fas"
+                                                th:classappend="${sortField == 'workOrderNumber'} ? (${sortDir == 'asc'} ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort'"></i>
+                                        </a>
+                                    </th>
+                                    <th>
+                                        <a th:href="@{/payment-requests(view=${param.view}, sortField='amount', sortDir=${sortField == 'amount' ? reverseSortDir : 'asc'})}"
+                                            class="text-decoration-none text-secondary">
+                                            Amount <i class="fas"
+                                                th:classappend="${sortField == 'amount'} ? (${sortDir == 'asc'} ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort'"></i>
+                                        </a>
+                                    </th>
+                                    <th>
+                                        <a th:href="@{/payment-requests(view=${param.view}, sortField='contractorName', sortDir=${sortField == 'contractorName' ? reverseSortDir : 'asc'})}"
+                                            class="text-decoration-none text-secondary">
+                                            Contractor <i class="fas"
+                                                th:classappend="${sortField == 'contractorName'} ? (${sortDir == 'asc'} ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort'"></i>
+                                        </a>
+                                    </th>
+                                    <th>
+                                        <a th:href="@{/payment-requests(view=${param.view}, sortField='priority', sortDir=${sortField == 'priority' ? reverseSortDir : 'asc'})}"
+                                            class="text-decoration-none text-secondary">
+                                            Priority <i class="fas"
+                                                th:classappend="${sortField == 'priority'} ? (${sortDir == 'asc'} ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort'"></i>
+                                        </a>
+                                    </th>
+                                    <th>
+                                        <a th:href="@{/payment-requests(view=${param.view}, sortField='status', sortDir=${sortField == 'status' ? reverseSortDir : 'asc'})}"
+                                            class="text-decoration-none text-secondary">
+                                            Status <i class="fas"
+                                                th:classappend="${sortField == 'status'} ? (${sortDir == 'asc'} ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort'"></i>
+                                        </a>
+                                    </th>
                                     <th class="pe-4 text-end">Actions</th>
                                 </tr>
                             </thead>

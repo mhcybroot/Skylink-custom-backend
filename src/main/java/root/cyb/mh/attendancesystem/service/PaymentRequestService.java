@@ -82,4 +82,55 @@ public class PaymentRequestService {
     public void deleteRequest(Long id) {
         paymentRequestRepository.deleteById(id);
     }
+
+    public void sortRequests(List<PaymentRequest> requests, String sortField, String sortDir) {
+        java.util.Comparator<PaymentRequest> comparator = null;
+
+        switch (sortField) {
+            case "id":
+                comparator = java.util.Comparator.comparing(PaymentRequest::getId);
+                break;
+            case "requestDate":
+                comparator = java.util.Comparator.comparing(PaymentRequest::getRequestDate);
+                break;
+            case "requester":
+                comparator = java.util.Comparator.comparing(r -> {
+                    if (r.getRequester() != null)
+                        return r.getRequester().getUsername().toLowerCase();
+                    if (r.getEmployeeRequester() != null)
+                        return r.getEmployeeRequester().getName().toLowerCase();
+                    return "";
+                });
+                break;
+            case "workOrderNumber":
+                comparator = java.util.Comparator.comparing(r -> r.getWorkOrderNumber().toLowerCase());
+                break;
+            case "amount":
+                comparator = java.util.Comparator.comparing(PaymentRequest::getAmount);
+                break;
+            case "contractorName":
+                comparator = java.util.Comparator.comparing(r -> {
+                    if (r.getContractor() != null)
+                        return r.getContractor().getName().toLowerCase();
+                    return r.getContractorName() != null ? r.getContractorName().toLowerCase() : "";
+                });
+                break;
+            case "priority":
+                comparator = java.util.Comparator.comparing(PaymentRequest::getPriority);
+                break;
+            case "status":
+                comparator = java.util.Comparator.comparing(PaymentRequest::getStatus);
+                break;
+            default: // "lastModified" or others
+                comparator = java.util.Comparator.comparing(PaymentRequest::getLastModified,
+                        java.util.Comparator.nullsFirst(java.util.Comparator.naturalOrder()));
+                break;
+        }
+
+        if ("desc".equalsIgnoreCase(sortDir)) {
+            comparator = comparator.reversed();
+        }
+
+        requests.sort(comparator);
+    }
 }
