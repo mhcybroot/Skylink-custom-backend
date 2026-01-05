@@ -49,4 +49,7 @@ public class DashboardStatsDTO {
     private List<PaymentRequest> highValueRequests;
     private long activeContractorsCount;
     private long inactiveContractorsCount;
+
+    // Config
+    private java.math.BigDecimal highValueThreshold;
 }

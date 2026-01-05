@@ -17,6 +17,9 @@ public class PaymentDashboardService {
     @Autowired
     private PaymentRequestRepository paymentRequestRepository;
 
+    @Autowired
+    private SystemSettingService systemSettingService;
+
     public DashboardStatsDTO getDashboardStats() {
         DashboardStatsDTO stats = new DashboardStatsDTO();
         LocalDate today = LocalDate.now();
@@ -80,8 +83,14 @@ public class PaymentDashboardService {
                 .findTopContractorsBySpend(org.springframework.data.domain.PageRequest.of(0, 5))));
         stats.setTopRequesters(convertCountData(
                 paymentRequestRepository.findTopRequesters(org.springframework.data.domain.PageRequest.of(0, 5))));
+
+        // Configurable Threshold
+        String limitStr = systemSettingService.getValue("DASHBOARD_HIGH_VALUE_THRESHOLD", "1000");
+        java.math.BigDecimal threshold = new java.math.BigDecimal(limitStr);
+        stats.setHighValueThreshold(threshold);
+
         stats.setHighValueRequests(
-                paymentRequestRepository.findTop5ByAmountGreaterThanOrderByRequestDateDesc(new BigDecimal("1000")));
+                paymentRequestRepository.findTop5ByAmountGreaterThanOrderByRequestDateDesc(threshold));
         stats.setActiveContractorsCount(paymentRequestRepository.countActiveContractors());
         stats.setInactiveContractorsCount(paymentRequestRepository.countInactiveContractors());
 
