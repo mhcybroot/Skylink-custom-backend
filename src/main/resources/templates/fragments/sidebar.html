@@ -125,6 +125,23 @@
                 </a>
             </div>
 
+            <!-- History & Reports (Admin & HR) -->
+            <div sec:authorize="hasAnyRole('ADMIN', 'HR')">
+                <div class="sidebar-heading border-bottom bg-dark text-muted small py-2">HISTORY</div>
+                <a href="/admin/history/daily" class="list-group-item list-group-item-action"
+                    th:classappend="${activeLink == 'history-daily'} ? 'active'">
+                    <i class="fas fa-calendar-day me-2"></i> Daily View
+                </a>
+                <a href="/admin/history/weekly" class="list-group-item list-group-item-action"
+                    th:classappend="${activeLink == 'history-weekly'} ? 'active'">
+                    <i class="fas fa-calendar-week me-2"></i> Weekly View
+                </a>
+                <a href="/admin/history/monthly" class="list-group-item list-group-item-action"
+                    th:classappend="${activeLink == 'history-monthly'} ? 'active'">
+                    <i class="fas fa-calendar-alt me-2"></i> Monthly View
+                </a>
+            </div>
+
             <div sec:authorize="hasRole('ADMIN')">
                 <div class="sidebar-heading border-bottom bg-dark text-muted small py-2">SYSTEM</div>
                 <a href="/devices" class="list-group-item list-group-item-action"

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <title>Daily History</title>
+</head>
+
+<body>
+    <div th:replace="~{layout :: layout(~{::section}, ~{::script}, 'history-daily')}">
+        <section>
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h2 class="fw-bold text-gradient-primary">Daily History</h2>
+                    <p class="text-muted">View payment requests for a specific date.</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <form th:action="@{/admin/history/daily}" method="get"
+                        class="d-flex justify-content-md-end align-items-center">
+                        <label class="me-2 fw-bold text-secondary">Select Date:</label>
+                        <input type="date" name="date" class="form-control w-auto d-inline-block shadow-sm"
+                            th:value="${selectedDate}" onchange="this.form.submit()">
+                    </form>
+                </div>
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-6 col-xl-4">
+                    <div class="card border-0 shadow-sm bg-primary text-white h-100">
+                        <div class="card-body">
+                            <h6 class="text-uppercase small opacity-75">Date</h6>
+                            <h3 class="display-6 fw-bold mb-0" th:text="${selectedDate}"></h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-xl-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body">
+                            <h6 class="text-uppercase small text-muted fw-bold">Total Requests</h6>
+                            <h3 class="text-dark fw-bold mb-0">
+                                <i class="fas fa-file-invoice text-primary me-2"></i>
+                                <span th:text="${totalCount}">0</span>
+                            </h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-xl-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body">
+                            <h6 class="text-uppercase small text-muted fw-bold">Total Amount</h6>
+                            <h3 class="text-success fw-bold mb-0">
+                                <i class="fas fa-dollar-sign me-1"></i>
+                                <span th:text="${totalAmount}">0.00</span>
+                            </h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- List Table -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light text-uppercase text-secondary small">
+                                <tr>
+                                    <th class="ps-4">ID</th>
+                                    <th>Work Order</th>
+                                    <th>Requester</th>
+                                    <th>Amount</th>
+                                    <th>Contractor</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="req : ${requests}">
+                                    <td class="ps-4 fw-bold" th:text="${'#' + req.id}"></td>
+                                    <td th:text="${req.workOrderNumber}"></td>
+                                    <td
+                                        th:text="${req.requester != null ? req.requester.username : (req.employeeRequester != null ? req.employeeRequester.name : 'Unknown')}">
+                                    </td>
+                                    <td class="fw-bold text-success" th:text="${'$' + req.amount}"></td>
+                                    <td th:text="${req.contractorName}"></td>
+                                    <td>
+                                        <span th:text="${req.status}"
+                                            th:class="${'badge rounded-pill ' + 
+                                            (req.status.name() == 'APPROVED' ? 'bg-success' : 
+                                            (req.status.name() == 'REJECTED' ? 'bg-danger' : 'bg-warning text-dark'))}">
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a th:href="@{/payment-requests/{id}(id=${req.id})}"
+                                            class="btn btn-sm btn-outline-primary rounded-pill">View</a>
+                                    </td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(requests)}">
+                                    <td colspan="7" class="text-center py-4 text-muted">No requests found for this date.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <script></script>
+    </div>
+</body>
+
+</html>

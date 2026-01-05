@@ -47,4 +47,10 @@ public interface PaymentRequestRepository extends JpaRepository<PaymentRequest, 
         // My Action Items (Admin) - Pending requests needing review
         @org.springframework.data.jpa.repository.Query("SELECT COUNT(p) FROM PaymentRequest p WHERE p.status = 'PENDING'")
         long countPendingRequests();
+
+        // History Views
+        List<PaymentRequest> findByRequestDateOrderByLastModifiedDesc(java.time.LocalDate date);
+
+        List<PaymentRequest> findByRequestDateBetweenOrderByRequestDateDesc(java.time.LocalDate startDate,
+                        java.time.LocalDate endDate);
 }
