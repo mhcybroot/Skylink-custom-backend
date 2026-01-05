@@ -62,6 +62,10 @@ public class PaymentRequest {
 
     private String paymentReferenceNumber;
 
+    @ManyToOne
+    @JoinColumn(name = "company_id")
+    private Company company;
+
     private String clientCode; // -> Deprecated
 
     @ManyToOne

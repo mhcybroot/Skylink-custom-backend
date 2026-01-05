@@ -28,6 +28,20 @@
 
                                 <div class="row g-4">
                                     <div class="col-md-6">
+                                        <label class="form-label fw-bold text-secondary text-uppercase small">Company
+                                            (LLC)</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-light border-0"><i
+                                                    class="fas fa-building text-secondary"></i></span>
+                                            <select class="form-select bg-light border-0" th:field="*{company}"
+                                                required>
+                                                <option value="">-- Select Company --</option>
+                                                <option th:each="c : ${activeCompanies}" th:value="${c.id}"
+                                                    th:text="${c.name}"></option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
                                         <label class="form-label fw-bold text-secondary text-uppercase small">Work Order
                                             Number</label>
                                         <div class="input-group">

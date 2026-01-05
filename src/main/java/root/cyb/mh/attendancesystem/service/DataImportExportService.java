@@ -377,4 +377,237 @@ public class DataImportExportService {
         cell.setPadding(4);
         table.addCell(cell);
     }
+
+    public void generateInvoicePdf(java.io.OutputStream out, PaymentRequest request) {
+        try {
+            com.lowagie.text.Document document = new com.lowagie.text.Document(com.lowagie.text.PageSize.A4, 36, 36, 50,
+                    50);
+            com.lowagie.text.pdf.PdfWriter.getInstance(document, out);
+            document.open();
+
+            // Colors & Fonts
+            java.awt.Color primaryColor = new java.awt.Color(44, 62, 80); // Dark Blue/Grey
+            java.awt.Color accentColor = new java.awt.Color(236, 240, 241); // Light Grey
+            java.awt.Color textColor = java.awt.Color.BLACK;
+
+            com.lowagie.text.Font titleFont = com.lowagie.text.FontFactory
+                    .getFont(com.lowagie.text.FontFactory.HELVETICA_BOLD, 24, primaryColor);
+            com.lowagie.text.Font headerFont = com.lowagie.text.FontFactory
+                    .getFont(com.lowagie.text.FontFactory.HELVETICA_BOLD, 12, textColor);
+            com.lowagie.text.Font tableHeaderFont = com.lowagie.text.FontFactory
+                    .getFont(com.lowagie.text.FontFactory.HELVETICA_BOLD, 10, java.awt.Color.WHITE);
+            com.lowagie.text.Font bodyFont = com.lowagie.text.FontFactory
+                    .getFont(com.lowagie.text.FontFactory.HELVETICA, 10, textColor);
+            com.lowagie.text.Font subFont = com.lowagie.text.FontFactory.getFont(com.lowagie.text.FontFactory.HELVETICA,
+                    9, java.awt.Color.GRAY);
+
+            // --- HEADER SECTION (Company Info & Invoice Meta) ---
+            com.lowagie.text.pdf.PdfPTable headerTable = new com.lowagie.text.pdf.PdfPTable(2);
+            headerTable.setWidthPercentage(100);
+            headerTable.setWidths(new float[] { 1f, 1f });
+
+            // 1. Left: Company Info
+            com.lowagie.text.pdf.PdfPCell companyCell = new com.lowagie.text.pdf.PdfPCell();
+            companyCell.setBorder(com.lowagie.text.Rectangle.NO_BORDER);
+
+            String companyName = "Skylink Construction";
+            String companyAddress = "123 Business Road\nDhaka, Bangladesh";
+            String companyPhone = null;
+            String companyEmail = null;
+
+            if (request.getCompany() != null) {
+                companyName = request.getCompany().getName();
+                if (request.getCompany().getAddress() != null && !request.getCompany().getAddress().isEmpty()) {
+                    companyAddress = request.getCompany().getAddress();
+                }
+                companyPhone = request.getCompany().getPhone();
+                companyEmail = request.getCompany().getEmail();
+            }
+
+            companyCell.addElement(new com.lowagie.text.Paragraph(companyName, com.lowagie.text.FontFactory
+                    .getFont(com.lowagie.text.FontFactory.HELVETICA_BOLD, 16, primaryColor)));
+            for (String line : companyAddress.split("\n")) {
+                companyCell.addElement(new com.lowagie.text.Paragraph(line.trim(), subFont));
+            }
+            if (companyPhone != null && !companyPhone.isEmpty())
+                companyCell.addElement(new com.lowagie.text.Paragraph("Phone: " + companyPhone, subFont));
+            if (companyEmail != null && !companyEmail.isEmpty())
+                companyCell.addElement(new com.lowagie.text.Paragraph("Email: " + companyEmail, subFont));
+
+            headerTable.addCell(companyCell);
+
+            // 2. Right: Invoice Title & Meta
+            com.lowagie.text.pdf.PdfPCell metaCell = new com.lowagie.text.pdf.PdfPCell();
+            metaCell.setBorder(com.lowagie.text.Rectangle.NO_BORDER);
+            metaCell.setHorizontalAlignment(com.lowagie.text.Element.ALIGN_RIGHT);
+
+            com.lowagie.text.Paragraph invoiceTitle = new com.lowagie.text.Paragraph("INVOICE",
+                    com.lowagie.text.FontFactory.getFont(com.lowagie.text.FontFactory.HELVETICA_BOLD, 22,
+                            new java.awt.Color(189, 195, 199)));
+            invoiceTitle.setAlignment(com.lowagie.text.Element.ALIGN_RIGHT);
+            metaCell.addElement(invoiceTitle);
+
+            metaCell.addElement(createMetaRow("Receipt #:", "REC-" + request.getId(), headerFont, bodyFont));
+            metaCell.addElement(createMetaRow("Date:", request.getRequestDate().toString(), headerFont, bodyFont));
+
+            String status = request.getPaymentStatus() != null ? request.getPaymentStatus().toString() : "PENDING";
+            com.lowagie.text.Paragraph statusPara = new com.lowagie.text.Paragraph(status,
+                    com.lowagie.text.FontFactory.getFont(com.lowagie.text.FontFactory.HELVETICA_BOLD, 10,
+                            status.equals("PAID") ? new java.awt.Color(39, 174, 96) : java.awt.Color.RED));
+            statusPara.setAlignment(com.lowagie.text.Element.ALIGN_RIGHT);
+            statusPara.setSpacingBefore(5);
+            metaCell.addElement(statusPara);
+
+            headerTable.addCell(metaCell);
+            document.add(headerTable);
+
+            // Separator
+            com.lowagie.text.pdf.draw.LineSeparator line = new com.lowagie.text.pdf.draw.LineSeparator();
+            line.setLineColor(java.awt.Color.LIGHT_GRAY);
+            document.add(new com.lowagie.text.Paragraph(" "));
+
+            // --- BILL TO / INFO SECTION ---
+            com.lowagie.text.pdf.PdfPTable infoTable = new com.lowagie.text.pdf.PdfPTable(2);
+            infoTable.setWidthPercentage(100);
+            infoTable.setSpacingBefore(10);
+
+            // Bill To
+            com.lowagie.text.pdf.PdfPCell billToCell = new com.lowagie.text.pdf.PdfPCell();
+            billToCell.setBorder(com.lowagie.text.Rectangle.NO_BORDER);
+            billToCell.addElement(new com.lowagie.text.Paragraph("BILL TO / REQUESTER:", headerFont));
+            billToCell.addElement(new com.lowagie.text.Paragraph(getColumnValue(request, "requester"), bodyFont));
+            billToCell.addElement(new com.lowagie.text.Paragraph(request.getWorkOrderNumber(), subFont));
+            infoTable.addCell(billToCell);
+
+            // Payment Details
+            com.lowagie.text.pdf.PdfPCell paymentInfoCell = new com.lowagie.text.pdf.PdfPCell();
+            paymentInfoCell.setBorder(com.lowagie.text.Rectangle.NO_BORDER);
+            paymentInfoCell.addElement(new com.lowagie.text.Paragraph("PAYMENT DETAILS:", headerFont));
+            paymentInfoCell.addElement(new com.lowagie.text.Paragraph(
+                    "Method: "
+                            + (request.getPaymentMethod() != null ? request.getPaymentMethod().getMethodName() : "N/A"),
+                    bodyFont));
+            if (request.getPaymentReferenceNumber() != null) {
+                paymentInfoCell.addElement(
+                        new com.lowagie.text.Paragraph("Ref #: " + request.getPaymentReferenceNumber(), bodyFont));
+            }
+            infoTable.addCell(paymentInfoCell);
+
+            document.add(infoTable);
+            document.add(new com.lowagie.text.Paragraph(" "));
+            document.add(new com.lowagie.text.Paragraph(" "));
+
+            // --- DETAILS TABLE ---
+            com.lowagie.text.pdf.PdfPTable table = new com.lowagie.text.pdf.PdfPTable(new float[] { 3f, 1f });
+            table.setWidthPercentage(100);
+            table.setHeaderRows(1);
+
+            // Header
+            addTableHeader(table, "DESCRIPTION / REASON", tableHeaderFont, primaryColor);
+            addTableHeader(table, "AMOUNT", tableHeaderFont, primaryColor);
+
+            // Row 1: Main Reason
+            addTableCell(table, request.getReason(), bodyFont, false);
+            addTableCell(table, "$" + request.getAmount(), bodyFont, true);
+
+            // Row 2: Contractor Info (as extra detail)
+            if (request.getContractor() != null) {
+                addTableCell(table, "Contractor: " + request.getContractor().getName(), subFont, false);
+                addTableCell(table, "", subFont, true);
+            }
+
+            document.add(table);
+
+            // --- TOTAL SECTION ---
+            com.lowagie.text.pdf.PdfPTable totalTable = new com.lowagie.text.pdf.PdfPTable(2);
+            totalTable.setWidthPercentage(40);
+            totalTable.setHorizontalAlignment(com.lowagie.text.Element.ALIGN_RIGHT);
+            totalTable.setSpacingBefore(5);
+
+            // Spacer
+            // totalTable.addCell(createNoBorderCell(" ", bodyFont));
+
+            com.lowagie.text.pdf.PdfPCell totalLabel = new com.lowagie.text.pdf.PdfPCell(
+                    new com.lowagie.text.Phrase("Total Amount:", headerFont));
+            totalLabel.setBorder(com.lowagie.text.Rectangle.TOP);
+            totalLabel.setPadding(8);
+            totalTable.addCell(totalLabel);
+
+            com.lowagie.text.pdf.PdfPCell totalValue = new com.lowagie.text.pdf.PdfPCell(
+                    new com.lowagie.text.Phrase("$" + request.getAmount(), headerFont));
+            totalValue.setBorder(com.lowagie.text.Rectangle.TOP);
+            totalValue.setHorizontalAlignment(com.lowagie.text.Element.ALIGN_RIGHT);
+            totalValue.setPadding(8);
+            totalTable.addCell(totalValue);
+
+            document.add(totalTable);
+
+            // --- FOOTER ---
+            // Move to bottom
+            // Simple text footer for now as positioning in simple OpenPDF is sequential
+            com.lowagie.text.Paragraph footerSpace = new com.lowagie.text.Paragraph("\n\n\n\n");
+            document.add(footerSpace);
+
+            com.lowagie.text.pdf.PdfPTable footerTable = new com.lowagie.text.pdf.PdfPTable(2);
+            footerTable.setWidthPercentage(100);
+
+            com.lowagie.text.pdf.PdfPCell authCell = new com.lowagie.text.pdf.PdfPCell();
+            authCell.setBorder(com.lowagie.text.Rectangle.TOP);
+            authCell.setBorderWidthTop(1f);
+            authCell.setBorderColorTop(java.awt.Color.BLACK);
+            authCell.setPaddingTop(5);
+            authCell.addElement(new com.lowagie.text.Paragraph("Authorized Signature", subFont));
+            // Just a line
+            com.lowagie.text.pdf.PdfPCell dummyCell = new com.lowagie.text.pdf.PdfPCell();
+            dummyCell.setBorder(com.lowagie.text.Rectangle.NO_BORDER);
+
+            // We want authorization line on the right maybe? Or left. Let's do Left.
+            // Actually usually signature is right.
+            footerTable.addCell(dummyCell);
+            footerTable.addCell(authCell);
+
+            document.add(footerTable);
+
+            com.lowagie.text.Paragraph closing = new com.lowagie.text.Paragraph("Thank you for your business.",
+                    subFont);
+            closing.setAlignment(com.lowagie.text.Element.ALIGN_CENTER);
+            closing.setSpacingBefore(20);
+            document.add(closing);
+
+            document.close();
+        } catch (Exception e) {
+            throw new RuntimeException("Error generating Invoice PDF", e);
+        }
+    }
+
+    private com.lowagie.text.Paragraph createMetaRow(String label, String value, com.lowagie.text.Font labelFont,
+            com.lowagie.text.Font valueFont) {
+        com.lowagie.text.Paragraph p = new com.lowagie.text.Paragraph();
+        p.setAlignment(com.lowagie.text.Element.ALIGN_RIGHT);
+        p.add(new com.lowagie.text.Chunk(label + " ", labelFont));
+        p.add(new com.lowagie.text.Chunk(value, valueFont));
+        return p;
+    }
+
+    private void addTableHeader(com.lowagie.text.pdf.PdfPTable table, String text, com.lowagie.text.Font font,
+            java.awt.Color bgColor) {
+        com.lowagie.text.pdf.PdfPCell cell = new com.lowagie.text.pdf.PdfPCell(new com.lowagie.text.Phrase(text, font));
+        cell.setBackgroundColor(bgColor);
+        cell.setHorizontalAlignment(com.lowagie.text.Element.ALIGN_CENTER);
+        cell.setPadding(6);
+        cell.setBorderWidth(0);
+        table.addCell(cell);
+    }
+
+    private void addTableCell(com.lowagie.text.pdf.PdfPTable table, String text, com.lowagie.text.Font font,
+            boolean alignRight) {
+        com.lowagie.text.pdf.PdfPCell cell = new com.lowagie.text.pdf.PdfPCell(new com.lowagie.text.Phrase(text, font));
+        cell.setPadding(6);
+        cell.setBorderWidth(0);
+        cell.setBorderWidthBottom(0.5f);
+        cell.setBorderColorBottom(java.awt.Color.LIGHT_GRAY);
+        if (alignRight)
+            cell.setHorizontalAlignment(com.lowagie.text.Element.ALIGN_RIGHT);
+        table.addCell(cell);
+    }
 }

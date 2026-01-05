@@ -38,6 +38,12 @@ public class PaymentRequestController {
     @Autowired
     private root.cyb.mh.attendancesystem.repository.EmployeeRepository employeeRepository;
 
+    @Autowired
+    private root.cyb.mh.attendancesystem.service.DataImportExportService dataImportExportService;
+
+    @Autowired
+    private root.cyb.mh.attendancesystem.repository.CompanyRepository companyRepository;
+
     @GetMapping
     public String listRequests(@RequestParam(required = false) String view,
             @RequestParam(required = false, defaultValue = "lastModified") String sortField,
@@ -94,6 +100,7 @@ public class PaymentRequestController {
         model.addAttribute("activeContractors", contractorRepository.findByActiveTrue());
         model.addAttribute("activeClients", clientRepository.findByActiveTrue());
         model.addAttribute("activePaymentMethods", paymentMethodRepository.findByActiveTrue());
+        model.addAttribute("activeCompanies", companyRepository.findByActiveTrue());
 
         return "payment-request/form";
     }
@@ -226,5 +233,50 @@ public class PaymentRequestController {
             paymentRequestService.updateRequest(existingRequest);
         }
         return "redirect:/payment-requests/" + id;
+    }
+
+    @GetMapping("/{id}/invoice")
+    public void downloadInvoice(@PathVariable Long id,
+            jakarta.servlet.http.HttpServletResponse response,
+            @AuthenticationPrincipal UserDetails userDetails) throws java.io.IOException {
+        Optional<PaymentRequest> requestOpt = paymentRequestService.getRequestById(id);
+        if (requestOpt.isPresent()) {
+            PaymentRequest request = requestOpt.get();
+
+            // Check permissions
+            boolean isAdminOrHr = userDetails.getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_HR"));
+
+            boolean isRequester = false;
+            // Check if requester
+            Optional<root.cyb.mh.attendancesystem.model.Employee> currentEmpOpt = employeeRepository
+                    .findById(userDetails.getUsername());
+            if (currentEmpOpt.isPresent() && request.getEmployeeRequester() != null
+                    && request.getEmployeeRequester().getId().equals(currentEmpOpt.get().getId())) {
+                isRequester = true;
+            }
+            // Also user requester
+            if (request.getRequester() != null
+                    && request.getRequester().getUsername().equals(userDetails.getUsername())) {
+                isRequester = true;
+            }
+
+            if (!isAdminOrHr && !isRequester) {
+                response.sendError(jakarta.servlet.http.HttpServletResponse.SC_FORBIDDEN, "Access Denied");
+                return;
+            }
+
+            // Check Status
+            if (request.getPaymentStatus() != PaymentStatus.PAID) {
+                response.sendError(jakarta.servlet.http.HttpServletResponse.SC_BAD_REQUEST,
+                        "Invoice available only for PAID requests");
+                return;
+            }
+
+            response.setContentType("application/pdf");
+            response.setHeader("Content-Disposition", "attachment; filename=\"invoice_" + id + ".pdf\"");
+
+            dataImportExportService.generateInvoicePdf(response.getOutputStream(), request);
+        }
     }
 }

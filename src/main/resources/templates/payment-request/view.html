@@ -29,16 +29,26 @@
                                 </div>
                             </div>
 
-                            <div th:if="${paymentRequest.status.name() == 'PENDING'}"
-                                sec:authorize="hasAnyRole('ADMIN', 'HR')">
-                                <span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i> Awaiting
-                                    Review</span>
-                            </div>
-                            <div th:if="${paymentRequest.status.name() == 'APPROVED'}">
-                                <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i> Approved</span>
-                            </div>
-                            <div th:if="${paymentRequest.status.name() == 'REJECTED'}">
-                                <span class="badge bg-danger"><i class="fas fa-times-circle me-1"></i> Rejected</span>
+                            <div class="d-flex align-items-center gap-2">
+                                <a th:href="@{/payment-requests/{id}/invoice(id=${paymentRequest.id})}"
+                                    class="btn btn-sm btn-outline-dark rounded-pill shadow-sm fw-bold"
+                                    th:if="${paymentRequest.paymentStatus != null and paymentRequest.paymentStatus.name() == 'PAID'}">
+                                    <i class="fas fa-file-invoice me-1"></i>Invoice
+                                </a>
+
+                                <div th:if="${paymentRequest.status.name() == 'PENDING'}"
+                                    sec:authorize="hasAnyRole('ADMIN', 'HR')">
+                                    <span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i> Awaiting
+                                        Review</span>
+                                </div>
+                                <div th:if="${paymentRequest.status.name() == 'APPROVED'}">
+                                    <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>
+                                        Approved</span>
+                                </div>
+                                <div th:if="${paymentRequest.status.name() == 'REJECTED'}">
+                                    <span class="badge bg-danger"><i class="fas fa-times-circle me-1"></i>
+                                        Rejected</span>
+                                </div>
                             </div>
                         </div>
 
@@ -53,6 +63,12 @@
                                     <div class="col-md-6 col-lg-3">
                                         <label class="text-muted small text-uppercase fw-bold mb-1">Work Order</label>
                                         <div class="fs-5 fw-bold text-dark" th:text="${paymentRequest.workOrderNumber}">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 col-lg-3">
+                                        <label class="text-muted small text-uppercase fw-bold mb-1">Company</label>
+                                        <div class="fs-5 fw-bold text-dark"
+                                            th:text="${paymentRequest.company != null ? paymentRequest.company.name : 'Skylink Construction'}">
                                         </div>
                                     </div>
                                     <div class="col-md-6 col-lg-3">
