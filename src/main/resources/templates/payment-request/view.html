@@ -178,6 +178,15 @@
                                     </div>
 
                                     <div class="mb-4">
+                                        <label class="form-label fw-bold small text-secondary">Payment Reference
+                                            Number</label>
+                                        <input type="text" name="paymentReferenceNumber"
+                                            class="form-control bg-light border-0"
+                                            th:value="${paymentRequest.paymentReferenceNumber}"
+                                            placeholder="Enter payment reference number (e.g. Check #, Transaction ID)">
+                                    </div>
+
+                                    <div class="mb-4">
                                         <label class="form-label fw-bold small text-secondary">Remarks / Internal
                                             Notes</label>
                                         <textarea name="remarks" class="form-control bg-light border-0" rows="3"
@@ -213,6 +222,11 @@
                                         <div class="text-uppercase small text-muted mb-1 fw-bold">Payment Status</div>
                                         <div class="text-dark"
                                             th:text="${paymentRequest.paymentStatus != null ? paymentRequest.paymentStatus : 'Pending'}">
+                                        </div>
+                                        <div class="small text-muted mt-1 text-wrap" style="font-size: 0.75rem;"
+                                            th:if="${paymentRequest.paymentReferenceNumber != null && !paymentRequest.paymentReferenceNumber.isEmpty()}">
+                                            <i class="fas fa-hashtag me-1"></i><span
+                                                th:text="${paymentRequest.paymentReferenceNumber}"></span>
                                         </div>
                                     </div>
                                     <div class="col-md-3 border-end">

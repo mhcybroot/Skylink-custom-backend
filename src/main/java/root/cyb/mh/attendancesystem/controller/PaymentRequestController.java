@@ -212,6 +212,7 @@ public class PaymentRequestController {
             existingRequest.setPpwUpdateStatus(formData.getPpwUpdateStatus());
             existingRequest.setRemarks(formData.getRemarks());
             existingRequest.setStatus(formData.getStatus());
+            existingRequest.setPaymentReferenceNumber(formData.getPaymentReferenceNumber());
 
             if (approverUser != null) {
                 existingRequest.setApprovalAuthority(approverUser);

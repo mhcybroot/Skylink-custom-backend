@@ -60,6 +60,8 @@ public class PaymentRequest {
     @Column(columnDefinition = "TEXT")
     private String paymentAccountDetails;
 
+    private String paymentReferenceNumber;
+
     private String clientCode; // -> Deprecated
 
     @ManyToOne
