@@ -8,7 +8,8 @@ import root.cyb.mh.attendancesystem.model.User;
 import java.util.List;
 
 @Repository
-public interface PaymentRequestRepository extends JpaRepository<PaymentRequest, Long> {
+public interface PaymentRequestRepository extends JpaRepository<PaymentRequest, Long>,
+                org.springframework.data.jpa.repository.JpaSpecificationExecutor<PaymentRequest> {
         List<PaymentRequest> findByRequester(User requester);
 
         List<PaymentRequest> findByRequesterOrderByLastModifiedDesc(User requester);
