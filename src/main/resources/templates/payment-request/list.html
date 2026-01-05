@@ -87,6 +87,9 @@
                                                 th:classappend="${sortField == 'status'} ? (${sortDir == 'asc'} ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort'"></i>
                                         </a>
                                     </th>
+                                    <th>
+                                        Ref #
+                                    </th>
                                     <th class="pe-4 text-end">Actions</th>
                                 </tr>
                             </thead>
@@ -118,6 +121,11 @@
                                             (req.status.name() == 'APPROVED' ? 'bg-success' : 
                                             (req.status.name() == 'REJECTED' ? 'bg-danger' : 'bg-warning text-dark'))}">
                                         </span>
+                                    </td>
+                                    <td class="text-secondary small">
+                                        <i class="fas fa-hashtag me-1 text-muted"
+                                            th:if="${req.paymentReferenceNumber != null}"></i>
+                                        <span th:text="${req.paymentReferenceNumber}"></span>
                                     </td>
                                     <td class="pe-4 text-end">
                                         <a th:href="@{/payment-requests/{id}(id=${req.id})}"
