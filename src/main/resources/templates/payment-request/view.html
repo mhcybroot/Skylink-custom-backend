@@ -77,7 +77,12 @@
                                         <label class="text-muted small text-uppercase fw-bold mb-1">Payment
                                             Method</label>
                                         <div class="text-dark"
-                                            th:text="${paymentRequest.paymentMethodId != null ? paymentRequest.paymentMethodId : '-'}">
+                                            th:text="${paymentRequest.paymentMethod != null ? paymentRequest.paymentMethod.methodName : '-'}">
+                                        </div>
+                                        <div class="small text-muted fst-italic mt-1"
+                                            th:if="${paymentRequest.paymentAccountDetails != null && !paymentRequest.paymentAccountDetails.isEmpty()}">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            <span th:text="${paymentRequest.paymentAccountDetails}"></span>
                                         </div>
                                     </div>
                                     <div class="col-md-6 col-lg-3">

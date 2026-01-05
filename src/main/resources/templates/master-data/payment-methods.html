@@ -60,6 +60,7 @@
                                             <th>Method Name</th>
                                             <th>Description</th>
                                             <th>Status</th>
+                                            <th class="text-end pe-4">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -70,6 +71,21 @@
                                             <td>
                                                 <span class="badge bg-success" th:if="${m.active}">Active</span>
                                                 <span class="badge bg-secondary" th:unless="${m.active}">Inactive</span>
+                                            </td>
+                                            <td class="text-end pe-4">
+                                                <form
+                                                    th:action="@{/master-data/payment-methods/{id}/toggle(id=${m.id})}"
+                                                    method="post" class="d-inline">
+                                                    <button type="submit"
+                                                        class="btn btn-sm btn-link text-decoration-none"
+                                                        th:classappend="${m.active} ? 'text-danger' : 'text-success'"
+                                                        th:title="${m.active} ? 'Deactivate' : 'Activate'">
+                                                        <i class="fas"
+                                                            th:classappend="${m.active} ? 'fa-trash' : 'fa-undo'"></i>
+                                                        <span th:text="${m.active} ? 'Delete' : 'Restore'"
+                                                            class="ms-1 small fw-bold"></span>
+                                                    </button>
+                                                </form>
                                             </td>
                                         </tr>
                                         <tr th:if="${#lists.isEmpty(methods)}">

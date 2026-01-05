@@ -57,6 +57,9 @@ public class PaymentRequest {
     @JoinColumn(name = "payment_method_ref_id")
     private PaymentMethod paymentMethod;
 
+    @Column(columnDefinition = "TEXT")
+    private String paymentAccountDetails;
+
     private String clientCode; // -> Deprecated
 
     @ManyToOne

@@ -34,6 +34,18 @@ public class PaymentRequestService {
     private PaymentRequest saveRequest(PaymentRequest paymentRequest) {
         paymentRequest.setRequestDate(LocalDate.now());
         paymentRequest.setStatus(RequestStatus.PENDING);
+
+        // Backfill deprecated fields for DB compatibility
+        if (paymentRequest.getContractor() != null) {
+            paymentRequest.setContractorName(paymentRequest.getContractor().getName());
+        }
+        if (paymentRequest.getClient() != null) {
+            paymentRequest.setClientCode(paymentRequest.getClient().getCode());
+        }
+        if (paymentRequest.getPaymentMethod() != null) {
+            paymentRequest.setPaymentMethodId(paymentRequest.getPaymentMethod().getMethodName());
+        }
+
         return paymentRequestRepository.save(paymentRequest);
     }
 

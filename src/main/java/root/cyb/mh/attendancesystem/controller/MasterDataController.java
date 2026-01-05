@@ -105,4 +105,47 @@ public class MasterDataController {
         }
         return "redirect:/master-data/payment-methods";
     }
+
+    // --- TOGGLE ACTIONS ---
+
+    @PostMapping("/contractors/{id}/toggle")
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR')") // Only Admin/HR should probably delete/toggle, or maybe Creator?
+                                               // Requirement says "deleted item...". Let's restrict Delete to higher
+                                               // roles for safety,
+                                               // or strictly follow "Admin cannot delete... wait, user said 'admin
+                                               // cannot delete... deleted item will not delete'".
+                                               // This implies the ACTION of deleting is available. I'll allow Admin/HR.
+    public String toggleContractor(@PathVariable Long id, RedirectAttributes ps) {
+        Contractor c = contractorRepository.findById(id).orElse(null);
+        if (c != null) {
+            c.setActive(!c.isActive());
+            contractorRepository.save(c);
+            ps.addFlashAttribute("successMessage", "Contractor status updated.");
+        }
+        return "redirect:/master-data/contractors";
+    }
+
+    @PostMapping("/clients/{id}/toggle")
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
+    public String toggleClient(@PathVariable Long id, RedirectAttributes ps) {
+        Client c = clientRepository.findById(id).orElse(null);
+        if (c != null) {
+            c.setActive(!c.isActive());
+            clientRepository.save(c);
+            ps.addFlashAttribute("successMessage", "Client status updated.");
+        }
+        return "redirect:/master-data/clients";
+    }
+
+    @PostMapping("/payment-methods/{id}/toggle")
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
+    public String togglePaymentMethod(@PathVariable Long id, RedirectAttributes ps) {
+        PaymentMethod m = paymentMethodRepository.findById(id).orElse(null);
+        if (m != null) {
+            m.setActive(!m.isActive());
+            paymentMethodRepository.save(m);
+            ps.addFlashAttribute("successMessage", "Payment Method status updated.");
+        }
+        return "redirect:/master-data/payment-methods";
+    }
 }

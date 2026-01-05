@@ -63,6 +63,8 @@
                                             <th>Name</th>
                                             <th>Description</th>
                                             <th>Status</th>
+                                            <th class="text-end pe-4" sec:authorize="hasAnyRole('ADMIN', 'HR')">Action
+                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -73,6 +75,20 @@
                                             <td>
                                                 <span class="badge bg-success" th:if="${c.active}">Active</span>
                                                 <span class="badge bg-secondary" th:unless="${c.active}">Inactive</span>
+                                            </td>
+                                            <td class="text-end pe-4" sec:authorize="hasAnyRole('ADMIN', 'HR')">
+                                                <form th:action="@{/master-data/contractors/{id}/toggle(id=${c.id})}"
+                                                    method="post" class="d-inline">
+                                                    <button type="submit"
+                                                        class="btn btn-sm btn-link text-decoration-none"
+                                                        th:classappend="${c.active} ? 'text-danger' : 'text-success'"
+                                                        th:title="${c.active} ? 'Deactivate' : 'Activate'">
+                                                        <i class="fas"
+                                                            th:classappend="${c.active} ? 'fa-trash' : 'fa-undo'"></i>
+                                                        <span th:text="${c.active} ? 'Delete' : 'Restore'"
+                                                            class="ms-1 small fw-bold"></span>
+                                                    </button>
+                                                </form>
                                             </td>
                                         </tr>
                                         <tr th:if="${#lists.isEmpty(contractors)}">
