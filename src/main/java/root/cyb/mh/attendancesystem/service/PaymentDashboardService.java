@@ -74,8 +74,8 @@ public class PaymentDashboardService {
         stats.setPpwStatusDistribution(convertCountData(paymentRequestRepository.countByPpwStatusGroup()));
         stats.setPaymentStatusDistribution(convertCountData(paymentRequestRepository.countByPaymentStatusGroup()));
 
-        // 4. Leaderboards & Activity
-        stats.setRecentActivity(paymentRequestRepository.findTop5ByOrderByLastModifiedDesc());
+        // 7. Recent Activity (Filtered)
+        stats.setRecentActivity(paymentRequestRepository.findTop5ByLastModifiedIsNotNullOrderByLastModifiedDesc());
         stats.setTopContractors(convertAmountData(paymentRequestRepository
                 .findTopContractorsBySpend(org.springframework.data.domain.PageRequest.of(0, 5))));
         stats.setTopRequesters(convertCountData(

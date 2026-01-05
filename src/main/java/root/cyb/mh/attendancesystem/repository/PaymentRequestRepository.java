@@ -43,7 +43,7 @@ public interface PaymentRequestRepository extends JpaRepository<PaymentRequest, 
         java.math.BigDecimal sumAmountByPaymentStatus(root.cyb.mh.attendancesystem.model.enums.PaymentStatus status);
 
         // Recent 5
-        List<PaymentRequest> findTop5ByOrderByLastModifiedDesc();
+        List<PaymentRequest> findTop5ByLastModifiedIsNotNullOrderByLastModifiedDesc();
 
         // My Action Items (Admin) - Pending requests needing review
         @org.springframework.data.jpa.repository.Query("SELECT COUNT(p) FROM PaymentRequest p WHERE p.status = 'PENDING'")
