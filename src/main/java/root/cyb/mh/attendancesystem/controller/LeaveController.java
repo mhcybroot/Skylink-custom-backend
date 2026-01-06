@@ -60,7 +60,7 @@ public class LeaveController {
     public String manageLeavePage(Model model, Authentication authentication) {
         // Fetch User Roles
         boolean isAdmin = authentication.getAuthorities().stream()
-                .anyMatch(r -> r.getAuthority().equals("ROLE_ADMIN"));
+                .anyMatch(r -> r.getAuthority().equals("ROLE_ADMIN") || r.getAuthority().equals("ROLE_HR"));
 
         String currentUserId = authentication.getName();
         List<LeaveRequest> requests;
