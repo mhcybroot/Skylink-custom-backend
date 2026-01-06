@@ -12,6 +12,11 @@ public interface PaymentRequestRepository extends JpaRepository<PaymentRequest, 
                 org.springframework.data.jpa.repository.JpaSpecificationExecutor<PaymentRequest> {
         List<PaymentRequest> findByRequester(User requester);
 
+        List<PaymentRequest> findByContractorIdOrderByRequestDateDesc(Long contractorId);
+
+        List<PaymentRequest> findByContractorIdAndEmployeeRequesterOrderByRequestDateDesc(Long contractorId,
+                        root.cyb.mh.attendancesystem.model.Employee employeeRequester);
+
         List<PaymentRequest> findByRequesterOrderByLastModifiedDesc(User requester);
 
         List<PaymentRequest> findByEmployeeRequester(root.cyb.mh.attendancesystem.model.Employee employeeRequester);

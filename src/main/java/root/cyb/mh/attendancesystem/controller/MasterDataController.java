@@ -19,6 +19,12 @@ public class MasterDataController {
     private ClientRepository clientRepository;
     @Autowired
     private PaymentMethodRepository paymentMethodRepository;
+    @Autowired
+    private ContractorPaymentInfoRepository contractorPaymentInfoRepository;
+    @Autowired
+    private root.cyb.mh.attendancesystem.repository.PaymentRequestRepository paymentRequestRepository;
+    @Autowired
+    private root.cyb.mh.attendancesystem.repository.EmployeeRepository employeeRepository;
 
     // --- CONTRACTORS (Employees, Admin, HR) ---
     @GetMapping("/contractors")
@@ -34,7 +40,14 @@ public class MasterDataController {
     @PreAuthorize("hasAnyRole('EMPLOYEE', 'ADMIN', 'HR')")
     public String createContractor(@ModelAttribute Contractor contractor, RedirectAttributes ps) {
         try {
-            contractorRepository.save(contractor);
+            Contractor saved = contractorRepository.save(contractor);
+            if (saved.getDefaultPaymentMethod() != null) {
+                ContractorPaymentInfo info = new ContractorPaymentInfo();
+                info.setContractor(saved);
+                info.setPaymentMethod(saved.getDefaultPaymentMethod());
+                info.setAccountDetails(saved.getAccountDetails());
+                contractorPaymentInfoRepository.save(info);
+            }
             ps.addFlashAttribute("successMessage", "Contractor created successfully!");
         } catch (Exception e) {
             ps.addFlashAttribute("errorMessage", "Error: Contractor name must be unique.");
@@ -126,6 +139,58 @@ public class MasterDataController {
         return "redirect:/master-data/contractors";
     }
 
+    @GetMapping("/contractors/{id}/dashboard")
+    @PreAuthorize("hasAnyRole('EMPLOYEE', 'ADMIN', 'HR')")
+    public String contractorDashboard(@PathVariable Long id, Model model,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal org.springframework.security.core.userdetails.UserDetails userDetails) {
+        Contractor contractor = contractorRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Contractor not found"));
+
+        // 1. Payment Methods
+        java.util.List<ContractorPaymentInfo> paymentInfos = contractorPaymentInfoRepository.findByContractorId(id);
+
+        // 2. Payment Requests History
+        boolean isAdminOrHr = userDetails.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_HR"));
+
+        java.util.List<root.cyb.mh.attendancesystem.model.PaymentRequest> requests;
+
+        if (isAdminOrHr) {
+            requests = paymentRequestRepository.findByContractorIdOrderByRequestDateDesc(id);
+        } else {
+            java.util.Optional<root.cyb.mh.attendancesystem.model.Employee> emp = employeeRepository
+                    .findById(userDetails.getUsername());
+            if (emp.isPresent()) {
+                requests = paymentRequestRepository.findByContractorIdAndEmployeeRequesterOrderByRequestDateDesc(id,
+                        emp.get());
+            } else {
+                requests = paymentRequestRepository.findByContractorIdOrderByRequestDateDesc(id);
+            }
+        }
+
+        // 3. Stats
+        java.math.BigDecimal totalPaid = java.math.BigDecimal.ZERO;
+        long pendingCount = 0;
+
+        for (root.cyb.mh.attendancesystem.model.PaymentRequest r : requests) {
+            if (r.getPaymentStatus() == root.cyb.mh.attendancesystem.model.enums.PaymentStatus.PAID) {
+                totalPaid = totalPaid.add(r.getAmount() != null ? r.getAmount() : java.math.BigDecimal.ZERO);
+            }
+            if (r.getStatus() == root.cyb.mh.attendancesystem.model.enums.RequestStatus.PENDING) {
+                pendingCount++;
+            }
+        }
+
+        model.addAttribute("contractor", contractor);
+        model.addAttribute("paymentInfos", paymentInfos);
+        model.addAttribute("requests", requests);
+        model.addAttribute("totalPaid", totalPaid);
+        model.addAttribute("pendingCount", pendingCount);
+        model.addAttribute("activePaymentMethods", paymentMethodRepository.findByActiveTrue()); // For the 'Add' modal
+
+        return "master-data/contractor-dashboard";
+    }
+
     @PostMapping("/clients/{id}/toggle")
     @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
     public String toggleClient(@PathVariable Long id, RedirectAttributes ps) {
@@ -148,5 +213,70 @@ public class MasterDataController {
             ps.addFlashAttribute("successMessage", "Payment Method status updated.");
         }
         return "redirect:/master-data/payment-methods";
+    }
+
+    // --- AJAX ENDPOINTS FOR CONTRACTOR PAYMENT INFOS ---
+
+    @GetMapping("/api/contractors/{id}/payment-infos")
+    @ResponseBody
+    public java.util.List<ContractorPaymentInfo> getContractorPaymentInfos(@PathVariable Long id) {
+        return contractorPaymentInfoRepository.findByContractorId(id);
+    }
+
+    @PostMapping("/api/contractors/{id}/payment-infos")
+    @ResponseBody
+    @PreAuthorize("hasAnyRole('EMPLOYEE', 'ADMIN', 'HR')")
+    public org.springframework.http.ResponseEntity<?> addContractorPaymentInfo(@PathVariable Long id,
+            @RequestParam Long paymentMethodId, @RequestParam String accountDetails) {
+        try {
+            Contractor c = contractorRepository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Contractor not found"));
+            PaymentMethod pm = paymentMethodRepository.findById(paymentMethodId)
+                    .orElseThrow(() -> new RuntimeException("Method not found"));
+
+            ContractorPaymentInfo info = new ContractorPaymentInfo();
+            info.setContractor(c);
+            info.setPaymentMethod(pm);
+            info.setAccountDetails(accountDetails);
+            contractorPaymentInfoRepository.save(info);
+
+            return org.springframework.http.ResponseEntity.ok().body("Saved");
+        } catch (Exception e) {
+            return org.springframework.http.ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/api/contractors/{cid}/set-default/{infoId}")
+    @ResponseBody
+    @PreAuthorize("hasAnyRole('EMPLOYEE', 'ADMIN', 'HR')")
+    public org.springframework.http.ResponseEntity<?> setDefaultPaymentInfo(@PathVariable Long cid,
+            @PathVariable Long infoId) {
+        try {
+            Contractor c = contractorRepository.findById(cid)
+                    .orElseThrow(() -> new RuntimeException("Contractor not found"));
+            ContractorPaymentInfo info = contractorPaymentInfoRepository.findById(infoId)
+                    .orElseThrow(() -> new RuntimeException("Info not found"));
+
+            if (!info.getContractor().getId().equals(cid)) {
+                return org.springframework.http.ResponseEntity.badRequest()
+                        .body("Account does not belong to this contractor");
+            }
+
+            c.setDefaultPaymentMethod(info.getPaymentMethod());
+            c.setAccountDetails(info.getAccountDetails());
+            contractorRepository.save(c);
+
+            return org.springframework.http.ResponseEntity.ok().body("Updated");
+        } catch (Exception e) {
+            return org.springframework.http.ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/api/payment-infos/{id}/delete")
+    @ResponseBody
+    @PreAuthorize("hasAnyRole('EMPLOYEE', 'ADMIN', 'HR')")
+    public org.springframework.http.ResponseEntity<?> deleteContractorPaymentInfo(@PathVariable Long id) {
+        contractorPaymentInfoRepository.deleteById(id);
+        return org.springframework.http.ResponseEntity.ok().body("Deleted");
     }
 }

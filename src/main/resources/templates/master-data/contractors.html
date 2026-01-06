@@ -109,23 +109,29 @@
                                                 <span class="badge bg-success" th:if="${c.active}">Active</span>
                                                 <span class="badge bg-secondary" th:unless="${c.active}">Inactive</span>
                                             </td>
-                                            <td class="text-end pe-4" sec:authorize="hasAnyRole('ADMIN', 'HR')">
-                                                <form th:action="@{/master-data/contractors/{id}/toggle(id=${c.id})}"
-                                                    method="post" class="d-inline">
-                                                    <button type="submit"
-                                                        class="btn btn-sm btn-link text-decoration-none"
-                                                        th:classappend="${c.active} ? 'text-danger' : 'text-success'"
-                                                        th:title="${c.active} ? 'Deactivate' : 'Activate'">
-                                                        <i class="fas"
-                                                            th:classappend="${c.active} ? 'fa-trash' : 'fa-undo'"></i>
-                                                        <span th:text="${c.active} ? 'Delete' : 'Restore'"
-                                                            class="ms-1 small fw-bold"></span>
-                                                    </button>
-                                                </form>
+                                            <td class="text-end pe-4">
+                                                <a th:href="@{/master-data/contractors/{id}/dashboard(id=${c.id})}"
+                                                    class="btn btn-sm btn-outline-primary me-1" title="Open Dashboard">
+                                                    <i class="fas fa-chart-line"></i>
+                                                </a>
+
+                                                <span sec:authorize="hasAnyRole('ADMIN', 'HR')">
+                                                    <form
+                                                        th:action="@{/master-data/contractors/{id}/toggle(id=${c.id})}"
+                                                        method="post" class="d-inline">
+                                                        <button type="submit"
+                                                            class="btn btn-sm btn-link text-decoration-none"
+                                                            th:classappend="${c.active} ? 'text-danger' : 'text-success'"
+                                                            th:title="${c.active} ? 'Deactivate' : 'Activate'">
+                                                            <i class="fas"
+                                                                th:classappend="${c.active} ? 'fa-trash' : 'fa-undo'"></i>
+                                                        </button>
+                                                    </form>
+                                                </span>
                                             </td>
                                         </tr>
                                         <tr th:if="${#lists.isEmpty(contractors)}">
-                                            <td colspan="4" class="text-center py-4 text-muted">No contractors found.
+                                            <td colspan="7" class="text-center py-4 text-muted">No contractors found.
                                             </td>
                                         </tr>
                                     </tbody>
@@ -135,8 +141,144 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Manage Accounts Modal -->
+            <div class="modal fade" id="accountsModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Manage Accounts for <span id="modalContractorName"></span></h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <!-- List Existing -->
+                            <h6 class="fw-bold small text-secondary">Saved Accounts</h6>
+                            <ul class="list-group list-group-flush mb-3" id="accountsList">
+                                <li class="list-group-item text-center text-muted">Loading...</li>
+                            </ul>
+
+                            <!-- Add New -->
+                            <h6 class="fw-bold small text-secondary mt-4">Add New Account</h6>
+                            <form id="addAccountForm" onsubmit="addAccount(event)">
+                                <input type="hidden" id="modalContractorId">
+                                <div class="mb-2">
+                                    <select class="form-select form-select-sm" id="modalPaymentMethod" required>
+                                        <option value="">Select Method...</option>
+                                        <option th:each="pm : ${activePaymentMethods}" th:value="${pm.id}"
+                                            th:text="${pm.methodName}"></option>
+                                    </select>
+                                </div>
+                                <div class="mb-2">
+                                    <input type="text" class="form-control form-control-sm" id="modalAccountDetails"
+                                        placeholder="Account Details (e.g. email, number)" required>
+                                </div>
+                                <button type="submit" class="btn btn-sm btn-primary w-100">Add Account</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </section>
-        <script></script>
+        <script>
+            let currentContractorId = null;
+            const csrfToken = document.querySelector("meta[name='_csrf']") ? document.querySelector("meta[name='_csrf']").content : "";
+            const csrfHeader = document.querySelector("meta[name='_csrf_header']") ? document.querySelector("meta[name='_csrf_header']").content : "";
+
+            function openAccountsModal(id, name) {
+                currentContractorId = id;
+                document.getElementById('modalContractorId').value = id;
+                document.getElementById('modalContractorName').textContent = name;
+
+                // Clear form
+                document.getElementById('modalPaymentMethod').value = "";
+                document.getElementById('modalAccountDetails').value = "";
+
+                // Show Modal
+                new bootstrap.Modal(document.getElementById('accountsModal')).show();
+
+                loadAccounts(id);
+            }
+
+            function loadAccounts(id) {
+                const list = document.getElementById('accountsList');
+                list.innerHTML = '<li class="list-group-item text-center text-muted">Loading...</li>';
+
+                fetch(`/master-data/api/contractors/${id}/payment-infos`)
+                    .then(res => res.json())
+                    .then(data => {
+                        list.innerHTML = "";
+                        if (data.length === 0) {
+                            list.innerHTML = '<li class="list-group-item text-center text-muted">No additional accounts found.</li>';
+                            return;
+                        }
+                        data.forEach(info => {
+                            const li = document.createElement('li');
+                            li.className = "list-group-item d-flex justify-content-between align-items-center";
+                            li.innerHTML = `
+                                <div>
+                                    <span class="badge bg-light text-dark border me-1">${info.paymentMethod.methodName}</span>
+                                    <span class="small">${info.accountDetails}</span>
+                                </div>
+                                <button class="btn btn-xs btn-outline-danger" onclick="deleteAccount(${info.id})">&times;</button>
+                            `;
+                            list.appendChild(li);
+                        });
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        list.innerHTML = '<li class="list-group-item text-danger">Error loading accounts.</li>';
+                    });
+            }
+
+            function addAccount(e) {
+                e.preventDefault();
+                const methodId = document.getElementById('modalPaymentMethod').value;
+                const details = document.getElementById('modalAccountDetails').value;
+
+                // Simple form data approach
+                const formData = new FormData();
+                formData.append('paymentMethodId', methodId);
+                formData.append('accountDetails', details);
+
+                // If CSRF is enabled, headers are needed. 
+                // Since this is a simple form post to a backend controller, we can use URLSearchParams for @RequestParam
+                const params = new URLSearchParams();
+                params.append('paymentMethodId', methodId);
+                params.append('accountDetails', details);
+
+                fetch(`/master-data/api/contractors/${currentContractorId}/payment-infos`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        [csrfHeader]: csrfToken
+                    },
+                    body: params
+                })
+                    .then(res => {
+                        if (res.ok) {
+                            loadAccounts(currentContractorId);
+                            document.getElementById('modalAccountDetails').value = ""; // Clear input
+                        } else {
+                            alert("Failed to save.");
+                        }
+                    });
+            }
+
+            function deleteAccount(id) {
+                if (!confirm("Delete this account?")) return;
+
+                fetch(`/master-data/api/payment-infos/${id}/delete`, {
+                    method: 'POST',
+                    headers: {
+                        [csrfHeader]: csrfToken
+                    }
+                })
+                    .then(res => {
+                        if (res.ok) loadAccounts(currentContractorId);
+                        else alert("Failed to delete.");
+                    });
+            }
+        </script>
     </div>
 </body>
 

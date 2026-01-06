@@ -14,6 +14,10 @@ java {
     }
 }
 
+springBoot {
+    mainClass = 'root.cyb.mh.attendancesystem.AttendanceSystemApplication'
+}
+
 configurations {
     compileOnly {
         extendsFrom annotationProcessor

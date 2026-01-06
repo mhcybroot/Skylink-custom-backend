@@ -24,5 +24,8 @@ public class Contractor {
     @Column(columnDefinition = "TEXT")
     private String accountDetails;
 
+    @OneToMany(mappedBy = "contractor", cascade = CascadeType.ALL, orphanRemoval = true)
+    private java.util.List<ContractorPaymentInfo> paymentInfos = new java.util.ArrayList<>();
+
     private boolean active = true;
 }
