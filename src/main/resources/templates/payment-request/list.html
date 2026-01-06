@@ -137,9 +137,17 @@
                                         </span>
                                     </td>
                                     <td class="text-secondary small">
-                                        <i class="fas fa-hashtag me-1 text-muted"
-                                            th:if="${req.paymentReferenceNumber != null}"></i>
-                                        <span th:text="${req.paymentReferenceNumber}"></span>
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-hashtag me-1 text-muted"
+                                                th:if="${req.paymentReferenceNumber != null}"></i>
+                                            <span th:text="${req.paymentReferenceNumber}"></span>
+
+                                            <span th:if="${req.lastEmailSentAt != null}"
+                                                class="ms-2 badge bg-light text-primary border"
+                                                title="Invoice Email Sent">
+                                                <i class="fas fa-envelope"></i>
+                                            </span>
+                                        </div>
                                     </td>
                                     <td class="pe-4 text-end">
                                         <a th:href="@{/payment-requests/{id}(id=${req.id})}"

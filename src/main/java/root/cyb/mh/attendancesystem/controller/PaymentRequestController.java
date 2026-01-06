@@ -53,6 +53,9 @@ public class PaymentRequestController {
     @Autowired
     private root.cyb.mh.attendancesystem.service.SystemSettingService systemSettingService;
 
+    @Autowired
+    private root.cyb.mh.attendancesystem.service.EmailService emailService;
+
     @GetMapping
     public String listRequests(@RequestParam(required = false) String view,
             @RequestParam(required = false, defaultValue = "lastModified") String sortField,
@@ -359,5 +362,30 @@ public class PaymentRequestController {
 
             dataImportExportService.generateInvoicePdf(response.getOutputStream(), request);
         }
+    }
+
+    @PostMapping("/{id}/send-email")
+    public String sendInvoiceEmail(@PathVariable Long id, @RequestParam("email") String email,
+            RedirectAttributes redirectAttributes) {
+        try {
+            Optional<PaymentRequest> requestOpt = paymentRequestService.getRequestById(id);
+            if (requestOpt.isPresent()) {
+                PaymentRequest request = requestOpt.get();
+                emailService.sendInvoiceEmail(email, request);
+
+                // Update specific fields without triggering full entity validation if possible,
+                // or just save
+                request.setLastEmailSentAt(java.time.LocalDateTime.now());
+                request.setLastEmailSentTo(email);
+                paymentRequestRepository.save(request);
+
+                redirectAttributes.addFlashAttribute("successMessage", "Invoice sent successfully to " + email);
+            } else {
+                redirectAttributes.addFlashAttribute("errorMessage", "Request not found.");
+            }
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Error sending email: " + e.getMessage());
+        }
+        return "redirect:/payment-requests/" + id;
     }
 }

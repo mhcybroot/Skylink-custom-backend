@@ -44,6 +44,10 @@ public class CompanyController {
                 existing.setPhone(company.getPhone());
                 existing.setEmail(company.getEmail());
                 existing.setAddress(company.getAddress());
+                existing.setSmtpHost(company.getSmtpHost());
+                existing.setSmtpPort(company.getSmtpPort());
+                existing.setSmtpUsername(company.getSmtpUsername());
+                existing.setSmtpPassword(company.getSmtpPassword());
                 companyRepository.save(existing);
                 ps.addFlashAttribute("successMessage", "Company updated successfully!");
             } else {

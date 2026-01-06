@@ -20,5 +20,11 @@ public class Company {
     private String phone;
     private String email;
 
+    // SMTP Config
+    private String smtpHost;
+    private Integer smtpPort;
+    private String smtpUsername;
+    private String smtpPassword;
+
     private boolean active = true;
 }

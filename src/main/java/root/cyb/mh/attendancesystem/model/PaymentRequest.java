@@ -101,6 +101,9 @@ public class PaymentRequest {
 
     private Integer reviewUpdateCount = 0;
 
+    private java.time.LocalDateTime lastEmailSentAt;
+    private String lastEmailSentTo;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private RequestStatus status = RequestStatus.PENDING;
