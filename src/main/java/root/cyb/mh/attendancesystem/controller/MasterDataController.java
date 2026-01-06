@@ -300,6 +300,25 @@ public class MasterDataController {
         }
     }
 
+    @GetMapping("/api/contractors/{id}/default-payment-info")
+    @ResponseBody
+    @PreAuthorize("hasAnyRole('EMPLOYEE', 'ADMIN', 'HR')")
+    public org.springframework.http.ResponseEntity<?> getDefaultPaymentInfo(@PathVariable Long id) {
+        Contractor c = contractorRepository.findById(id).orElse(null);
+        if (c == null) {
+            return org.springframework.http.ResponseEntity.notFound().build();
+        }
+
+        java.util.Map<String, Object> response = new java.util.HashMap<>();
+        if (c.getDefaultPaymentMethod() != null) {
+            response.put("paymentMethodId", c.getDefaultPaymentMethod().getId());
+            response.put("paymentMethodName", c.getDefaultPaymentMethod().getMethodName());
+        }
+        response.put("accountDetails", c.getAccountDetails());
+
+        return org.springframework.http.ResponseEntity.ok(response);
+    }
+
     @PostMapping("/api/payment-infos/{id}/delete")
     @ResponseBody
     @PreAuthorize("hasAnyRole('EMPLOYEE', 'ADMIN', 'HR')")
