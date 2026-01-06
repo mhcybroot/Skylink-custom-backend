@@ -52,4 +52,5 @@ public class DashboardStatsDTO {
 
     // Config
     private java.math.BigDecimal highValueThreshold;
+    private int reviewUpdateLimit;
 }

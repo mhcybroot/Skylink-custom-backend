@@ -28,9 +28,12 @@ public class PaymentDashboardController {
 
     @org.springframework.web.bind.annotation.PostMapping("/settings")
     public String updateSettings(
-            @org.springframework.web.bind.annotation.RequestParam("highValueThreshold") String highValueThreshold) {
+            @org.springframework.web.bind.annotation.RequestParam("highValueThreshold") String highValueThreshold,
+            @org.springframework.web.bind.annotation.RequestParam("reviewUpdateLimit") String reviewUpdateLimit) {
         systemSettingService.setValue("DASHBOARD_HIGH_VALUE_THRESHOLD", highValueThreshold,
                 "Threshold for High Value Requests on Dashboard");
+        systemSettingService.setValue("PAYMENT_REVIEW_UPDATE_LIMIT", reviewUpdateLimit,
+                "Max status updates allowed for HR/Supervisors");
         return "redirect:/admin/payment-dashboard";
     }
 }

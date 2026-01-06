@@ -91,6 +91,10 @@ public class PaymentDashboardService {
 
         stats.setHighValueRequests(
                 paymentRequestRepository.findTop5ByAmountGreaterThanOrderByRequestDateDesc(threshold));
+
+        String updateLimitStr = systemSettingService.getValue("PAYMENT_REVIEW_UPDATE_LIMIT", "3");
+        stats.setReviewUpdateLimit(Integer.parseInt(updateLimitStr));
+
         stats.setActiveContractorsCount(paymentRequestRepository.countActiveContractors());
         stats.setInactiveContractorsCount(paymentRequestRepository.countInactiveContractors());
 

@@ -154,7 +154,8 @@
                                 <h6 class="mb-0 fw-bold"><i class="fas fa-user-shield me-2"></i>Review Area</h6>
                                 <div class="badge bg-white text-primary rounded-pill px-3"
                                     th:if="${!#authorization.expression('hasRole(''ADMIN'')')}">
-                                    <span th:text="${paymentRequest.reviewUpdateCount}">0</span> / 3 Updates
+                                    <span th:text="${paymentRequest.reviewUpdateCount}">0</span> / <span
+                                        th:text="${reviewUpdateLimit}">3</span> Updates
                                 </div>
                             </div>
                             <div class="card-body p-4">
@@ -163,7 +164,7 @@
                                     class="alert alert-danger border-0 shadow-sm mb-4">
                                     <i class="fas fa-exclamation-triangle me-2"></i>
                                     <strong>Update Limit Reached!</strong> HR and Supervisors can only update statuses
-                                    3 times per request.
+                                    <span th:text="${reviewUpdateLimit}">3</span> times per request.
                                 </div>
                                 <div th:if="${param.error == 'LockedStatusPaid'}"
                                     class="alert alert-warning border-0 shadow-sm mb-4">
@@ -175,7 +176,7 @@
                                 <form th:action="@{/payment-requests/{id}/review(id=${paymentRequest.id})}"
                                     method="post">
                                     <div class="row g-3 mb-4"
-                                        th:with="isPaid=${paymentRequest.paymentStatus != null and paymentRequest.paymentStatus.name() == 'PAID'}, isLimitReached=${paymentRequest.reviewUpdateCount >= 3}, isAdmin=${#authorization.expression('hasRole(''ADMIN'')')}">
+                                        th:with="isPaid=${paymentRequest.paymentStatus != null and paymentRequest.paymentStatus.name() == 'PAID'}, isLimitReached=${paymentRequest.reviewUpdateCount >= reviewUpdateLimit}, isAdmin=${#authorization.expression('hasRole(''ADMIN'')')}">
 
                                         <div class="col-md-6">
                                             <label class="form-label fw-bold small text-secondary">Broad Approval
@@ -201,7 +202,7 @@
                                     </div>
 
                                     <div class="row g-3 mb-4"
-                                        th:with="isLimitReached=${paymentRequest.reviewUpdateCount >= 3}, isAdmin=${#authorization.expression('hasRole(''ADMIN'')')}">
+                                        th:with="isLimitReached=${paymentRequest.reviewUpdateCount >= reviewUpdateLimit}, isAdmin=${#authorization.expression('hasRole(''ADMIN'')')}">
                                         <div class="col-md-6">
                                             <label class="form-label fw-bold small text-secondary">Check Status
                                                 (Auto-Logged)</label>

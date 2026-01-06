@@ -50,6 +50,9 @@ public class PaymentRequestController {
     @Autowired
     private root.cyb.mh.attendancesystem.repository.CompanyRepository companyRepository;
 
+    @Autowired
+    private root.cyb.mh.attendancesystem.service.SystemSettingService systemSettingService;
+
     @GetMapping
     public String listRequests(@RequestParam(required = false) String view,
             @RequestParam(required = false, defaultValue = "lastModified") String sortField,
@@ -170,6 +173,9 @@ public class PaymentRequestController {
                 paymentRequestService.updateRequest(request);
             }
 
+            String limitStr = systemSettingService.getValue("PAYMENT_REVIEW_UPDATE_LIMIT", "3");
+            model.addAttribute("reviewUpdateLimit", Integer.parseInt(limitStr));
+
             model.addAttribute("paymentRequest", request);
             model.addAttribute("paymentStatuses", PaymentStatus.values());
             model.addAttribute("requestStatuses", RequestStatus.values());
@@ -240,7 +246,7 @@ public class PaymentRequestController {
                     }
                 }
 
-                // 2. Limit to 3 updates (Internal / Status fields)
+                // 2. Limit to updates (Internal / Status fields)
                 boolean statusChanged = formData.getStatus() != null
                         && formData.getStatus() != existingRequest.getStatus();
                 boolean payStatusChanged = formData.getPaymentStatus() != null
@@ -249,10 +255,12 @@ public class PaymentRequestController {
                         && formData.getPpwUpdateStatus() != existingRequest.getPpwUpdateStatus();
 
                 if (statusChanged || payStatusChanged || ppwChanged) {
+                    String limitStr = systemSettingService.getValue("PAYMENT_REVIEW_UPDATE_LIMIT", "3");
+                    int maxUpdates = Integer.parseInt(limitStr);
                     int currentCount = (existingRequest.getReviewUpdateCount() != null)
                             ? existingRequest.getReviewUpdateCount()
                             : 0;
-                    if (currentCount >= 3) {
+                    if (currentCount >= maxUpdates) {
                         return "redirect:/payment-requests/" + id + "?error=UpdateLimitReached";
                     }
                     existingRequest.setReviewUpdateCount(currentCount + 1);

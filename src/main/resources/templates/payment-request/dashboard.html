@@ -391,6 +391,15 @@
                                         <div class="form-text">Requests above this amount will appear in the "High Value
                                             Ops" table.</div>
                                     </div>
+                                    <div class="mb-3">
+                                        <label for="reviewUpdateLimit" class="form-label">Review Update Limit (Max
+                                            Updates)</label>
+                                        <input type="number" class="form-control" id="reviewUpdateLimit"
+                                            name="reviewUpdateLimit" th:value="${stats.reviewUpdateLimit}" required
+                                            min="1" max="20">
+                                        <div class="form-text">Maximum number of status updates allowed for HR and
+                                            Supervisors.</div>
+                                    </div>
                                 </div>
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-secondary"
