@@ -17,5 +17,12 @@ public class Contractor {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    @ManyToOne
+    @JoinColumn(name = "default_payment_method_id")
+    private PaymentMethod defaultPaymentMethod;
+
+    @Column(columnDefinition = "TEXT")
+    private String accountDetails;
+
     private boolean active = true;
 }

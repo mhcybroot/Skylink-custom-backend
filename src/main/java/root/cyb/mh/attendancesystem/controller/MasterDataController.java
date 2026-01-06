@@ -25,6 +25,7 @@ public class MasterDataController {
     @PreAuthorize("hasAnyRole('EMPLOYEE', 'ADMIN', 'HR')")
     public String listContractors(Model model) {
         model.addAttribute("contractors", contractorRepository.findAll());
+        model.addAttribute("activePaymentMethods", paymentMethodRepository.findByActiveTrue());
         model.addAttribute("newContractor", new Contractor());
         return "master-data/contractors";
     }

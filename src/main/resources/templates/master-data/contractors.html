@@ -32,21 +32,40 @@
                         </div>
                         <div class="card-body">
                             <form th:action="@{/master-data/contractors}" th:object="${newContractor}" method="post"
-                                class="row g-3 align-items-end">
-                                <div class="col-md-5">
+                                class="row g-3">
+                                <!-- Row 1 -->
+                                <div class="col-md-6">
                                     <label class="form-label small fw-bold text-secondary">Contractor Name</label>
                                     <input type="text" class="form-control" th:field="*{name}" required
                                         placeholder="Name">
                                 </div>
-                                <div class="col-md-5">
+                                <div class="col-md-6">
                                     <label class="form-label small fw-bold text-secondary">Description
                                         (Optional)</label>
                                     <input type="text" class="form-control" th:field="*{description}"
                                         placeholder="Description">
                                 </div>
-                                <div class="col-md-2">
-                                    <button type="submit" class="btn btn-primary w-100"><i class="fas fa-save me-1"></i>
-                                        Save</button>
+
+                                <!-- Row 2 -->
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold text-secondary">Default Payment
+                                        Method</label>
+                                    <select class="form-select" th:field="*{defaultPaymentMethod}">
+                                        <option value="">-- Select Method --</option>
+                                        <option th:each="pm : ${activePaymentMethods}" th:value="${pm.id}"
+                                            th:text="${pm.methodName}"></option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold text-secondary">Account Details
+                                        (ID/Link/Number)</label>
+                                    <textarea class="form-control" th:field="*{accountDetails}" rows="1"
+                                        placeholder="e.g. user@zelle.com, 123456789"></textarea>
+                                </div>
+
+                                <div class="col-12 text-end">
+                                    <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i>
+                                        Save Contractor</button>
                                 </div>
                             </form>
                         </div>
@@ -62,6 +81,8 @@
                                             <th class="ps-4">ID</th>
                                             <th>Name</th>
                                             <th>Description</th>
+                                            <th>Payment Method</th>
+                                            <th>Account Info</th>
                                             <th>Status</th>
                                             <th class="text-end pe-4" sec:authorize="hasAnyRole('ADMIN', 'HR')">Action
                                             </th>
@@ -72,6 +93,18 @@
                                             <td class="ps-4 fw-bold" th:text="${c.id}"></td>
                                             <td th:text="${c.name}"></td>
                                             <td th:text="${c.description}"></td>
+                                            <td>
+                                                <span th:if="${c.defaultPaymentMethod != null}"
+                                                    th:text="${c.defaultPaymentMethod.methodName}"
+                                                    class="badge bg-info text-dark"></span>
+                                                <span th:unless="${c.defaultPaymentMethod != null}"
+                                                    class="text-muted small">-</span>
+                                            </td>
+                                            <td class="small text-muted">
+                                                <span th:if="${c.accountDetails != null}"
+                                                    th:text="${c.accountDetails}"></span>
+                                                <span th:unless="${c.accountDetails != null}">-</span>
+                                            </td>
                                             <td>
                                                 <span class="badge bg-success" th:if="${c.active}">Active</span>
                                                 <span class="badge bg-secondary" th:unless="${c.active}">Inactive</span>
