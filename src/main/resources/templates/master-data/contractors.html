@@ -9,9 +9,11 @@
     <div th:replace="~{layout :: layout(~{::section}, ~{::script}, 'master-data-contractors')}">
         <section>
             <div class="row justify-content-center">
-                <div class="col-lg-10">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h2 class="fw-bold text-gradient-primary">Manage Contractors</h2>
+                <div class="col-lg-12">
+                    <!-- Title Header -->
+                    <div class="mb-4">
+                        <h2 class="fw-bold text-dark mb-0">Manage Contractors</h2>
+                        <p class="text-muted small">View and manage external contractor profiles and accounts.</p>
                     </div>
 
                     <!-- Success/Error Alerts -->
@@ -24,54 +26,38 @@
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
 
-                    <!-- Add New Card -->
+                    <!-- Corporate Toolbar -->
                     <div class="card shadow-sm mb-4 border-0">
-                        <div class="card-header bg-light border-bottom-0 py-3">
-                            <h6 class="mb-0 fw-bold text-primary"><i class="fas fa-plus-circle me-2"></i>Add New
-                                Contractor</h6>
-                        </div>
-                        <div class="card-body">
-                            <form th:action="@{/master-data/contractors}" th:object="${newContractor}" method="post"
-                                class="row g-3">
-                                <!-- Row 1 -->
-                                <div class="col-md-6">
-                                    <label class="form-label small fw-bold text-secondary">Contractor Name</label>
-                                    <input type="text" class="form-control" th:field="*{name}" required
-                                        placeholder="Name">
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label small fw-bold text-secondary">Description
-                                        (Optional)</label>
-                                    <input type="text" class="form-control" th:field="*{description}"
-                                        placeholder="Description">
-                                </div>
+                        <div class="card-body p-3">
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                                <!-- Modern Search Input -->
+                                <form method="get" th:action="@{/master-data/contractors}" class="d-flex flex-grow-1"
+                                    style="max-width: 450px;">
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light border-0 ps-3 rounded-start-pill"><i
+                                                class="fas fa-search text-muted"></i></span>
+                                        <input type="text" name="search"
+                                            class="form-control bg-light border-0 shadow-none"
+                                            placeholder="Search by name, ID, or description..." th:value="${search}">
+                                        <button type="submit" class="btn btn-light border-0 text-primary fw-bold"
+                                            th:if="${search == null || #strings.isEmpty(search)}">Go</button>
+                                        <a th:if="${search != null && !#strings.isEmpty(search)}"
+                                            href="/master-data/contractors"
+                                            class="btn btn-light border-0 text-muted rounded-end-pill" title="Clear"><i
+                                                class="fas fa-times"></i></a>
+                                    </div>
+                                </form>
 
-                                <!-- Row 2 -->
-                                <div class="col-md-6">
-                                    <label class="form-label small fw-bold text-secondary">Default Payment
-                                        Method</label>
-                                    <select class="form-select" th:field="*{defaultPaymentMethod}">
-                                        <option value="">-- Select Method --</option>
-                                        <option th:each="pm : ${activePaymentMethods}" th:value="${pm.id}"
-                                            th:text="${pm.methodName}"></option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label small fw-bold text-secondary">Account Details
-                                        (ID/Link/Number)</label>
-                                    <textarea class="form-control" th:field="*{accountDetails}" rows="1"
-                                        placeholder="e.g. user@zelle.com, 123456789"></textarea>
-                                </div>
-
-                                <div class="col-12 text-end">
-                                    <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i>
-                                        Save Contractor</button>
-                                </div>
-                            </form>
+                                <!-- Add Action -->
+                                <button class="btn btn-primary px-4 rounded-pill" data-bs-toggle="modal"
+                                    data-bs-target="#addContractorModal">
+                                    <i class="fas fa-plus me-2"></i>Add Contractor
+                                </button>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- List Card -->
+                    <!-- List Card (Add Form Removed) -->
                     <div class="card shadow-sm border-0">
                         <div class="card-body p-0">
                             <div class="table-responsive">
@@ -137,6 +123,54 @@
                                     </tbody>
                                 </table>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Contractor Modal -->
+            <div class="modal fade" id="addContractorModal" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Add New Contractor</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form th:action="@{/master-data/contractors}" th:object="${newContractor}" method="post">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-secondary">Contractor Name</label>
+                                        <input type="text" class="form-control" th:field="*{name}" required
+                                            placeholder="Name">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-secondary">Description
+                                            (Optional)</label>
+                                        <input type="text" class="form-control" th:field="*{description}"
+                                            placeholder="Description">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-secondary">Default Payment
+                                            Method</label>
+                                        <select class="form-select" th:field="*{defaultPaymentMethod}">
+                                            <option value="">-- Select Method --</option>
+                                            <option th:each="pm : ${activePaymentMethods}" th:value="${pm.id}"
+                                                th:text="${pm.methodName}"></option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-secondary">Account Details</label>
+                                        <textarea class="form-control" th:field="*{accountDetails}" rows="1"
+                                            placeholder="e.g. user@zelle.com"></textarea>
+                                    </div>
+                                    <div class="col-12 text-end mt-4">
+                                        <button type="button" class="btn btn-secondary me-1"
+                                            data-bs-dismiss="modal">Cancel</button>
+                                        <button type="submit" class="btn btn-primary">Save Contractor</button>
+                                    </div>
+                                </div>
+                            </form>
                         </div>
                     </div>
                 </div>

@@ -29,8 +29,13 @@ public class MasterDataController {
     // --- CONTRACTORS (Employees, Admin, HR) ---
     @GetMapping("/contractors")
     @PreAuthorize("hasAnyRole('EMPLOYEE', 'ADMIN', 'HR')")
-    public String listContractors(Model model) {
-        model.addAttribute("contractors", contractorRepository.findAll());
+    public String listContractors(@RequestParam(value = "search", required = false) String search, Model model) {
+        if (search != null && !search.trim().isEmpty()) {
+            model.addAttribute("contractors", contractorRepository.searchContractors(search.trim()));
+            model.addAttribute("search", search.trim());
+        } else {
+            model.addAttribute("contractors", contractorRepository.findAll());
+        }
         model.addAttribute("activePaymentMethods", paymentMethodRepository.findByActiveTrue());
         model.addAttribute("newContractor", new Contractor());
         return "master-data/contractors";
