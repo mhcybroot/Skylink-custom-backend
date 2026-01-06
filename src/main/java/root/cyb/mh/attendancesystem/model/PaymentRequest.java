@@ -99,6 +99,8 @@ public class PaymentRequest {
     @Column(columnDefinition = "TEXT")
     private String remarks;
 
+    private Integer reviewUpdateCount = 0;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private RequestStatus status = RequestStatus.PENDING;

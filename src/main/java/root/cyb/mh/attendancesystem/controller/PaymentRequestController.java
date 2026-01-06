@@ -219,13 +219,60 @@ public class PaymentRequestController {
                 return "redirect:/access-denied";
             }
 
+            // --- RESTRICTION LOGIC ---
+            boolean isPaid = existingRequest.getPaymentStatus() == PaymentStatus.PAID;
+            boolean isHR = userDetails.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_HR"));
+            boolean isRestrictedUser = isHR || isSupervisor; // Non-Admin
+
+            if (isRestrictedUser) {
+                // 1. Lock if PAID
+                if (isPaid) {
+                    // Prevent changing major fields
+                    boolean statusChanged = formData.getStatus() != null
+                            && formData.getStatus() != existingRequest.getStatus();
+                    boolean payStatusChanged = formData.getPaymentStatus() != null
+                            && formData.getPaymentStatus() != existingRequest.getPaymentStatus();
+                    boolean refNoChanged = formData.getPaymentReferenceNumber() != null &&
+                            !formData.getPaymentReferenceNumber().equals(existingRequest.getPaymentReferenceNumber());
+
+                    if (statusChanged || payStatusChanged || refNoChanged) {
+                        return "redirect:/payment-requests/" + id + "?error=LockedStatusPaid";
+                    }
+                }
+
+                // 2. Limit to 3 updates (Internal / Status fields)
+                boolean statusChanged = formData.getStatus() != null
+                        && formData.getStatus() != existingRequest.getStatus();
+                boolean payStatusChanged = formData.getPaymentStatus() != null
+                        && formData.getPaymentStatus() != existingRequest.getPaymentStatus();
+                boolean ppwChanged = formData.getPpwUpdateStatus() != null
+                        && formData.getPpwUpdateStatus() != existingRequest.getPpwUpdateStatus();
+
+                if (statusChanged || payStatusChanged || ppwChanged) {
+                    int currentCount = (existingRequest.getReviewUpdateCount() != null)
+                            ? existingRequest.getReviewUpdateCount()
+                            : 0;
+                    if (currentCount >= 3) {
+                        return "redirect:/payment-requests/" + id + "?error=UpdateLimitReached";
+                    }
+                    existingRequest.setReviewUpdateCount(currentCount + 1);
+                }
+            }
+            // --- END RESTRICTION LOGIC ---
+
             // Update fields allowed for editing during review
-            existingRequest.setCheckStatus(formData.getCheckStatus());
-            existingRequest.setPaymentStatus(formData.getPaymentStatus());
-            existingRequest.setPpwUpdateStatus(formData.getPpwUpdateStatus());
-            existingRequest.setRemarks(formData.getRemarks());
-            existingRequest.setStatus(formData.getStatus());
-            existingRequest.setPaymentReferenceNumber(formData.getPaymentReferenceNumber());
+            if (formData.getCheckStatus() != null)
+                existingRequest.setCheckStatus(formData.getCheckStatus());
+            if (formData.getPaymentStatus() != null)
+                existingRequest.setPaymentStatus(formData.getPaymentStatus());
+            if (formData.getPpwUpdateStatus() != null)
+                existingRequest.setPpwUpdateStatus(formData.getPpwUpdateStatus());
+            if (formData.getRemarks() != null)
+                existingRequest.setRemarks(formData.getRemarks());
+            if (formData.getStatus() != null)
+                existingRequest.setStatus(formData.getStatus());
+            if (formData.getPaymentReferenceNumber() != null)
+                existingRequest.setPaymentReferenceNumber(formData.getPaymentReferenceNumber());
 
             if (approverUser != null) {
                 existingRequest.setApprovalAuthority(approverUser);

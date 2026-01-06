@@ -149,17 +149,39 @@
                         <!-- Admin/Supervisor Action Card -->
                         <div class="card border-0 shadow-lg mb-4 fade-in-up" style="animation-delay: 0.2s;"
                             th:if="${canReview}">
-                            <div class="card-header bg-gradient-primary text-white py-3">
+                            <div
+                                class="card-header bg-gradient-primary text-white py-3 d-flex justify-content-between align-items-center">
                                 <h6 class="mb-0 fw-bold"><i class="fas fa-user-shield me-2"></i>Review Area</h6>
+                                <div class="badge bg-white text-primary rounded-pill px-3"
+                                    th:if="${!#authorization.expression('hasRole(''ADMIN'')')}">
+                                    <span th:text="${paymentRequest.reviewUpdateCount}">0</span> / 3 Updates
+                                </div>
                             </div>
                             <div class="card-body p-4">
+                                <!-- Error Alerts -->
+                                <div th:if="${param.error == 'UpdateLimitReached'}"
+                                    class="alert alert-danger border-0 shadow-sm mb-4">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    <strong>Update Limit Reached!</strong> HR and Supervisors can only update statuses
+                                    3 times per request.
+                                </div>
+                                <div th:if="${param.error == 'LockedStatusPaid'}"
+                                    class="alert alert-warning border-0 shadow-sm mb-4">
+                                    <i class="fas fa-lock me-2"></i>
+                                    <strong>Locked!</strong> Request is already PAID. Status and Ref # can only be
+                                    changed by an Admin.
+                                </div>
+
                                 <form th:action="@{/payment-requests/{id}/review(id=${paymentRequest.id})}"
                                     method="post">
-                                    <div class="row g-3 mb-4">
+                                    <div class="row g-3 mb-4"
+                                        th:with="isPaid=${paymentRequest.paymentStatus != null and paymentRequest.paymentStatus.name() == 'PAID'}, isLimitReached=${paymentRequest.reviewUpdateCount >= 3}, isAdmin=${#authorization.expression('hasRole(''ADMIN'')')}">
+
                                         <div class="col-md-6">
                                             <label class="form-label fw-bold small text-secondary">Broad Approval
                                                 Status</label>
-                                            <select name="status" class="form-select bg-light border-0">
+                                            <select name="status" class="form-select bg-light border-0"
+                                                th:disabled="${!isAdmin and (isPaid or isLimitReached)}">
                                                 <option th:each="s : ${requestStatuses}" th:value="${s}" th:text="${s}"
                                                     th:selected="${s == paymentRequest.status}"></option>
                                             </select>
@@ -167,7 +189,8 @@
                                         <div class="col-md-6">
                                             <label class="form-label fw-bold small text-secondary">Payment Processing
                                                 Status</label>
-                                            <select name="paymentStatus" class="form-select bg-light border-0">
+                                            <select name="paymentStatus" class="form-select bg-light border-0"
+                                                th:disabled="${!isAdmin and (isPaid or isLimitReached)}">
                                                 <option value="" th:selected="${paymentRequest.paymentStatus == null}">
                                                     -- Select --</option>
                                                 <option th:each="Ps : ${paymentStatuses}" th:value="${Ps}"
@@ -177,7 +200,8 @@
                                         </div>
                                     </div>
 
-                                    <div class="row g-3 mb-4">
+                                    <div class="row g-3 mb-4"
+                                        th:with="isLimitReached=${paymentRequest.reviewUpdateCount >= 3}, isAdmin=${#authorization.expression('hasRole(''ADMIN'')')}">
                                         <div class="col-md-6">
                                             <label class="form-label fw-bold small text-secondary">Check Status
                                                 (Auto-Logged)</label>
@@ -192,7 +216,8 @@
                                         <div class="col-md-6">
                                             <label class="form-label fw-bold small text-secondary">PPW Update
                                                 Status</label>
-                                            <select name="ppwUpdateStatus" class="form-select bg-light border-0">
+                                            <select name="ppwUpdateStatus" class="form-select bg-light border-0"
+                                                th:disabled="${!isAdmin and isLimitReached}">
                                                 <option value=""
                                                     th:selected="${paymentRequest.ppwUpdateStatus == null}">-- Select --
                                                 </option>
@@ -203,12 +228,14 @@
                                         </div>
                                     </div>
 
-                                    <div class="mb-4">
+                                    <div class="mb-4"
+                                        th:with="isPaid=${paymentRequest.paymentStatus != null and paymentRequest.paymentStatus.name() == 'PAID'}, isAdmin=${#authorization.expression('hasRole(''ADMIN'')')}">
                                         <label class="form-label fw-bold small text-secondary">Payment Reference
                                             Number</label>
                                         <input type="text" name="paymentReferenceNumber"
                                             class="form-control bg-light border-0"
                                             th:value="${paymentRequest.paymentReferenceNumber}"
+                                            th:readonly="${!isAdmin and isPaid}"
                                             placeholder="Enter payment reference number (e.g. Check #, Transaction ID)">
                                     </div>
 
