@@ -86,6 +86,13 @@
                                                 </a>
                                             </th>
                                             <th>
+                                                <a th:href="@{/master-data/contractors(search=${search}, sort='email', dir=${sort == 'email' ? reverseDir : 'asc'})}"
+                                                    class="text-secondary text-decoration-none">
+                                                    Email <i th:if="${sort == 'email'}"
+                                                        th:class="${dir == 'asc' ? 'fas fa-sort-up ms-1' : 'fas fa-sort-down ms-1'}"></i>
+                                                </a>
+                                            </th>
+                                            <th>
                                                 <a th:href="@{/master-data/contractors(search=${search}, sort='defaultPaymentMethod.methodName', dir=${sort == 'defaultPaymentMethod.methodName' ? reverseDir : 'asc'})}"
                                                     class="text-secondary text-decoration-none">
                                                     Payment Method <i
@@ -116,6 +123,13 @@
                                             <td class="ps-4 fw-bold" th:text="${c.id}"></td>
                                             <td th:text="${c.name}"></td>
                                             <td th:text="${c.description}"></td>
+                                            <td>
+                                                <a th:if="${c.email != null && !#strings.isEmpty(c.email)}"
+                                                    th:href="'mailto:' + ${c.email}" th:text="${c.email}"
+                                                    class="text-decoration-none"></a>
+                                                <span th:if="${c.email == null || #strings.isEmpty(c.email)}"
+                                                    class="text-muted small">-</span>
+                                            </td>
                                             <td>
                                                 <span th:if="${c.defaultPaymentMethod != null}"
                                                     th:text="${c.defaultPaymentMethod.methodName}"
@@ -186,6 +200,11 @@
                                             (Optional)</label>
                                         <input type="text" class="form-control" th:field="*{description}"
                                             placeholder="Description">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-secondary">Email Address</label>
+                                        <input type="email" class="form-control" th:field="*{email}"
+                                            placeholder="contractor@example.com">
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label small fw-bold text-secondary">Default Payment

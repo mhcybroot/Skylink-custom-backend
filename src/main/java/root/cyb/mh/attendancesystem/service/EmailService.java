@@ -41,7 +41,7 @@ public class EmailService {
             MimeMessageHelper helper = new MimeMessageHelper(message, true);
 
             helper.setTo(toEmail);
-            helper.setSubject("Invoice for Payment Request #" + request.getId());
+            helper.setSubject("Invoice for Payment Request #" + request.getWorkOrderNumber());
 
             String companyName = (company != null) ? company.getName() : "Skylink Construction";
             String contractorName = (request.getContractorName() != null) ? request.getContractorName() : "Contractor";

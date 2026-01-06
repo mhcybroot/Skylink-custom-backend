@@ -347,6 +347,7 @@
                                 <div class="mb-3">
                                     <label for="recipientEmail" class="form-label fw-bold">Recipient Email</label>
                                     <input type="email" class="form-control" name="email" id="recipientEmail"
+                                        th:value="${paymentRequest.contractor != null ? paymentRequest.contractor.email : ''}"
                                         placeholder="Enter recipient email address..." required>
                                 </div>
                                 <p class="text-muted small mb-0">
