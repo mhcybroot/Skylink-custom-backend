@@ -35,6 +35,26 @@ public class CompanyController {
         return "redirect:/master-data/companies";
     }
 
+    @PostMapping("/update")
+    public String updateCompany(@ModelAttribute Company company, RedirectAttributes ps) {
+        try {
+            Company existing = companyRepository.findById(company.getId()).orElse(null);
+            if (existing != null) {
+                existing.setName(company.getName());
+                existing.setPhone(company.getPhone());
+                existing.setEmail(company.getEmail());
+                existing.setAddress(company.getAddress());
+                companyRepository.save(existing);
+                ps.addFlashAttribute("successMessage", "Company updated successfully!");
+            } else {
+                ps.addFlashAttribute("errorMessage", "Company not found.");
+            }
+        } catch (Exception e) {
+            ps.addFlashAttribute("errorMessage", "Error updating company: " + e.getMessage());
+        }
+        return "redirect:/master-data/companies";
+    }
+
     @PostMapping("/{id}/toggle")
     public String toggleCompany(@PathVariable Long id, RedirectAttributes ps) {
         Company c = companyRepository.findById(id).orElse(null);

@@ -121,6 +121,26 @@ public class MasterDataController {
         return "redirect:/master-data/clients";
     }
 
+    @PostMapping("/clients/update")
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
+    public String updateClient(@ModelAttribute Client client, RedirectAttributes ps) {
+        try {
+            Client existing = clientRepository.findById(client.getId()).orElse(null);
+            if (existing != null) {
+                existing.setName(client.getName());
+                existing.setCode(client.getCode());
+                existing.setAddress(client.getAddress());
+                clientRepository.save(existing);
+                ps.addFlashAttribute("successMessage", "Client updated successfully!");
+            } else {
+                ps.addFlashAttribute("errorMessage", "Client not found.");
+            }
+        } catch (Exception e) {
+            ps.addFlashAttribute("errorMessage", "Error updating client: " + e.getMessage());
+        }
+        return "redirect:/master-data/clients";
+    }
+
     // --- PAYMENT METHODS (Admin, HR) ---
     @GetMapping("/payment-methods")
     @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
@@ -138,6 +158,25 @@ public class MasterDataController {
             ps.addFlashAttribute("successMessage", "Payment Method created successfully!");
         } catch (Exception e) {
             ps.addFlashAttribute("errorMessage", "Error: Method name must be unique.");
+        }
+        return "redirect:/master-data/payment-methods";
+    }
+
+    @PostMapping("/payment-methods/update")
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
+    public String updatePaymentMethod(@ModelAttribute PaymentMethod method, RedirectAttributes ps) {
+        try {
+            PaymentMethod existing = paymentMethodRepository.findById(method.getId()).orElse(null);
+            if (existing != null) {
+                existing.setMethodName(method.getMethodName());
+                existing.setDescription(method.getDescription());
+                paymentMethodRepository.save(existing);
+                ps.addFlashAttribute("successMessage", "Payment Method updated successfully!");
+            } else {
+                ps.addFlashAttribute("errorMessage", "Method not found.");
+            }
+        } catch (Exception e) {
+            ps.addFlashAttribute("errorMessage", "Error updating method: " + e.getMessage());
         }
         return "redirect:/master-data/payment-methods";
     }

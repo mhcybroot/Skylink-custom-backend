@@ -78,6 +78,13 @@
                                                 <span class="badge bg-secondary" th:unless="${c.active}">Inactive</span>
                                             </td>
                                             <td class="text-end pe-4">
+                                                <button type="button"
+                                                    class="btn btn-sm btn-link text-decoration-none text-primary me-2"
+                                                    th:data-id="${c.id}" th:data-code="${c.code}"
+                                                    th:data-name="${c.name}" th:data-address="${c.address}"
+                                                    onclick="openEditClientModal(this)">
+                                                    <i class="fas fa-edit me-1"></i>Edit
+                                                </button>
                                                 <form th:action="@{/master-data/clients/{id}/toggle(id=${c.id})}"
                                                     method="post" class="d-inline">
                                                     <button type="submit"
@@ -101,9 +108,59 @@
                         </div>
                     </div>
                 </div>
+                <!-- Edit Client Modal -->
+                <div class="modal fade" id="editClientModal" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Edit Client</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                    aria-label="Close"></button>
+                            </div>
+                            <form th:action="@{/master-data/clients/update}" method="post">
+                                <div class="modal-body">
+                                    <input type="hidden" id="editClientId" name="id">
+                                    <div class="mb-3">
+                                        <label class="form-label">Client Code</label>
+                                        <input type="text" class="form-control" id="editClientCode" name="code"
+                                            required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Client Name</label>
+                                        <input type="text" class="form-control" id="editClientName" name="name"
+                                            required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Address</label>
+                                        <input type="text" class="form-control" id="editClientAddress" name="address">
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary"
+                                        data-bs-dismiss="modal">Close</button>
+                                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
-        <script></script>
+
+        <script>
+            function openEditClientModal(btn) {
+                const id = btn.getAttribute('data-id');
+                const code = btn.getAttribute('data-code');
+                const name = btn.getAttribute('data-name');
+                const address = btn.getAttribute('data-address');
+
+                document.getElementById('editClientId').value = id;
+                document.getElementById('editClientCode').value = code;
+                document.getElementById('editClientName').value = name;
+                document.getElementById('editClientAddress').value = (address && address !== 'null') ? address : '';
+                new bootstrap.Modal(document.getElementById('editClientModal')).show();
+            }
+        </script>
     </div>
 </body>
 

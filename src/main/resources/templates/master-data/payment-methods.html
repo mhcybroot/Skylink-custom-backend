@@ -73,6 +73,12 @@
                                                 <span class="badge bg-secondary" th:unless="${m.active}">Inactive</span>
                                             </td>
                                             <td class="text-end pe-4">
+                                                <button type="button"
+                                                    class="btn btn-sm btn-link text-decoration-none text-primary me-2"
+                                                    th:data-id="${m.id}" th:data-name="${m.methodName}"
+                                                    th:data-desc="${m.description}" onclick="openEditMethodModal(this)">
+                                                    <i class="fas fa-edit me-1"></i>Edit
+                                                </button>
                                                 <form
                                                     th:action="@{/master-data/payment-methods/{id}/toggle(id=${m.id})}"
                                                     method="post" class="d-inline">
@@ -97,9 +103,52 @@
                         </div>
                     </div>
                 </div>
+                <!-- Edit Method Modal -->
+                <div class="modal fade" id="editMethodModal" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Edit Payment Method</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                    aria-label="Close"></button>
+                            </div>
+                            <form th:action="@{/master-data/payment-methods/update}" method="post">
+                                <div class="modal-body">
+                                    <input type="hidden" id="editMethodId" name="id">
+                                    <div class="mb-3">
+                                        <label class="form-label">Method Name</label>
+                                        <input type="text" class="form-control" id="editMethodName" name="methodName"
+                                            required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Description</label>
+                                        <input type="text" class="form-control" id="editMethodDesc" name="description">
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary"
+                                        data-bs-dismiss="modal">Close</button>
+                                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
-        <script></script>
+
+        <script>
+            function openEditMethodModal(btn) {
+                const id = btn.getAttribute('data-id');
+                const name = btn.getAttribute('data-name');
+                const desc = btn.getAttribute('data-desc');
+
+                document.getElementById('editMethodId').value = id;
+                document.getElementById('editMethodName').value = name;
+                document.getElementById('editMethodDesc').value = (desc && desc !== 'null') ? desc : '';
+                new bootstrap.Modal(document.getElementById('editMethodModal')).show();
+            }
+        </script>
     </div>
 </body>
 
