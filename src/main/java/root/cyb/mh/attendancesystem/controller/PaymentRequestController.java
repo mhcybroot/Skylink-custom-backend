@@ -14,6 +14,9 @@ import root.cyb.mh.attendancesystem.model.enums.PaymentStatus;
 import root.cyb.mh.attendancesystem.model.enums.RequestStatus;
 import root.cyb.mh.attendancesystem.repository.UserRepository;
 import root.cyb.mh.attendancesystem.service.PaymentRequestService;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import root.cyb.mh.attendancesystem.repository.PaymentRequestRepository;
 
 import java.util.List;
 import java.util.Optional;
@@ -24,6 +27,9 @@ public class PaymentRequestController {
 
     @Autowired
     private PaymentRequestService paymentRequestService;
+
+    @Autowired
+    private PaymentRequestRepository paymentRequestRepository;
 
     @Autowired
     private root.cyb.mh.attendancesystem.repository.ContractorRepository contractorRepository;
@@ -231,6 +237,26 @@ public class PaymentRequestController {
             }
 
             paymentRequestService.updateRequest(existingRequest);
+        }
+        return "redirect:/payment-requests/" + id;
+    }
+
+    @PostMapping("/{id}/delete")
+    @PreAuthorize("hasRole('ADMIN')")
+    public String deleteRequest(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        Optional<PaymentRequest> requestOpt = paymentRequestService.getRequestById(id);
+        if (requestOpt.isPresent()) {
+            PaymentRequest request = requestOpt.get();
+            if (request.getStatus() == root.cyb.mh.attendancesystem.model.enums.RequestStatus.REJECTED) {
+                paymentRequestRepository.delete(request); // Using repository directly since service might not have
+                                                          // delete
+                redirectAttributes.addFlashAttribute("successMessage", "Payment request deleted successfully.");
+                return "redirect:/payment-requests";
+            } else {
+                redirectAttributes.addFlashAttribute("errorMessage", "Only REJECTED requests can be deleted.");
+            }
+        } else {
+            redirectAttributes.addFlashAttribute("errorMessage", "Request not found.");
         }
         return "redirect:/payment-requests/" + id;
     }
