@@ -29,13 +29,28 @@ public class MasterDataController {
     // --- CONTRACTORS (Employees, Admin, HR) ---
     @GetMapping("/contractors")
     @PreAuthorize("hasAnyRole('EMPLOYEE', 'ADMIN', 'HR')")
-    public String listContractors(@RequestParam(value = "search", required = false) String search, Model model) {
+    public String listContractors(
+            @RequestParam(value = "search", required = false) String search,
+            @RequestParam(value = "sort", defaultValue = "id") String sort,
+            @RequestParam(value = "dir", defaultValue = "asc") String dir,
+            Model model) {
+
+        org.springframework.data.domain.Sort.Direction direction = dir.equalsIgnoreCase("desc")
+                ? org.springframework.data.domain.Sort.Direction.DESC
+                : org.springframework.data.domain.Sort.Direction.ASC;
+        org.springframework.data.domain.Sort sortObj = org.springframework.data.domain.Sort.by(direction, sort);
+
         if (search != null && !search.trim().isEmpty()) {
-            model.addAttribute("contractors", contractorRepository.searchContractors(search.trim()));
+            model.addAttribute("contractors", contractorRepository.searchContractors(search.trim(), sortObj));
             model.addAttribute("search", search.trim());
         } else {
-            model.addAttribute("contractors", contractorRepository.findAll());
+            model.addAttribute("contractors", contractorRepository.findByActiveTrue(sortObj));
         }
+
+        model.addAttribute("sort", sort);
+        model.addAttribute("dir", dir);
+        model.addAttribute("reverseDir", dir.equals("asc") ? "desc" : "asc");
+
         model.addAttribute("activePaymentMethods", paymentMethodRepository.findByActiveTrue());
         model.addAttribute("newContractor", new Contractor());
         return "master-data/contractors";

@@ -9,9 +9,12 @@ import java.util.List;
 public interface ContractorRepository extends JpaRepository<Contractor, Long> {
     List<Contractor> findByActiveTrue();
 
+    List<Contractor> findByActiveTrue(org.springframework.data.domain.Sort sort);
+
     @org.springframework.data.jpa.repository.Query("SELECT c FROM Contractor c WHERE " +
             "LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(c.description) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "CAST(c.id as string) LIKE :keyword")
-    List<Contractor> searchContractors(@org.springframework.data.repository.query.Param("keyword") String keyword);
+    List<Contractor> searchContractors(@org.springframework.data.repository.query.Param("keyword") String keyword,
+            org.springframework.data.domain.Sort sort);
 }

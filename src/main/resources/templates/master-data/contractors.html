@@ -64,12 +64,49 @@
                                 <table class="table table-hover align-middle mb-0">
                                     <thead class="bg-light text-uppercase small text-secondary">
                                         <tr>
-                                            <th class="ps-4">ID</th>
-                                            <th>Name</th>
-                                            <th>Description</th>
-                                            <th>Payment Method</th>
-                                            <th>Account Info</th>
-                                            <th>Status</th>
+                                            <th class="ps-4">
+                                                <a th:href="@{/master-data/contractors(search=${search}, sort='id', dir=${sort == 'id' ? reverseDir : 'asc'})}"
+                                                    class="text-secondary text-decoration-none">
+                                                    ID <i th:if="${sort == 'id'}"
+                                                        th:class="${dir == 'asc' ? 'fas fa-sort-up ms-1' : 'fas fa-sort-down ms-1'}"></i>
+                                                </a>
+                                            </th>
+                                            <th>
+                                                <a th:href="@{/master-data/contractors(search=${search}, sort='name', dir=${sort == 'name' ? reverseDir : 'asc'})}"
+                                                    class="text-secondary text-decoration-none">
+                                                    Name <i th:if="${sort == 'name'}"
+                                                        th:class="${dir == 'asc' ? 'fas fa-sort-up ms-1' : 'fas fa-sort-down ms-1'}"></i>
+                                                </a>
+                                            </th>
+                                            <th>
+                                                <a th:href="@{/master-data/contractors(search=${search}, sort='description', dir=${sort == 'description' ? reverseDir : 'asc'})}"
+                                                    class="text-secondary text-decoration-none">
+                                                    Description <i th:if="${sort == 'description'}"
+                                                        th:class="${dir == 'asc' ? 'fas fa-sort-up ms-1' : 'fas fa-sort-down ms-1'}"></i>
+                                                </a>
+                                            </th>
+                                            <th>
+                                                <a th:href="@{/master-data/contractors(search=${search}, sort='defaultPaymentMethod.methodName', dir=${sort == 'defaultPaymentMethod.methodName' ? reverseDir : 'asc'})}"
+                                                    class="text-secondary text-decoration-none">
+                                                    Payment Method <i
+                                                        th:if="${sort == 'defaultPaymentMethod.methodName'}"
+                                                        th:class="${dir == 'asc' ? 'fas fa-sort-up ms-1' : 'fas fa-sort-down ms-1'}"></i>
+                                                </a>
+                                            </th>
+                                            <th>
+                                                <a th:href="@{/master-data/contractors(search=${search}, sort='accountDetails', dir=${sort == 'accountDetails' ? reverseDir : 'asc'})}"
+                                                    class="text-secondary text-decoration-none">
+                                                    Account Info <i th:if="${sort == 'accountDetails'}"
+                                                        th:class="${dir == 'asc' ? 'fas fa-sort-up ms-1' : 'fas fa-sort-down ms-1'}"></i>
+                                                </a>
+                                            </th>
+                                            <th>
+                                                <a th:href="@{/master-data/contractors(search=${search}, sort='active', dir=${sort == 'active' ? reverseDir : 'asc'})}"
+                                                    class="text-secondary text-decoration-none">
+                                                    Status <i th:if="${sort == 'active'}"
+                                                        th:class="${dir == 'asc' ? 'fas fa-sort-up ms-1' : 'fas fa-sort-down ms-1'}"></i>
+                                                </a>
+                                            </th>
                                             <th class="text-end pe-4" sec:authorize="hasAnyRole('ADMIN', 'HR')">Action
                                             </th>
                                         </tr>
