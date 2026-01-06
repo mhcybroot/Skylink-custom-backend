@@ -26,4 +26,13 @@ public class ContractorPaymentInfo {
     // Optional: Is this the primary one?
     // For now we will rely on Contractor.defaultPaymentMethod as the "Primary" one,
     // and this list as "All Available Accounts".
+    // Audit Fields
+    @Column(nullable = false, columnDefinition = "boolean default true")
+    private boolean active = true;
+
+    private String createdBy; // Username
+    private java.time.LocalDateTime createdAt = java.time.LocalDateTime.now();
+
+    private String deletedBy; // Username
+    private java.time.LocalDateTime deletedAt;
 }

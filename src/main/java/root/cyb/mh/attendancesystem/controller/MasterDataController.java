@@ -38,7 +38,8 @@ public class MasterDataController {
 
     @PostMapping("/contractors")
     @PreAuthorize("hasAnyRole('EMPLOYEE', 'ADMIN', 'HR')")
-    public String createContractor(@ModelAttribute Contractor contractor, RedirectAttributes ps) {
+    public String createContractor(@ModelAttribute Contractor contractor, RedirectAttributes ps,
+            java.security.Principal principal) {
         try {
             Contractor saved = contractorRepository.save(contractor);
             if (saved.getDefaultPaymentMethod() != null) {
@@ -46,6 +47,7 @@ public class MasterDataController {
                 info.setContractor(saved);
                 info.setPaymentMethod(saved.getDefaultPaymentMethod());
                 info.setAccountDetails(saved.getAccountDetails());
+                info.setCreatedBy(principal != null ? principal.getName() : "System");
                 contractorPaymentInfoRepository.save(info);
             }
             ps.addFlashAttribute("successMessage", "Contractor created successfully!");
@@ -147,7 +149,10 @@ public class MasterDataController {
                 .orElseThrow(() -> new RuntimeException("Contractor not found"));
 
         // 1. Payment Methods
-        java.util.List<ContractorPaymentInfo> paymentInfos = contractorPaymentInfoRepository.findByContractorId(id);
+        java.util.List<ContractorPaymentInfo> paymentInfos = contractorPaymentInfoRepository
+                .findByContractorIdAndActiveTrue(id);
+        java.util.List<ContractorPaymentInfo> deletedPaymentInfos = contractorPaymentInfoRepository
+                .findByContractorIdAndActiveFalse(id);
 
         // 2. Payment Requests History
         boolean isAdminOrHr = userDetails.getAuthorities().stream()
@@ -183,6 +188,7 @@ public class MasterDataController {
 
         model.addAttribute("contractor", contractor);
         model.addAttribute("paymentInfos", paymentInfos);
+        model.addAttribute("deletedPaymentInfos", deletedPaymentInfos);
         model.addAttribute("requests", requests);
         model.addAttribute("totalPaid", totalPaid);
         model.addAttribute("pendingCount", pendingCount);
@@ -220,14 +226,15 @@ public class MasterDataController {
     @GetMapping("/api/contractors/{id}/payment-infos")
     @ResponseBody
     public java.util.List<ContractorPaymentInfo> getContractorPaymentInfos(@PathVariable Long id) {
-        return contractorPaymentInfoRepository.findByContractorId(id);
+        return contractorPaymentInfoRepository.findByContractorIdAndActiveTrue(id);
     }
 
     @PostMapping("/api/contractors/{id}/payment-infos")
     @ResponseBody
     @PreAuthorize("hasAnyRole('EMPLOYEE', 'ADMIN', 'HR')")
     public org.springframework.http.ResponseEntity<?> addContractorPaymentInfo(@PathVariable Long id,
-            @RequestParam Long paymentMethodId, @RequestParam String accountDetails) {
+            @RequestParam Long paymentMethodId, @RequestParam String accountDetails,
+            java.security.Principal principal) {
         try {
             Contractor c = contractorRepository.findById(id)
                     .orElseThrow(() -> new RuntimeException("Contractor not found"));
@@ -238,6 +245,7 @@ public class MasterDataController {
             info.setContractor(c);
             info.setPaymentMethod(pm);
             info.setAccountDetails(accountDetails);
+            info.setCreatedBy(principal != null ? principal.getName() : "System");
             contractorPaymentInfoRepository.save(info);
 
             return org.springframework.http.ResponseEntity.ok().body("Saved");
@@ -275,8 +283,15 @@ public class MasterDataController {
     @PostMapping("/api/payment-infos/{id}/delete")
     @ResponseBody
     @PreAuthorize("hasAnyRole('EMPLOYEE', 'ADMIN', 'HR')")
-    public org.springframework.http.ResponseEntity<?> deleteContractorPaymentInfo(@PathVariable Long id) {
-        contractorPaymentInfoRepository.deleteById(id);
+    public org.springframework.http.ResponseEntity<?> deleteContractorPaymentInfo(@PathVariable Long id,
+            java.security.Principal principal) {
+        ContractorPaymentInfo info = contractorPaymentInfoRepository.findById(id).orElse(null);
+        if (info != null) {
+            info.setActive(false);
+            info.setDeletedBy(principal != null ? principal.getName() : "System");
+            info.setDeletedAt(java.time.LocalDateTime.now());
+            contractorPaymentInfoRepository.save(info);
+        }
         return org.springframework.http.ResponseEntity.ok().body("Deleted");
     }
 }

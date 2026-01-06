@@ -45,200 +45,247 @@
             </div>
         </div>
 
-        <!-- Left Column: Payment Methods -->
-        <div class="col-lg-4 mb-4">
-            <div class="card shadow-sm border-0 h-100">
-                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                    <h5 class="card-title fw-bold mb-0 small text-uppercase text-secondary">Payment Accounts</h5>
-                    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#accountsModal">
-                        <i class="fas fa-plus me-1"></i> Add New
-                    </button>
-                </div>
-                <div class="card-body p-0">
-                    <ul class="list-group list-group-flush">
-                        <li th:each="info : ${paymentInfos}"
-                            class="list-group-item d-flex justify-content-between align-items-start p-3">
-                            <div
-                                th:with="isDefault=${contractor.defaultPaymentMethod != null && contractor.defaultPaymentMethod.id == info.paymentMethod.id}">
-                                <div class="fw-bold text-dark">
-                                    <span th:text="${info.paymentMethod.methodName}">Method</span>
-                                    <span th:if="${isDefault}" class="badge bg-success ms-2"
-                                        style="font-size: 0.6em">DEFAULT</span>
+        <!-- Row: Payment Accounts (Split View) -->
+        <div class="row">
+            <!-- Left Column: Deleted Accounts History -->
+            <div class="col-md-6 mb-4">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-header bg-light py-3">
+                        <h5 class="card-title fw-bold mb-0 small text-uppercase text-secondary">Deleted Accounts History
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush small">
+                            <li th:each="info : ${deletedPaymentInfos}"
+                                class="list-group-item bg-transparent px-3 py-3 border-bottom">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <span class="fw-bold text-decoration-line-through text-muted"
+                                            th:text="${info.paymentMethod.methodName}">Method</span>
+                                        <div class="text-muted text-break" th:text="${info.accountDetails}">Details
+                                        </div>
+                                    </div>
+                                    <div class="text-end text-muted" style="font-size: 0.75em">
+                                        <div th:text="${info.deletedBy}">User</div>
+                                        <div th:if="${info.deletedAt != null}"
+                                            th:text="${#temporals.format(info.deletedAt, 'dd-MM-yyyy HH:mm')}"></div>
+                                    </div>
                                 </div>
-                                <div class="text-muted small text-break" th:text="${info.accountDetails}">Details</div>
-                            </div>
-                            <div>
-                                <button
-                                    th:unless="${contractor.defaultPaymentMethod != null && contractor.defaultPaymentMethod.id == info.paymentMethod.id}"
-                                    class="btn btn-xs btn-outline-warning me-1" th:data-id="${info.id}"
-                                    onclick="setDefault(this.getAttribute('data-id'))" title="Set as Default">
-                                    <i class="fas fa-star"></i>
-                                </button>
-                                <button class="btn btn-xs btn-outline-danger" th:data-id="${info.id}"
-                                    onclick="deleteAccount(this.getAttribute('data-id'))" title="Delete">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </li>
-                        <li th:if="${#lists.isEmpty(paymentInfos)}" class="list-group-item text-center text-muted py-4">
-                            No payment accounts linked.
-                        </li>
-                    </ul>
+                            </li>
+                            <li th:if="${#lists.isEmpty(deletedPaymentInfos)}"
+                                class="list-group-item text-center text-muted py-4 small">
+                                No deleted accounts found.
+                            </li>
+                        </ul>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Right Column: Activity History -->
-        <div class="col-lg-8 mb-4">
-            <div class="card shadow-sm border-0 h-100">
-                <div class="card-header bg-white py-3">
-                    <h5 class="card-title fw-bold mb-0 small text-uppercase text-secondary">Recent Payment Requests</h5>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="bg-light text-uppercase small text-secondary">
-                                <tr>
-                                    <th class="ps-4">Req #</th>
-                                    <th>Date</th>
-                                    <th>Amount</th>
-                                    <th>Status</th>
-                                    <th>Payment Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr th:each="req : ${requests}">
-                                    <td class="ps-4 fw-bold">
-                                        <a th:href="@{/payment-reuests/view/{id}(id=${req.id})}"
-                                            class="text-decoration-none" th:text="${'REQ-' + req.id}">REQ-1</a>
-                                    </td>
-                                    <td th:text="${req.requestDate}">2023-01-01</td>
-                                    <td class="fw-bold text-dark"
-                                        th:text="${'$' + #numbers.formatDecimal(req.amount, 1, 'COMMA', 2, 'POINT')}">
-                                        $500.00</td>
-                                    <td>
-                                        <span class="badge"
-                                            th:classappend="${req.status != null && req.status.name() == 'APPROVED'} ? 'bg-success' : 
-                                                               (${req.status != null && req.status.name() == 'REJECTED'} ? 'bg-danger' : 'bg-warning text-dark')"
-                                            th:text="${req.status}">PENDING</span>
-                                    </td>
-                                    <td>
-                                        <span class="badge"
-                                            th:classappend="${req.paymentStatus != null && req.paymentStatus.name() == 'PAID'} ? 'bg-success' : 'bg-secondary'"
-                                            th:text="${req.paymentStatus}">UNPAID</span>
-                                    </td>
-                                </tr>
-                                <tr th:if="${#lists.isEmpty(requests)}">
-                                    <td colspan="5" class="text-center py-4 text-muted">No request history found.</td>
-                                </tr>
-                            </tbody>
-                        </table>
+            <!-- Right Column: Active Payment Accounts -->
+            <div class="col-md-6 mb-4">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                        <h5 class="card-title fw-bold mb-0 small text-uppercase text-primary">Payment Accounts</h5>
+                        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#accountsModal">
+                            <i class="fas fa-plus me-1"></i> Add New
+                        </button>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush">
+                            <li th:each="info : ${paymentInfos}"
+                                class="list-group-item d-flex justify-content-between align-items-start p-3">
+                                <div
+                                    th:with="isDefault=${contractor.defaultPaymentMethod != null && contractor.defaultPaymentMethod.id == info.paymentMethod.id}">
+                                    <div class="fw-bold text-dark">
+                                        <span th:text="${info.paymentMethod.methodName}">Method</span>
+                                        <span th:if="${isDefault}" class="badge bg-success ms-2"
+                                            style="font-size: 0.6em">DEFAULT</span>
+                                    </div>
+                                    <div class="text-muted small text-break" th:text="${info.accountDetails}">Details
+                                    </div>
+                                    <div class="text-muted" style="font-size: 0.75em" th:if="${info.createdBy != null}">
+                                        Added by <span th:text="${info.createdBy}">User</span>
+                                        <span th:if="${info.createdAt != null}"
+                                            th:text="${' on ' + #temporals.format(info.createdAt, 'dd-MM-yyyy HH:mm')}"></span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <button
+                                        th:unless="${contractor.defaultPaymentMethod != null && contractor.defaultPaymentMethod.id == info.paymentMethod.id}"
+                                        class="btn btn-xs btn-outline-warning me-1" th:data-id="${info.id}"
+                                        onclick="setDefault(this.getAttribute('data-id'))" title="Set as Default">
+                                        <i class="fas fa-star"></i>
+                                    </button>
+                                    <button class="btn btn-xs btn-outline-danger" th:data-id="${info.id}"
+                                        onclick="deleteAccount(this.getAttribute('data-id'))" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </li>
+                            <li th:if="${#lists.isEmpty(paymentInfos)}"
+                                class="list-group-item text-center text-muted py-4">
+                                No payment accounts linked.
+                            </li>
+                        </ul>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Manage Accounts Modal (Re-used Logic, simplified) -->
-    <div class="modal fade" id="accountsModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Add Account for [[${contractor.name}]]</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="addAccountForm" onsubmit="addAccount(event)">
-                        <input type="hidden" id="modalContractorId" th:value="${contractor.id}">
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold">Payment Method</label>
-                            <select class="form-select" id="modalPaymentMethod" required>
-                                <option value="">Select Method...</option>
-                                <option th:each="pm : ${activePaymentMethods}" th:value="${pm.id}"
-                                    th:text="${pm.methodName}"></option>
-                            </select>
+        <!-- Row: Recent Requests (Bottom) -->
+        <div class="row">
+            <div class="col-12 mb-4">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-header bg-white py-3">
+                        <h5 class="card-title fw-bold mb-0 small text-uppercase text-secondary">Recent Payment Requests
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="bg-light text-uppercase small text-secondary">
+                                    <tr>
+                                        <th class="ps-4">Req #</th>
+                                        <th>Date</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                        <th>Payment Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="req : ${requests}">
+                                        <td class="ps-4 fw-bold">
+                                            <a th:href="@{/payment-reuests/view/{id}(id=${req.id})}"
+                                                class="text-decoration-none" th:text="${'REQ-' + req.id}">REQ-1</a>
+                                        </td>
+                                        <td th:text="${req.requestDate}">2023-01-01</td>
+                                        <td class="fw-bold text-dark"
+                                            th:text="${'$' + #numbers.formatDecimal(req.amount, 1, 'COMMA', 2, 'POINT')}">
+                                            $500.00</td>
+                                        <td>
+                                            <span class="badge"
+                                                th:classappend="${req.status != null && req.status.name() == 'APPROVED'} ? 'bg-success' : 
+                                                                       (${req.status != null && req.status.name() == 'REJECTED'} ? 'bg-danger' : 'bg-warning text-dark')"
+                                                th:text="${req.status}">PENDING</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge"
+                                                th:classappend="${req.paymentStatus != null && req.paymentStatus.name() == 'PAID'} ? 'bg-success' : 'bg-secondary'"
+                                                th:text="${req.paymentStatus}">UNPAID</span>
+                                        </td>
+                                    </tr>
+                                    <tr th:if="${#lists.isEmpty(requests)}">
+                                        <td colspan="5" class="text-center py-4 text-muted">No request history found.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold">Account Details</label>
-                            <input type="text" class="form-control" id="modalAccountDetails"
-                                placeholder="e.g. user@zelle.com, 100200300" required>
-                        </div>
-                        <button type="submit" class="btn btn-primary w-100">Add Account</button>
-                    </form>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <script th:inline="javascript">
-        /*<![CDATA[*/
-        const contractorId = /*[[${contractor.id}]]*/ 0;
+        <!-- Manage Accounts Modal (Re-used Logic, simplified) -->
+        <div class="modal fade" id="accountsModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Add Account for [[${contractor.name}]]</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="addAccountForm" onsubmit="addAccount(event)">
+                            <input type="hidden" id="modalContractorId" th:value="${contractor.id}">
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Payment Method</label>
+                                <select class="form-select" id="modalPaymentMethod" required>
+                                    <option value="">Select Method...</option>
+                                    <option th:each="pm : ${activePaymentMethods}" th:value="${pm.id}"
+                                        th:text="${pm.methodName}"></option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Account Details</label>
+                                <input type="text" class="form-control" id="modalAccountDetails"
+                                    placeholder="e.g. user@zelle.com, 100200300" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">Add Account</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-        function getHeaders() {
-            const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
-            const csrfMeta = document.querySelector("meta[name='_csrf']");
-            const csrfHeaderMeta = document.querySelector("meta[name='_csrf_header']");
+        <script th:inline="javascript">
+            /*<![CDATA[*/
+            const contractorId = /*[[${contractor.id}]]*/ 0;
 
-            if (csrfMeta && csrfHeaderMeta) {
-                const token = csrfMeta.content;
-                const headerName = csrfHeaderMeta.content;
-                console.log("CSRF Found:", headerName); // Debug
-                if (token && headerName) {
-                    headers[headerName] = token;
-                }
-            } else {
-                console.warn("CSRF Meta tags not found");
-            }
-            return headers;
-        }
+            function getHeaders() {
+                const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+                const csrfMeta = document.querySelector("meta[name='_csrf']");
+                const csrfHeaderMeta = document.querySelector("meta[name='_csrf_header']");
 
-        function addAccount(e) {
-            e.preventDefault();
-            const methodId = document.getElementById('modalPaymentMethod').value;
-            const details = document.getElementById('modalAccountDetails').value;
-            const params = new URLSearchParams();
-            params.append('paymentMethodId', methodId);
-            params.append('accountDetails', details);
-
-            console.log("Adding Account...", Object.fromEntries(params));
-
-            fetch(`/master-data/api/contractors/${contractorId}/payment-infos`, {
-                method: 'POST',
-                headers: getHeaders(),
-                body: params
-            }).then(res => {
-                if (res.ok) {
-                    window.location.reload();
+                if (csrfMeta && csrfHeaderMeta) {
+                    const token = csrfMeta.content;
+                    const headerName = csrfHeaderMeta.content;
+                    console.log("CSRF Found:", headerName); // Debug
+                    if (token && headerName) {
+                        headers[headerName] = token;
+                    }
                 } else {
-                    res.text().then(text => alert("Failed to save: " + text));
+                    console.warn("CSRF Meta tags not found");
                 }
-            }).catch(err => alert("Error: " + err));
-        }
+                return headers;
+            }
 
-        function deleteAccount(id) {
-            if (!confirm("Delete this account?")) return;
+            function addAccount(e) {
+                e.preventDefault();
+                const methodId = document.getElementById('modalPaymentMethod').value;
+                const details = document.getElementById('modalAccountDetails').value;
+                const params = new URLSearchParams();
+                params.append('paymentMethodId', methodId);
+                params.append('accountDetails', details);
 
-            fetch(`/master-data/api/payment-infos/${id}/delete`, {
-                method: 'POST',
-                headers: getHeaders()
-            }).then(res => {
-                if (res.ok) window.location.reload();
-                else alert("Failed to delete.");
-            }).catch(err => alert("Error: " + err));
-        }
-        function setDefault(infoId) {
-            if (!confirm("Set this as default payment method?")) return;
+                console.log("Adding Account...", Object.fromEntries(params));
 
-            fetch(`/master-data/api/contractors/${contractorId}/set-default/${infoId}`, {
-                method: 'POST',
-                headers: getHeaders()
-            }).then(res => {
-                if (res.ok) window.location.reload();
-                else res.text().then(t => alert("Failed: " + t));
-            }).catch(err => alert("Error: " + err));
-        }
-        /*]]>*/
-    </script>
+                fetch(`/master-data/api/contractors/${contractorId}/payment-infos`, {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: params
+                }).then(res => {
+                    if (res.ok) {
+                        window.location.reload();
+                    } else {
+                        res.text().then(text => alert("Failed to save: " + text));
+                    }
+                }).catch(err => alert("Error: " + err));
+            }
+
+            function deleteAccount(id) {
+                if (!confirm("Delete this account?")) return;
+
+                fetch(`/master-data/api/payment-infos/${id}/delete`, {
+                    method: 'POST',
+                    headers: getHeaders()
+                }).then(res => {
+                    if (res.ok) window.location.reload();
+                    else alert("Failed to delete.");
+                }).catch(err => alert("Error: " + err));
+            }
+            function setDefault(infoId) {
+                if (!confirm("Set this as default payment method?")) return;
+
+                fetch(`/master-data/api/contractors/${contractorId}/set-default/${infoId}`, {
+                    method: 'POST',
+                    headers: getHeaders()
+                }).then(res => {
+                    if (res.ok) window.location.reload();
+                    else res.text().then(t => alert("Failed: " + t));
+                }).catch(err => alert("Error: " + err));
+            }
+            /*]]>*/
+        </script>
 </body>
 
 </html>
