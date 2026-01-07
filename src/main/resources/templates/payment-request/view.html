@@ -63,6 +63,12 @@
                                     </div>
                                 </div>
 
+                                <a th:if="${paymentRequest.paymentProofPath != null}"
+                                    th:href="@{/payment-requests/{id}/proof(id=${paymentRequest.id})}" target="_blank"
+                                    class="btn btn-sm btn-outline-info rounded-pill shadow-sm fw-bold ms-1">
+                                    <i class="fas fa-paperclip me-1"></i>Proof
+                                </a>
+
                                 <div th:if="${paymentRequest.status.name() == 'PENDING'}"
                                     sec:authorize="hasAnyRole('ADMIN', 'HR')">
                                     <span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i> Awaiting
@@ -177,6 +183,10 @@
                             </div>
                             <div class="card-body p-4">
                                 <!-- Error Alerts -->
+                                <div th:if="${errorMessage}" class="alert alert-danger border-0 shadow-sm mb-4">
+                                    <i class="fas fa-exclamation-circle me-2"></i>
+                                    <span th:text="${errorMessage}"></span>
+                                </div>
                                 <div th:if="${param.error == 'UpdateLimitReached'}"
                                     class="alert alert-danger border-0 shadow-sm mb-4">
                                     <i class="fas fa-exclamation-triangle me-2"></i>
@@ -191,7 +201,7 @@
                                 </div>
 
                                 <form th:action="@{/payment-requests/{id}/review(id=${paymentRequest.id})}"
-                                    method="post">
+                                    method="post" enctype="multipart/form-data">
                                     <div class="row g-3 mb-4"
                                         th:with="isPaid=${paymentRequest.paymentStatus != null and paymentRequest.paymentStatus.name() == 'PAID'}, isLimitReached=${paymentRequest.reviewUpdateCount >= reviewUpdateLimit}, isAdmin=${#authorization.expression('hasRole(''ADMIN'')')}">
 
@@ -263,6 +273,14 @@
                                         <textarea name="remarks" class="form-control bg-light border-0" rows="3"
                                             th:text="${paymentRequest.remarks}"
                                             placeholder="Enter any specific notes about this decision..."></textarea>
+                                    </div>
+
+                                    <div class="mb-4">
+                                        <label class="form-label fw-bold small text-secondary">Attach Payment Proof
+                                            (Optional)</label>
+                                        <input type="file" name="proofFile" class="form-control bg-light border-0">
+                                        <div class="form-text small">Upload receipt, screenshot, or transaction record.
+                                        </div>
                                     </div>
 
                                     <div class="d-flex justify-content-end">
@@ -342,7 +360,8 @@
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
                                 aria-label="Close"></button>
                         </div>
-                        <form th:action="@{/payment-requests/{id}/send-email(id=${paymentRequest.id})}" method="post">
+                        <form id="emailForm" th:action="@{/payment-requests/{id}/send-email(id=${paymentRequest.id})}"
+                            method="post">
                             <div class="modal-body p-4">
                                 <div class="mb-3">
                                     <label for="recipientEmail" class="form-label fw-bold">Recipient Email</label>
@@ -358,7 +377,7 @@
                             <div class="modal-footer bg-light border-0">
                                 <button type="button" class="btn btn-light text-secondary fw-bold"
                                     data-bs-dismiss="modal">Cancel</button>
-                                <button type="submit" class="btn btn-primary fw-bold shadow-sm">
+                                <button type="submit" id="btnSendEmail" class="btn btn-primary fw-bold shadow-sm">
                                     <i class="fas fa-paper-plane me-2"></i>Send Invoice
                                 </button>
                             </div>
@@ -369,7 +388,18 @@
 
         </section>
         <script>
-            // View specific scripts
+            document.addEventListener('DOMContentLoaded', function () {
+                const emailForm = document.getElementById('emailForm');
+                const btnSendEmail = document.getElementById('btnSendEmail');
+
+                if (emailForm && btnSendEmail) {
+                    emailForm.addEventListener('submit', function () {
+                        // Disable button and show loading spinner
+                        btnSendEmail.disabled = true;
+                        btnSendEmail.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Sending...';
+                    });
+                }
+            });
         </script>
     </div>
 </body>

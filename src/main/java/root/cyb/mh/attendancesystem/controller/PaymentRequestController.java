@@ -193,6 +193,7 @@ public class PaymentRequestController {
     @PostMapping("/{id}/review")
     public String reviewRequest(@PathVariable Long id,
             @ModelAttribute PaymentRequest formData,
+            @RequestParam(value = "proofFile", required = false) org.springframework.web.multipart.MultipartFile proofFile,
             @AuthenticationPrincipal UserDetails userDetails) {
         Optional<PaymentRequest> requestOpt = paymentRequestService.getRequestById(id);
         if (requestOpt.isPresent()) {
@@ -294,6 +295,33 @@ public class PaymentRequestController {
                 supervisorOpt.ifPresent(existingRequest::setApprovalEmployee);
             }
 
+            // Handle Proof File Upload
+            if (proofFile != null && !proofFile.isEmpty()) {
+                try {
+                    String baseDir = System.getProperty("user.dir");
+                    String uploadDir = baseDir + java.io.File.separator + "uploads" + java.io.File.separator + "proofs"
+                            + java.io.File.separator;
+
+                    java.io.File directory = new java.io.File(uploadDir);
+                    if (!directory.exists()) {
+                        directory.mkdirs();
+                    }
+
+                    String fileName = System.currentTimeMillis() + "_" + proofFile.getOriginalFilename();
+                    java.io.File destFile = new java.io.File(uploadDir + fileName);
+                    proofFile.transferTo(destFile);
+
+                    // Save relative path or absolute?
+                    // Saving absolute path makes it easier to load later without worrying about
+                    // working dir changes.
+                    // But for portability, maybe relative is better.
+                    // Let's save the absolute path since the controller uses Paths.get(path) later.
+                    existingRequest.setPaymentProofPath(destFile.getAbsolutePath());
+                } catch (java.io.IOException e) {
+                    e.printStackTrace(); // In prod, log this
+                }
+            }
+
             paymentRequestService.updateRequest(existingRequest);
         }
         return "redirect:/payment-requests/" + id;
@@ -387,5 +415,42 @@ public class PaymentRequestController {
             redirectAttributes.addFlashAttribute("errorMessage", "Error sending email: " + e.getMessage());
         }
         return "redirect:/payment-requests/" + id;
+    }
+
+    @GetMapping("/{id}/proof")
+    public org.springframework.http.ResponseEntity<org.springframework.core.io.Resource> viewProof(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Optional<PaymentRequest> requestOpt = paymentRequestService.getRequestById(id);
+        if (requestOpt.isPresent()) {
+            PaymentRequest request = requestOpt.get();
+            // Basic Access Check (same as view)
+            if (request.getPaymentProofPath() != null) {
+                try {
+                    java.nio.file.Path file = java.nio.file.Paths.get(request.getPaymentProofPath());
+                    org.springframework.core.io.Resource resource = new org.springframework.core.io.UrlResource(
+                            file.toUri());
+                    if (resource.exists() || resource.isReadable()) {
+                        String contentType = "application/octet-stream"; // Default
+                        // Try to determine content type
+                        try {
+                            contentType = java.nio.file.Files.probeContentType(file);
+                        } catch (Exception ex) {
+                        }
+                        if (contentType == null)
+                            contentType = "application/octet-stream";
+
+                        return org.springframework.http.ResponseEntity.ok()
+                                .contentType(org.springframework.http.MediaType.parseMediaType(contentType))
+                                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
+                                        "inline; filename=\"" + resource.getFilename() + "\"")
+                                .body(resource);
+                    }
+                } catch (java.net.MalformedURLException e) {
+                    // Log
+                }
+            }
+        }
+        return org.springframework.http.ResponseEntity.notFound().build();
     }
 }

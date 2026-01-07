@@ -75,8 +75,23 @@ public class EmailService {
             byte[] pdfBytes = pdfStream.toByteArray();
             logger.debug("PDF Generated, size: {} bytes", pdfBytes.length);
 
-            // Attach PDF
-            helper.addAttachment("Invoice_" + request.getId() + ".pdf", new ByteArrayResource(pdfBytes));
+            // Attach Invoice PDF
+            helper.addAttachment("Invoice_" + request.getWorkOrderNumber() + ".pdf", new ByteArrayResource(pdfBytes));
+
+            // Attach Payment Proof if exists
+            if (request.getPaymentProofPath() != null) {
+                try {
+                    java.nio.file.Path proofPath = java.nio.file.Paths.get(request.getPaymentProofPath());
+                    org.springframework.core.io.Resource proofResource = new org.springframework.core.io.UrlResource(
+                            proofPath.toUri());
+                    if (proofResource.exists() && proofResource.isReadable()) {
+                        String filename = proofResource.getFilename();
+                        helper.addAttachment("Payment_Proof_" + filename, proofResource);
+                    }
+                } catch (Exception e) {
+                    logger.error("Failed to attach payment proof: ", e);
+                }
+            }
 
             logger.info("Sending email invoking JavaMailSender...");
             sender.send(message);

@@ -104,6 +104,9 @@ public class PaymentRequest {
     private java.time.LocalDateTime lastEmailSentAt;
     private String lastEmailSentTo;
 
+    @Column(nullable = true)
+    private String paymentProofPath;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private RequestStatus status = RequestStatus.PENDING;
