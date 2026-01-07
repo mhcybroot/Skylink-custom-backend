@@ -568,4 +568,43 @@ public interface PaymentRequestRepository extends JpaRepository<PaymentRequest, 
         @org.springframework.data.jpa.repository.Query("SELECT COALESCE(AVG(p.amount), 0) FROM PaymentRequest p WHERE p.client.id = :clientId AND p.status = 'APPROVED'")
         java.math.BigDecimal avgApprovedByClient(
                         @org.springframework.data.repository.query.Param("clientId") Long clientId);
+
+        // ============================================
+        // VENDOR SWOT ANALYTICS - GLOBAL
+        // ============================================
+
+        // STRENGTHS: Count high-value vendors (vendors with spend > threshold)
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(DISTINCT p.contractor.id) FROM PaymentRequest p WHERE p.contractor IS NOT NULL AND p.status = 'APPROVED' GROUP BY p.contractor.id HAVING SUM(p.amount) > :threshold")
+        List<Object[]> findHighValueVendorCounts(
+                        @org.springframework.data.repository.query.Param("threshold") java.math.BigDecimal threshold);
+
+        // STRENGTHS: Average approved amount globally
+        @org.springframework.data.jpa.repository.Query("SELECT COALESCE(AVG(p.amount), 0) FROM PaymentRequest p WHERE p.status = 'APPROVED'")
+        java.math.BigDecimal avgApprovedGlobally();
+
+        // WEAKNESSES: Count issue requests globally
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(p) FROM PaymentRequest p WHERE p.paymentStatus = 'ISSUE'")
+        long countIssueRequestsGlobally();
+
+        // OPPORTUNITIES: Sum paid amount by year-month globally
+        @org.springframework.data.jpa.repository.Query("SELECT COALESCE(SUM(p.amount), 0) FROM PaymentRequest p WHERE p.paymentStatus = 'PAID' AND extract(year from p.requestDate) = :year AND extract(month from p.requestDate) = :month")
+        java.math.BigDecimal sumPaidByYearMonth(@org.springframework.data.repository.query.Param("year") int year,
+                        @org.springframework.data.repository.query.Param("month") int month);
+
+        // THREATS: Sum top 5 vendors spend
+        @org.springframework.data.jpa.repository.Query("SELECT COALESCE(SUM(p.amount), 0) FROM PaymentRequest p WHERE p.status = 'APPROVED' AND p.contractor.id IN (SELECT p2.contractor.id FROM PaymentRequest p2 WHERE p2.status = 'APPROVED' AND p2.contractor IS NOT NULL GROUP BY p2.contractor.id ORDER BY SUM(p2.amount) DESC LIMIT 5)")
+        java.math.BigDecimal sumTop5VendorsSpend();
+
+        // THREATS: Sum top payment method amount globally
+        @org.springframework.data.jpa.repository.Query("SELECT COALESCE(SUM(p.amount), 0) FROM PaymentRequest p WHERE p.status = 'APPROVED' AND p.paymentMethod.id = (SELECT p2.paymentMethod.id FROM PaymentRequest p2 WHERE p2.status = 'APPROVED' AND p2.paymentMethod IS NOT NULL GROUP BY p2.paymentMethod.id ORDER BY SUM(p2.amount) DESC LIMIT 1)")
+        java.math.BigDecimal sumTopPaymentMethodAmountGlobally();
+
+        // THREATS: Count pending requests globally
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(p) FROM PaymentRequest p WHERE p.status = 'PENDING'")
+        long countPendingGlobally();
+
+        // Count distinct vendors with activity
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(DISTINCT p.contractor.id) FROM PaymentRequest p WHERE p.contractor IS NOT NULL AND p.amount > :threshold AND p.status = 'APPROVED'")
+        long countVendorsAboveThreshold(
+                        @org.springframework.data.repository.query.Param("threshold") java.math.BigDecimal threshold);
 }

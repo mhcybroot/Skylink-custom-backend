@@ -967,6 +967,117 @@ public class MasterDataController {
         java.util.List<Object[]> topVendorsList = paymentRequestRepository
                 .findTopContractorsBySpend(org.springframework.data.domain.PageRequest.of(0, 5));
 
+        // ============================================
+        // SWOT ANALYTICS
+        // ============================================
+
+        // --- STRENGTHS ---
+        // 1. Total Lifetime Spend (already calculated as totalSpend)
+        // 2. Active Vendor Count (already calculated as activeContractors)
+        // 3. Utilization Rate (already calculated as utilization)
+        // 4. Avg Transaction Value (already calculated as avgTransactionValue)
+
+        // 5. High-Value Vendor Count
+        java.math.BigDecimal avgApprovedGlobal = paymentRequestRepository.avgApprovedGlobally();
+        if (avgApprovedGlobal == null)
+            avgApprovedGlobal = java.math.BigDecimal.ZERO;
+        long highValueVendorCount = paymentRequestRepository.countVendorsAboveThreshold(avgApprovedGlobal);
+
+        // --- WEAKNESSES ---
+        // 6. Churn Rate (already calculated)
+        // 7. Stale Vendors (already calculated)
+        // 8. Rejection Rate (already calculated)
+        // 9. Avg Payout Time (already calculated)
+
+        // 10. Issue Rate
+        long issueCount = paymentRequestRepository.countIssueRequestsGlobally();
+        double issueRate = (totalRequests > 0) ? ((double) issueCount / totalRequests) * 100 : 0.0;
+
+        // --- OPPORTUNITIES ---
+        // 11. New Vendors 30d (already calculated)
+
+        // 12. MoM Spend Growth
+        int currentMonth = today.getMonthValue();
+        int currentYear = today.getYear();
+        int prevMonth = currentMonth == 1 ? 12 : currentMonth - 1;
+        int prevYear = currentMonth == 1 ? currentYear - 1 : currentYear;
+
+        java.math.BigDecimal currentMonthSpend = paymentRequestRepository.sumPaidByYearMonth(currentYear, currentMonth);
+        java.math.BigDecimal prevMonthSpend = paymentRequestRepository.sumPaidByYearMonth(prevYear, prevMonth);
+        if (currentMonthSpend == null)
+            currentMonthSpend = java.math.BigDecimal.ZERO;
+        if (prevMonthSpend == null)
+            prevMonthSpend = java.math.BigDecimal.ZERO;
+
+        double momGrowth = prevMonthSpend.compareTo(java.math.BigDecimal.ZERO) > 0
+                ? currentMonthSpend.subtract(prevMonthSpend).divide(prevMonthSpend, 4, java.math.RoundingMode.HALF_UP)
+                        .multiply(java.math.BigDecimal.valueOf(100)).doubleValue()
+                : 0;
+
+        // 13. YoY Spend Growth
+        int lastYear = currentYear - 1;
+        java.math.BigDecimal thisYearSpendTotal = paymentRequestRepository.sumPaidAmountBetween(
+                java.time.LocalDate.of(currentYear, 1, 1), today);
+        java.math.BigDecimal lastYearSpendTotal = paymentRequestRepository.sumPaidAmountBetween(
+                java.time.LocalDate.of(lastYear, 1, 1), java.time.LocalDate.of(lastYear, 12, 31));
+        if (thisYearSpendTotal == null)
+            thisYearSpendTotal = java.math.BigDecimal.ZERO;
+        if (lastYearSpendTotal == null)
+            lastYearSpendTotal = java.math.BigDecimal.ZERO;
+
+        double yoyGrowth = lastYearSpendTotal.compareTo(java.math.BigDecimal.ZERO) > 0
+                ? thisYearSpendTotal.subtract(lastYearSpendTotal)
+                        .divide(lastYearSpendTotal, 4, java.math.RoundingMode.HALF_UP)
+                        .multiply(java.math.BigDecimal.valueOf(100)).doubleValue()
+                : 0;
+
+        // 14. Quarterly Trend
+        int twoMonthsAgo = prevMonth == 1 ? 12 : prevMonth - 1;
+        int twoMonthsAgoYear = prevMonth == 1 ? prevYear - 1 : prevYear;
+        java.math.BigDecimal twoMonthsAgoSpend = paymentRequestRepository.sumPaidByYearMonth(twoMonthsAgoYear,
+                twoMonthsAgo);
+        if (twoMonthsAgoSpend == null)
+            twoMonthsAgoSpend = java.math.BigDecimal.ZERO;
+
+        String quarterlyTrend = "→";
+        if (currentMonthSpend.compareTo(prevMonthSpend) > 0 && prevMonthSpend.compareTo(twoMonthsAgoSpend) > 0)
+            quarterlyTrend = "↑↑";
+        else if (currentMonthSpend.compareTo(prevMonthSpend) > 0)
+            quarterlyTrend = "↑";
+        else if (currentMonthSpend.compareTo(prevMonthSpend) < 0 && prevMonthSpend.compareTo(twoMonthsAgoSpend) < 0)
+            quarterlyTrend = "↓↓";
+        else if (currentMonthSpend.compareTo(prevMonthSpend) < 0)
+            quarterlyTrend = "↓";
+
+        // 15. Peak Month (already calculated as topMonth)
+
+        // --- THREATS ---
+        // 16. Top 1 Concentration (already calculated as concentration)
+
+        // 17. Top 5 Concentration
+        java.math.BigDecimal top5Spend = paymentRequestRepository.sumTop5VendorsSpend();
+        if (top5Spend == null)
+            top5Spend = java.math.BigDecimal.ZERO;
+        double top5Concentration = (totalSpend.compareTo(java.math.BigDecimal.ZERO) > 0)
+                ? top5Spend.divide(totalSpend, 4, java.math.RoundingMode.HALF_UP)
+                        .multiply(java.math.BigDecimal.valueOf(100)).doubleValue()
+                : 0.0;
+
+        // 18. Single Payment Method Dependency
+        java.math.BigDecimal topMethodSpend = paymentRequestRepository.sumTopPaymentMethodAmountGlobally();
+        if (topMethodSpend == null)
+            topMethodSpend = java.math.BigDecimal.ZERO;
+        double paymentMethodDependency = (totalSpend.compareTo(java.math.BigDecimal.ZERO) > 0)
+                ? topMethodSpend.divide(totalSpend, 4, java.math.RoundingMode.HALF_UP)
+                        .multiply(java.math.BigDecimal.valueOf(100)).doubleValue()
+                : 0.0;
+
+        // 19. Pending Queue
+        long pendingQueue = paymentRequestRepository.countPendingGlobally();
+
+        // 20. Is Declining Flag
+        boolean isDeclining = momGrowth < 0;
+
         // --- MODEL POPULATION ---
         model.addAttribute("totalSpend", totalSpend);
         model.addAttribute("ytdSpend", ytdSpend);
@@ -989,6 +1100,27 @@ public class MasterDataController {
         model.addAttribute("topMonth", topMonth);
 
         model.addAttribute("topVendors", topVendorsList);
+
+        // SWOT - Strengths
+        model.addAttribute("highValueVendorCount", highValueVendorCount);
+
+        // SWOT - Weaknesses
+        model.addAttribute("issueRate", issueRate);
+        model.addAttribute("issueCount", issueCount);
+
+        // SWOT - Opportunities
+        model.addAttribute("momGrowth", momGrowth);
+        model.addAttribute("yoyGrowth", yoyGrowth);
+        model.addAttribute("quarterlyTrend", quarterlyTrend);
+        model.addAttribute("currentMonthSpend", currentMonthSpend);
+        model.addAttribute("prevMonthSpend", prevMonthSpend);
+        model.addAttribute("twoMonthsAgoSpend", twoMonthsAgoSpend);
+
+        // SWOT - Threats
+        model.addAttribute("top5Concentration", top5Concentration);
+        model.addAttribute("paymentMethodDependency", paymentMethodDependency);
+        model.addAttribute("pendingQueue", pendingQueue);
+        model.addAttribute("isDeclining", isDeclining);
 
         return "master-data/vendor-dashboard";
     }
