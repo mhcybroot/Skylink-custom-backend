@@ -23,4 +23,10 @@ public interface ContractorRepository extends JpaRepository<Contractor, Long> {
         @org.springframework.data.jpa.repository.Query("SELECT COUNT(c) FROM Contractor c WHERE c.active = true AND (SELECT COUNT(p) FROM PaymentRequest p WHERE p.contractor = c AND p.requestDate >= :sinceDate) = 0")
         long countStaleContractors(
                         @org.springframework.data.repository.query.Param("sinceDate") java.time.LocalDate sinceDate);
+
+        @org.springframework.data.jpa.repository.Query("SELECT c.area, COUNT(c) FROM Contractor c GROUP BY c.area ORDER BY COUNT(c) DESC")
+        List<Object[]> countContractorsByArea();
+
+        @org.springframework.data.jpa.repository.Query("SELECT c.zipCode, COUNT(c) FROM Contractor c GROUP BY c.zipCode ORDER BY COUNT(c) DESC")
+        List<Object[]> countContractorsByZipCode();
 }

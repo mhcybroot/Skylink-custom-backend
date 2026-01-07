@@ -1038,6 +1038,107 @@ public class MasterDataController {
         model.addAttribute("pendingQueue", pendingQueue);
         model.addAttribute("isDeclining", isDeclining);
 
+        // --- GEOGRAPHIC INSIGHTS ---
+        java.util.List<Object[]> areaCounts = contractorRepository.countContractorsByArea();
+        java.util.List<Object[]> areaSpends = paymentRequestRepository.sumSpendByArea();
+
+        // Merge Logic
+        java.util.Map<String, java.util.Map<String, Object>> locStatsMap = new java.util.HashMap<>();
+
+        // Process Counts
+        for (Object[] row : areaCounts) {
+            String area = (String) row[0];
+            if (area == null || area.trim().isEmpty())
+                area = "Unknown/Not Set";
+            long count = ((Number) row[1]).longValue();
+
+            locStatsMap.putIfAbsent(area, new java.util.HashMap<>());
+            locStatsMap.get(area).put("area", area);
+            locStatsMap.get(area).put("count", count);
+            locStatsMap.get(area).put("spend", java.math.BigDecimal.ZERO); // Default
+        }
+
+        // Process Spends
+        for (Object[] row : areaSpends) {
+            String area = (String) row[0];
+            if (area == null || area.trim().isEmpty())
+                area = "Unknown/Not Set";
+            java.math.BigDecimal amount = (java.math.BigDecimal) row[1];
+
+            locStatsMap.putIfAbsent(area, new java.util.HashMap<>());
+            if (!locStatsMap.get(area).containsKey("area"))
+                locStatsMap.get(area).put("area", area);
+            if (!locStatsMap.get(area).containsKey("count"))
+                locStatsMap.get(area).put("count", 0L);
+            locStatsMap.get(area).put("spend", amount);
+        }
+
+        java.util.List<java.util.Map<String, Object>> locationStats = new java.util.ArrayList<>(locStatsMap.values());
+        // Sort by Count Descending
+        locationStats.sort((a, b) -> {
+            Long c1 = (Long) a.get("count");
+            Long c2 = (Long) b.get("count");
+            return c2.compareTo(c1);
+        });
+
+        model.addAttribute("locationStats", locationStats);
+
+        // --- ZIP CODE INSIGHTS ---
+        java.util.List<Object[]> zipCounts = contractorRepository.countContractorsByZipCode();
+        java.util.List<Object[]> zipSpends = paymentRequestRepository.sumSpendByZipCode();
+
+        // Merge Logic
+        java.util.Map<String, java.util.Map<String, Object>> zipStatsMap = new java.util.HashMap<>();
+
+        // Process Counts
+        for (Object[] row : zipCounts) {
+            String zip = (String) row[0];
+            if (zip == null || zip.trim().isEmpty())
+                zip = "Unknown";
+            long count = ((Number) row[1]).longValue();
+
+            zipStatsMap.putIfAbsent(zip, new java.util.HashMap<>());
+            zipStatsMap.get(zip).put("zip", zip);
+            zipStatsMap.get(zip).put("count", count);
+            zipStatsMap.get(zip).put("spend", java.math.BigDecimal.ZERO);
+        }
+
+        // Process Spends
+        for (Object[] row : zipSpends) {
+            String zip = (String) row[0];
+            if (zip == null || zip.trim().isEmpty())
+                zip = "Unknown";
+            java.math.BigDecimal amount = (java.math.BigDecimal) row[1];
+
+            zipStatsMap.putIfAbsent(zip, new java.util.HashMap<>());
+            if (!zipStatsMap.get(zip).containsKey("zip"))
+                zipStatsMap.get(zip).put("zip", zip);
+            if (!zipStatsMap.get(zip).containsKey("count"))
+                zipStatsMap.get(zip).put("count", 0L);
+            zipStatsMap.get(zip).put("spend", amount);
+        }
+
+        java.util.List<java.util.Map<String, Object>> zipStats = new java.util.ArrayList<>(zipStatsMap.values());
+        // Sort by Spend Descending (for SWOT Strength)
+        zipStats.sort((a, b) -> {
+            java.math.BigDecimal s1 = (java.math.BigDecimal) a.get("spend");
+            java.math.BigDecimal s2 = (java.math.BigDecimal) b.get("spend");
+            return s2.compareTo(s1); // Desc
+        });
+
+        model.addAttribute("zipStats", zipStats);
+
+        // SWOT Identification
+        String topZip = "N/A";
+        java.math.BigDecimal topZipSpend = java.math.BigDecimal.ZERO;
+        if (!zipStats.isEmpty()
+                && ((java.math.BigDecimal) zipStats.get(0).get("spend")).compareTo(java.math.BigDecimal.ZERO) > 0) {
+            topZip = (String) zipStats.get(0).get("zip");
+            topZipSpend = (java.math.BigDecimal) zipStats.get(0).get("spend");
+        }
+        model.addAttribute("topZip", topZip);
+        model.addAttribute("topZipSpend", topZipSpend);
+
         return "master-data/vendor-dashboard";
     }
 

@@ -704,4 +704,10 @@ public interface PaymentRequestRepository extends JpaRepository<PaymentRequest, 
 
         @org.springframework.data.jpa.repository.Query(value = "SELECT COUNT(*) FROM (SELECT client_id FROM payment_requests GROUP BY client_id HAVING COUNT(*) > :count) as sub", nativeQuery = true)
         long countHighVolumeClients(@org.springframework.data.repository.query.Param("count") int count);
+
+        @org.springframework.data.jpa.repository.Query("SELECT c.area, SUM(p.amount) FROM PaymentRequest p JOIN p.contractor c WHERE p.status = 'PAID' GROUP BY c.area ORDER BY SUM(p.amount) DESC")
+        java.util.List<Object[]> sumSpendByArea();
+
+        @org.springframework.data.jpa.repository.Query("SELECT c.zipCode, SUM(p.amount) FROM PaymentRequest p JOIN p.contractor c WHERE p.status = 'PAID' GROUP BY c.zipCode ORDER BY SUM(p.amount) DESC")
+        java.util.List<Object[]> sumSpendByZipCode();
 }
