@@ -104,10 +104,246 @@ public class MasterDataController {
 
     @GetMapping("/clients")
     @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
-    public String listClients(Model model) {
-        model.addAttribute("clients", clientRepository.findAll());
+    public String listClients(@RequestParam(value = "search", required = false) String search, Model model) {
+        java.util.List<Client> allClients;
+
+        // Apply search filter if provided
+        if (search != null && !search.trim().isEmpty()) {
+            String searchLower = search.toLowerCase().trim();
+            allClients = clientRepository.findAll().stream()
+                    .filter(c -> c.getName().toLowerCase().contains(searchLower) ||
+                            c.getCode().toLowerCase().contains(searchLower) ||
+                            (c.getAddress() != null && c.getAddress().toLowerCase().contains(searchLower)) ||
+                            c.getId().toString().contains(searchLower))
+                    .collect(java.util.stream.Collectors.toList());
+        } else {
+            allClients = clientRepository.findAll();
+        }
+
+        model.addAttribute("clients", allClients);
         model.addAttribute("newClient", new Client());
+        model.addAttribute("search", search);
+
+        // --- GLOBAL ANALYTICS ---
+
+        // 1. Financial Overview
+        java.math.BigDecimal totalRevenue = paymentRequestRepository.sumTotalRevenue();
+        if (totalRevenue == null)
+            totalRevenue = java.math.BigDecimal.ZERO;
+
+        java.time.LocalDate yearStart = java.time.LocalDate.of(java.time.LocalDate.now().getYear(), 1, 1);
+        java.math.BigDecimal ytdRevenue = paymentRequestRepository.sumRevenueByDateRange(yearStart,
+                java.time.LocalDate.now());
+        if (ytdRevenue == null)
+            ytdRevenue = java.math.BigDecimal.ZERO;
+
+        java.math.BigDecimal totalOutstanding = paymentRequestRepository.sumTotalOutstanding();
+        if (totalOutstanding == null)
+            totalOutstanding = java.math.BigDecimal.ZERO;
+
+        java.util.List<Object[]> topClients = paymentRequestRepository.findTopClientsByRevenue(
+                org.springframework.data.domain.PageRequest.of(0, 5));
+
+        java.math.BigDecimal avgClientValue = java.math.BigDecimal.ZERO;
+        String highestValueClient = "N/A";
+        double clientConcentration = 0;
+
+        long activeClientCount = clientRepository.findByActiveTrue().size();
+        if (activeClientCount > 0 && totalRevenue.compareTo(java.math.BigDecimal.ZERO) > 0) {
+            avgClientValue = totalRevenue.divide(java.math.BigDecimal.valueOf(activeClientCount), 2,
+                    java.math.RoundingMode.HALF_UP);
+        }
+
+        if (!topClients.isEmpty()) {
+            highestValueClient = (String) topClients.get(0)[1];
+            java.math.BigDecimal topClientRevenue = (java.math.BigDecimal) topClients.get(0)[2];
+            if (totalRevenue.compareTo(java.math.BigDecimal.ZERO) > 0) {
+                clientConcentration = topClientRevenue.divide(totalRevenue, 4, java.math.RoundingMode.HALF_UP)
+                        .multiply(java.math.BigDecimal.valueOf(100)).doubleValue();
+            }
+        }
+
+        // 2. Client Portfolio
+        long totalClients = allClients.size();
+        long activeClients = activeClientCount;
+
+        // 3. Operational Metrics
+        long totalRequests = paymentRequestRepository.count();
+        long totalWorkOrders = paymentRequestRepository.countTotalWorkOrders();
+
+        long approvedCount = paymentRequestRepository.countByClientIdAndStatus(null,
+                root.cyb.mh.attendancesystem.model.enums.RequestStatus.APPROVED);
+        double globalApprovalRate = totalRequests > 0 ? (double) approvedCount / totalRequests * 100 : 0;
+
+        double avgRequestsPerClient = activeClients > 0 ? (double) totalRequests / activeClients : 0;
+
+        // 4. Vendor Ecosystem
+        long totalVendors = paymentRequestRepository.countTotalUniqueVendors();
+        double avgVendorsPerClient = activeClients > 0 ? (double) totalVendors / activeClients : 0;
+
+        java.util.List<Object[]> mostUsedVendors = paymentRequestRepository.findMostUsedVendors(
+                org.springframework.data.domain.PageRequest.of(0, 1));
+        String mostUsedVendor = mostUsedVendors.isEmpty() ? "N/A" : (String) mostUsedVendors.get(0)[0];
+
+        // 5. Growth Trends
+        int currentYear = java.time.LocalDate.now().getYear();
+        int currentMonth = java.time.LocalDate.now().getMonthValue();
+        int previousMonth = currentMonth == 1 ? 12 : currentMonth - 1;
+        int previousYear = currentMonth == 1 ? currentYear - 1 : currentYear;
+
+        java.math.BigDecimal currentMonthRevenue = paymentRequestRepository.sumRevenueByYearMonth(currentYear,
+                currentMonth);
+        java.math.BigDecimal previousMonthRevenue = paymentRequestRepository.sumRevenueByYearMonth(previousYear,
+                previousMonth);
+
+        if (currentMonthRevenue == null)
+            currentMonthRevenue = java.math.BigDecimal.ZERO;
+        if (previousMonthRevenue == null)
+            previousMonthRevenue = java.math.BigDecimal.ZERO;
+
+        double momGrowthRate = previousMonthRevenue.compareTo(java.math.BigDecimal.ZERO) > 0
+                ? currentMonthRevenue.subtract(previousMonthRevenue)
+                        .divide(previousMonthRevenue, 4, java.math.RoundingMode.HALF_UP)
+                        .multiply(java.math.BigDecimal.valueOf(100)).doubleValue()
+                : 0;
+
+        // --- MODEL POPULATION ---
+        // Financial
+        model.addAttribute("globalTotalRevenue", totalRevenue);
+        model.addAttribute("globalYtdRevenue", ytdRevenue);
+        model.addAttribute("globalAvgClientValue", avgClientValue);
+        model.addAttribute("globalHighestValueClient", highestValueClient);
+        model.addAttribute("globalTotalOutstanding", totalOutstanding);
+        model.addAttribute("globalClientConcentration", clientConcentration);
+
+        // Client Portfolio
+        model.addAttribute("globalTotalClients", totalClients);
+        model.addAttribute("globalActiveClients", activeClients);
+        model.addAttribute("globalTopClients", topClients);
+
+        // Operational
+        model.addAttribute("globalTotalRequests", totalRequests);
+        model.addAttribute("globalTotalWorkOrders", totalWorkOrders);
+        model.addAttribute("globalApprovalRate", globalApprovalRate);
+        model.addAttribute("globalAvgRequestsPerClient", avgRequestsPerClient);
+
+        // Vendor
+        model.addAttribute("globalTotalVendors", totalVendors);
+        model.addAttribute("globalAvgVendorsPerClient", avgVendorsPerClient);
+        model.addAttribute("globalMostUsedVendor", mostUsedVendor);
+
+        // Growth
+        model.addAttribute("globalMomGrowthRate", momGrowthRate);
+
         return "master-data/clients";
+    }
+
+    @GetMapping("/clients/analytics")
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
+    public String getClientAnalytics(Model model) {
+        // Reuse same logic as listClients for global analytics
+        java.util.List<Client> allClients = clientRepository.findAll();
+
+        // 1. Financial Overview
+        java.math.BigDecimal totalRevenue = paymentRequestRepository.sumTotalRevenue();
+        if (totalRevenue == null)
+            totalRevenue = java.math.BigDecimal.ZERO;
+
+        java.time.LocalDate yearStart = java.time.LocalDate.of(java.time.LocalDate.now().getYear(), 1, 1);
+        java.math.BigDecimal ytdRevenue = paymentRequestRepository.sumRevenueByDateRange(yearStart,
+                java.time.LocalDate.now());
+        if (ytdRevenue == null)
+            ytdRevenue = java.math.BigDecimal.ZERO;
+
+        java.math.BigDecimal totalOutstanding = paymentRequestRepository.sumTotalOutstanding();
+        if (totalOutstanding == null)
+            totalOutstanding = java.math.BigDecimal.ZERO;
+
+        java.util.List<Object[]> topClients = paymentRequestRepository.findTopClientsByRevenue(
+                org.springframework.data.domain.PageRequest.of(0, 5));
+
+        java.math.BigDecimal avgClientValue = java.math.BigDecimal.ZERO;
+        String highestValueClient = "N/A";
+        double clientConcentration = 0;
+
+        long activeClientCount = clientRepository.findByActiveTrue().size();
+        if (activeClientCount > 0 && totalRevenue.compareTo(java.math.BigDecimal.ZERO) > 0) {
+            avgClientValue = totalRevenue.divide(java.math.BigDecimal.valueOf(activeClientCount), 2,
+                    java.math.RoundingMode.HALF_UP);
+        }
+
+        if (!topClients.isEmpty()) {
+            highestValueClient = (String) topClients.get(0)[1];
+            java.math.BigDecimal topClientRevenue = (java.math.BigDecimal) topClients.get(0)[2];
+            if (totalRevenue.compareTo(java.math.BigDecimal.ZERO) > 0) {
+                clientConcentration = topClientRevenue.divide(totalRevenue, 4, java.math.RoundingMode.HALF_UP)
+                        .multiply(java.math.BigDecimal.valueOf(100)).doubleValue();
+            }
+        }
+
+        long totalClients = allClients.size();
+        long activeClients = activeClientCount;
+
+        // 3. Operational Metrics
+        long totalRequests = paymentRequestRepository.count();
+        long totalWorkOrders = paymentRequestRepository.countTotalWorkOrders();
+
+        long approvedCount = paymentRequestRepository.countByClientIdAndStatus(null,
+                root.cyb.mh.attendancesystem.model.enums.RequestStatus.APPROVED);
+        double globalApprovalRate = totalRequests > 0 ? (double) approvedCount / totalRequests * 100 : 0;
+
+        double avgRequestsPerClient = activeClients > 0 ? (double) totalRequests / activeClients : 0;
+
+        // 4. Vendor Ecosystem
+        long totalVendors = paymentRequestRepository.countTotalUniqueVendors();
+        double avgVendorsPerClient = activeClients > 0 ? (double) totalVendors / activeClients : 0;
+
+        java.util.List<Object[]> mostUsedVendors = paymentRequestRepository.findMostUsedVendors(
+                org.springframework.data.domain.PageRequest.of(0, 1));
+        String mostUsedVendor = mostUsedVendors.isEmpty() ? "N/A" : (String) mostUsedVendors.get(0)[0];
+
+        // 5. Growth Trends
+        int currentYear = java.time.LocalDate.now().getYear();
+        int currentMonth = java.time.LocalDate.now().getMonthValue();
+        int previousMonth = currentMonth == 1 ? 12 : currentMonth - 1;
+        int previousYear = currentMonth == 1 ? currentYear - 1 : currentYear;
+
+        java.math.BigDecimal currentMonthRevenue = paymentRequestRepository.sumRevenueByYearMonth(currentYear,
+                currentMonth);
+        java.math.BigDecimal previousMonthRevenue = paymentRequestRepository.sumRevenueByYearMonth(previousYear,
+                previousMonth);
+
+        if (currentMonthRevenue == null)
+            currentMonthRevenue = java.math.BigDecimal.ZERO;
+        if (previousMonthRevenue == null)
+            previousMonthRevenue = java.math.BigDecimal.ZERO;
+
+        double momGrowthRate = previousMonthRevenue.compareTo(java.math.BigDecimal.ZERO) > 0
+                ? currentMonthRevenue.subtract(previousMonthRevenue)
+                        .divide(previousMonthRevenue, 4, java.math.RoundingMode.HALF_UP)
+                        .multiply(java.math.BigDecimal.valueOf(100)).doubleValue()
+                : 0;
+
+        // MODEL POPULATION
+        model.addAttribute("globalTotalRevenue", totalRevenue);
+        model.addAttribute("globalYtdRevenue", ytdRevenue);
+        model.addAttribute("globalAvgClientValue", avgClientValue);
+        model.addAttribute("globalHighestValueClient", highestValueClient);
+        model.addAttribute("globalTotalOutstanding", totalOutstanding);
+        model.addAttribute("globalClientConcentration", clientConcentration);
+        model.addAttribute("globalTotalClients", totalClients);
+        model.addAttribute("globalActiveClients", activeClients);
+        model.addAttribute("globalTopClients", topClients);
+        model.addAttribute("globalTotalRequests", totalRequests);
+        model.addAttribute("globalTotalWorkOrders", totalWorkOrders);
+        model.addAttribute("globalApprovalRate", globalApprovalRate);
+        model.addAttribute("globalAvgRequestsPerClient", avgRequestsPerClient);
+        model.addAttribute("globalTotalVendors", totalVendors);
+        model.addAttribute("globalAvgVendorsPerClient", avgVendorsPerClient);
+        model.addAttribute("globalMostUsedVendor", mostUsedVendor);
+        model.addAttribute("globalMomGrowthRate", momGrowthRate);
+
+        return "master-data/client-analytics";
     }
 
     @PostMapping("/clients")
@@ -259,12 +495,30 @@ public class MasterDataController {
 
     @PostMapping("/clients/{id}/toggle")
     @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
-    public String toggleClient(@PathVariable Long id, RedirectAttributes ps) {
-        Client c = clientRepository.findById(id).orElse(null);
-        if (c != null) {
-            c.setActive(!c.isActive());
-            clientRepository.save(c);
-            ps.addFlashAttribute("successMessage", "Client status updated.");
+    public String toggleClientStatus(@PathVariable Long id, RedirectAttributes ps) {
+        Client c = clientRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Client not found"));
+        c.setActive(!c.isActive());
+        clientRepository.save(c);
+        ps.addFlashAttribute("successMessage", "Client status updated successfully!");
+        return "redirect:/master-data/clients";
+    }
+
+    @PostMapping("/clients/{id}/update")
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
+    public String updateClient(@PathVariable Long id, @RequestParam String code,
+            @RequestParam String name, @RequestParam(required = false) String address,
+            RedirectAttributes ps) {
+        try {
+            Client client = clientRepository.findById(id)
+                    .orElseThrow(() -> new ResourceNotFoundException("Client not found"));
+            client.setCode(code);
+            client.setName(name);
+            client.setAddress(address);
+            clientRepository.save(client);
+            ps.addFlashAttribute("successMessage", "Client updated successfully!");
+        } catch (Exception e) {
+            ps.addFlashAttribute("errorMessage", "Error: Client code must be unique.");
         }
         return "redirect:/master-data/clients";
     }
