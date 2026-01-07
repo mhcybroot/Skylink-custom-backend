@@ -374,47 +374,138 @@ public class MasterDataController {
     }
 
     // --- VENDOR ANALYTICS DASHBOARD ---
+    // --- VENDOR ANALYTICS DASHBOARD ---
     @GetMapping("/contractors/analytics")
     @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
     public String getVendorAnalytics(Model model) {
-        // 1. Contractor Counts
-        long activeCount = contractorRepository.count(); // TODO: Add specific count methods to Repo if needed, or
-                                                         // filter.
-        // Actually, let's use the ones in PaymentRequestRepository for now as they are
-        // already there, or add clean ones to ContractorRepo.
-        // Checking existing code, PaymentRequestRepository has
-        // 'countActiveContractors'.
-
-        long activeContractors = paymentRequestRepository.countActiveContractors();
-        long inactiveContractors = paymentRequestRepository.countInactiveContractors();
-        long totalContractors = activeContractors + inactiveContractors;
-
-        // 2. Financials
+        // --- 1. FINANCIAL PERFORMANCE ---
+        // 1.1 Total Lifetime Spend
         java.math.BigDecimal totalSpend = paymentRequestRepository
                 .sumAmountByPaymentStatus(root.cyb.mh.attendancesystem.model.enums.PaymentStatus.PAID);
         if (totalSpend == null)
             totalSpend = java.math.BigDecimal.ZERO;
 
-        java.math.BigDecimal avgSpend = (activeContractors > 0)
-                ? totalSpend.divide(java.math.BigDecimal.valueOf(activeContractors), 2, java.math.RoundingMode.HALF_UP)
-                : java.math.BigDecimal.ZERO;
+        // 1.2 YTD Spend
+        java.time.LocalDate today = java.time.LocalDate.now();
+        java.time.LocalDate firstDayOfYear = today.withDayOfYear(1);
+        java.math.BigDecimal ytdSpend = paymentRequestRepository.sumPaidAmountBetween(firstDayOfYear, today);
+        if (ytdSpend == null)
+            ytdSpend = java.math.BigDecimal.ZERO;
 
-        // 3. Top Vendors
-        java.util.List<Object[]> topVendors = paymentRequestRepository
+        // 1.3 Projected Annual Spend
+        java.math.BigDecimal projectedAnnualSpend = java.math.BigDecimal.ZERO;
+        int dayOfYear = today.getDayOfYear();
+        if (dayOfYear > 0) {
+            projectedAnnualSpend = ytdSpend
+                    .divide(java.math.BigDecimal.valueOf(dayOfYear), 2, java.math.RoundingMode.HALF_UP)
+                    .multiply(java.math.BigDecimal.valueOf(today.lengthOfYear()));
+        }
+
+        // 1.4 Avg Transaction Value
+        java.math.BigDecimal avgTransactionValue = paymentRequestRepository.findAverageRequestAmount();
+        if (avgTransactionValue == null)
+            avgTransactionValue = java.math.BigDecimal.ZERO;
+
+        // 1.5 Max Single Transaction
+        java.math.BigDecimal maxTransaction = paymentRequestRepository.findMaxTransactionAmount();
+        if (maxTransaction == null)
+            maxTransaction = java.math.BigDecimal.ZERO;
+
+        // --- 2. VENDOR HEALTH & OPERATIONS ---
+        // 2.1 Active Vendor Count
+        long activeContractors = paymentRequestRepository.countActiveContractors();
+        long inactiveContractors = paymentRequestRepository.countInactiveContractors();
+        long totalContractors = activeContractors + inactiveContractors;
+
+        // 2.2 Vendor Utilization %
+        double utilization = (totalContractors > 0) ? ((double) activeContractors / totalContractors) * 100 : 0.0;
+
+        // 2.3 New Vendors (30d)
+        long newVendors30d = contractorRepository.countByCreatedAtAfter(java.time.LocalDateTime.now().minusDays(30));
+
+        // 2.4 Stale Vendors (>90d)
+        long staleVendors = contractorRepository.countStaleContractors(today.minusDays(90));
+
+        // 2.5 Avg Payment Time (Real Implementation)
+        java.util.List<root.cyb.mh.attendancesystem.model.PaymentRequest> paidRequests = paymentRequestRepository
+                .findByPaymentStatus(root.cyb.mh.attendancesystem.model.enums.PaymentStatus.PAID);
+        long totalDays = 0;
+        long countPaid = 0;
+        for (root.cyb.mh.attendancesystem.model.PaymentRequest r : paidRequests) {
+            if (r.getRequestDate() != null && r.getLastModified() != null) {
+                // Assuming lastModified is approx payment time for PAID status
+                long days = java.time.temporal.ChronoUnit.DAYS.between(r.getRequestDate(),
+                        r.getLastModified().toLocalDate());
+                if (days < 0)
+                    days = 0; // Safety
+                totalDays += days;
+                countPaid++;
+            }
+        }
+        long avgPaymentDays = (countPaid > 0) ? totalDays / countPaid : 0;
+
+        // --- 3. RISK & STRATEGY ---
+        // 3.1 Vendor Churn Rate (Inactive / Total)
+        double churnRate = (totalContractors > 0) ? ((double) inactiveContractors / totalContractors) * 100 : 0.0;
+
+        // 3.2 Top Vendor Concentration
+        java.util.List<Object[]> topVendor = paymentRequestRepository
+                .findTopContractorsBySpend(org.springframework.data.domain.PageRequest.of(0, 1));
+        java.math.BigDecimal topVendorSpend = (topVendor != null && !topVendor.isEmpty())
+                ? (java.math.BigDecimal) topVendor.get(0)[1]
+                : java.math.BigDecimal.ZERO;
+        double concentration = (totalSpend.compareTo(java.math.BigDecimal.ZERO) > 0)
+                ? topVendorSpend.divide(totalSpend, 4, java.math.RoundingMode.HALF_UP)
+                        .multiply(java.math.BigDecimal.valueOf(100)).doubleValue()
+                : 0.0;
+
+        // 3.3 Rejection Rate
+        long totalRequests = paymentRequestRepository.count();
+        long rejectedRequests = paymentRequestRepository
+                .countByStatus(root.cyb.mh.attendancesystem.model.enums.RequestStatus.REJECTED);
+        double rejectionRate = (totalRequests > 0) ? ((double) rejectedRequests / totalRequests) * 100 : 0.0;
+
+        // 3.4 Most Frequent Payment Method
+        java.util.List<Object[]> topMethod = paymentRequestRepository
+                .findMostFrequentPaymentMethodGlobal(org.springframework.data.domain.PageRequest.of(0, 1));
+        String frequentMethod = (topMethod != null && !topMethod.isEmpty()) ? (String) topMethod.get(0)[0] : "N/A";
+
+        // 3.5 Top Spending Month
+        java.util.List<Object[]> topMonthData = paymentRequestRepository
+                .findTopSpendingMonthGlobal(org.springframework.data.domain.PageRequest.of(0, 1));
+        String topMonth = "N/A";
+        if (topMonthData != null && !topMonthData.isEmpty()) {
+            java.time.Month m = java.time.Month.of(((Number) topMonthData.get(0)[1]).intValue());
+            int y = ((Number) topMonthData.get(0)[0]).intValue();
+            topMonth = m.getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.US) + " " + y;
+        }
+
+        // --- CHARTS & LISTS ---
+        java.util.List<Object[]> topVendorsList = paymentRequestRepository
                 .findTopContractorsBySpend(org.springframework.data.domain.PageRequest.of(0, 5));
 
-        // 4. Monthly Trend (Global)
-        java.time.LocalDate sixMonthsAgo = java.time.LocalDate.now().minusMonths(6).withDayOfMonth(1);
-        java.util.List<Object[]> monthlyTrend = paymentRequestRepository.findMonthlySpendingTrend(sixMonthsAgo);
+        // --- MODEL POPULATION ---
+        model.addAttribute("totalSpend", totalSpend);
+        model.addAttribute("ytdSpend", ytdSpend);
+        model.addAttribute("projectedAnnualSpend", projectedAnnualSpend);
+        model.addAttribute("avgTransactionValue", avgTransactionValue);
+        model.addAttribute("maxTransaction", maxTransaction);
 
-        // 5. Populate Model
         model.addAttribute("activeCount", activeContractors);
         model.addAttribute("inactiveCount", inactiveContractors);
         model.addAttribute("totalCount", totalContractors);
-        model.addAttribute("totalSpend", totalSpend);
-        model.addAttribute("avgSpend", avgSpend);
-        model.addAttribute("topVendors", topVendors);
-        model.addAttribute("monthlyTrend", monthlyTrend);
+        model.addAttribute("utilization", utilization);
+        model.addAttribute("newVendors30d", newVendors30d);
+        model.addAttribute("staleVendors", staleVendors);
+        model.addAttribute("avgPaymentDays", avgPaymentDays);
+
+        model.addAttribute("churnRate", churnRate);
+        model.addAttribute("concentration", concentration);
+        model.addAttribute("rejectionRate", rejectionRate);
+        model.addAttribute("frequentMethod", frequentMethod);
+        model.addAttribute("topMonth", topMonth);
+
+        model.addAttribute("topVendors", topVendorsList);
 
         return "master-data/vendor-dashboard";
     }

@@ -30,5 +30,13 @@ public class Contractor {
     @OneToMany(mappedBy = "contractor", cascade = CascadeType.ALL, orphanRemoval = true)
     private java.util.List<ContractorPaymentInfo> paymentInfos = new java.util.ArrayList<>();
 
+    @Column(updatable = false)
+    private java.time.LocalDateTime createdAt;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = java.time.LocalDateTime.now();
+    }
+
     private boolean active = true;
 }

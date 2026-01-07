@@ -36,6 +36,8 @@ public interface PaymentRequestRepository extends JpaRepository<PaymentRequest, 
         @org.springframework.data.jpa.repository.Query("SELECT SUM(p.amount) FROM PaymentRequest p WHERE p.requestDate = :date")
         java.math.BigDecimal sumAmountByRequestDate(java.time.LocalDate date);
 
+        List<PaymentRequest> findByPaymentStatus(root.cyb.mh.attendancesystem.model.enums.PaymentStatus status);
+
         long countByStatus(root.cyb.mh.attendancesystem.model.enums.RequestStatus status);
 
         @org.springframework.data.jpa.repository.Query("SELECT SUM(p.amount) FROM PaymentRequest p WHERE p.status = :status")
@@ -171,4 +173,21 @@ public interface PaymentRequestRepository extends JpaRepository<PaymentRequest, 
                         "GROUP BY extract(year from p.requestDate), extract(month from p.requestDate) " +
                         "ORDER BY SUM(p.amount) DESC")
         List<Object[]> findTopSpendingMonthByCompany(Long companyId, org.springframework.data.domain.Pageable pageable);
+
+        @org.springframework.data.jpa.repository.Query("SELECT MAX(p.amount) FROM PaymentRequest p")
+        java.math.BigDecimal findMaxTransactionAmount();
+
+        @org.springframework.data.jpa.repository.Query("SELECT extract(year from p.requestDate), extract(month from p.requestDate), SUM(p.amount) "
+                        +
+                        "FROM PaymentRequest p WHERE p.status = 'APPROVED' " +
+                        "GROUP BY extract(year from p.requestDate), extract(month from p.requestDate) " +
+                        "ORDER BY SUM(p.amount) DESC")
+        List<Object[]> findTopSpendingMonthGlobal(org.springframework.data.domain.Pageable pageable);
+
+        @org.springframework.data.jpa.repository.Query("SELECT p.paymentMethod.methodName, COUNT(p) " +
+                        "FROM PaymentRequest p " +
+                        "WHERE p.paymentMethod IS NOT NULL " +
+                        "GROUP BY p.paymentMethod.methodName " +
+                        "ORDER BY COUNT(p) DESC")
+        List<Object[]> findMostFrequentPaymentMethodGlobal(org.springframework.data.domain.Pageable pageable);
 }
