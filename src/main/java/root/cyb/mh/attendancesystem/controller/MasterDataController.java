@@ -44,7 +44,7 @@ public class MasterDataController {
             model.addAttribute("contractors", contractorRepository.searchContractors(search.trim(), sortObj));
             model.addAttribute("search", search.trim());
         } else {
-            model.addAttribute("contractors", contractorRepository.findByActiveTrue(sortObj));
+            model.addAttribute("contractors", contractorRepository.findAll(sortObj));
         }
 
         model.addAttribute("sort", sort);
