@@ -53,4 +53,7 @@ public class DashboardStatsDTO {
     // Config
     private java.math.BigDecimal highValueThreshold;
     private int reviewUpdateLimit;
+
+    // [NEW] 15+ Business Insights
+    private Map<String, Object> insights;
 }

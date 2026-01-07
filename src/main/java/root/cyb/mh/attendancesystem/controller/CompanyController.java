@@ -17,6 +17,9 @@ public class CompanyController {
     @Autowired
     private CompanyRepository companyRepository;
 
+    @Autowired
+    private root.cyb.mh.attendancesystem.service.PaymentDashboardService paymentDashboardService;
+
     @GetMapping
     public String listCompanies(Model model) {
         model.addAttribute("companies", companyRepository.findAll());
@@ -68,5 +71,17 @@ public class CompanyController {
             ps.addFlashAttribute("successMessage", "Company status updated.");
         }
         return "redirect:/master-data/companies";
+    }
+
+    @GetMapping("/{id}/dashboard")
+    public String getCompanyDashboard(@PathVariable Long id, Model model) {
+        Company company = companyRepository.findById(id).orElseThrow(
+                () -> new root.cyb.mh.attendancesystem.exception.ResourceNotFoundException("Company not found"));
+        model.addAttribute("company", company);
+
+        root.cyb.mh.attendancesystem.model.dto.DashboardStatsDTO stats = paymentDashboardService.getCompanyStats(id);
+        model.addAttribute("stats", stats);
+
+        return "company/dashboard";
     }
 }

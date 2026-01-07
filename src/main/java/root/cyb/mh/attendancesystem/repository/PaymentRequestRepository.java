@@ -122,4 +122,53 @@ public interface PaymentRequestRepository extends JpaRepository<PaymentRequest, 
 
         @org.springframework.data.jpa.repository.Query("SELECT COUNT(c) FROM Contractor c WHERE c.active = false")
         long countInactiveContractors();
+
+        // --- Company Dashboard ---
+        List<PaymentRequest> findByCompany(root.cyb.mh.attendancesystem.model.Company company);
+
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(p) FROM PaymentRequest p WHERE p.company.id = :companyId AND p.status = :status")
+        long countByCompanyAndStatus(Long companyId, root.cyb.mh.attendancesystem.model.enums.RequestStatus status);
+
+        @org.springframework.data.jpa.repository.Query("SELECT SUM(p.amount) FROM PaymentRequest p WHERE p.company.id = :companyId")
+        java.math.BigDecimal sumAmountByCompany(Long companyId);
+
+        @org.springframework.data.jpa.repository.Query("SELECT extract(year from p.requestDate), extract(month from p.requestDate), SUM(p.amount) "
+                        +
+                        "FROM PaymentRequest p WHERE p.company.id = :companyId AND p.status = 'APPROVED' " +
+                        "GROUP BY extract(year from p.requestDate), extract(month from p.requestDate) " +
+                        "ORDER BY extract(year from p.requestDate), extract(month from p.requestDate)")
+        List<Object[]> findCompanyMonthlySpendingTrend(Long companyId);
+
+        @org.springframework.data.jpa.repository.Query("SELECT p.contractor.name, SUM(p.amount) FROM PaymentRequest p WHERE p.company.id = :companyId AND p.contractor IS NOT NULL GROUP BY p.contractor.name ORDER BY SUM(p.amount) DESC")
+        List<Object[]> findTopContractorsByCompany(Long companyId, org.springframework.data.domain.Pageable pageable);
+
+        // --- NEW INSIGHTS ---
+        @org.springframework.data.jpa.repository.Query("SELECT MAX(p.amount) FROM PaymentRequest p WHERE p.company.id = :companyId")
+        java.math.BigDecimal findMaxOneTimeSpendByCompany(Long companyId);
+
+        @org.springframework.data.jpa.repository.Query("SELECT COALESCE(r.username, e.name), COUNT(p) " +
+                        "FROM PaymentRequest p " +
+                        "LEFT JOIN p.requester r " +
+                        "LEFT JOIN p.employeeRequester e " +
+                        "WHERE p.company.id = :companyId " +
+                        "GROUP BY r.username, e.name " +
+                        "ORDER BY COUNT(p) DESC")
+        List<Object[]> findMostFrequentRequesterByCompany(Long companyId,
+                        org.springframework.data.domain.Pageable pageable);
+
+        @org.springframework.data.jpa.repository.Query("SELECT p.client.name, SUM(p.amount) FROM PaymentRequest p WHERE p.company.id = :companyId AND p.client IS NOT NULL GROUP BY p.client.name")
+        List<Object[]> sumAmountByCompanyAndClientGroup(Long companyId);
+
+        @org.springframework.data.jpa.repository.Query("SELECT p.paymentMethod.methodName, SUM(p.amount) FROM PaymentRequest p WHERE p.company.id = :companyId AND p.paymentMethod IS NOT NULL GROUP BY p.paymentMethod.methodName")
+        List<Object[]> sumAmountByCompanyAndPaymentMethodGroup(Long companyId);
+
+        @org.springframework.data.jpa.repository.Query("SELECT MIN(p.requestDate) FROM PaymentRequest p WHERE p.company.id = :companyId")
+        java.time.LocalDate findFirstTransactionDateByCompany(Long companyId);
+
+        @org.springframework.data.jpa.repository.Query("SELECT extract(year from p.requestDate), extract(month from p.requestDate), SUM(p.amount) "
+                        +
+                        "FROM PaymentRequest p WHERE p.company.id = :companyId " +
+                        "GROUP BY extract(year from p.requestDate), extract(month from p.requestDate) " +
+                        "ORDER BY SUM(p.amount) DESC")
+        List<Object[]> findTopSpendingMonthByCompany(Long companyId, org.springframework.data.domain.Pageable pageable);
 }
