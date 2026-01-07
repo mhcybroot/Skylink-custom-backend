@@ -372,4 +372,50 @@ public class MasterDataController {
         }
         return org.springframework.http.ResponseEntity.ok().body("Deleted");
     }
+
+    // --- VENDOR ANALYTICS DASHBOARD ---
+    @GetMapping("/contractors/analytics")
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
+    public String getVendorAnalytics(Model model) {
+        // 1. Contractor Counts
+        long activeCount = contractorRepository.count(); // TODO: Add specific count methods to Repo if needed, or
+                                                         // filter.
+        // Actually, let's use the ones in PaymentRequestRepository for now as they are
+        // already there, or add clean ones to ContractorRepo.
+        // Checking existing code, PaymentRequestRepository has
+        // 'countActiveContractors'.
+
+        long activeContractors = paymentRequestRepository.countActiveContractors();
+        long inactiveContractors = paymentRequestRepository.countInactiveContractors();
+        long totalContractors = activeContractors + inactiveContractors;
+
+        // 2. Financials
+        java.math.BigDecimal totalSpend = paymentRequestRepository
+                .sumAmountByPaymentStatus(root.cyb.mh.attendancesystem.model.enums.PaymentStatus.PAID);
+        if (totalSpend == null)
+            totalSpend = java.math.BigDecimal.ZERO;
+
+        java.math.BigDecimal avgSpend = (activeContractors > 0)
+                ? totalSpend.divide(java.math.BigDecimal.valueOf(activeContractors), 2, java.math.RoundingMode.HALF_UP)
+                : java.math.BigDecimal.ZERO;
+
+        // 3. Top Vendors
+        java.util.List<Object[]> topVendors = paymentRequestRepository
+                .findTopContractorsBySpend(org.springframework.data.domain.PageRequest.of(0, 5));
+
+        // 4. Monthly Trend (Global)
+        java.time.LocalDate sixMonthsAgo = java.time.LocalDate.now().minusMonths(6).withDayOfMonth(1);
+        java.util.List<Object[]> monthlyTrend = paymentRequestRepository.findMonthlySpendingTrend(sixMonthsAgo);
+
+        // 5. Populate Model
+        model.addAttribute("activeCount", activeContractors);
+        model.addAttribute("inactiveCount", inactiveContractors);
+        model.addAttribute("totalCount", totalContractors);
+        model.addAttribute("totalSpend", totalSpend);
+        model.addAttribute("avgSpend", avgSpend);
+        model.addAttribute("topVendors", topVendors);
+        model.addAttribute("monthlyTrend", monthlyTrend);
+
+        return "master-data/vendor-dashboard";
+    }
 }

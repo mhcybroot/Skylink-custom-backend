@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <title>Vendor Analytics</title>
+</head>
+
+<body>
+    <div th:replace="~{layout :: layout(~{::section}, ~{::script}, 'master-data-contractors')}">
+        <section class="bg-light min-vh-100">
+            <div class="container-fluid px-4 md-px-5 py-4">
+
+                <!-- Hero Header -->
+                <div class="card border-0 shadow-sm rounded-1 mb-4 overflow-hidden">
+                    <div class="card-body p-4 position-relative">
+                        <div class="row align-items-center position-relative z-1">
+                            <div class="col-md-8">
+                                <span class="badge bg-dark-subtle text-dark border border-dark-subtle rounded-1 mb-2">
+                                    <i class="fas fa-chart-pie me-1"></i> ADMIN DASHBOARD
+                                </span>
+                                <h2 class="fw-bold text-dark mb-1 tracking-tight">Vendor Management</h2>
+                                <p class="text-muted mb-0" style="max-width: 600px;">
+                                    Strategic overview of contractor ecosystem, spending trends, and partner
+                                    performance.
+                                </p>
+                            </div>
+                            <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                                <a href="/master-data/contractors" class="btn btn-outline-dark rounded-1 shadow-sm">
+                                    <i class="fas fa-arrow-left me-2"></i>Back to List
+                                </a>
+                            </div>
+                        </div>
+                        <!-- Background Pattern -->
+                        <div class="position-absolute top-0 end-0 h-100 w-50 bg-gradient-light opacity-25"
+                            style="transform: skewX(-20deg);"></div>
+                    </div>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="row g-4 mb-4">
+                    <!-- Total Spend -->
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm rounded-1 h-100">
+                            <div class="card-body p-3">
+                                <div class="d-flex align-items-center mb-2">
+                                    <div class="icon-square bg-success-subtle text-success rounded-1 p-2 me-2">
+                                        <i class="fas fa-search-dollar"></i>
+                                    </div>
+                                    <h6 class="card-subtitle text-muted text-uppercase small fw-bold">Total Vendor Spend
+                                    </h6>
+                                </div>
+                                <h3 class="card-title fw-bold text-dark mb-0 tracking-tight"
+                                    th:text="${#numbers.formatCurrency(totalSpend)}">$0.00</h3>
+                                <p class="small text-muted mb-0 mt-1">Lifetime aggregate</p>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Active Vendors -->
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm rounded-1 h-100">
+                            <div class="card-body p-3">
+                                <div class="d-flex align-items-center mb-2">
+                                    <div class="icon-square bg-primary-subtle text-primary rounded-1 p-2 me-2">
+                                        <i class="fas fa-users"></i>
+                                    </div>
+                                    <h6 class="card-subtitle text-muted text-uppercase small fw-bold">Active Vendors
+                                    </h6>
+                                </div>
+                                <div class="d-flex align-items-baseline">
+                                    <h3 class="card-title fw-bold text-dark mb-0 tracking-tight me-2"
+                                        th:text="${activeCount}">0</h3>
+                                    <span class="text-muted small">/ <span th:text="${totalCount}"></span> Total</span>
+                                </div>
+                                <p class="small text-muted mb-0 mt-1">Currently approved & active</p>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Avg Spend -->
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm rounded-1 h-100">
+                            <div class="card-body p-3">
+                                <div class="d-flex align-items-center mb-2">
+                                    <div class="icon-square bg-info-subtle text-info rounded-1 p-2 me-2">
+                                        <i class="fas fa-hand-holding-usd"></i>
+                                    </div>
+                                    <h6 class="card-subtitle text-muted text-uppercase small fw-bold">Avg Spend / Vendor
+                                    </h6>
+                                </div>
+                                <h3 class="card-title fw-bold text-dark mb-0 tracking-tight"
+                                    th:text="${#numbers.formatCurrency(avgSpend)}">$0.00</h3>
+                                <p class="small text-muted mb-0 mt-1">Across active base</p>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Status Check -->
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm rounded-1 h-100">
+                            <div class="card-body p-3">
+                                <div class="d-flex align-items-center mb-2">
+                                    <div class="icon-square bg-warning-subtle text-warning rounded-1 p-2 me-2">
+                                        <i class="fas fa-user-clock"></i>
+                                    </div>
+                                    <h6 class="card-subtitle text-muted text-uppercase small fw-bold">Inactive Vendors
+                                    </h6>
+                                </div>
+                                <h3 class="card-title fw-bold text-dark mb-0 tracking-tight" th:text="${inactiveCount}">
+                                    0</h3>
+                                <p class="small text-muted mb-0 mt-1">Potential for reactivation</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Content Grid -->
+                <div class="row g-4">
+                    <!-- Column 1: Charts & Trends -->
+                    <div class="col-lg-8">
+                        <!-- Spending Trend -->
+                        <div class="card border-0 shadow-sm rounded-1 mb-4">
+                            <div class="card-header bg-white border-bottom py-3">
+                                <h6 class="mb-0 fw-bold text-dark text-uppercase small ls-1"><i
+                                        class="fas fa-chart-line me-2 text-primary"></i>Global Spend Trend (6 Months)
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="spendTrendChart" height="250"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Column 2: Leaderboards -->
+                    <div class="col-lg-4">
+                        <!-- Top Vendors -->
+                        <div class="card border-0 shadow-sm rounded-1 mb-4 h-100">
+                            <div
+                                class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0 fw-bold text-dark text-uppercase small ls-1"><i
+                                        class="fas fa-trophy me-2 text-warning"></i>Top Vendors</h6>
+                                <span class="badge bg-light text-muted border">By Volume</span>
+                            </div>
+                            <div class="list-group list-group-flush">
+                                <div th:each="v, stat : ${topVendors}"
+                                    class="list-group-item px-3 py-3 border-bottom-0 border-top">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <div class="d-flex align-items-center">
+                                            <span
+                                                class="badge rounded-circle bg-light text-dark border me-3 fw-bold shadow-sm"
+                                                style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;"
+                                                th:text="${stat.count}">1</span>
+                                            <div>
+                                                <h6 class="mb-0 fw-bold text-dark small" th:text="${v[0]}">Vendor Name
+                                                </h6>
+                                                <small class="text-muted" style="font-size: 0.75rem;">Rank
+                                                    #${stat.count}</small>
+                                            </div>
+                                        </div>
+                                        <div class="text-end">
+                                            <span class="d-block fw-bold text-dark small"
+                                                th:text="${#numbers.formatCurrency(v[1])}">$0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div th:if="${#lists.isEmpty(topVendors)}" class="p-4 text-center text-muted small">
+                                    No transaction data available yet.
+                                </div>
+                            </div>
+                            <div class="card-footer bg-light border-top text-center py-2">
+                                <a href="/master-data/contractors"
+                                    class="text-decoration-none small fw-bold text-primary">View Full Directory <i
+                                        class="fas fa-angle-right ms-1"></i></a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Chart.js Script -->
+        <script th:inline="javascript">
+            document.addEventListener('DOMContentLoaded', function () {
+                // Prepare Data
+                const trendData = [[${ monthlyTrend }]];
+
+                const labels = [];
+                const dataPoints = [];
+
+                if (trendData && trendData.length > 0) {
+                    trendData.forEach(row => {
+                        // row[0] is year, row[1] is month, row[2] is amount
+                        const date = new Date(row[0], row[1] - 1);
+                        labels.push(date.toLocaleString('default', { month: 'short' }));
+                        dataPoints.push(row[2]);
+                    });
+                }
+
+                // Render Chart
+                const ctx = document.getElementById('spendTrendChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Total Spend',
+                            data: dataPoints,
+                            borderColor: '#0d6efd', // Bootstrap primary
+                            backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                            borderWidth: 2,
+                            pointBackgroundColor: '#fff',
+                            pointBorderColor: '#0d6efd',
+                            pointRadius: 4,
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: function (context) {
+                                        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(context.raw);
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: { borderDash: [2, 4], color: '#e9ecef' },
+                                ticks: {
+                                    callback: function (value) {
+                                        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: "compact" }).format(value);
+                                    },
+                                    font: { size: 11 }
+                                }
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: { font: { size: 11 } }
+                            }
+                        }
+                    }
+                });
+            });
+        </script>
+    </div>
+</body>
+
+</html>

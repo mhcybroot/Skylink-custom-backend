@@ -16,6 +16,11 @@
                         <p class="text-muted small mb-0">View and manage external contractor profiles and accounts</p>
                     </div>
                     <div>
+                        <a href="/master-data/contractors/analytics"
+                            class="btn btn-outline-dark rounded-1 shadow-sm me-2"
+                            sec:authorize="hasAnyRole('ADMIN', 'HR')">
+                            <i class="fas fa-chart-pie me-2"></i>Analytics
+                        </a>
                         <button class="btn btn-dark rounded-1 shadow-sm fs-6" data-bs-toggle="modal"
                             data-bs-target="#addContractorModal">
                             <i class="fas fa-plus me-2"></i>Add Contractor
