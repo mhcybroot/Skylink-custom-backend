@@ -34,195 +34,200 @@
                                 <input type="email" th:field="*{email}" class="form-control bg-light border-0"
                                     placeholder="info@example.com">
                             </div>
-                    </div>
-                    <div class="col-md-12">
-                        <label class="form-label fw-bold small text-secondary">Address (For Invoice)</label>
-                        <textarea th:field="*{address}" class="form-control bg-light border-0" rows="1"
-                            placeholder="e.g. 123 Main St, City, State"></textarea>
-                    </div>
 
-                    <!-- SMTP Config -->
-                    <div class="col-12">
-                        <hr class="my-1">
-                    </div>
-                    <div class="col-12"><small class="text-uppercase fw-bold text-muted">Email Settings (SMTP)</small>
-                    </div>
-                    <div class="col-md-4">
-                        <input type="text" th:field="*{smtpHost}" class="form-control bg-light border-0 small"
-                            placeholder="SMTP Host (e.g. smtp.gmail.com)">
-                    </div>
-                    <div class="col-md-2">
-                        <input type="number" th:field="*{smtpPort}" class="form-control bg-light border-0 small"
-                            placeholder="Port (587)">
-                    </div>
-                    <div class="col-md-3">
-                        <input type="text" th:field="*{smtpUsername}" class="form-control bg-light border-0 small"
-                            placeholder="Email / Username">
-                    </div>
-                    <div class="col-md-3">
-                        <input type="password" th:field="*{smtpPassword}" class="form-control bg-light border-0 small"
-                            placeholder="Password">
-                    </div>
-                    <div class="col-12 text-end">
-                        <button type="submit" class="btn btn-primary rounded-pill px-4 shadow">
-                            <i class="fas fa-save me-2"></i>Save Company
-                        </button>
-                    </div>
-                    </form>
-                </div>
-            </div>
-
-            <!-- Companies List -->
-            <div class="card border-0 shadow-lg">
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="bg-light">
-                                <tr>
-                                    <th class="ps-4 py-3 text-secondary text-uppercase small fw-bold">ID</th>
-                                    <th class="py-3 text-secondary text-uppercase small fw-bold">Name</th>
-                                    <th class="py-3 text-secondary text-uppercase small fw-bold">Contact</th>
-                                    <th class="py-3 text-secondary text-uppercase small fw-bold">Address</th>
-                                    <th class="py-3 text-secondary text-uppercase small fw-bold">Status</th>
-                                    <th class="pe-4 py-3 text-end text-secondary text-uppercase small fw-bold">
-                                        Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr th:each="company : ${companies}">
-                                    <td class="ps-4 fw-bold text-muted" th:text="${'#' + company.id}"></td>
-                                    <td class="fw-bold text-dark" th:text="${company.name}"></td>
-                                    <td class="small text-muted">
-                                        <div th:text="${company.phone}"></div>
-                                        <div th:text="${company.email}" class="text-primary"></div>
-                                    </td>
-                                    <td class="small text-muted" th:text="${company.address}"></td>
-                                    <td>
-                                        <span th:if="${company.active}"
-                                            class="badge bg-success-soft text-success rounded-pill px-3">Active</span>
-                                        <span th:unless="${company.active}"
-                                            class="badge bg-danger-soft text-danger rounded-pill px-3">Inactive</span>
-                                    </td>
-                                    <td class="pe-4 text-end">
-                                        <button type="button"
-                                            class="btn btn-sm btn-outline-primary rounded-pill shadow-sm me-2"
-                                            th:data-id="${company.id}" th:data-name="${company.name}"
-                                            th:data-phone="${company.phone}" th:data-email="${company.email}"
-                                            th:data-address="${company.address}" th:data-smtp-host="${company.smtpHost}"
-                                            th:data-smtp-port="${company.smtpPort}"
-                                            th:data-smtp-username="${company.smtpUsername}"
-                                            th:data-smtp-password="${company.smtpPassword}"
-                                            onclick="openEditCompanyModal(this)">
-                                            <i class="fas fa-edit me-1"></i>Edit
-                                        </button>
-                                        <form th:action="@{/master-data/companies/{id}/toggle(id=${company.id})}"
-                                            method="post" class="d-inline">
-                                            <button type="submit" class="btn btn-sm rounded-pill shadow-sm"
-                                                th:classappend="${company.active ? 'btn-outline-danger' : 'btn-outline-success'}"
-                                                th:text="${company.active ? 'Deactivate' : 'Activate'}">
-                                            </button>
-                                        </form>
-                                    </td>
-                                </tr>
-                                <tr th:if="${#lists.isEmpty(companies)}">
-                                    <td colspan="5" class="text-center py-5 text-muted">
-                                        <i class="fas fa-building fa-3x mb-3 text-secondary opacity-25"></i>
-                                        <p>No companies found. Add one above.</p>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            <!-- Edit Company Modal -->
-            <div class="modal fade" id="editCompanyModal" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">Edit Company</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <form th:action="@{/master-data/companies/update}" method="post">
-                            <div class="modal-body">
-                                <input type="hidden" id="editCompanyId" name="id">
-                                <div class="mb-3">
-                                    <label class="form-label">Company Name</label>
-                                    <input type="text" class="form-control" id="editCompanyName" name="name" required>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Phone</label>
-                                        <input type="text" class="form-control" id="editCompanyPhone" name="phone">
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Email</label>
-                                        <input type="email" class="form-control" id="editCompanyEmail" name="email">
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Address</label>
-                                    <textarea class="form-control" id="editCompanyAddress" name="address"
-                                        rows="2"></textarea>
-                                </div>
-                                <hr>
-                                <h6 class="small text-muted text-uppercase fw-bold">SMTP Configuration</h6>
-                                <div class="row g-2">
-                                    <div class="col-8">
-                                        <input type="text" class="form-control form-control-sm" id="editSmtpHost"
-                                            name="smtpHost" placeholder="Host">
-                                    </div>
-                                    <div class="col-4">
-                                        <input type="number" class="form-control form-control-sm" id="editSmtpPort"
-                                            name="smtpPort" placeholder="Port">
-                                    </div>
-                                    <div class="col-6">
-                                        <input type="text" class="form-control form-control-sm" id="editSmtpUsername"
-                                            name="smtpUsername" placeholder="Username">
-                                    </div>
-                                    <div class="col-6">
-                                        <input type="password" class="form-control form-control-sm"
-                                            id="editSmtpPassword" name="smtpPassword" placeholder="Password">
-                                    </div>
-                                </div>
+                            <div class="col-md-12">
+                                <label class="form-label fw-bold small text-secondary">Address (For Invoice)</label>
+                                <textarea th:field="*{address}" class="form-control bg-light border-0" rows="1"
+                                    placeholder="e.g. 123 Main St, City, State"></textarea>
                             </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                <button type="submit" class="btn btn-primary">Save Changes</button>
+
+                            <!-- SMTP Config -->
+                            <div class="col-12">
+                                <hr class="my-1">
+                            </div>
+                            <div class="col-12"><small class="text-uppercase fw-bold text-muted">Email Settings
+                                    (SMTP)</small>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="text" th:field="*{smtpHost}" class="form-control bg-light border-0 small"
+                                    placeholder="SMTP Host (e.g. smtp.gmail.com)">
+                            </div>
+                            <div class="col-md-2">
+                                <input type="number" th:field="*{smtpPort}" class="form-control bg-light border-0 small"
+                                    placeholder="Port (587)">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="text" th:field="*{smtpUsername}"
+                                    class="form-control bg-light border-0 small" placeholder="Email / Username">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="password" th:field="*{smtpPassword}"
+                                    class="form-control bg-light border-0 small" placeholder="Password">
+                            </div>
+                            <div class="col-12 text-end">
+                                <button type="submit" class="btn btn-primary rounded-pill px-4 shadow">
+                                    <i class="fas fa-save me-2"></i>Save Company
+                                </button>
                             </div>
                         </form>
                     </div>
                 </div>
+
+                <!-- Companies List -->
+                <div class="card border-0 shadow-lg">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th class="ps-4 py-3 text-secondary text-uppercase small fw-bold">ID</th>
+                                        <th class="py-3 text-secondary text-uppercase small fw-bold">Name</th>
+                                        <th class="py-3 text-secondary text-uppercase small fw-bold">Contact</th>
+                                        <th class="py-3 text-secondary text-uppercase small fw-bold">Address</th>
+                                        <th class="py-3 text-secondary text-uppercase small fw-bold">Status</th>
+                                        <th class="pe-4 py-3 text-end text-secondary text-uppercase small fw-bold">
+                                            Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="company : ${companies}">
+                                        <td class="ps-4 fw-bold text-muted" th:text="${'#' + company.id}"></td>
+                                        <td class="fw-bold text-dark" th:text="${company.name}"></td>
+                                        <td class="small text-muted">
+                                            <div th:text="${company.phone}"></div>
+                                            <div th:text="${company.email}" class="text-primary"></div>
+                                        </td>
+                                        <td class="small text-muted" th:text="${company.address}"></td>
+                                        <td>
+                                            <span th:if="${company.active}"
+                                                class="badge bg-success-soft text-success rounded-pill px-3">Active</span>
+                                            <span th:unless="${company.active}"
+                                                class="badge bg-danger-soft text-danger rounded-pill px-3">Inactive</span>
+                                        </td>
+                                        <td class="pe-4 text-end">
+                                            <button type="button"
+                                                class="btn btn-sm btn-outline-primary rounded-pill shadow-sm me-2"
+                                                th:data-id="${company.id}" th:data-name="${company.name}"
+                                                th:data-phone="${company.phone}" th:data-email="${company.email}"
+                                                th:data-address="${company.address}"
+                                                th:data-smtp-host="${company.smtpHost}"
+                                                th:data-smtp-port="${company.smtpPort}"
+                                                th:data-smtp-username="${company.smtpUsername}"
+                                                th:data-smtp-password="${company.smtpPassword}"
+                                                onclick="openEditCompanyModal(this)">
+                                                <i class="fas fa-edit me-1"></i>Edit
+                                            </button>
+                                            <form th:action="@{/master-data/companies/{id}/toggle(id=${company.id})}"
+                                                method="post" class="d-inline">
+                                                <button type="submit" class="btn btn-sm rounded-pill shadow-sm"
+                                                    th:classappend="${company.active ? 'btn-outline-danger' : 'btn-outline-success'}"
+                                                    th:text="${company.active ? 'Deactivate' : 'Activate'}">
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    <tr th:if="${#lists.isEmpty(companies)}">
+                                        <td colspan="5" class="text-center py-5 text-muted">
+                                            <i class="fas fa-building fa-3x mb-3 text-secondary opacity-25"></i>
+                                            <p>No companies found. Add one above.</p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <!-- Edit Company Modal -->
+                <div class="modal fade" id="editCompanyModal" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Edit Company</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                    aria-label="Close"></button>
+                            </div>
+                            <form th:action="@{/master-data/companies/update}" method="post">
+                                <div class="modal-body">
+                                    <input type="hidden" id="editCompanyId" name="id">
+                                    <div class="mb-3">
+                                        <label class="form-label">Company Name</label>
+                                        <input type="text" class="form-control" id="editCompanyName" name="name"
+                                            required>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Phone</label>
+                                            <input type="text" class="form-control" id="editCompanyPhone" name="phone">
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Email</label>
+                                            <input type="email" class="form-control" id="editCompanyEmail" name="email">
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Address</label>
+                                        <textarea class="form-control" id="editCompanyAddress" name="address"
+                                            rows="2"></textarea>
+                                    </div>
+                                    <hr>
+                                    <h6 class="small text-muted text-uppercase fw-bold">SMTP Configuration</h6>
+                                    <div class="row g-2">
+                                        <div class="col-8">
+                                            <input type="text" class="form-control form-control-sm" id="editSmtpHost"
+                                                name="smtpHost" placeholder="Host">
+                                        </div>
+                                        <div class="col-4">
+                                            <input type="number" class="form-control form-control-sm" id="editSmtpPort"
+                                                name="smtpPort" placeholder="Port">
+                                        </div>
+                                        <div class="col-6">
+                                            <input type="text" class="form-control form-control-sm"
+                                                id="editSmtpUsername" name="smtpUsername" placeholder="Username">
+                                        </div>
+                                        <div class="col-6">
+                                            <input type="password" class="form-control form-control-sm"
+                                                id="editSmtpPassword" name="smtpPassword" placeholder="Password">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary"
+                                        data-bs-dismiss="modal">Close</button>
+                                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
             </div>
-    </div>
-    </section>
+        </section>
 
-    <script>
-        function openEditCompanyModal(btn) {
-            const id = btn.getAttribute('data-id');
-            const name = btn.getAttribute('data-name');
-            const phone = btn.getAttribute('data-phone');
-            const email = btn.getAttribute('data-email');
-            const address = btn.getAttribute('data-address');
-            const smtpHost = btn.getAttribute('data-smtp-host');
-            const smtpPort = btn.getAttribute('data-smtp-port');
-            const smtpUser = btn.getAttribute('data-smtp-username');
-            const smtpPass = btn.getAttribute('data-smtp-password');
+        <script>
+            function openEditCompanyModal(btn) {
+                const id = btn.getAttribute('data-id');
+                const name = btn.getAttribute('data-name');
+                const phone = btn.getAttribute('data-phone');
+                const email = btn.getAttribute('data-email');
+                const address = btn.getAttribute('data-address');
+                const smtpHost = btn.getAttribute('data-smtp-host');
+                const smtpPort = btn.getAttribute('data-smtp-port');
+                const smtpUser = btn.getAttribute('data-smtp-username');
+                const smtpPass = btn.getAttribute('data-smtp-password');
 
-            document.getElementById('editCompanyId').value = id;
-            document.getElementById('editCompanyName').value = name;
-            document.getElementById('editCompanyPhone').value = (phone && phone !== 'null') ? phone : '';
-            document.getElementById('editCompanyEmail').value = (email && email !== 'null') ? email : '';
-            document.getElementById('editCompanyAddress').value = (address && address !== 'null') ? address : '';
+                document.getElementById('editCompanyId').value = id;
+                document.getElementById('editCompanyName').value = name;
+                document.getElementById('editCompanyPhone').value = (phone && phone !== 'null') ? phone : '';
+                document.getElementById('editCompanyEmail').value = (email && email !== 'null') ? email : '';
+                document.getElementById('editCompanyAddress').value = (address && address !== 'null') ? address : '';
 
-            document.getElementById('editSmtpHost').value = (smtpHost && smtpHost !== 'null') ? smtpHost : '';
-            document.getElementById('editSmtpPort').value = (smtpPort && smtpPort !== 'null') ? smtpPort : '';
-            document.getElementById('editSmtpUsername').value = (smtpUser && smtpUser !== 'null') ? smtpUser : '';
-            document.getElementById('editSmtpPassword').value = (smtpPass && smtpPass !== 'null') ? smtpPass : '';
+                document.getElementById('editSmtpHost').value = (smtpHost && smtpHost !== 'null') ? smtpHost : '';
+                document.getElementById('editSmtpPort').value = (smtpPort && smtpPort !== 'null') ? smtpPort : '';
+                document.getElementById('editSmtpUsername').value = (smtpUser && smtpUser !== 'null') ? smtpUser : '';
+                document.getElementById('editSmtpPassword').value = (smtpPass && smtpPass !== 'null') ? smtpPass : '';
 
-            new bootstrap.Modal(document.getElementById('editCompanyModal')).show();
-        }
-    </script>
+                new bootstrap.Modal(document.getElementById('editCompanyModal')).show();
+            }
+        </script>
     </div>
 </body>
 
