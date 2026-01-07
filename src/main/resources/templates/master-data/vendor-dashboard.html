@@ -589,8 +589,16 @@
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body p-0">
+                            <div class="p-3 bg-white border-bottom sticky-top" style="z-index: 1020;">
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text bg-light border-end-0"><i
+                                            class="fas fa-search text-muted"></i></span>
+                                    <input type="text" id="areaSearchInput" class="form-control border-start-0 bg-light"
+                                        placeholder="Search areas...">
+                                </div>
+                            </div>
                             <div class="table-responsive">
-                                <table class="table table-hover align-middle mb-0">
+                                <table id="areaModalTable" class="table table-hover align-middle mb-0">
                                     <thead class="bg-light sticky-top">
                                         <tr class="text-uppercase small text-muted font-monospace"
                                             style="font-size: 0.75rem;">
@@ -629,8 +637,16 @@
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body p-0">
+                            <div class="p-3 bg-white border-bottom sticky-top" style="z-index: 1020;">
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text bg-light border-end-0"><i
+                                            class="fas fa-search text-muted"></i></span>
+                                    <input type="text" id="zipSearchInput" class="form-control border-start-0 bg-light"
+                                        placeholder="Search zip codes...">
+                                </div>
+                            </div>
                             <div class="table-responsive">
-                                <table class="table table-hover align-middle mb-0">
+                                <table id="zipModalTable" class="table table-hover align-middle mb-0">
                                     <thead class="bg-light sticky-top">
                                         <tr class="text-uppercase small text-muted font-monospace"
                                             style="font-size: 0.75rem;">
@@ -661,7 +677,34 @@
         </section>
 
         <script>
-            // Placeholder script to satisfy layout fragment
+            document.addEventListener('DOMContentLoaded', function () {
+                function setupFilter(inputId, tableId) {
+                    const input = document.getElementById(inputId);
+                    const table = document.getElementById(tableId);
+                    if (!input || !table) return;
+
+                    input.addEventListener('keyup', function () {
+                        const filter = input.value.toLowerCase();
+                        const rows = table.querySelectorAll('tbody tr');
+
+                        rows.forEach(row => {
+                            const cells = row.getElementsByTagName('td');
+                            if (cells.length > 0) {
+                                // Search primarily in the first column (Area/Zip)
+                                const text = cells[0].textContent || cells[0].innerText;
+                                if (text.toLowerCase().indexOf(filter) > -1) {
+                                    row.style.display = '';
+                                } else {
+                                    row.style.display = 'none';
+                                }
+                            }
+                        });
+                    });
+                }
+
+                setupFilter('areaSearchInput', 'areaModalTable');
+                setupFilter('zipSearchInput', 'zipModalTable');
+            });
         </script>
     </div>
 </body>
