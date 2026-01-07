@@ -190,4 +190,28 @@ public interface PaymentRequestRepository extends JpaRepository<PaymentRequest, 
                         "GROUP BY p.paymentMethod.methodName " +
                         "ORDER BY COUNT(p) DESC")
         List<Object[]> findMostFrequentPaymentMethodGlobal(org.springframework.data.domain.Pageable pageable);
+
+        // --- CLIENT DASHBOARD ---
+        long countByClientId(Long clientId);
+
+        @org.springframework.data.jpa.repository.Query("SELECT SUM(p.amount) FROM PaymentRequest p WHERE p.client.id = :clientId AND p.paymentStatus = 'PAID'")
+        java.math.BigDecimal sumPaidAmountByClientId(Long clientId);
+
+        @org.springframework.data.jpa.repository.Query("SELECT SUM(p.amount) FROM PaymentRequest p WHERE p.client.id = :clientId AND p.paymentStatus = 'PAID' AND p.requestDate BETWEEN :startDate AND :endDate")
+        java.math.BigDecimal sumPaidAmountByClientIdBetween(Long clientId, java.time.LocalDate startDate,
+                        java.time.LocalDate endDate);
+
+        @org.springframework.data.jpa.repository.Query("SELECT p.contractor.name, SUM(p.amount) FROM PaymentRequest p WHERE p.client.id = :clientId AND p.paymentStatus = 'PAID' GROUP BY p.contractor.name ORDER BY SUM(p.amount) DESC")
+        List<Object[]> findTopContractorsByClientId(Long clientId, org.springframework.data.domain.Pageable pageable);
+
+        List<PaymentRequest> findByClientIdOrderByRequestDateDesc(Long clientId,
+                        org.springframework.data.domain.Pageable pageable);
+
+        @org.springframework.data.jpa.repository.Query("SELECT extract(year from p.requestDate), extract(month from p.requestDate), SUM(p.amount) "
+                        +
+                        "FROM PaymentRequest p WHERE p.client.id = :clientId AND p.paymentStatus = 'PAID' AND p.requestDate >= :startDate "
+                        +
+                        "GROUP BY extract(year from p.requestDate), extract(month from p.requestDate) " +
+                        "ORDER BY extract(year from p.requestDate), extract(month from p.requestDate)")
+        List<Object[]> findMonthlySpendingTrendByClientId(Long clientId, java.time.LocalDate startDate);
 }

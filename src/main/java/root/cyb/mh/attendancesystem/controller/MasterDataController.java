@@ -6,6 +6,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import root.cyb.mh.attendancesystem.exception.ResourceNotFoundException;
 import root.cyb.mh.attendancesystem.model.*;
 import root.cyb.mh.attendancesystem.repository.*;
 
@@ -508,5 +509,44 @@ public class MasterDataController {
         model.addAttribute("topVendors", topVendorsList);
 
         return "master-data/vendor-dashboard";
+    }
+
+    @GetMapping("/clients/{id}/dashboard")
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
+    public String getClientDashboard(@PathVariable Long id, Model model) {
+        // Fetch the Client
+        Client client = clientRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Client not found with id: " + id));
+
+        // --- FINANCIAL PERFORMANCE ---
+        java.math.BigDecimal totalSpend = paymentRequestRepository.sumPaidAmountByClientId(id);
+        if (totalSpend == null)
+            totalSpend = java.math.BigDecimal.ZERO;
+
+        java.time.LocalDate yearStart = java.time.LocalDate.of(java.time.LocalDate.now().getYear(), 1, 1);
+        java.math.BigDecimal ytdSpend = paymentRequestRepository.sumPaidAmountByClientIdBetween(id, yearStart,
+                java.time.LocalDate.now());
+        if (ytdSpend == null)
+            ytdSpend = java.math.BigDecimal.ZERO;
+
+        // Request Count (as proxy for "Active Projects")
+        long totalRequests = paymentRequestRepository.countByClientId(id);
+
+        // --- CHARTS & LISTS ---
+        java.util.List<Object[]> topContractors = paymentRequestRepository.findTopContractorsByClientId(id,
+                org.springframework.data.domain.PageRequest.of(0, 5));
+
+        java.util.List<PaymentRequest> recentPayments = paymentRequestRepository
+                .findByClientIdOrderByRequestDateDesc(id, org.springframework.data.domain.PageRequest.of(0, 10));
+
+        // --- MODEL POPULATION ---
+        model.addAttribute("client", client);
+        model.addAttribute("totalSpend", totalSpend);
+        model.addAttribute("ytdSpend", ytdSpend);
+        model.addAttribute("totalRequests", totalRequests);
+        model.addAttribute("topContractors", topContractors);
+        model.addAttribute("recentPayments", recentPayments);
+
+        return "master-data/client-dashboard";
     }
 }

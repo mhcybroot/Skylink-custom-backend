@@ -78,6 +78,11 @@
                                                 <span class="badge bg-secondary" th:unless="${c.active}">Inactive</span>
                                             </td>
                                             <td class="text-end pe-4">
+                                                <a th:href="@{/master-data/clients/{id}/dashboard(id=${c.id})}"
+                                                    class="btn btn-sm btn-link text-decoration-none text-info me-2"
+                                                    title="View Dashboard">
+                                                    <i class="fas fa-chart-bar me-1"></i>Dashboard
+                                                </a>
                                                 <button type="button"
                                                     class="btn btn-sm btn-link text-decoration-none text-primary me-2"
                                                     th:data-id="${c.id}" th:data-code="${c.code}"
