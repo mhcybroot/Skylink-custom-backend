@@ -7,173 +7,197 @@
 
 <body>
     <div th:replace="~{layout :: layout(~{::section}, ~{::script}, 'master-data-contractors')}">
-        <section>
-            <div class="row justify-content-center">
-                <div class="col-lg-12">
-                    <!-- Title Header -->
-                    <div class="mb-4">
-                        <h2 class="fw-bold text-dark mb-0">Manage Contractors</h2>
-                        <p class="text-muted small">View and manage external contractor profiles and accounts.</p>
+        <section class="bg-light min-vh-100">
+            <div class="container-fluid px-4 md-px-5 py-4">
+                <!-- Header -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h4 class="mb-0 fw-bold text-dark tracking-tight">Manage Contractors</h4>
+                        <p class="text-muted small mb-0">View and manage external contractor profiles and accounts</p>
                     </div>
+                    <div>
+                        <button class="btn btn-dark rounded-1 shadow-sm fs-6" data-bs-toggle="modal"
+                            data-bs-target="#addContractorModal">
+                            <i class="fas fa-plus me-2"></i>Add Contractor
+                        </button>
+                    </div>
+                </div>
 
-                    <!-- Success/Error Alerts -->
-                    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
-                        <span th:text="${successMessage}"></span>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                    <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
-                        <span th:text="${errorMessage}"></span>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
+                <!-- Success/Error Alerts -->
+                <div th:if="${successMessage}"
+                    class="alert alert-success alert-dismissible fade show rounded-1 border-success-subtle small"
+                    role="alert">
+                    <i class="fas fa-check-circle me-2"></i><span th:text="${successMessage}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                <div th:if="${errorMessage}"
+                    class="alert alert-danger alert-dismissible fade show rounded-1 border-danger-subtle small"
+                    role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i><span th:text="${errorMessage}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
 
-                    <!-- Corporate Toolbar -->
-                    <div class="card shadow-sm mb-4 border-0">
-                        <div class="card-body p-3">
-                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-                                <!-- Modern Search Input -->
-                                <form method="get" th:action="@{/master-data/contractors}" class="d-flex flex-grow-1"
-                                    style="max-width: 450px;">
-                                    <div class="input-group">
-                                        <span class="input-group-text bg-light border-0 ps-3 rounded-start-pill"><i
+                <!-- Main Content Card -->
+                <div class="card bg-white border rounded-1 shadow-sm">
+                    <div class="card-header bg-white border-bottom py-3">
+                        <div class="row align-items-center g-3">
+                            <div class="col-md-6">
+                                <h6 class="mb-0 text-uppercase text-secondary fw-bold small ls-1">
+                                    <i class="fas fa-users-cog me-2"></i>Contractor Directory
+                                </h6>
+                            </div>
+                            <div class="col-md-6">
+                                <form method="get" th:action="@{/master-data/contractors}"
+                                    class="d-flex justify-content-md-end">
+                                    <div class="input-group input-group-sm" style="max-width: 300px;">
+                                        <span
+                                            class="input-group-text bg-light border-secondary-subtle rounded-start-1"><i
                                                 class="fas fa-search text-muted"></i></span>
                                         <input type="text" name="search"
-                                            class="form-control bg-light border-0 shadow-none"
-                                            placeholder="Search by name, ID, or description..." th:value="${search}">
-                                        <button type="submit" class="btn btn-light border-0 text-primary fw-bold"
+                                            class="form-control border-secondary-subtle shadow-none"
+                                            placeholder="Search by name, ID..." th:value="${search}">
+                                        <button type="submit"
+                                            class="btn btn-outline-secondary border-secondary-subtle text-dark fw-bold rounded-end-1"
                                             th:if="${search == null || #strings.isEmpty(search)}">Go</button>
                                         <a th:if="${search != null && !#strings.isEmpty(search)}"
                                             href="/master-data/contractors"
-                                            class="btn btn-light border-0 text-muted rounded-end-pill" title="Clear"><i
-                                                class="fas fa-times"></i></a>
+                                            class="btn btn-outline-secondary border-secondary-subtle text-muted rounded-end-1"
+                                            title="Clear"><i class="fas fa-times"></i></a>
                                     </div>
                                 </form>
-
-                                <!-- Add Action -->
-                                <button class="btn btn-primary px-4 rounded-pill" data-bs-toggle="modal"
-                                    data-bs-target="#addContractorModal">
-                                    <i class="fas fa-plus me-2"></i>Add Contractor
-                                </button>
                             </div>
                         </div>
                     </div>
 
-                    <!-- List Card (Add Form Removed) -->
-                    <div class="card shadow-sm border-0">
-                        <div class="card-body p-0">
-                            <div class="table-responsive">
-                                <table class="table table-hover align-middle mb-0">
-                                    <thead class="bg-light text-uppercase small text-secondary">
-                                        <tr>
-                                            <th class="ps-4">
-                                                <a th:href="@{/master-data/contractors(search=${search}, sort='id', dir=${sort == 'id' ? reverseDir : 'asc'})}"
-                                                    class="text-secondary text-decoration-none">
-                                                    ID <i th:if="${sort == 'id'}"
-                                                        th:class="${dir == 'asc' ? 'fas fa-sort-up ms-1' : 'fas fa-sort-down ms-1'}"></i>
-                                                </a>
-                                            </th>
-                                            <th>
-                                                <a th:href="@{/master-data/contractors(search=${search}, sort='name', dir=${sort == 'name' ? reverseDir : 'asc'})}"
-                                                    class="text-secondary text-decoration-none">
-                                                    Name <i th:if="${sort == 'name'}"
-                                                        th:class="${dir == 'asc' ? 'fas fa-sort-up ms-1' : 'fas fa-sort-down ms-1'}"></i>
-                                                </a>
-                                            </th>
-                                            <th>
-                                                <a th:href="@{/master-data/contractors(search=${search}, sort='description', dir=${sort == 'description' ? reverseDir : 'asc'})}"
-                                                    class="text-secondary text-decoration-none">
-                                                    Description <i th:if="${sort == 'description'}"
-                                                        th:class="${dir == 'asc' ? 'fas fa-sort-up ms-1' : 'fas fa-sort-down ms-1'}"></i>
-                                                </a>
-                                            </th>
-                                            <th>
-                                                <a th:href="@{/master-data/contractors(search=${search}, sort='email', dir=${sort == 'email' ? reverseDir : 'asc'})}"
-                                                    class="text-secondary text-decoration-none">
-                                                    Email <i th:if="${sort == 'email'}"
-                                                        th:class="${dir == 'asc' ? 'fas fa-sort-up ms-1' : 'fas fa-sort-down ms-1'}"></i>
-                                                </a>
-                                            </th>
-                                            <th>
-                                                <a th:href="@{/master-data/contractors(search=${search}, sort='defaultPaymentMethod.methodName', dir=${sort == 'defaultPaymentMethod.methodName' ? reverseDir : 'asc'})}"
-                                                    class="text-secondary text-decoration-none">
-                                                    Payment Method <i
-                                                        th:if="${sort == 'defaultPaymentMethod.methodName'}"
-                                                        th:class="${dir == 'asc' ? 'fas fa-sort-up ms-1' : 'fas fa-sort-down ms-1'}"></i>
-                                                </a>
-                                            </th>
-                                            <th>
-                                                <a th:href="@{/master-data/contractors(search=${search}, sort='accountDetails', dir=${sort == 'accountDetails' ? reverseDir : 'asc'})}"
-                                                    class="text-secondary text-decoration-none">
-                                                    Account Info <i th:if="${sort == 'accountDetails'}"
-                                                        th:class="${dir == 'asc' ? 'fas fa-sort-up ms-1' : 'fas fa-sort-down ms-1'}"></i>
-                                                </a>
-                                            </th>
-                                            <th>
-                                                <a th:href="@{/master-data/contractors(search=${search}, sort='active', dir=${sort == 'active' ? reverseDir : 'asc'})}"
-                                                    class="text-secondary text-decoration-none">
-                                                    Status <i th:if="${sort == 'active'}"
-                                                        th:class="${dir == 'asc' ? 'fas fa-sort-up ms-1' : 'fas fa-sort-down ms-1'}"></i>
-                                                </a>
-                                            </th>
-                                            <th class="text-end pe-4" sec:authorize="hasAnyRole('ADMIN', 'HR')">Action
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr th:each="c : ${contractors}">
-                                            <td class="ps-4 fw-bold" th:text="${c.id}"></td>
-                                            <td th:text="${c.name}"></td>
-                                            <td th:text="${c.description}"></td>
-                                            <td>
-                                                <a th:if="${c.email != null && !#strings.isEmpty(c.email)}"
-                                                    th:href="'mailto:' + ${c.email}" th:text="${c.email}"
-                                                    class="text-decoration-none"></a>
-                                                <span th:if="${c.email == null || #strings.isEmpty(c.email)}"
-                                                    class="text-muted small">-</span>
-                                            </td>
-                                            <td>
-                                                <span th:if="${c.defaultPaymentMethod != null}"
-                                                    th:text="${c.defaultPaymentMethod.methodName}"
-                                                    class="badge bg-info text-dark"></span>
-                                                <span th:unless="${c.defaultPaymentMethod != null}"
-                                                    class="text-muted small">-</span>
-                                            </td>
-                                            <td class="small text-muted">
-                                                <span th:if="${c.accountDetails != null}"
-                                                    th:text="${c.accountDetails}"></span>
-                                                <span th:unless="${c.accountDetails != null}">-</span>
-                                            </td>
-                                            <td>
-                                                <span class="badge bg-success" th:if="${c.active}">Active</span>
-                                                <span class="badge bg-secondary" th:unless="${c.active}">Inactive</span>
-                                            </td>
-                                            <td class="text-end pe-4">
-                                                <a th:href="@{/master-data/contractors/{id}/dashboard(id=${c.id})}"
-                                                    class="btn btn-sm btn-outline-primary me-1" title="Open Dashboard">
-                                                    <i class="fas fa-chart-line"></i>
-                                                </a>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="bg-light">
+                                    <tr class="text-uppercase small text-muted font-monospace"
+                                        style="font-size: 0.75rem;">
+                                        <th class="ps-4 py-3 border-bottom-0">
+                                            <a th:href="@{/master-data/contractors(search=${search}, sort='id', dir=${sort == 'id' ? reverseDir : 'asc'})}"
+                                                class="text-decoration-none text-secondary fw-bold">
+                                                ID <i th:if="${sort == 'id'}"
+                                                    th:class="${dir == 'asc' ? 'fas fa-sort-up ms-1' : 'fas fa-sort-down ms-1'}"></i>
+                                            </a>
+                                        </th>
+                                        <th class="py-3 border-bottom-0">
+                                            <a th:href="@{/master-data/contractors(search=${search}, sort='name', dir=${sort == 'name' ? reverseDir : 'asc'})}"
+                                                class="text-decoration-none text-secondary fw-bold">
+                                                Name <i th:if="${sort == 'name'}"
+                                                    th:class="${dir == 'asc' ? 'fas fa-sort-up ms-1' : 'fas fa-sort-down ms-1'}"></i>
+                                            </a>
+                                        </th>
+                                        <th class="py-3 border-bottom-0">
+                                            <a th:href="@{/master-data/contractors(search=${search}, sort='description', dir=${sort == 'description' ? reverseDir : 'asc'})}"
+                                                class="text-decoration-none text-secondary fw-bold">
+                                                Description <i th:if="${sort == 'description'}"
+                                                    th:class="${dir == 'asc' ? 'fas fa-sort-up ms-1' : 'fas fa-sort-down ms-1'}"></i>
+                                            </a>
+                                        </th>
+                                        <th class="py-3 border-bottom-0">
+                                            <a th:href="@{/master-data/contractors(search=${search}, sort='email', dir=${sort == 'email' ? reverseDir : 'asc'})}"
+                                                class="text-decoration-none text-secondary fw-bold">
+                                                Email <i th:if="${sort == 'email'}"
+                                                    th:class="${dir == 'asc' ? 'fas fa-sort-up ms-1' : 'fas fa-sort-down ms-1'}"></i>
+                                            </a>
+                                        </th>
+                                        <th class="py-3 border-bottom-0">
+                                            <a th:href="@{/master-data/contractors(search=${search}, sort='defaultPaymentMethod.methodName', dir=${sort == 'defaultPaymentMethod.methodName' ? reverseDir : 'asc'})}"
+                                                class="text-decoration-none text-secondary fw-bold">
+                                                Payment Method <i th:if="${sort == 'defaultPaymentMethod.methodName'}"
+                                                    th:class="${dir == 'asc' ? 'fas fa-sort-up ms-1' : 'fas fa-sort-down ms-1'}"></i>
+                                            </a>
+                                        </th>
+                                        <th class="py-3 border-bottom-0">
+                                            <a th:href="@{/master-data/contractors(search=${search}, sort='accountDetails', dir=${sort == 'accountDetails' ? reverseDir : 'asc'})}"
+                                                class="text-decoration-none text-secondary fw-bold">
+                                                Account Info <i th:if="${sort == 'accountDetails'}"
+                                                    th:class="${dir == 'asc' ? 'fas fa-sort-up ms-1' : 'fas fa-sort-down ms-1'}"></i>
+                                            </a>
+                                        </th>
+                                        <th class="py-3 border-bottom-0">
+                                            <a th:href="@{/master-data/contractors(search=${search}, sort='active', dir=${sort == 'active' ? reverseDir : 'asc'})}"
+                                                class="text-decoration-none text-secondary fw-bold">
+                                                Status <i th:if="${sort == 'active'}"
+                                                    th:class="${dir == 'asc' ? 'fas fa-sort-up ms-1' : 'fas fa-sort-down ms-1'}"></i>
+                                            </a>
+                                        </th>
+                                        <th class="text-end pe-4 py-3 border-bottom-0"
+                                            sec:authorize="hasAnyRole('ADMIN', 'HR')">Action
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="c : ${contractors}" class="border-bottom">
+                                        <td class="ps-4">
+                                            <span class="font-monospace fw-bold text-dark small"
+                                                th:text="${c.id}"></span>
+                                        </td>
+                                        <td class="fw-medium text-dark" th:text="${c.name}"></td>
+                                        <td class="small text-muted" th:text="${c.description}"></td>
+                                        <td>
+                                            <a th:if="${c.email != null && !#strings.isEmpty(c.email)}"
+                                                th:href="'mailto:' + ${c.email}" class="text-decoration-none small">
+                                                <i class="fas fa-envelope me-1 text-muted"></i><span
+                                                    th:text="${c.email}"></span>
+                                            </a>
+                                            <span th:if="${c.email == null || #strings.isEmpty(c.email)}"
+                                                class="text-muted small">-</span>
+                                        </td>
+                                        <td>
+                                            <span th:if="${c.defaultPaymentMethod != null}"
+                                                th:text="${c.defaultPaymentMethod.methodName}"
+                                                class="badge rounded-1 bg-info-subtle text-info border border-info fw-normal"></span>
+                                            <span th:unless="${c.defaultPaymentMethod != null}"
+                                                class="text-muted small">-</span>
+                                        </td>
+                                        <td class="small text-muted">
+                                            <span th:if="${c.accountDetails != null}" class="font-monospace text-dark"
+                                                th:text="${c.accountDetails}"></span>
+                                            <span th:unless="${c.accountDetails != null}">-</span>
+                                        </td>
+                                        <td>
+                                            <span th:if="${c.active}"
+                                                class="badge rounded-1 bg-success-subtle text-success border border-success fw-normal">Active</span>
+                                            <span th:unless="${c.active}"
+                                                class="badge rounded-1 bg-secondary-subtle text-secondary border border-secondary fw-normal">Inactive</span>
+                                        </td>
+                                        <td class="text-end pe-4">
+                                            <a th:href="@{/master-data/contractors/{id}/dashboard(id=${c.id})}"
+                                                class="btn btn-sm btn-outline-secondary rounded-1 me-1"
+                                                title="Open Dashboard">
+                                                <i class="fas fa-chart-line"></i>
+                                            </a>
 
-                                                <span sec:authorize="hasAnyRole('ADMIN', 'HR')">
-                                                    <form
-                                                        th:action="@{/master-data/contractors/{id}/toggle(id=${c.id})}"
-                                                        method="post" class="d-inline">
-                                                        <button type="submit"
-                                                            class="btn btn-sm btn-link text-decoration-none"
-                                                            th:classappend="${c.active} ? 'text-danger' : 'text-success'"
-                                                            th:title="${c.active} ? 'Deactivate' : 'Activate'">
-                                                            <i class="fas"
-                                                                th:classappend="${c.active} ? 'fa-trash' : 'fa-undo'"></i>
-                                                        </button>
-                                                    </form>
-                                                </span>
-                                            </td>
-                                        </tr>
-                                        <tr th:if="${#lists.isEmpty(contractors)}">
-                                            <td colspan="7" class="text-center py-4 text-muted">No contractors found.
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
+                                            <span sec:authorize="hasAnyRole('ADMIN', 'HR')">
+                                                <form th:action="@{/master-data/contractors/{id}/toggle(id=${c.id})}"
+                                                    method="post" class="d-inline">
+                                                    <button type="submit" class="btn btn-sm rounded-1 border"
+                                                        th:classappend="${c.active} ? 'btn-outline-danger' : 'btn-outline-success'"
+                                                        th:title="${c.active} ? 'Deactivate' : 'Activate'">
+                                                        <i class="fas"
+                                                            th:classappend="${c.active} ? 'fa-toggle-on' : 'fa-toggle-off'"></i>
+                                                    </button>
+                                                </form>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <tr th:if="${#lists.isEmpty(contractors)}">
+                                        <td colspan="8" class="text-center py-5">
+                                            <div class="d-flex flex-column align-items-center">
+                                                <div class="bg-light rounded-circle p-3 mb-3">
+                                                    <i class="fas fa-users-slash fa-2x text-muted opacity-50"></i>
+                                                </div>
+                                                <h6 class="text-muted fw-bold">No contractors found</h6>
+                                                <p class="text-muted small mb-0">Try adjusting your search or add a new
+                                                    contractor.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -181,49 +205,54 @@
 
             <!-- Add Contractor Modal -->
             <div class="modal fade" id="addContractorModal" tabindex="-1">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">Add New Contractor</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <div class="modal-dialog modal-dialog-centered modal-lg">
+                    <div class="modal-content border rounded-1 shadow">
+                        <div class="modal-header bg-dark text-white py-3 rounded-top-1">
+                            <h6 class="modal-title fw-bold"><i class="fas fa-user-plus me-2"></i>Add New Contractor</h6>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                         </div>
-                        <div class="modal-body">
+                        <div class="modal-body p-4">
                             <form th:action="@{/master-data/contractors}" th:object="${newContractor}" method="post">
                                 <div class="row g-3">
                                     <div class="col-md-6">
-                                        <label class="form-label small fw-bold text-secondary">Contractor Name</label>
-                                        <input type="text" class="form-control" th:field="*{name}" required
-                                            placeholder="Name">
+                                        <label class="form-label small fw-bold text-muted text-uppercase">Contractor
+                                            Name</label>
+                                        <input type="text" class="form-control rounded-1" th:field="*{name}" required
+                                            placeholder="Company or Individual Name">
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label small fw-bold text-secondary">Description
+                                        <label class="form-label small fw-bold text-muted text-uppercase">Description
                                             (Optional)</label>
-                                        <input type="text" class="form-control" th:field="*{description}"
-                                            placeholder="Description">
+                                        <input type="text" class="form-control rounded-1" th:field="*{description}"
+                                            placeholder="e.g. Electrical Services">
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label small fw-bold text-secondary">Email Address</label>
-                                        <input type="email" class="form-control" th:field="*{email}"
+                                        <label class="form-label small fw-bold text-muted text-uppercase">Email
+                                            Address</label>
+                                        <input type="email" class="form-control rounded-1" th:field="*{email}"
                                             placeholder="contractor@example.com">
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label small fw-bold text-secondary">Default Payment
+                                        <label class="form-label small fw-bold text-muted text-uppercase">Default
+                                            Payment
                                             Method</label>
-                                        <select class="form-select" th:field="*{defaultPaymentMethod}">
+                                        <select class="form-select rounded-1" th:field="*{defaultPaymentMethod}">
                                             <option value="">-- Select Method --</option>
                                             <option th:each="pm : ${activePaymentMethods}" th:value="${pm.id}"
                                                 th:text="${pm.methodName}"></option>
                                         </select>
                                     </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label small fw-bold text-secondary">Account Details</label>
-                                        <textarea class="form-control" th:field="*{accountDetails}" rows="1"
-                                            placeholder="e.g. user@zelle.com"></textarea>
+                                    <div class="col-12">
+                                        <label class="form-label small fw-bold text-muted text-uppercase">Account
+                                            Details</label>
+                                        <textarea class="form-control rounded-1" th:field="*{accountDetails}" rows="2"
+                                            placeholder="e.g. Bank Account #, Zelle Email, etc."></textarea>
                                     </div>
-                                    <div class="col-12 text-end mt-4">
-                                        <button type="button" class="btn btn-secondary me-1"
+                                    <div class="col-12 text-end mt-4 pt-3 border-top">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-1 me-1"
                                             data-bs-dismiss="modal">Cancel</button>
-                                        <button type="submit" class="btn btn-primary">Save Contractor</button>
+                                        <button type="submit" class="btn btn-sm btn-dark rounded-1 px-4">Save
+                                            Contractor</button>
                                     </div>
                                 </div>
                             </form>
@@ -232,37 +261,44 @@
                 </div>
             </div>
 
-            <!-- Manage Accounts Modal -->
+            <!-- Manage Accounts Modal (Refined) -->
             <div class="modal fade" id="accountsModal" tabindex="-1">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">Manage Accounts for <span id="modalContractorName"></span></h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content border rounded-1 shadow">
+                        <div class="modal-header bg-dark text-white py-3 rounded-top-1">
+                            <h6 class="modal-title fw-bold"><i class="fas fa-wallet me-2"></i>Manage Accounts</h6>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                         </div>
-                        <div class="modal-body">
+                        <div class="modal-body p-4">
+                            <p class="small text-muted mb-3">Accounts for: <strong class="text-dark"
+                                    id="modalContractorName"></strong></p>
+
                             <!-- List Existing -->
-                            <h6 class="fw-bold small text-secondary">Saved Accounts</h6>
-                            <ul class="list-group list-group-flush mb-3" id="accountsList">
-                                <li class="list-group-item text-center text-muted">Loading...</li>
+                            <h6 class="fw-bold small text-uppercase text-muted border-bottom pb-2 mb-3">Saved Accounts
+                            </h6>
+                            <ul class="list-group list-group-flush mb-4 rounded-1" id="accountsList">
+                                <li class="list-group-item text-center text-muted small">Loading...</li>
                             </ul>
 
                             <!-- Add New -->
-                            <h6 class="fw-bold small text-secondary mt-4">Add New Account</h6>
+                            <h6 class="fw-bold small text-uppercase text-muted border-bottom pb-2 mb-3">Add New Account
+                            </h6>
                             <form id="addAccountForm" onsubmit="addAccount(event)">
                                 <input type="hidden" id="modalContractorId">
                                 <div class="mb-2">
-                                    <select class="form-select form-select-sm" id="modalPaymentMethod" required>
+                                    <select class="form-select form-select-sm rounded-1" id="modalPaymentMethod"
+                                        required>
                                         <option value="">Select Method...</option>
                                         <option th:each="pm : ${activePaymentMethods}" th:value="${pm.id}"
                                             th:text="${pm.methodName}"></option>
                                     </select>
                                 </div>
-                                <div class="mb-2">
-                                    <input type="text" class="form-control form-control-sm" id="modalAccountDetails"
-                                        placeholder="Account Details (e.g. email, number)" required>
+                                <div class="mb-3">
+                                    <input type="text" class="form-control form-control-sm rounded-1"
+                                        id="modalAccountDetails" placeholder="Account Details (e.g. email, number)"
+                                        required>
                                 </div>
-                                <button type="submit" class="btn btn-sm btn-primary w-100">Add Account</button>
+                                <button type="submit" class="btn btn-sm btn-dark w-100 rounded-1">Add Account</button>
                             </form>
                         </div>
                     </div>
@@ -291,32 +327,32 @@
 
             function loadAccounts(id) {
                 const list = document.getElementById('accountsList');
-                list.innerHTML = '<li class="list-group-item text-center text-muted">Loading...</li>';
+                list.innerHTML = '<li class="list-group-item text-center text-muted small">Loading...</li>';
 
                 fetch(`/master-data/api/contractors/${id}/payment-infos`)
                     .then(res => res.json())
                     .then(data => {
                         list.innerHTML = "";
                         if (data.length === 0) {
-                            list.innerHTML = '<li class="list-group-item text-center text-muted">No additional accounts found.</li>';
+                            list.innerHTML = '<li class="list-group-item text-center text-muted small">No additional accounts found.</li>';
                             return;
                         }
                         data.forEach(info => {
                             const li = document.createElement('li');
-                            li.className = "list-group-item d-flex justify-content-between align-items-center";
+                            li.className = "list-group-item d-flex justify-content-between align-items-center px-0";
                             li.innerHTML = `
                                 <div>
-                                    <span class="badge bg-light text-dark border me-1">${info.paymentMethod.methodName}</span>
-                                    <span class="small">${info.accountDetails}</span>
+                                    <span class="badge rounded-1 bg-secondary-subtle text-secondary border me-1 fw-normal">${info.paymentMethod.methodName}</span>
+                                    <span class="small font-monospace text-dark">${info.accountDetails}</span>
                                 </div>
-                                <button class="btn btn-xs btn-outline-danger" onclick="deleteAccount(${info.id})">&times;</button>
+                                <button class="btn btn-sm btn-link text-danger p-0" onclick="deleteAccount(${info.id})"><i class="fas fa-times"></i></button>
                             `;
                             list.appendChild(li);
                         });
                     })
                     .catch(err => {
                         console.error(err);
-                        list.innerHTML = '<li class="list-group-item text-danger">Error loading accounts.</li>';
+                        list.innerHTML = '<li class="list-group-item text-danger small">Error loading accounts.</li>';
                     });
             }
 
