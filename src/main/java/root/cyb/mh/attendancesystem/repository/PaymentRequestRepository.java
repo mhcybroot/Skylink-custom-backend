@@ -675,4 +675,33 @@ public interface PaymentRequestRepository extends JpaRepository<PaymentRequest, 
         long countNewContractorsByCompanySince(
                         @org.springframework.data.repository.query.Param("companyId") Long companyId,
                         @org.springframework.data.repository.query.Param("sinceDate") java.time.LocalDate sinceDate);
+        // ============================================
+        // GLOBAL CLIENT PORTFOLIO ANALYTICS (NATIVE)
+        // ============================================
+
+        @org.springframework.data.jpa.repository.Query(value = "SELECT COUNT(DISTINCT client_id) FROM payment_requests WHERE payment_status = 'PAID' AND request_date >= :since", nativeQuery = true)
+        long countActiveClientsSince(
+                        @org.springframework.data.repository.query.Param("since") java.time.LocalDate since);
+
+        @org.springframework.data.jpa.repository.Query(value = "SELECT COUNT(*) FROM (SELECT client_id FROM payment_requests GROUP BY client_id HAVING COUNT(DISTINCT work_order_number) > 1) as sub", nativeQuery = true)
+        long countMultiProjectClients();
+
+        @org.springframework.data.jpa.repository.Query(value = "SELECT COUNT(*) FROM (SELECT client_id FROM payment_requests GROUP BY client_id HAVING MIN(request_date) >= :since) as sub", nativeQuery = true)
+        long countNewClientsSince(@org.springframework.data.repository.query.Param("since") java.time.LocalDate since);
+
+        @org.springframework.data.jpa.repository.Query(value = "SELECT COUNT(*) FROM (SELECT client_id FROM payment_requests GROUP BY client_id HAVING MAX(request_date) < :cutoff) as sub", nativeQuery = true)
+        long countChurnedClientsBefore(
+                        @org.springframework.data.repository.query.Param("cutoff") java.time.LocalDate cutoff);
+
+        @org.springframework.data.jpa.repository.Query(value = "SELECT COUNT(*) FROM (SELECT client_id FROM payment_requests GROUP BY client_id HAVING CAST(COUNT(CASE WHEN status='REJECTED' THEN 1 END) AS FLOAT) / NULLIF(COUNT(*),0) > :rate) as sub", nativeQuery = true)
+        long countHighRejectionClients(@org.springframework.data.repository.query.Param("rate") double rate);
+
+        @org.springframework.data.jpa.repository.Query(value = "SELECT COUNT(*) FROM (SELECT client_id FROM payment_requests WHERE status='PENDING' GROUP BY client_id HAVING AVG(DATE_PART('day', NOW() - CAST(request_date AS TIMESTAMP))) > :days) as sub", nativeQuery = true)
+        long countStalledClients(@org.springframework.data.repository.query.Param("days") int days);
+
+        @org.springframework.data.jpa.repository.Query(value = "SELECT COUNT(*) FROM (SELECT client_id FROM payment_requests WHERE status='PENDING' GROUP BY client_id HAVING CAST(COUNT(CASE WHEN priority IN ('HIGH','URGENT') THEN 1 END) AS FLOAT) / NULLIF(COUNT(*),0) > :rate) as sub", nativeQuery = true)
+        long countUrgencyOverloadClients(@org.springframework.data.repository.query.Param("rate") double rate);
+
+        @org.springframework.data.jpa.repository.Query(value = "SELECT COUNT(*) FROM (SELECT client_id FROM payment_requests GROUP BY client_id HAVING COUNT(*) > :count) as sub", nativeQuery = true)
+        long countHighVolumeClients(@org.springframework.data.repository.query.Param("count") int count);
 }

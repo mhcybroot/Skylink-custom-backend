@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org">
 
 <head>
-    <title>Global Client Analytics</title>
+    <title>Client Portfolio Analytics - Strategic View</title>
 </head>
 
 <body>
@@ -15,244 +15,286 @@
                     <div class="card-body p-4 position-relative">
                         <div class="row align-items-center position-relative z-1">
                             <div class="col-md-8">
-                                <span class="badge bg-dark-subtle text-dark border border-dark-subtle rounded-1 mb-2">
-                                    <i class="fas fa-globe me-1"></i> GLOBAL ANALYTICS DASHBOARD
+                                <span
+                                    class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle rounded-1 mb-2">
+                                    <i class="fas fa-globe me-1"></i> GLOBAL PORTFOLIO INTELLIGENCE
                                 </span>
-                                <h2 class="fw-bold text-dark mb-1 tracking-tight">Client Performance Intelligence</h2>
-                                <p class="text-muted mb-0 small">
-                                    <span><i class="fas fa-chart-line me-1"></i>Cross-Client Analytics & Strategic
-                                        Insights</span>
+                                <h2 class="fw-bold text-dark mb-1 tracking-tight">Client Analytics</h2>
+                                <p class="text-muted mb-0" style="max-width: 600px;">
+                                    Strategic tracking of client revenue, retention, and operational health.
                                 </p>
                             </div>
                             <div class="col-md-4 text-md-end mt-3 mt-md-0">
                                 <a href="/master-data/clients" class="btn btn-outline-dark rounded-1 shadow-sm">
-                                    <i class="fas fa-arrow-left me-2"></i>Back to Clients
+                                    <i class="fas fa-list me-2"></i>Client List
                                 </a>
                             </div>
                         </div>
-                        <div class="position-absolute top-0 end-0 h-100 w-50 bg-gradient-light opacity-25"
+                        <div class="position-absolute top-0 end-0 h-100 w-50 bg-gradient-primary opacity-10"
                             style="transform: skewX(-20deg);"></div>
                     </div>
                 </div>
 
-                <!-- 1. Financial Overview -->
-                <h6 class="text-uppercase text-secondary fw-bold small ls-1 mb-3">
-                    <i class="fas fa-dollar-sign me-2"></i>Financial Overview
-                </h6>
+                <!-- QUICK STATS -->
                 <div class="row g-3 mb-4">
                     <div class="col-md-3">
                         <div class="card border-0 shadow-sm rounded-1 h-100">
-                            <div class="card-body p-3">
-                                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Total
-                                    Revenue</small>
-                                <h5 class="fw-bold text-dark mb-0 mt-1"
-                                    th:text="${#numbers.formatCurrency(globalTotalRevenue)}">$0.00</h5>
+                            <div class="card-body p-3 text-center">
+                                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.65rem;">Total
+                                    Revenue (Lifetime)</small>
+                                <h4 class="fw-bold text-dark mb-0 mt-1"
+                                    th:text="${#numbers.formatCurrency(totalRevenue)}">$0.00</h4>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="card border-0 shadow-sm rounded-1 h-100">
-                            <div class="card-body p-3">
-                                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">YTD
-                                    Revenue</small>
-                                <h5 class="fw-bold text-primary mb-0 mt-1"
-                                    th:text="${#numbers.formatCurrency(globalYtdRevenue)}">$0.00</h5>
+                            <div class="card-body p-3 text-center">
+                                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.65rem;">Active
+                                    Clients (90d)</small>
+                                <h4 class="fw-bold text-success mb-0 mt-1" th:text="${activeClients}">0</h4>
+                                <small class="text-muted" style="font-size: 0.7rem;">of <span
+                                        th:text="${totalClients}">0</span> Total</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm rounded-1 h-100"
+                            th:classappend="${momGrowth < 0 ? 'border-start border-4 border-danger' : 'border-start border-4 border-success'}">
+                            <div class="card-body p-3 text-center">
+                                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.65rem;">Revenue
+                                    Growth (MoM)</small>
+                                <h4 class="fw-bold mb-0 mt-1"
+                                    th:classappend="${momGrowth < 0 ? 'text-danger' : 'text-success'}"
+                                    th:text="${(momGrowth >= 0 ? '+' : '') + #numbers.formatDecimal(momGrowth, 1, 1) + '%'}">
+                                    0%</h4>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="card border-0 shadow-sm rounded-1 h-100">
-                            <div class="card-body p-3">
-                                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Avg Client
-                                    Value</small>
-                                <h5 class="fw-bold text-dark mb-0 mt-1"
-                                    th:text="${#numbers.formatCurrency(globalAvgClientValue)}">$0.00</h5>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card border-0 shadow-sm rounded-1 h-100 border-start border-4 border-danger">
-                            <div class="card-body p-3">
-                                <small class="text-muted text-uppercase fw-bold"
-                                    style="font-size: 0.7rem;">Outstanding</small>
-                                <h5 class="fw-bold text-dark mb-0 mt-1"
-                                    th:text="${#numbers.formatCurrency(globalTotalOutstanding)}">$0.00</h5>
+                            <div class="card-body p-3 text-center">
+                                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.65rem;">Portfolio
+                                    Concentration</small>
+                                <h4 class="fw-bold text-warning mb-0 mt-1"
+                                    th:text="${#numbers.formatDecimal(concentration, 1, 1) + '%'}">0%</h4>
+                                <small class="text-muted" th:text="${topClientName}" style="font-size: 0.7rem;">Top
+                                    Client</small>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- 2. Client Portfolio & Operational -->
+                <!-- SWOT Grid -->
+                <style>
+                    .swot-section {
+                        border-radius: 8px;
+                    }
+
+                    .swot-strengths {
+                        background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+                        border-left: 4px solid #28a745;
+                    }
+
+                    .swot-weaknesses {
+                        background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+                        border-left: 4px solid #dc3545;
+                    }
+
+                    .swot-opportunities {
+                        background: linear-gradient(135deg, #cce5ff 0%, #b8daff 100%);
+                        border-left: 4px solid #007bff;
+                    }
+
+                    .swot-threats {
+                        background: linear-gradient(135deg, #fff3cd 0%, #ffeeba 100%);
+                        border-left: 4px solid #ffc107;
+                    }
+
+                    .metric-card-swot {
+                        background: rgba(255, 255, 255, 0.9);
+                        border-radius: 6px;
+                    }
+                </style>
+                <div class="row g-4 mb-4">
+                    <!-- STRENGTHS -->
+                    <div class="col-lg-6">
+                        <div class="swot-section swot-strengths p-4 h-100">
+                            <h6 class="fw-bold text-success mb-3">
+                                <i class="fas fa-check-circle me-2"></i>STRENGTHS (Portfolio Health)
+                            </h6>
+                            <div class="row g-3">
+                                <div class="col-sm-6">
+                                    <div class="metric-card-swot p-3 shadow-sm">
+                                        <small class="text-muted text-uppercase fw-bold"
+                                            style="font-size: 0.65rem;">Multi-Project Clients</small>
+                                        <h6 class="fw-bold text-dark mb-0 mt-1" th:text="${multiProjectClients}">0</h6>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="metric-card-swot p-3 shadow-sm">
+                                        <small class="text-muted text-uppercase fw-bold" style="font-size: 0.65rem;">Avg
+                                            Rev / Client</small>
+                                        <h6 class="fw-bold text-dark mb-0 mt-1"
+                                            th:text="${#numbers.formatCurrency(avgRevenue)}">$0</h6>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="metric-card-swot p-3 shadow-sm">
+                                        <small class="text-muted text-uppercase fw-bold"
+                                            style="font-size: 0.65rem;">Consistent Payers (>6mo)</small>
+                                        <h6 class="fw-bold text-success mb-0 mt-1" th:text="${consistentPayers}">0</h6>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="metric-card-swot p-3 shadow-sm">
+                                        <small class="text-muted text-uppercase fw-bold"
+                                            style="font-size: 0.65rem;">High Value (>10Tx)</small>
+                                        <h6 class="fw-bold text-dark mb-0 mt-1" th:text="${highValueClients}">0</h6>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- WEAKNESSES -->
+                    <div class="col-lg-6">
+                        <div class="swot-section swot-weaknesses p-4 h-100">
+                            <h6 class="fw-bold text-danger mb-3">
+                                <i class="fas fa-exclamation-triangle me-2"></i>WEAKNESSES (Friction Points)
+                            </h6>
+                            <div class="row g-3">
+                                <div class="col-sm-6">
+                                    <div class="metric-card-swot p-3 shadow-sm">
+                                        <small class="text-muted text-uppercase fw-bold"
+                                            style="font-size: 0.65rem;">Churned Clients (>90d)</small>
+                                        <h6 class="fw-bold text-danger mb-0 mt-1" th:text="${churnedClients}">0</h6>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="metric-card-swot p-3 shadow-sm">
+                                        <small class="text-muted text-uppercase fw-bold"
+                                            style="font-size: 0.65rem;">High Rejection (>20%)</small>
+                                        <h6 class="fw-bold text-dark mb-0 mt-1" th:text="${highRejectionClients}">0</h6>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="metric-card-swot p-3 shadow-sm">
+                                        <small class="text-muted text-uppercase fw-bold"
+                                            style="font-size: 0.65rem;">Stalled (>7d Pending)</small>
+                                        <h6 class="fw-bold text-warning mb-0 mt-1" th:text="${stalledClients}">0</h6>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="metric-card-swot p-3 shadow-sm">
+                                        <small class="text-muted text-uppercase fw-bold"
+                                            style="font-size: 0.65rem;">Urgency Overload (>50%)</small>
+                                        <h6 class="fw-bold text-dark mb-0 mt-1" th:text="${urgencyOverloadClients}">0
+                                        </h6>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- OPPORTUNITIES -->
+                    <div class="col-lg-6">
+                        <div class="swot-section swot-opportunities p-4 h-100">
+                            <h6 class="fw-bold text-primary mb-3">
+                                <i class="fas fa-lightbulb me-2"></i>OPPORTUNITIES (Growth)
+                            </h6>
+                            <div class="row g-3">
+                                <div class="col-sm-6">
+                                    <div class="metric-card-swot p-3 shadow-sm">
+                                        <small class="text-muted text-uppercase fw-bold" style="font-size: 0.65rem;">New
+                                            Clients (30d)</small>
+                                        <h6 class="fw-bold text-success mb-0 mt-1" th:text="${newClients}">0</h6>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="metric-card-swot p-3 shadow-sm">
+                                        <small class="text-muted text-uppercase fw-bold" style="font-size: 0.65rem;">MoM
+                                            Revenue Growth</small>
+                                        <h6 class="fw-bold mb-0 mt-1"
+                                            th:classappend="${momGrowth >= 0 ? 'text-success' : 'text-danger'}"
+                                            th:text="${(momGrowth >= 0 ? '+' : '') + #numbers.formatDecimal(momGrowth, 1, 1) + '%'}">
+                                            0%</h6>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="metric-card-swot p-3 shadow-sm">
+                                        <small class="text-muted text-uppercase fw-bold"
+                                            style="font-size: 0.65rem;">Current Month Rev</small>
+                                        <h6 class="fw-bold text-primary mb-0 mt-1"
+                                            th:text="${#numbers.formatCurrency(currentMonthRevenue)}">$0</h6>
+                                    </div>
+                                </div>
+                                <!-- Add more Opportunity metrics here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- THREATS -->
+                    <div class="col-lg-6">
+                        <div class="swot-section swot-threats p-4 h-100">
+                            <h6 class="fw-bold text-warning mb-3">
+                                <i class="fas fa-shield-alt me-2"></i>THREATS (Risks)
+                            </h6>
+                            <div class="row g-3">
+                                <div class="col-sm-6">
+                                    <div class="metric-card-swot p-3 shadow-sm">
+                                        <small class="text-muted text-uppercase fw-bold"
+                                            style="font-size: 0.65rem;">Rev. Concentration (Top 1)</small>
+                                        <h6 class="fw-bold mb-0 mt-1"
+                                            th:classappend="${concentration > 20 ? 'text-danger' : 'text-dark'}"
+                                            th:text="${#numbers.formatDecimal(concentration, 1, 1) + '%'}">0%</h6>
+                                    </div>
+                                </div>
+                                <!-- Add more Risk metrics like 'Single Threaded Account' count if calculated -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TOP CLIENTS TABLE -->
                 <div class="row">
-                    <div class="col-lg-6">
-                        <h6 class="text-uppercase text-secondary fw-bold small ls-1 mb-3">
-                            <i class="fas fa-users me-2"></i>Client Portfolio
-                        </h6>
-                        <div class="row g-3 mb-4">
-                            <div class="col-sm-6">
-                                <div class="card border-0 shadow-sm rounded-1 h-100">
-                                    <div class="card-body p-3">
-                                        <small class="text-muted text-uppercase fw-bold"
-                                            style="font-size: 0.7rem;">Total Clients</small>
-                                        <h5 class="fw-bold text-dark mb-0 mt-1" th:text="${globalTotalClients}">0</h5>
-                                    </div>
-                                </div>
+                    <div class="col-12">
+                        <div class="card border-0 shadow-sm rounded-1 mb-4">
+                            <div class="card-header bg-white border-bottom py-3">
+                                <h6 class="mb-0 fw-bold text-dark text-uppercase small ls-1"><i
+                                        class="fas fa-crown me-2 text-warning"></i>Top Revenue Generating Clients</h6>
                             </div>
-                            <div class="col-sm-6">
-                                <div
-                                    class="card border-0 shadow-sm rounded-1 h-100 border-start border-4 border-success">
-                                    <div class="card-body p-3">
-                                        <small class="text-muted text-uppercase fw-bold"
-                                            style="font-size: 0.7rem;">Active Clients</small>
-                                        <h5 class="fw-bold text-dark mb-0 mt-1" th:text="${globalActiveClients}">0</h5>
-                                    </div>
-                                </div>
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0 align-middle">
+                                    <thead class="bg-light">
+                                        <tr>
+                                            <th class="border-0 small text-uppercase text-muted fw-bold ps-4">Client
+                                                Name</th>
+                                            <th class="border-0 small text-uppercase text-muted fw-bold text-end pe-4">
+                                                Total Revenue</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr th:if="${topClients == null || topClients.empty}">
+                                            <td colspan="2" class="text-center py-4 text-muted">No data available.</td>
+                                        </tr>
+                                        <tr th:each="row : ${topClients}">
+                                            <!-- Row is Object[]: id, name, sum -->
+                                            <td class="ps-4 fw-bold text-dark" th:text="${row[1]}">Client Name</td>
+                                            <td class="text-end pe-4 font-monospace"
+                                                th:text="${#numbers.formatCurrency(row[2])}">$0.00</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
                             </div>
-                            <div class="col-12">
-                                <div
-                                    class="card border-0 shadow-sm rounded-1 h-100 border-start border-4 border-warning">
-                                    <div class="card-body p-3">
-                                        <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Top
-                                            Client Concentration</small>
-                                        <h5 class="fw-bold text-dark mb-0 mt-1">
-                                            <span th:text="${globalHighestValueClient}">N/A</span>
-                                            <small class="text-muted ms-2"
-                                                th:text="${'(' + #numbers.formatDecimal(globalClientConcentration, 1, 1) + '%)'}">(0.0%)</small>
-                                        </h5>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-6">
-                        <h6 class="text-uppercase text-secondary fw-bold small ls-1 mb-3">
-                            <i class="fas fa-cog me-2"></i>Operational Metrics
-                        </h6>
-                        <div class="row g-3 mb-4">
-                            <div class="col-sm-6">
-                                <div class="card border-0 shadow-sm rounded-1 h-100">
-                                    <div class="card-body p-3">
-                                        <small class="text-muted text-uppercase fw-bold"
-                                            style="font-size: 0.7rem;">Total Requests</small>
-                                        <h5 class="fw-bold text-dark mb-0 mt-1" th:text="${globalTotalRequests}">0</h5>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-sm-6">
-                                <div class="card border-0 shadow-sm rounded-1 h-100">
-                                    <div class="card-body p-3">
-                                        <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Work
-                                            Orders</small>
-                                        <h5 class="fw-bold text-dark mb-0 mt-1" th:text="${globalTotalWorkOrders}">0
-                                        </h5>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-sm-6">
-                                <div
-                                    class="card border-0 shadow-sm rounded-1 h-100 border-start border-4 border-success">
-                                    <div class="card-body p-3">
-                                        <small class="text-muted text-uppercase fw-bold"
-                                            style="font-size: 0.7rem;">Approval Rate</small>
-                                        <h5 class="fw-bold text-dark mb-0 mt-1"
-                                            th:text="${#numbers.formatDecimal(globalApprovalRate, 1, 1) + '%'}">0.0%
-                                        </h5>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-sm-6">
-                                <div class="card border-0 shadow-sm rounded-1 h-100">
-                                    <div class="card-body p-3">
-                                        <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Avg
-                                            Req/Client</small>
-                                        <h5 class="fw-bold text-dark mb-0 mt-1"
-                                            th:text="${#numbers.formatDecimal(globalAvgRequestsPerClient, 1, 1)}">0.0
-                                        </h5>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 3. Vendor Ecosystem & Growth -->
-                <div class="row">
-                    <div class="col-lg-6">
-                        <h6 class="text-uppercase text-secondary fw-bold small ls-1 mb-3">
-                            <i class="fas fa-handshake me-2"></i>Vendor Ecosystem
-                        </h6>
-                        <div class="row g-3 mb-4">
-                            <div class="col-sm-6">
-                                <div class="card border-0 shadow-sm rounded-1 h-100">
-                                    <div class="card-body p-3">
-                                        <small class="text-muted text-uppercase fw-bold"
-                                            style="font-size: 0.7rem;">Total Vendors</small>
-                                        <h5 class="fw-bold text-dark mb-0 mt-1" th:text="${globalTotalVendors}">0</h5>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-sm-6">
-                                <div class="card border-0 shadow-sm rounded-1 h-100">
-                                    <div class="card-body p-3">
-                                        <small class="text-muted text-uppercase fw-bold"
-                                            style="font-size: 0.7rem;">Avg/Client</small>
-                                        <h5 class="fw-bold text-dark mb-0 mt-1"
-                                            th:text="${#numbers.formatDecimal(globalAvgVendorsPerClient, 1, 1)}">0.0
-                                        </h5>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-12">
-                                <div class="card border-0 shadow-sm rounded-1 h-100">
-                                    <div class="card-body p-3">
-                                        <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Most
-                                            Used Vendor</small>
-                                        <h5 class="fw-bold text-dark mb-0 mt-1 text-truncate"
-                                            th:text="${globalMostUsedVendor}">N/A</h5>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-
-                <!-- Top Clients Ranking -->
-                <h6 class="text-uppercase text-secondary fw-bold small ls-1 mb-3 mt-4">
-                    <i class="fas fa-trophy me-2"></i>Top 5 Clients by Revenue
-                </h6>
-                <div class="card border-0 shadow-sm rounded-1">
-                    <div class="list-group list-group-flush">
-                        <div th:each="tc, stat : ${globalTopClients}" class="list-group-item px-4 py-3 border-top">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div class="d-flex align-items-center">
-                                    <span class="badge rounded-circle bg-primary text-white me-3 fw-bold shadow-sm"
-                                        style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;"
-                                        th:text="${stat.count}">1</span>
-                                    <div>
-                                        <h6 class="mb-0 fw-bold text-dark" th:text="${tc[1]}">Client Name</h6>
-                                        <small class="text-muted">Client ID: <span th:text="${tc[0]}">1</span></small>
-                                    </div>
-                                </div>
-                                <div class="text-end">
-                                    <h5 class="mb-0 fw-bold text-primary" th:text="${#numbers.formatCurrency(tc[2])}">
-                                        $0.00</h5>
-                                    <small class="text-muted">Total Revenue</small>
-                                </div>
-                            </div>
-                        </div>
-                        <div th:if="${#lists.isEmpty(globalTopClients)}" class="text-center text-muted small py-4">
-                            No revenue data available yet.
                         </div>
                     </div>
                 </div>
 
             </div>
         </section>
-
         <script>
-            // Placeholder script
+            // Placeholder
         </script>
     </div>
 </body>
