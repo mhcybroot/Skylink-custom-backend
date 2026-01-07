@@ -109,6 +109,13 @@
                                             </a>
                                         </th>
                                         <th class="py-3 border-bottom-0">
+                                            <a th:href="@{/master-data/contractors(search=${search}, sort='area', dir=${sort == 'area' ? reverseDir : 'asc'})}"
+                                                class="text-decoration-none text-secondary fw-bold">
+                                                Location <i th:if="${sort == 'area'}"
+                                                    th:class="${dir == 'asc' ? 'fas fa-sort-up ms-1' : 'fas fa-sort-down ms-1'}"></i>
+                                            </a>
+                                        </th>
+                                        <th class="py-3 border-bottom-0">
                                             <a th:href="@{/master-data/contractors(search=${search}, sort='defaultPaymentMethod.methodName', dir=${sort == 'defaultPaymentMethod.methodName' ? reverseDir : 'asc'})}"
                                                 class="text-decoration-none text-secondary fw-bold">
                                                 Payment Method <i th:if="${sort == 'defaultPaymentMethod.methodName'}"
@@ -152,6 +159,15 @@
                                                 class="text-muted small">-</span>
                                         </td>
                                         <td>
+                                            <div th:if="${c.area != null && !#strings.isEmpty(c.area)}"
+                                                class="small text-dark"><i
+                                                    class="fas fa-map-marker-alt me-1 text-muted"></i><span
+                                                    th:text="${c.area}"></span></div>
+                                            <div th:if="${c.zipCode != null && !#strings.isEmpty(c.zipCode)}"
+                                                class="small text-muted"><i class="fas fa-hashtag me-1"></i><span
+                                                    th:text="${c.zipCode}"></span></div>
+                                        </td>
+                                        <td>
                                             <span th:if="${c.defaultPaymentMethod != null}"
                                                 th:text="${c.defaultPaymentMethod.methodName}"
                                                 class="badge rounded-1 bg-info-subtle text-info border border-info fw-normal"></span>
@@ -170,6 +186,16 @@
                                                 class="badge rounded-1 bg-secondary-subtle text-secondary border border-secondary fw-normal">Inactive</span>
                                         </td>
                                         <td class="text-end pe-4">
+                                            <button class="btn btn-sm btn-outline-primary rounded-1 me-1"
+                                                title="Edit Contractor" th:data-id="${c.id}" th:data-name="${c.name}"
+                                                th:data-description="${c.description}" th:data-email="${c.email}"
+                                                th:data-area="${c.area}" th:data-zip="${c.zipCode}"
+                                                th:data-pm="${c.defaultPaymentMethod?.id}"
+                                                th:data-details="${c.accountDetails}"
+                                                onclick="openEditContractorModal(this)"
+                                                sec:authorize="hasAnyRole('ADMIN', 'HR')">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
                                             <a th:href="@{/master-data/contractors/{id}/dashboard(id=${c.id})}"
                                                 class="btn btn-sm btn-outline-secondary rounded-1 me-1"
                                                 title="Open Dashboard">
@@ -238,6 +264,18 @@
                                             placeholder="contractor@example.com">
                                     </div>
                                     <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-muted text-uppercase">Area /
+                                            Location</label>
+                                        <input type="text" class="form-control rounded-1" th:field="*{area}"
+                                            placeholder="e.g. Downtown, NY">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-muted text-uppercase">Zip
+                                            Code</label>
+                                        <input type="text" class="form-control rounded-1" th:field="*{zipCode}"
+                                            placeholder="Zip Code">
+                                    </div>
+                                    <div class="col-md-6">
                                         <label class="form-label small fw-bold text-muted text-uppercase">Default
                                             Payment
                                             Method</label>
@@ -257,6 +295,75 @@
                                         <button type="button" class="btn btn-sm btn-outline-secondary rounded-1 me-1"
                                             data-bs-dismiss="modal">Cancel</button>
                                         <button type="submit" class="btn btn-sm btn-dark rounded-1 px-4">Save
+                                            Contractor</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Edit Contractor Modal -->
+            <div class="modal fade" id="editContractorModal" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered modal-lg">
+                    <div class="modal-content border rounded-1 shadow">
+                        <div class="modal-header bg-dark text-white py-3 rounded-top-1">
+                            <h6 class="modal-title fw-bold"><i class="fas fa-edit me-2"></i>Edit Contractor</h6>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body p-4">
+                            <form th:action="@{/master-data/contractors/update}" method="post">
+                                <input type="hidden" id="editId" name="id">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-muted text-uppercase">Contractor
+                                            Name</label>
+                                        <input type="text" class="form-control rounded-1" id="editName" name="name"
+                                            required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label
+                                            class="form-label small fw-bold text-muted text-uppercase">Description</label>
+                                        <input type="text" class="form-control rounded-1" id="editDescription"
+                                            name="description">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-muted text-uppercase">Email
+                                            Address</label>
+                                        <input type="email" class="form-control rounded-1" id="editEmail" name="email">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-muted text-uppercase">Area /
+                                            Location</label>
+                                        <input type="text" class="form-control rounded-1" id="editArea" name="area">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-muted text-uppercase">Zip
+                                            Code</label>
+                                        <input type="text" class="form-control rounded-1" id="editZipCode"
+                                            name="zipCode">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-muted text-uppercase">Default
+                                            Payment Method</label>
+                                        <select class="form-select rounded-1" id="editDefaultPaymentMethod"
+                                            name="defaultPaymentMethod">
+                                            <option value="">-- Select Method --</option>
+                                            <option th:each="pm : ${activePaymentMethods}" th:value="${pm.id}"
+                                                th:text="${pm.methodName}"></option>
+                                        </select>
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label small fw-bold text-muted text-uppercase">Account
+                                            Details</label>
+                                        <textarea class="form-control rounded-1" id="editAccountDetails"
+                                            name="accountDetails" rows="2"></textarea>
+                                    </div>
+                                    <div class="col-12 text-end mt-4 pt-3 border-top">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-1 me-1"
+                                            data-bs-dismiss="modal">Cancel</button>
+                                        <button type="submit" class="btn btn-sm btn-dark rounded-1 px-4">Update
                                             Contractor</button>
                                     </div>
                                 </div>
@@ -314,6 +421,19 @@
             let currentContractorId = null;
             const csrfToken = document.querySelector("meta[name='_csrf']") ? document.querySelector("meta[name='_csrf']").content : "";
             const csrfHeader = document.querySelector("meta[name='_csrf_header']") ? document.querySelector("meta[name='_csrf_header']").content : "";
+
+            function openEditContractorModal(btn) {
+                document.getElementById('editId').value = btn.getAttribute('data-id');
+                document.getElementById('editName').value = btn.getAttribute('data-name');
+                document.getElementById('editDescription').value = btn.getAttribute('data-description');
+                document.getElementById('editEmail').value = btn.getAttribute('data-email');
+                document.getElementById('editArea').value = btn.getAttribute('data-area');
+                document.getElementById('editZipCode').value = btn.getAttribute('data-zip');
+                document.getElementById('editDefaultPaymentMethod').value = btn.getAttribute('data-pm');
+                document.getElementById('editAccountDetails').value = btn.getAttribute('data-details');
+
+                new bootstrap.Modal(document.getElementById('editContractorModal')).show();
+            }
 
             function openAccountsModal(id, name) {
                 currentContractorId = id;

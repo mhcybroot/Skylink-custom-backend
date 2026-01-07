@@ -39,4 +39,10 @@ public class Contractor {
     }
 
     private boolean active = true;
+
+    @Column(length = 20)
+    private String zipCode;
+
+    @Column(length = 100)
+    private String area;
 }

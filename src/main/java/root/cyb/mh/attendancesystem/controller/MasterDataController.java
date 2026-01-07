@@ -78,6 +78,30 @@ public class MasterDataController {
         return "redirect:/master-data/contractors";
     }
 
+    @PostMapping("/contractors/update")
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
+    public String updateContractor(@ModelAttribute Contractor contractor, RedirectAttributes ps) {
+        try {
+            Contractor existing = contractorRepository.findById(contractor.getId()).orElse(null);
+            if (existing != null) {
+                existing.setName(contractor.getName());
+                existing.setDescription(contractor.getDescription());
+                existing.setEmail(contractor.getEmail());
+                existing.setZipCode(contractor.getZipCode());
+                existing.setArea(contractor.getArea());
+                existing.setDefaultPaymentMethod(contractor.getDefaultPaymentMethod());
+                existing.setAccountDetails(contractor.getAccountDetails());
+                contractorRepository.save(existing);
+                ps.addFlashAttribute("successMessage", "Contractor updated successfully!");
+            } else {
+                ps.addFlashAttribute("errorMessage", "Contractor not found.");
+            }
+        } catch (Exception e) {
+            ps.addFlashAttribute("errorMessage", "Error updating contractor: " + e.getMessage());
+        }
+        return "redirect:/master-data/contractors";
+    }
+
     // --- CLIENTS (Admin, HR, Supervisor only) ---
     // Note: 'Supervisor' is not a dedicated ROLE in Spring Security here, usually
     // it's Employee with Reports.
