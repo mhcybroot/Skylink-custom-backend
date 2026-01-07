@@ -214,4 +214,55 @@ public interface PaymentRequestRepository extends JpaRepository<PaymentRequest, 
                         "GROUP BY extract(year from p.requestDate), extract(month from p.requestDate) " +
                         "ORDER BY extract(year from p.requestDate), extract(month from p.requestDate)")
         List<Object[]> findMonthlySpendingTrendByClientId(Long clientId, java.time.LocalDate startDate);
+
+        // --- CLIENT ANALYTICS (15+ METRICS) ---
+
+        // Financial Performance
+        @org.springframework.data.jpa.repository.Query("SELECT AVG(p.amount) FROM PaymentRequest p WHERE p.client.id = :clientId AND p.paymentStatus = 'PAID'")
+        java.math.BigDecimal findAvgAmountByClientId(Long clientId);
+
+        @org.springframework.data.jpa.repository.Query("SELECT MAX(p.amount) FROM PaymentRequest p WHERE p.client.id = :clientId AND p.paymentStatus = 'PAID'")
+        java.math.BigDecimal findMaxAmountByClientId(Long clientId);
+
+        @org.springframework.data.jpa.repository.Query("SELECT MIN(p.amount) FROM PaymentRequest p WHERE p.client.id = :clientId AND p.paymentStatus = 'PAID'")
+        java.math.BigDecimal findMinAmountByClientId(Long clientId);
+
+        // Operational Efficiency
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(DISTINCT p.workOrderNumber) FROM PaymentRequest p WHERE p.client.id = :clientId")
+        long countDistinctWorkOrdersByClientId(Long clientId);
+
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(p) FROM PaymentRequest p WHERE p.client.id = :clientId AND p.status = :status")
+        long countByClientIdAndStatus(Long clientId, root.cyb.mh.attendancesystem.model.enums.RequestStatus status);
+
+        // Vendor Relationships
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(DISTINCT p.contractor) FROM PaymentRequest p WHERE p.client.id = :clientId AND p.contractor IS NOT NULL")
+        long countDistinctContractorsByClientId(Long clientId);
+
+        @org.springframework.data.jpa.repository.Query("SELECT p.contractor.name, COUNT(p) FROM PaymentRequest p WHERE p.client.id = :clientId AND p.contractor IS NOT NULL GROUP BY p.contractor.name ORDER BY COUNT(p) DESC")
+        List<Object[]> findMostFrequentVendorByClientId(Long clientId,
+                        org.springframework.data.domain.Pageable pageable);
+
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(DISTINCT p.contractor) FROM PaymentRequest p WHERE p.client.id = :clientId AND p.contractor IS NOT NULL AND p.requestDate >= :sinceDate")
+        long countNewVendorsByClientIdSince(Long clientId, java.time.LocalDate sinceDate);
+
+        // Risk & Payment Analysis
+        @org.springframework.data.jpa.repository.Query("SELECT SUM(p.amount) FROM PaymentRequest p WHERE p.client.id = :clientId AND (p.paymentStatus = 'PENDING' OR p.paymentStatus = 'APPROVED')")
+        java.math.BigDecimal sumOutstandingByClientId(Long clientId);
+
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(p) FROM PaymentRequest p WHERE p.client.id = :clientId AND (p.priority = 'HIGH' OR p.priority = 'URGENT')")
+        long countHighPriorityByClientId(Long clientId);
+
+        @org.springframework.data.jpa.repository.Query("SELECT p.paymentMethod.methodName, COUNT(p) FROM PaymentRequest p WHERE p.client.id = :clientId AND p.paymentMethod IS NOT NULL GROUP BY p.paymentMethod.methodName ORDER BY COUNT(p) DESC")
+        List<Object[]> findPaymentMethodDistributionByClientId(Long clientId,
+                        org.springframework.data.domain.Pageable pageable);
+
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(p) FROM PaymentRequest p WHERE p.client.id = :clientId AND p.paymentStatus = 'PENDING'")
+        long countPendingByClientId(Long clientId);
+
+        // Growth & Trends
+        @org.springframework.data.jpa.repository.Query("SELECT extract(month from p.requestDate), SUM(p.amount) FROM PaymentRequest p WHERE p.client.id = :clientId AND p.paymentStatus = 'PAID' AND extract(year from p.requestDate) = :year GROUP BY extract(month from p.requestDate) ORDER BY SUM(p.amount) DESC")
+        List<Object[]> findPeakMonthByClientIdAndYear(Long clientId, int year);
+
+        @org.springframework.data.jpa.repository.Query("SELECT SUM(p.amount) FROM PaymentRequest p WHERE p.client.id = :clientId AND p.paymentStatus = 'PAID' AND extract(year from p.requestDate) = :year AND extract(month from p.requestDate) = :month")
+        java.math.BigDecimal sumByClientIdYearMonth(Long clientId, int year, int month);
 }

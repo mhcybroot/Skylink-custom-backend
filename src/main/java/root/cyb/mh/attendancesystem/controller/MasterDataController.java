@@ -518,7 +518,7 @@ public class MasterDataController {
         Client client = clientRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Client not found with id: " + id));
 
-        // --- FINANCIAL PERFORMANCE ---
+        // --- 1. FINANCIAL PERFORMANCE ---
         java.math.BigDecimal totalSpend = paymentRequestRepository.sumPaidAmountByClientId(id);
         if (totalSpend == null)
             totalSpend = java.math.BigDecimal.ZERO;
@@ -529,21 +529,151 @@ public class MasterDataController {
         if (ytdSpend == null)
             ytdSpend = java.math.BigDecimal.ZERO;
 
-        // Request Count (as proxy for "Active Projects")
-        long totalRequests = paymentRequestRepository.countByClientId(id);
+        java.math.BigDecimal avgTransaction = paymentRequestRepository.findAvgAmountByClientId(id);
+        if (avgTransaction == null)
+            avgTransaction = java.math.BigDecimal.ZERO;
 
-        // --- CHARTS & LISTS ---
+        java.math.BigDecimal maxTransaction = paymentRequestRepository.findMaxAmountByClientId(id);
+        if (maxTransaction == null)
+            maxTransaction = java.math.BigDecimal.ZERO;
+
+        // Projected Annual Spend
+        int monthsElapsed = java.time.LocalDate.now().getMonthValue();
+        java.math.BigDecimal projectedAnnualSpend = monthsElapsed > 0
+                ? ytdSpend.multiply(java.math.BigDecimal.valueOf(12.0 / monthsElapsed))
+                : java.math.BigDecimal.ZERO;
+
+        // Monthly Burn Rate
+        java.math.BigDecimal monthlyBurnRate = monthsElapsed > 0
+                ? ytdSpend.divide(java.math.BigDecimal.valueOf(monthsElapsed), 2, java.math.RoundingMode.HALF_UP)
+                : java.math.BigDecimal.ZERO;
+
+        // --- 2. OPERATIONAL EFFICIENCY ---
+        long totalRequests = paymentRequestRepository.countByClientId(id);
+        long totalWorkOrders = paymentRequestRepository.countDistinctWorkOrdersByClientId(id);
+
+        // Cost Per Work Order
+        java.math.BigDecimal costPerWorkOrder = totalWorkOrders > 0
+                ? totalSpend.divide(java.math.BigDecimal.valueOf(totalWorkOrders), 2, java.math.RoundingMode.HALF_UP)
+                : java.math.BigDecimal.ZERO;
+
+        // Avg Work Orders per Month
+        double avgWorkOrdersPerMonth = monthsElapsed > 0 ? (double) totalWorkOrders / monthsElapsed : 0;
+
+        long approvedCount = paymentRequestRepository.countByClientIdAndStatus(id,
+                root.cyb.mh.attendancesystem.model.enums.RequestStatus.APPROVED);
+        long rejectedCount = paymentRequestRepository.countByClientIdAndStatus(id,
+                root.cyb.mh.attendancesystem.model.enums.RequestStatus.REJECTED);
+
+        double approvalRate = totalRequests > 0 ? (double) approvedCount / totalRequests * 100 : 0;
+        double rejectionRate = totalRequests > 0 ? (double) rejectedCount / totalRequests * 100 : 0;
+
+        // --- 3. VENDOR RELATIONSHIPS ---
+        long totalVendors = paymentRequestRepository.countDistinctContractorsByClientId(id);
+
+        java.util.List<Object[]> mostFrequentVendor = paymentRequestRepository.findMostFrequentVendorByClientId(id,
+                org.springframework.data.domain.PageRequest.of(0, 1));
+        String topVendorName = mostFrequentVendor.isEmpty() ? "N/A" : (String) mostFrequentVendor.get(0)[0];
+
         java.util.List<Object[]> topContractors = paymentRequestRepository.findTopContractorsByClientId(id,
                 org.springframework.data.domain.PageRequest.of(0, 5));
 
+        // Vendor Concentration
+        double vendorConcentration = 0;
+        if (!topContractors.isEmpty() && totalSpend.compareTo(java.math.BigDecimal.ZERO) > 0) {
+            java.math.BigDecimal topVendorSpend = (java.math.BigDecimal) topContractors.get(0)[1];
+            vendorConcentration = topVendorSpend.divide(totalSpend, 4, java.math.RoundingMode.HALF_UP)
+                    .multiply(java.math.BigDecimal.valueOf(100)).doubleValue();
+        }
+
+        java.time.LocalDate thirtyDaysAgo = java.time.LocalDate.now().minusDays(30);
+        long newVendors30d = paymentRequestRepository.countNewVendorsByClientIdSince(id, thirtyDaysAgo);
+
+        // Vendor Utilization Rate (active vendors out of total)
+        double vendorUtilization = totalVendors > 0 ? 100.0 : 0; // Simplified: all vendors counted are active
+
+        // --- 4. RISK & PAYMENT ANALYSIS ---
+        java.math.BigDecimal outstandingBalance = paymentRequestRepository.sumOutstandingByClientId(id);
+        if (outstandingBalance == null)
+            outstandingBalance = java.math.BigDecimal.ZERO;
+
+        long highPriorityCount = paymentRequestRepository.countHighPriorityByClientId(id);
+        double highPriorityPercent = totalRequests > 0 ? (double) highPriorityCount / totalRequests * 100 : 0;
+
+        long pendingCount = paymentRequestRepository.countPendingByClientId(id);
+
+        java.util.List<Object[]> paymentMethods = paymentRequestRepository.findPaymentMethodDistributionByClientId(id,
+                org.springframework.data.domain.PageRequest.of(0, 3));
+
+        // --- 5. GROWTH & TRENDS ---
+        int currentYear = java.time.LocalDate.now().getYear();
+        int currentMonth = java.time.LocalDate.now().getMonthValue();
+        int previousMonth = currentMonth == 1 ? 12 : currentMonth - 1;
+        int previousYear = currentMonth == 1 ? currentYear - 1 : currentYear;
+
+        java.math.BigDecimal currentMonthSpend = paymentRequestRepository.sumByClientIdYearMonth(id, currentYear,
+                currentMonth);
+        java.math.BigDecimal previousMonthSpend = paymentRequestRepository.sumByClientIdYearMonth(id, previousYear,
+                previousMonth);
+
+        if (currentMonthSpend == null)
+            currentMonthSpend = java.math.BigDecimal.ZERO;
+        if (previousMonthSpend == null)
+            previousMonthSpend = java.math.BigDecimal.ZERO;
+
+        double momGrowthRate = previousMonthSpend.compareTo(java.math.BigDecimal.ZERO) > 0
+                ? currentMonthSpend.subtract(previousMonthSpend).divide(previousMonthSpend, 4,
+                        java.math.RoundingMode.HALF_UP).multiply(java.math.BigDecimal.valueOf(100)).doubleValue()
+                : 0;
+
+        java.util.List<Object[]> peakMonth = paymentRequestRepository.findPeakMonthByClientIdAndYear(id, currentYear);
+        String peakMonthName = "N/A";
+        if (!peakMonth.isEmpty()) {
+            int monthNum = ((Number) peakMonth.get(0)[0]).intValue();
+            peakMonthName = java.time.Month.of(monthNum).name();
+        }
+
+        // --- CHARTS & LISTS ---
         java.util.List<PaymentRequest> recentPayments = paymentRequestRepository
                 .findByClientIdOrderByRequestDateDesc(id, org.springframework.data.domain.PageRequest.of(0, 10));
 
         // --- MODEL POPULATION ---
         model.addAttribute("client", client);
+
+        // Financial
         model.addAttribute("totalSpend", totalSpend);
         model.addAttribute("ytdSpend", ytdSpend);
+        model.addAttribute("avgTransaction", avgTransaction);
+        model.addAttribute("maxTransaction", maxTransaction);
+        model.addAttribute("projectedAnnualSpend", projectedAnnualSpend);
+        model.addAttribute("monthlyBurnRate", monthlyBurnRate);
+        model.addAttribute("costPerWorkOrder", costPerWorkOrder);
+
+        // Operational
         model.addAttribute("totalRequests", totalRequests);
+        model.addAttribute("totalWorkOrders", totalWorkOrders);
+        model.addAttribute("avgWorkOrdersPerMonth", avgWorkOrdersPerMonth);
+        model.addAttribute("approvalRate", approvalRate);
+        model.addAttribute("rejectionRate", rejectionRate);
+
+        // Vendor
+        model.addAttribute("totalVendors", totalVendors);
+        model.addAttribute("vendorConcentration", vendorConcentration);
+        model.addAttribute("topVendorName", topVendorName);
+        model.addAttribute("newVendors30d", newVendors30d);
+        model.addAttribute("vendorUtilization", vendorUtilization);
+
+        // Risk
+        model.addAttribute("outstandingBalance", outstandingBalance);
+        model.addAttribute("highPriorityPercent", highPriorityPercent);
+        model.addAttribute("pendingCount", pendingCount);
+        model.addAttribute("paymentMethods", paymentMethods);
+
+        // Growth
+        model.addAttribute("momGrowthRate", momGrowthRate);
+        model.addAttribute("peakMonthName", peakMonthName);
+
+        // Lists
         model.addAttribute("topContractors", topContractors);
         model.addAttribute("recentPayments", recentPayments);
 

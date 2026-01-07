@@ -16,15 +16,15 @@
                         <div class="row align-items-center position-relative z-1">
                             <div class="col-md-8">
                                 <span class="badge bg-dark-subtle text-dark border border-dark-subtle rounded-1 mb-2">
-                                    <i class="fas fa-chart-bar me-1"></i> CLIENT INSIGHTS
+                                    <i class="fas fa-chart-bar me-1"></i> CLIENT STRATEGIC BOARD
                                 </span>
                                 <h2 class="fw-bold text-dark mb-1 tracking-tight" th:text="${client.name}">Client Name
                                 </h2>
                                 <p class="text-muted mb-0 small">
                                     <span class="me-3"><i class="fas fa-tag me-1"></i>Code: <span
                                             th:text="${client.code}">C100</span></span>
-                                    <span><i class="fas fa-info-circle me-1"></i>Performance Analytics & Spending
-                                        Overview</span>
+                                    <span><i class="fas fa-info-circle me-1"></i>Deep Analytics & Business
+                                        Intelligence</span>
                                 </p>
                             </div>
                             <div class="col-md-4 text-md-end mt-3 mt-md-0">
@@ -38,11 +38,11 @@
                     </div>
                 </div>
 
-                <!-- Financial Overview -->
+                <!-- 1. FINANCIAL PERFORMANCE -->
                 <h6 class="text-uppercase text-secondary fw-bold small ls-1 mb-3"><i
-                        class="fas fa-dollar-sign me-2"></i>Financial Overview</h6>
+                        class="fas fa-dollar-sign me-2"></i>Financial Performance</h6>
                 <div class="row g-3 mb-4">
-                    <div class="col-lg-4">
+                    <div class="col-lg">
                         <div class="card border-0 shadow-sm rounded-1 h-100">
                             <div class="card-body p-3">
                                 <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Total Spend
@@ -52,7 +52,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-lg-4">
+                    <div class="col-lg">
                         <div class="card border-0 shadow-sm rounded-1 h-100">
                             <div class="card-body p-3">
                                 <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">YTD
@@ -62,26 +62,249 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-lg-4">
+                    <div class="col-lg">
                         <div class="card border-0 shadow-sm rounded-1 h-100">
                             <div class="card-body p-3">
-                                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Total
-                                    Payment Requests</small>
-                                <h5 class="fw-bold text-dark mb-0 mt-1" th:text="${totalRequests}">0</h5>
+                                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Projected
+                                    Annual Spend</small>
+                                <h5 class="fw-bold text-dark mb-0 mt-1"
+                                    th:text="${#numbers.formatCurrency(projectedAnnualSpend)}">$0.00</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg">
+                        <div class="card border-0 shadow-sm rounded-1 h-100">
+                            <div class="card-body p-3">
+                                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Avg
+                                    Transaction</small>
+                                <h5 class="fw-bold text-dark mb-0 mt-1"
+                                    th:text="${#numbers.formatCurrency(avgTransaction)}">$0.00</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg">
+                        <div class="card border-0 shadow-sm rounded-1 h-100">
+                            <div class="card-body p-3">
+                                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Max Single
+                                    Tx</small>
+                                <h5 class="fw-bold text-dark mb-0 mt-1"
+                                    th:text="${#numbers.formatCurrency(maxTransaction)}">$0.00</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg">
+                        <div class="card border-0 shadow-sm rounded-1 h-100">
+                            <div class="card-body p-3">
+                                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Monthly Burn
+                                    Rate</small>
+                                <h5 class="fw-bold text-dark mb-0 mt-1"
+                                    th:text="${#numbers.formatCurrency(monthlyBurnRate)}">$0.00</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg">
+                        <div class="card border-0 shadow-sm rounded-1 h-100">
+                            <div class="card-body p-3">
+                                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Cost/Work
+                                    Order</small>
+                                <h5 class="fw-bold text-dark mb-0 mt-1"
+                                    th:text="${#numbers.formatCurrency(costPerWorkOrder)}">$0.00</h5>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Main Content Grid -->
+                <!-- 2. OPERATIONAL EFFICIENCY -->
+                <h6 class="text-uppercase text-secondary fw-bold small ls-1 mb-3"><i
+                        class="fas fa-cog me-2"></i>Operational Efficiency</h6>
+                <div class="row g-3 mb-4">
+                    <div class="col-lg">
+                        <div class="card border-0 shadow-sm rounded-1 h-100">
+                            <div class="card-body p-3">
+                                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Total Work
+                                    Orders</small>
+                                <h5 class="fw-bold text-dark mb-0 mt-1" th:text="${totalWorkOrders}">0</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg">
+                        <div class="card border-0 shadow-sm rounded-1 h-100">
+                            <div class="card-body p-3">
+                                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Avg
+                                    WO/Month</small>
+                                <h5 class="fw-bold text-dark mb-0 mt-1"
+                                    th:text="${#numbers.formatDecimal(avgWorkOrdersPerMonth, 1, 1)}">0.0</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg">
+                        <div class="card border-0 shadow-sm rounded-1 h-100">
+                            <div class="card-body p-3">
+                                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Total
+                                    Requests</small>
+                                <h5 class="fw-bold text-dark mb-0 mt-1" th:text="${totalRequests}">0</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg">
+                        <div class="card border-0 shadow-sm rounded-1 h-100 border-start border-4 border-success">
+                            <div class="card-body p-3">
+                                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Approval
+                                    Rate</small>
+                                <h5 class="fw-bold text-dark mb-0 mt-1"
+                                    th:text="${#numbers.formatDecimal(approvalRate, 1, 1) + '%'}">0.0%</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg">
+                        <div class="card border-0 shadow-sm rounded-1 h-100 border-start border-4 border-danger">
+                            <div class="card-body p-3">
+                                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Rejection
+                                    Rate</small>
+                                <h5 class="fw-bold text-dark mb-0 mt-1"
+                                    th:text="${#numbers.formatDecimal(rejectionRate, 1, 1) + '%'}">0.0%</h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. VENDOR RELATIONSHIPS -->
+                <h6 class="text-uppercase text-secondary fw-bold small ls-1 mb-3"><i
+                        class="fas fa-handshake me-2"></i>Vendor Relationships</h6>
+                <div class="row g-3 mb-4">
+                    <div class="col-lg">
+                        <div class="card border-0 shadow-sm rounded-1 h-100">
+                            <div class="card-body p-3">
+                                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Total
+                                    Vendors</small>
+                                <h5 class="fw-bold text-dark mb-0 mt-1" th:text="${totalVendors}">0</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg">
+                        <div class="card border-0 shadow-sm rounded-1 h-100 border-start border-4 border-warning">
+                            <div class="card-body p-3">
+                                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Vendor
+                                    Concentration</small>
+                                <h5 class="fw-bold text-dark mb-0 mt-1"
+                                    th:text="${#numbers.formatDecimal(vendorConcentration, 1, 1) + '%'}">0.0%</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg">
+                        <div class="card border-0 shadow-sm rounded-1 h-100">
+                            <div class="card-body p-3">
+                                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Most
+                                    Frequent Vendor</small>
+                                <h5 class="fw-bold text-dark mb-0 mt-1 text-truncate" th:text="${topVendorName}">N/A
+                                </h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg">
+                        <div class="card border-0 shadow-sm rounded-1 h-100">
+                            <div class="card-body p-3">
+                                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">New Vendors
+                                    (30d)</small>
+                                <h5 class="fw-bold text-success mb-0 mt-1" th:text="${'+' + newVendors30d}">+0</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg">
+                        <div class="card border-0 shadow-sm rounded-1 h-100">
+                            <div class="card-body p-3">
+                                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Vendor
+                                    Utilization</small>
+                                <h5 class="fw-bold text-dark mb-0 mt-1"
+                                    th:text="${#numbers.formatDecimal(vendorUtilization, 1, 1) + '%'}">100.0%</h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. RISK & PAYMENT ANALYSIS -->
+                <h6 class="text-uppercase text-secondary fw-bold small ls-1 mb-3"><i
+                        class="fas fa-shield-alt me-2"></i>Risk & Payment Analysis</h6>
+                <div class="row g-3 mb-4">
+                    <div class="col-lg">
+                        <div class="card border-0 shadow-sm rounded-1 h-100 border-start border-4 border-danger">
+                            <div class="card-body p-3">
+                                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Outstanding
+                                    Balance</small>
+                                <h5 class="fw-bold text-dark mb-0 mt-1"
+                                    th:text="${#numbers.formatCurrency(outstandingBalance)}">$0.00</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg">
+                        <div class="card border-0 shadow-sm rounded-1 h-100">
+                            <div class="card-body p-3">
+                                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Pending
+                                    Requests</small>
+                                <h5 class="fw-bold text-warning mb-0 mt-1" th:text="${pendingCount}">0</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg">
+                        <div class="card border-0 shadow-sm rounded-1 h-100 border-start border-4 border-info">
+                            <div class="card-body p-3">
+                                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">High
+                                    Priority %</small>
+                                <h5 class="fw-bold text-dark mb-0 mt-1"
+                                    th:text="${#numbers.formatDecimal(highPriorityPercent, 1, 1) + '%'}">0.0%</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg">
+                        <div class="card border-0 shadow-sm rounded-1 h-100">
+                            <div class="card-body p-3">
+                                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Top Payment
+                                    Method</small>
+                                <h5 class="fw-bold text-dark mb-0 mt-1 text-truncate"
+                                    th:text="${#lists.isEmpty(paymentMethods) ? 'N/A' : paymentMethods[0][0]}">N/A</h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. GROWTH & TRENDS -->
+                <h6 class="text-uppercase text-secondary fw-bold small ls-1 mb-3"><i
+                        class="fas fa-chart-line me-2"></i>Growth & Trends</h6>
+                <div class="row g-3 mb-4">
+                    <div class="col-lg">
+                        <div class="card border-0 shadow-sm rounded-1 h-100"
+                            th:classappend="${momGrowthRate >= 0 ? 'border-start border-4 border-success' : 'border-start border-4 border-danger'}">
+                            <div class="card-body p-3">
+                                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">MoM Growth
+                                    Rate</small>
+                                <h5 class="fw-bold mb-0 mt-1"
+                                    th:classappend="${momGrowthRate >= 0 ? 'text-success' : 'text-danger'}"
+                                    th:text="${(momGrowthRate >= 0 ? '+' : '') + #numbers.formatDecimal(momGrowthRate, 1, 1) + '%'}">
+                                    0.0%</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg">
+                        <div class="card border-0 shadow-sm rounded-1 h-100">
+                            <div class="card-body p-3">
+                                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Peak
+                                    Spending Month</small>
+                                <h5 class="fw-bold text-dark mb-0 mt-1" th:text="${peakMonthName}">N/A</h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top Vendors & Recent Activity -->
                 <div class="row g-4">
-                    <!-- Top Vendors (Full Width) -->
-                    <div class="col-12">
+                    <div class="col-lg-6">
+                        <!-- Top Vendors -->
                         <div class="card border-0 shadow-sm rounded-1 mb-4 h-100">
                             <div
                                 class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
-                                <h6 class="mb-0 fw-bold text-dark text-uppercase small ls-1"><i
-                                        class="fas fa-trophy me-2 text-warning"></i>Top Vendors</h6>
+                                <h6 class="mb-0 fw-bold text-dark text-uppercase small ls-1">
+                                    <i class="fas fa-trophy me-2 text-warning"></i>Top Vendors
+                                </h6>
                                 <span class="badge bg-light text-muted border">By Volume</span>
                             </div>
                             <div class="list-group list-group-flush">
@@ -93,15 +316,10 @@
                                                 class="badge rounded-circle bg-light text-dark border me-3 fw-bold shadow-sm"
                                                 style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;"
                                                 th:text="${stat.count}">1</span>
-                                            <div>
-                                                <h6 class="mb-0 fw-bold text-dark small" th:text="${c[0]}">Vendor Name
-                                                </h6>
-                                            </div>
+                                            <h6 class="mb-0 fw-bold text-dark small" th:text="${c[0]}">Vendor Name</h6>
                                         </div>
-                                        <div class="text-end">
-                                            <span class="d-block fw-bold text-dark small"
-                                                th:text="${#numbers.formatCurrency(c[1])}">$0</span>
-                                        </div>
+                                        <span class="fw-bold text-dark small"
+                                            th:text="${#numbers.formatCurrency(c[1])}">$0</span>
                                     </div>
                                 </div>
                                 <div th:if="${#lists.isEmpty(topContractors)}" class="p-4 text-center text-muted small">
@@ -110,11 +328,36 @@
                             </div>
                         </div>
                     </div>
+
+                    <div class="col-lg-6">
+                        <!-- Payment Methods -->
+                        <div class="card border-0 shadow-sm rounded-1 mb-4 h-100">
+                            <div class="card-header bg-white border-bottom py-3">
+                                <h6 class="mb-0 fw-bold text-dark text-uppercase small ls-1">
+                                    <i class="fas fa-credit-card me-2 text-info"></i>Payment Methods
+                                </h6>
+                            </div>
+                            <div class="list-group list-group-flush">
+                                <div th:each="pm : ${paymentMethods}"
+                                    class="list-group-item px-3 py-3 border-bottom-0 border-top">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <h6 class="mb-0 text-dark small" th:text="${pm[0]}">Method Name</h6>
+                                        <span class="badge bg-primary-subtle text-primary rounded-1"
+                                            th:text="${pm[1] + ' uses'}">0 uses</span>
+                                    </div>
+                                </div>
+                                <div th:if="${#lists.isEmpty(paymentMethods)}" class="p-4 text-center text-muted small">
+                                    No payment method data available.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Recent Payments -->
-                <h6 class="text-uppercase text-secondary fw-bold small ls-1 mb-3 mt-4"><i
-                        class="fas fa-clock me-2"></i>Recent Activity</h6>
+                <h6 class="text-uppercase text-secondary fw-bold small ls-1 mb-3 mt-4">
+                    <i class="fas fa-clock me-2"></i>Recent Activity
+                </h6>
                 <div class="card border-0 shadow-sm rounded-1">
                     <div class="card-body p-0">
                         <div class="table-responsive">
@@ -154,8 +397,9 @@
                                         </td>
                                     </tr>
                                     <tr th:if="${#lists.isEmpty(recentPayments)}">
-                                        <td colspan="5" class="text-center text-muted small py-4">No payment requests
-                                            found for this client.</td>
+                                        <td colspan="5" class="text-center text-muted small py-4">
+                                            No payment requests found for this client.
+                                        </td>
                                     </tr>
                                 </tbody>
                             </table>
