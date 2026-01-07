@@ -1119,6 +1119,147 @@ public class MasterDataController {
         java.util.List<PaymentRequest> recentPayments = paymentRequestRepository
                 .findByClientIdOrderByRequestDateDesc(id, org.springframework.data.domain.PageRequest.of(0, 10));
 
+        // ============================================
+        // SWOT ANALYTICS
+        // ============================================
+
+        // --- STRENGTHS ---
+        // 1. Total Lifetime Value (approved)
+        java.math.BigDecimal lifetimeValue = paymentRequestRepository.sumApprovedByClient(id);
+        if (lifetimeValue == null)
+            lifetimeValue = java.math.BigDecimal.ZERO;
+
+        // 2. Revenue Share %
+        java.math.BigDecimal totalCompanyRevenue = paymentRequestRepository.sumAllApproved();
+        if (totalCompanyRevenue == null)
+            totalCompanyRevenue = java.math.BigDecimal.ZERO;
+        double revenueShare = totalCompanyRevenue.compareTo(java.math.BigDecimal.ZERO) > 0
+                ? lifetimeValue.divide(totalCompanyRevenue, 4, java.math.RoundingMode.HALF_UP)
+                        .multiply(java.math.BigDecimal.valueOf(100)).doubleValue()
+                : 0;
+
+        // 3. Account Age (days since first transaction)
+        java.time.LocalDate firstTransactionDate = paymentRequestRepository.findFirstTransactionDateByClient(id);
+        long accountAgeDays = 0;
+        if (firstTransactionDate != null) {
+            accountAgeDays = java.time.temporal.ChronoUnit.DAYS.between(firstTransactionDate,
+                    java.time.LocalDate.now());
+        }
+
+        // 4. Payment Consistency
+        long activeMonths = paymentRequestRepository.countActiveMonthsByClient(id);
+        long totalMonths = accountAgeDays > 0 ? (accountAgeDays / 30) + 1 : 1;
+        double paymentConsistency = totalMonths > 0 ? (double) activeMonths / totalMonths * 100 : 0;
+        if (paymentConsistency > 100)
+            paymentConsistency = 100;
+
+        // 5. High-Value Transactions
+        java.math.BigDecimal avgApproved = paymentRequestRepository.avgApprovedByClient(id);
+        if (avgApproved == null)
+            avgApproved = java.math.BigDecimal.ZERO;
+        long highValueTxn = paymentRequestRepository.countHighValueByClient(id, avgApproved);
+
+        // --- WEAKNESSES ---
+        // 6. Issue Rate
+        long issueCount = paymentRequestRepository.countIssuesByClient(id);
+        double issueRate = totalRequests > 0 ? (double) issueCount / totalRequests * 100 : 0;
+
+        // 7. Oldest Pending Days
+        java.time.LocalDate oldestPendingDate = paymentRequestRepository.findOldestPendingDateByClient(id);
+        long oldestPendingDays = 0;
+        if (oldestPendingDate != null) {
+            oldestPendingDays = java.time.temporal.ChronoUnit.DAYS.between(oldestPendingDate,
+                    java.time.LocalDate.now());
+        }
+
+        // 8. Low-Value Percentage
+        java.math.BigDecimal lowThreshold = new java.math.BigDecimal("100");
+        long lowValueCount = paymentRequestRepository.countLowValueByClient(id, lowThreshold);
+        double lowValuePercentage = totalRequests > 0 ? (double) lowValueCount / totalRequests * 100 : 0;
+
+        // --- OPPORTUNITIES ---
+        // 9. YoY Growth
+        int lastYear = currentYear - 1;
+        java.math.BigDecimal thisYearSpend = paymentRequestRepository.sumByClientAndYear(id, currentYear);
+        java.math.BigDecimal lastYearSpend = paymentRequestRepository.sumByClientAndYear(id, lastYear);
+        if (thisYearSpend == null)
+            thisYearSpend = java.math.BigDecimal.ZERO;
+        if (lastYearSpend == null)
+            lastYearSpend = java.math.BigDecimal.ZERO;
+        double yoyGrowth = lastYearSpend.compareTo(java.math.BigDecimal.ZERO) > 0
+                ? thisYearSpend.subtract(lastYearSpend).divide(lastYearSpend, 4, java.math.RoundingMode.HALF_UP)
+                        .multiply(java.math.BigDecimal.valueOf(100)).doubleValue()
+                : 0;
+
+        // 10. New Contractors This Month
+        long newContractorsThisMonth = paymentRequestRepository.countNewContractorsThisMonthByClient(id, currentYear,
+                currentMonth);
+
+        // 11. Untapped Payment Methods
+        long usedPaymentMethods = paymentRequestRepository.countPaymentMethodsUsedByClient(id);
+        long totalPaymentMethods = paymentMethodRepository.findByActiveTrue().size();
+        long untappedPaymentMethods = totalPaymentMethods - usedPaymentMethods;
+        if (untappedPaymentMethods < 0)
+            untappedPaymentMethods = 0;
+
+        // 12. Quarterly Trend
+        int twoMonthsAgo = previousMonth == 1 ? 12 : previousMonth - 1;
+        int twoMonthsAgoYear = previousMonth == 1 ? previousYear - 1 : previousYear;
+        java.math.BigDecimal twoMonthsAgoSpend = paymentRequestRepository.sumByClientAndYearMonth(id, twoMonthsAgoYear,
+                twoMonthsAgo);
+        if (twoMonthsAgoSpend == null)
+            twoMonthsAgoSpend = java.math.BigDecimal.ZERO;
+
+        String quarterlyTrend = "→";
+        if (currentMonthSpend.compareTo(previousMonthSpend) > 0 && previousMonthSpend.compareTo(twoMonthsAgoSpend) > 0)
+            quarterlyTrend = "↑↑";
+        else if (currentMonthSpend.compareTo(previousMonthSpend) > 0)
+            quarterlyTrend = "↑";
+        else if (currentMonthSpend.compareTo(previousMonthSpend) < 0
+                && previousMonthSpend.compareTo(twoMonthsAgoSpend) < 0)
+            quarterlyTrend = "↓↓";
+        else if (currentMonthSpend.compareTo(previousMonthSpend) < 0)
+            quarterlyTrend = "↓";
+
+        // 13. Peak Day of Week
+        java.util.List<Object[]> dayDistribution = paymentRequestRepository.findDayOfWeekDistributionByClient(id);
+        String peakDay = "N/A";
+        if (!dayDistribution.isEmpty() && dayDistribution.get(0)[0] != null) {
+            peakDay = dayDistribution.get(0)[0].toString().trim();
+        }
+
+        // --- THREATS ---
+        // 14. Contractor Dependency
+        java.math.BigDecimal topContractorAmount = paymentRequestRepository.findTopContractorAmountByClient(id);
+        if (topContractorAmount == null)
+            topContractorAmount = java.math.BigDecimal.ZERO;
+        double contractorDependency = lifetimeValue.compareTo(java.math.BigDecimal.ZERO) > 0
+                ? topContractorAmount.divide(lifetimeValue, 4, java.math.RoundingMode.HALF_UP)
+                        .multiply(java.math.BigDecimal.valueOf(100)).doubleValue()
+                : 0;
+
+        // 15. Payment Method Dependency
+        java.math.BigDecimal topPaymentMethodAmount = paymentRequestRepository.findTopPaymentMethodAmountByClient(id);
+        if (topPaymentMethodAmount == null)
+            topPaymentMethodAmount = java.math.BigDecimal.ZERO;
+        double paymentMethodDependency = lifetimeValue.compareTo(java.math.BigDecimal.ZERO) > 0
+                ? topPaymentMethodAmount.divide(lifetimeValue, 4, java.math.RoundingMode.HALF_UP)
+                        .multiply(java.math.BigDecimal.valueOf(100)).doubleValue()
+                : 0;
+
+        // 16. Declining Usage Flag
+        boolean isDeclining = momGrowthRate < 0;
+
+        // 17. High-Priority Pending
+        long highPriorityPending = paymentRequestRepository.countHighPriorityPendingByClient(id);
+
+        // 18. Inactive Period
+        java.time.LocalDate lastTransactionDate = paymentRequestRepository.findLastTransactionDateByClient(id);
+        long inactiveDays = 0;
+        if (lastTransactionDate != null) {
+            inactiveDays = java.time.temporal.ChronoUnit.DAYS.between(lastTransactionDate, java.time.LocalDate.now());
+        }
+
         // --- MODEL POPULATION ---
         model.addAttribute("client", client);
 
@@ -1158,6 +1299,39 @@ public class MasterDataController {
         // Lists
         model.addAttribute("topContractors", topContractors);
         model.addAttribute("recentPayments", recentPayments);
+
+        // SWOT - Strengths
+        model.addAttribute("lifetimeValue", lifetimeValue);
+        model.addAttribute("revenueShare", revenueShare);
+        model.addAttribute("accountAgeDays", accountAgeDays);
+        model.addAttribute("paymentConsistency", paymentConsistency);
+        model.addAttribute("activeMonths", activeMonths);
+        model.addAttribute("highValueTxn", highValueTxn);
+
+        // SWOT - Weaknesses
+        model.addAttribute("issueRate", issueRate);
+        model.addAttribute("issueCount", issueCount);
+        model.addAttribute("oldestPendingDays", oldestPendingDays);
+        model.addAttribute("lowValuePercentage", lowValuePercentage);
+        model.addAttribute("lowValueCount", lowValueCount);
+
+        // SWOT - Opportunities
+        model.addAttribute("yoyGrowth", yoyGrowth);
+        model.addAttribute("newContractorsThisMonth", newContractorsThisMonth);
+        model.addAttribute("untappedPaymentMethods", untappedPaymentMethods);
+        model.addAttribute("totalPaymentMethods", totalPaymentMethods);
+        model.addAttribute("quarterlyTrend", quarterlyTrend);
+        model.addAttribute("peakDay", peakDay);
+        model.addAttribute("currentMonthSpend", currentMonthSpend);
+        model.addAttribute("previousMonthSpend", previousMonthSpend);
+        model.addAttribute("twoMonthsAgoSpend", twoMonthsAgoSpend);
+
+        // SWOT - Threats
+        model.addAttribute("contractorDependency", contractorDependency);
+        model.addAttribute("paymentMethodDependency", paymentMethodDependency);
+        model.addAttribute("isDeclining", isDeclining);
+        model.addAttribute("highPriorityPending", highPriorityPending);
+        model.addAttribute("inactiveDays", inactiveDays);
 
         return "master-data/client-dashboard";
     }

@@ -444,4 +444,128 @@ public interface PaymentRequestRepository extends JpaRepository<PaymentRequest, 
         @org.springframework.data.jpa.repository.Query("SELECT COALESCE(SUM(p.amount), 0) FROM PaymentRequest p WHERE p.paymentMethod.id = :methodId AND p.status = 'APPROVED'")
         java.math.BigDecimal sumApprovedByPaymentMethod(
                         @org.springframework.data.repository.query.Param("methodId") Long methodId);
+
+        // ============================================
+        // CLIENT SWOT ANALYTICS - STRENGTHS
+        // ============================================
+
+        // Sum approved amount by client
+        @org.springframework.data.jpa.repository.Query("SELECT COALESCE(SUM(p.amount), 0) FROM PaymentRequest p WHERE p.client.id = :clientId AND p.status = 'APPROVED'")
+        java.math.BigDecimal sumApprovedByClient(
+                        @org.springframework.data.repository.query.Param("clientId") Long clientId);
+
+        // Total approved amount across all clients (for revenue share calculation)
+        @org.springframework.data.jpa.repository.Query("SELECT COALESCE(SUM(p.amount), 0) FROM PaymentRequest p WHERE p.status = 'APPROVED'")
+        java.math.BigDecimal sumAllApproved();
+
+        // Count approved by client
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(p) FROM PaymentRequest p WHERE p.client.id = :clientId AND p.status = 'APPROVED'")
+        long countApprovedByClient(@org.springframework.data.repository.query.Param("clientId") Long clientId);
+
+        // Count all by client
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(p) FROM PaymentRequest p WHERE p.client.id = :clientId")
+        long countAllByClient(@org.springframework.data.repository.query.Param("clientId") Long clientId);
+
+        // First transaction date by client
+        @org.springframework.data.jpa.repository.Query("SELECT MIN(p.requestDate) FROM PaymentRequest p WHERE p.client.id = :clientId")
+        java.time.LocalDate findFirstTransactionDateByClient(
+                        @org.springframework.data.repository.query.Param("clientId") Long clientId);
+
+        // High-value transaction count by client
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(p) FROM PaymentRequest p WHERE p.client.id = :clientId AND p.amount > :threshold")
+        long countHighValueByClient(@org.springframework.data.repository.query.Param("clientId") Long clientId,
+                        @org.springframework.data.repository.query.Param("threshold") java.math.BigDecimal threshold);
+
+        // Count active months by client
+        @org.springframework.data.jpa.repository.Query(value = "SELECT COUNT(DISTINCT to_char(request_date, 'YYYY-MM')) FROM payment_requests WHERE client_id = :clientId", nativeQuery = true)
+        long countActiveMonthsByClient(@org.springframework.data.repository.query.Param("clientId") Long clientId);
+
+        // ============================================
+        // CLIENT SWOT ANALYTICS - WEAKNESSES
+        // ============================================
+
+        // Count rejected by client
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(p) FROM PaymentRequest p WHERE p.client.id = :clientId AND p.status = 'REJECTED'")
+        long countRejectedByClient(@org.springframework.data.repository.query.Param("clientId") Long clientId);
+
+        // Count pending by client
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(p) FROM PaymentRequest p WHERE p.client.id = :clientId AND p.status = 'PENDING'")
+        long countPendingByClient(@org.springframework.data.repository.query.Param("clientId") Long clientId);
+
+        // Oldest pending date by client
+        @org.springframework.data.jpa.repository.Query("SELECT MIN(p.requestDate) FROM PaymentRequest p WHERE p.client.id = :clientId AND p.status = 'PENDING'")
+        java.time.LocalDate findOldestPendingDateByClient(
+                        @org.springframework.data.repository.query.Param("clientId") Long clientId);
+
+        // Low-value transactions by client
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(p) FROM PaymentRequest p WHERE p.client.id = :clientId AND p.amount < :threshold")
+        long countLowValueByClient(@org.springframework.data.repository.query.Param("clientId") Long clientId,
+                        @org.springframework.data.repository.query.Param("threshold") java.math.BigDecimal threshold);
+
+        // Issue transactions by client
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(p) FROM PaymentRequest p WHERE p.client.id = :clientId AND p.paymentStatus = 'ISSUE'")
+        long countIssuesByClient(@org.springframework.data.repository.query.Param("clientId") Long clientId);
+
+        // ============================================
+        // CLIENT SWOT ANALYTICS - OPPORTUNITIES
+        // ============================================
+
+        // Sum by client and year-month
+        @org.springframework.data.jpa.repository.Query("SELECT COALESCE(SUM(p.amount), 0) FROM PaymentRequest p WHERE p.client.id = :clientId AND p.status = 'APPROVED' AND extract(year from p.requestDate) = :year AND extract(month from p.requestDate) = :month")
+        java.math.BigDecimal sumByClientAndYearMonth(
+                        @org.springframework.data.repository.query.Param("clientId") Long clientId,
+                        @org.springframework.data.repository.query.Param("year") int year,
+                        @org.springframework.data.repository.query.Param("month") int month);
+
+        // Sum by client and year
+        @org.springframework.data.jpa.repository.Query("SELECT COALESCE(SUM(p.amount), 0) FROM PaymentRequest p WHERE p.client.id = :clientId AND p.status = 'APPROVED' AND extract(year from p.requestDate) = :year")
+        java.math.BigDecimal sumByClientAndYear(
+                        @org.springframework.data.repository.query.Param("clientId") Long clientId,
+                        @org.springframework.data.repository.query.Param("year") int year);
+
+        // New contractors this month for client
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(DISTINCT p.contractor.id) FROM PaymentRequest p WHERE p.client.id = :clientId AND p.contractor IS NOT NULL AND extract(year from p.requestDate) = :year AND extract(month from p.requestDate) = :month AND p.contractor.id NOT IN (SELECT p2.contractor.id FROM PaymentRequest p2 WHERE p2.client.id = :clientId AND (extract(year from p2.requestDate) < :year OR (extract(year from p2.requestDate) = :year AND extract(month from p2.requestDate) < :month)))")
+        long countNewContractorsThisMonthByClient(
+                        @org.springframework.data.repository.query.Param("clientId") Long clientId,
+                        @org.springframework.data.repository.query.Param("year") int year,
+                        @org.springframework.data.repository.query.Param("month") int month);
+
+        // Payment methods used by client
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(DISTINCT p.paymentMethod.id) FROM PaymentRequest p WHERE p.client.id = :clientId AND p.paymentMethod IS NOT NULL")
+        long countPaymentMethodsUsedByClient(
+                        @org.springframework.data.repository.query.Param("clientId") Long clientId);
+
+        // Day of week distribution by client
+        @org.springframework.data.jpa.repository.Query(value = "SELECT to_char(request_date, 'Day') as day_name, COUNT(*) FROM payment_requests WHERE client_id = :clientId GROUP BY to_char(request_date, 'Day') ORDER BY COUNT(*) DESC", nativeQuery = true)
+        List<Object[]> findDayOfWeekDistributionByClient(
+                        @org.springframework.data.repository.query.Param("clientId") Long clientId);
+
+        // ============================================
+        // CLIENT SWOT ANALYTICS - THREATS
+        // ============================================
+
+        // Top contractor amount by client
+        @org.springframework.data.jpa.repository.Query("SELECT COALESCE(SUM(p.amount), 0) FROM PaymentRequest p WHERE p.client.id = :clientId AND p.status = 'APPROVED' AND p.contractor.id = (SELECT p2.contractor.id FROM PaymentRequest p2 WHERE p2.client.id = :clientId AND p2.status = 'APPROVED' AND p2.contractor IS NOT NULL GROUP BY p2.contractor.id ORDER BY SUM(p2.amount) DESC LIMIT 1)")
+        java.math.BigDecimal findTopContractorAmountByClient(
+                        @org.springframework.data.repository.query.Param("clientId") Long clientId);
+
+        // Top payment method amount by client
+        @org.springframework.data.jpa.repository.Query("SELECT COALESCE(SUM(p.amount), 0) FROM PaymentRequest p WHERE p.client.id = :clientId AND p.status = 'APPROVED' AND p.paymentMethod.id = (SELECT p2.paymentMethod.id FROM PaymentRequest p2 WHERE p2.client.id = :clientId AND p2.status = 'APPROVED' AND p2.paymentMethod IS NOT NULL GROUP BY p2.paymentMethod.id ORDER BY SUM(p2.amount) DESC LIMIT 1)")
+        java.math.BigDecimal findTopPaymentMethodAmountByClient(
+                        @org.springframework.data.repository.query.Param("clientId") Long clientId);
+
+        // High-priority pending by client
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(p) FROM PaymentRequest p WHERE p.client.id = :clientId AND p.status = 'PENDING' AND p.priority = 'HIGH'")
+        long countHighPriorityPendingByClient(
+                        @org.springframework.data.repository.query.Param("clientId") Long clientId);
+
+        // Last transaction date by client
+        @org.springframework.data.jpa.repository.Query("SELECT MAX(p.requestDate) FROM PaymentRequest p WHERE p.client.id = :clientId")
+        java.time.LocalDate findLastTransactionDateByClient(
+                        @org.springframework.data.repository.query.Param("clientId") Long clientId);
+
+        // Average amount by client for threshold
+        @org.springframework.data.jpa.repository.Query("SELECT COALESCE(AVG(p.amount), 0) FROM PaymentRequest p WHERE p.client.id = :clientId AND p.status = 'APPROVED'")
+        java.math.BigDecimal avgApprovedByClient(
+                        @org.springframework.data.repository.query.Param("clientId") Long clientId);
 }
