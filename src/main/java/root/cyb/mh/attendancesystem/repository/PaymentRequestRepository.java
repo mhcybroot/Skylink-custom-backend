@@ -295,4 +295,55 @@ public interface PaymentRequestRepository extends JpaRepository<PaymentRequest, 
         // Growth Trends
         @org.springframework.data.jpa.repository.Query("SELECT SUM(p.amount) FROM PaymentRequest p WHERE p.paymentStatus = 'PAID' AND extract(year from p.requestDate) = :year AND extract(month from p.requestDate) = :month")
         java.math.BigDecimal sumRevenueByYearMonth(int year, int month);
+
+        // ============================================
+        // PAYMENT METHOD DASHBOARD ANALYTICS
+        // ============================================
+
+        // Count transactions by payment method
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(p) FROM PaymentRequest p WHERE p.paymentMethod.id = :methodId")
+        long countByPaymentMethodId(@org.springframework.data.repository.query.Param("methodId") Long methodId);
+
+        // Count transactions by payment method and approval status (RequestStatus)
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(p) FROM PaymentRequest p WHERE p.paymentMethod.id = :methodId AND p.status = :status")
+        long countByPaymentMethodIdAndStatus(@org.springframework.data.repository.query.Param("methodId") Long methodId,
+                        @org.springframework.data.repository.query.Param("status") root.cyb.mh.attendancesystem.model.enums.RequestStatus status);
+
+        // Sum amount by payment method (paid only)
+        @org.springframework.data.jpa.repository.Query("SELECT COALESCE(SUM(p.amount), 0) FROM PaymentRequest p WHERE p.paymentMethod.id = :methodId AND p.paymentStatus = 'PAID'")
+        java.math.BigDecimal sumByPaymentMethodIdPaid(
+                        @org.springframework.data.repository.query.Param("methodId") Long methodId);
+
+        // Average amount by payment method (paid only)
+        @org.springframework.data.jpa.repository.Query("SELECT COALESCE(AVG(p.amount), 0) FROM PaymentRequest p WHERE p.paymentMethod.id = :methodId AND p.paymentStatus = 'PAID'")
+        java.math.BigDecimal avgByPaymentMethodIdPaid(
+                        @org.springframework.data.repository.query.Param("methodId") Long methodId);
+
+        // Max amount by payment method (paid only)
+        @org.springframework.data.jpa.repository.Query("SELECT COALESCE(MAX(p.amount), 0) FROM PaymentRequest p WHERE p.paymentMethod.id = :methodId AND p.paymentStatus = 'PAID'")
+        java.math.BigDecimal maxByPaymentMethodIdPaid(
+                        @org.springframework.data.repository.query.Param("methodId") Long methodId);
+
+        // Count this month/year transactions by payment method
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(p) FROM PaymentRequest p WHERE p.paymentMethod.id = :methodId AND extract(year from p.requestDate) = :year AND extract(month from p.requestDate) = :month")
+        long countByPaymentMethodIdAndYearMonth(
+                        @org.springframework.data.repository.query.Param("methodId") Long methodId,
+                        @org.springframework.data.repository.query.Param("year") int year,
+                        @org.springframework.data.repository.query.Param("month") int month);
+
+        // Top clients using this payment method
+        @org.springframework.data.jpa.repository.Query("SELECT p.client.id, p.client.name, COUNT(p) FROM PaymentRequest p WHERE p.paymentMethod.id = :methodId AND p.client IS NOT NULL GROUP BY p.client.id, p.client.name ORDER BY COUNT(p) DESC")
+        List<Object[]> findTopClientsByPaymentMethod(
+                        @org.springframework.data.repository.query.Param("methodId") Long methodId,
+                        org.springframework.data.domain.Pageable pageable);
+
+        // Top contractors by this payment method
+        @org.springframework.data.jpa.repository.Query("SELECT p.contractor.id, p.contractor.name, SUM(p.amount) FROM PaymentRequest p WHERE p.paymentMethod.id = :methodId AND p.paymentStatus = 'PAID' AND p.contractor IS NOT NULL GROUP BY p.contractor.id, p.contractor.name ORDER BY SUM(p.amount) DESC")
+        List<Object[]> findTopContractorsByPaymentMethod(
+                        @org.springframework.data.repository.query.Param("methodId") Long methodId,
+                        org.springframework.data.domain.Pageable pageable);
+
+        // All payment methods ranked by usage
+        @org.springframework.data.jpa.repository.Query("SELECT p.paymentMethod.id, COUNT(p) FROM PaymentRequest p WHERE p.paymentMethod IS NOT NULL GROUP BY p.paymentMethod.id ORDER BY COUNT(p) DESC")
+        List<Object[]> findAllPaymentMethodsRankedByUsage();
 }

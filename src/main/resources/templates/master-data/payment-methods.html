@@ -73,23 +73,26 @@
                                                 <span class="badge bg-secondary" th:unless="${m.active}">Inactive</span>
                                             </td>
                                             <td class="text-end pe-4">
+                                                <a th:href="@{/master-data/payment-methods/{id}/dashboard(id=${m.id})}"
+                                                    class="btn btn-sm btn-primary rounded-1 me-1"
+                                                    title="View Dashboard">
+                                                    <i class="fas fa-chart-bar"></i>
+                                                </a>
                                                 <button type="button"
-                                                    class="btn btn-sm btn-link text-decoration-none text-primary me-2"
+                                                    class="btn btn-sm btn-outline-secondary rounded-1 me-1"
                                                     th:data-id="${m.id}" th:data-name="${m.methodName}"
-                                                    th:data-desc="${m.description}" onclick="openEditMethodModal(this)">
-                                                    <i class="fas fa-edit me-1"></i>Edit
+                                                    th:data-desc="${m.description}" onclick="openEditMethodModal(this)"
+                                                    title="Edit">
+                                                    <i class="fas fa-edit"></i>
                                                 </button>
                                                 <form
                                                     th:action="@{/master-data/payment-methods/{id}/toggle(id=${m.id})}"
                                                     method="post" class="d-inline">
-                                                    <button type="submit"
-                                                        class="btn btn-sm btn-link text-decoration-none"
-                                                        th:classappend="${m.active} ? 'text-danger' : 'text-success'"
+                                                    <button type="submit" class="btn btn-sm rounded-1"
+                                                        th:classappend="${m.active} ? 'btn-outline-danger' : 'btn-outline-success'"
                                                         th:title="${m.active} ? 'Deactivate' : 'Activate'">
                                                         <i class="fas"
-                                                            th:classappend="${m.active} ? 'fa-trash' : 'fa-undo'"></i>
-                                                        <span th:text="${m.active} ? 'Delete' : 'Restore'"
-                                                            class="ms-1 small fw-bold"></span>
+                                                            th:classappend="${m.active} ? 'fa-ban' : 'fa-check-circle'"></i>
                                                     </button>
                                                 </form>
                                             </td>

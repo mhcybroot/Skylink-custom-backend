@@ -535,6 +535,93 @@ public class MasterDataController {
         return "redirect:/master-data/payment-methods";
     }
 
+    @GetMapping("/payment-methods/{id}/dashboard")
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
+    public String getPaymentMethodDashboard(@PathVariable Long id, Model model) {
+        PaymentMethod method = paymentMethodRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Payment Method not found"));
+
+        model.addAttribute("method", method);
+
+        // Usage Overview - count all transactions for this payment method
+        long totalTransactions = paymentRequestRepository.countByPaymentMethodId(id);
+        // For status counts, use RequestStatus (approval status)
+        long pendingTransactions = paymentRequestRepository.countByPaymentMethodIdAndStatus(id,
+                root.cyb.mh.attendancesystem.model.enums.RequestStatus.PENDING);
+        long approvedTransactions = paymentRequestRepository.countByPaymentMethodIdAndStatus(id,
+                root.cyb.mh.attendancesystem.model.enums.RequestStatus.APPROVED);
+        // Calculate paid as approved (since PAID is in PaymentStatus, not
+        // RequestStatus)
+        long paidTransactions = approvedTransactions; // Approved requests are effectively processed
+
+        model.addAttribute("totalTransactions", totalTransactions);
+        model.addAttribute("paidTransactions", paidTransactions);
+        model.addAttribute("pendingTransactions", pendingTransactions);
+        model.addAttribute("approvedTransactions", approvedTransactions);
+
+        // Financial Metrics
+        java.math.BigDecimal totalAmountProcessed = paymentRequestRepository.sumByPaymentMethodIdPaid(id);
+        java.math.BigDecimal avgAmount = paymentRequestRepository.avgByPaymentMethodIdPaid(id);
+        java.math.BigDecimal maxAmount = paymentRequestRepository.maxByPaymentMethodIdPaid(id);
+
+        if (totalAmountProcessed == null)
+            totalAmountProcessed = java.math.BigDecimal.ZERO;
+        if (avgAmount == null)
+            avgAmount = java.math.BigDecimal.ZERO;
+        if (maxAmount == null)
+            maxAmount = java.math.BigDecimal.ZERO;
+
+        model.addAttribute("totalAmountProcessed", totalAmountProcessed);
+        model.addAttribute("avgAmount", avgAmount);
+        model.addAttribute("maxAmount", maxAmount);
+
+        // Popularity - Calculate rank and usage percentage
+        java.util.List<Object[]> allMethodsRanked = paymentRequestRepository.findAllPaymentMethodsRankedByUsage();
+        int rank = 0;
+        long totalAllTransactions = 0;
+        for (int i = 0; i < allMethodsRanked.size(); i++) {
+            Object[] row = allMethodsRanked.get(i);
+            Long methodId = ((Number) row[0]).longValue();
+            Long count = ((Number) row[1]).longValue();
+            totalAllTransactions += count;
+            if (methodId.equals(id)) {
+                rank = i + 1;
+            }
+        }
+        double usagePercentage = totalAllTransactions > 0 ? (double) totalTransactions / totalAllTransactions * 100 : 0;
+
+        model.addAttribute("usageRank", rank > 0 ? rank : "N/A");
+        model.addAttribute("totalMethods", allMethodsRanked.size());
+        model.addAttribute("usagePercentage", usagePercentage);
+
+        // Trend - Month over Month
+        int currentYear = java.time.LocalDate.now().getYear();
+        int currentMonth = java.time.LocalDate.now().getMonthValue();
+        int previousMonth = currentMonth == 1 ? 12 : currentMonth - 1;
+        int previousYear = currentMonth == 1 ? currentYear - 1 : currentYear;
+
+        long thisMonthUsage = paymentRequestRepository.countByPaymentMethodIdAndYearMonth(id, currentYear,
+                currentMonth);
+        long lastMonthUsage = paymentRequestRepository.countByPaymentMethodIdAndYearMonth(id, previousYear,
+                previousMonth);
+        double growthRate = lastMonthUsage > 0 ? ((double) thisMonthUsage - lastMonthUsage) / lastMonthUsage * 100 : 0;
+
+        model.addAttribute("thisMonthUsage", thisMonthUsage);
+        model.addAttribute("lastMonthUsage", lastMonthUsage);
+        model.addAttribute("growthRate", growthRate);
+
+        // Top Clients and Contractors
+        java.util.List<Object[]> topClients = paymentRequestRepository.findTopClientsByPaymentMethod(id,
+                org.springframework.data.domain.PageRequest.of(0, 5));
+        java.util.List<Object[]> topContractors = paymentRequestRepository.findTopContractorsByPaymentMethod(id,
+                org.springframework.data.domain.PageRequest.of(0, 5));
+
+        model.addAttribute("topClients", topClients);
+        model.addAttribute("topContractors", topContractors);
+
+        return "master-data/payment-method-dashboard";
+    }
+
     // --- AJAX ENDPOINTS FOR CONTRACTOR PAYMENT INFOS ---
 
     @GetMapping("/api/contractors/{id}/payment-infos")

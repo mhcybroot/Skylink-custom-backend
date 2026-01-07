@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <title>Payment Method Dashboard</title>
+</head>
+
+<body>
+    <div th:replace="~{layout :: layout(~{::section}, ~{::script}, 'master-data-methods')}">
+        <section class="bg-light min-vh-100">
+            <div class="container-fluid px-4 md-px-5 py-4">
+
+                <!-- Hero Header -->
+                <div class="card border-0 shadow-sm rounded-1 mb-4 overflow-hidden">
+                    <div class="card-body p-4 position-relative">
+                        <div class="row align-items-center position-relative z-1">
+                            <div class="col-md-8">
+                                <span
+                                    class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-1 mb-2">
+                                    <i class="fas fa-credit-card me-1"></i> PAYMENT METHOD ANALYTICS
+                                </span>
+                                <h2 class="fw-bold text-dark mb-1 tracking-tight" th:text="${method.methodName}">Payment
+                                    Method</h2>
+                                <p class="text-muted mb-0 small">
+                                    <span th:if="${method.description}"
+                                        th:text="${method.description}">Description</span>
+                                    <span th:unless="${method.description}"><i
+                                            class="fas fa-chart-pie me-1"></i>Performance Dashboard</span>
+                                </p>
+                            </div>
+                            <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                                <span class="badge rounded-pill px-3 py-2 me-2"
+                                    th:classappend="${method.active ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'}">
+                                    <i class="fas" th:classappend="${method.active ? 'fa-check-circle' : 'fa-ban'}"></i>
+                                    <span th:text="${method.active ? 'Active' : 'Inactive'}" class="ms-1">Status</span>
+                                </span>
+                                <a href="/master-data/payment-methods" class="btn btn-outline-dark rounded-1 shadow-sm">
+                                    <i class="fas fa-arrow-left me-2"></i>Back
+                                </a>
+                            </div>
+                        </div>
+                        <div class="position-absolute top-0 end-0 h-100 w-50 bg-gradient-light opacity-25"
+                            style="transform: skewX(-20deg);"></div>
+                    </div>
+                </div>
+
+                <!-- Usage Overview -->
+                <h6 class="text-uppercase text-secondary fw-bold small ls-1 mb-3">
+                    <i class="fas fa-chart-bar me-2"></i>Usage Overview
+                </h6>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm rounded-1 h-100">
+                            <div class="card-body p-3">
+                                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Total
+                                    Transactions</small>
+                                <h4 class="fw-bold text-dark mb-0 mt-1" th:text="${totalTransactions}">0</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm rounded-1 h-100 border-start border-4 border-success">
+                            <div class="card-body p-3">
+                                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Paid</small>
+                                <h4 class="fw-bold text-success mb-0 mt-1" th:text="${paidTransactions}">0</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm rounded-1 h-100 border-start border-4 border-primary">
+                            <div class="card-body p-3">
+                                <small class="text-muted text-uppercase fw-bold"
+                                    style="font-size: 0.7rem;">Approved</small>
+                                <h4 class="fw-bold text-primary mb-0 mt-1" th:text="${approvedTransactions}">0</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm rounded-1 h-100 border-start border-4 border-warning">
+                            <div class="card-body p-3">
+                                <small class="text-muted text-uppercase fw-bold"
+                                    style="font-size: 0.7rem;">Pending</small>
+                                <h4 class="fw-bold text-warning mb-0 mt-1" th:text="${pendingTransactions}">0</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Financial & Popularity Metrics -->
+                <div class="row">
+                    <div class="col-lg-6">
+                        <h6 class="text-uppercase text-secondary fw-bold small ls-1 mb-3">
+                            <i class="fas fa-dollar-sign me-2"></i>Financial Metrics
+                        </h6>
+                        <div class="row g-3 mb-4">
+                            <div class="col-sm-12">
+                                <div class="card border-0 shadow-sm rounded-1 h-100">
+                                    <div class="card-body p-3">
+                                        <small class="text-muted text-uppercase fw-bold"
+                                            style="font-size: 0.7rem;">Total Amount Processed</small>
+                                        <h4 class="fw-bold text-dark mb-0 mt-1"
+                                            th:text="${#numbers.formatCurrency(totalAmountProcessed)}">$0.00</h4>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="card border-0 shadow-sm rounded-1 h-100">
+                                    <div class="card-body p-3">
+                                        <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Avg
+                                            Transaction</small>
+                                        <h5 class="fw-bold text-dark mb-0 mt-1"
+                                            th:text="${#numbers.formatCurrency(avgAmount)}">$0.00</h5>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="card border-0 shadow-sm rounded-1 h-100 border-start border-4 border-info">
+                                    <div class="card-body p-3">
+                                        <small class="text-muted text-uppercase fw-bold"
+                                            style="font-size: 0.7rem;">Largest Transaction</small>
+                                        <h5 class="fw-bold text-info mb-0 mt-1"
+                                            th:text="${#numbers.formatCurrency(maxAmount)}">$0.00</h5>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-6">
+                        <h6 class="text-uppercase text-secondary fw-bold small ls-1 mb-3">
+                            <i class="fas fa-star me-2"></i>Popularity & Trends
+                        </h6>
+                        <div class="row g-3 mb-4">
+                            <div class="col-sm-6">
+                                <div class="card border-0 shadow-sm rounded-1 h-100">
+                                    <div class="card-body p-3">
+                                        <small class="text-muted text-uppercase fw-bold"
+                                            style="font-size: 0.7rem;">Usage Rank</small>
+                                        <h5 class="fw-bold text-dark mb-0 mt-1">
+                                            #<span th:text="${usageRank}">1</span>
+                                            <small class="text-muted" th:text="' of ' + ${totalMethods}"> of 5</small>
+                                        </h5>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="card border-0 shadow-sm rounded-1 h-100">
+                                    <div class="card-body p-3">
+                                        <small class="text-muted text-uppercase fw-bold"
+                                            style="font-size: 0.7rem;">Usage %</small>
+                                        <h5 class="fw-bold text-dark mb-0 mt-1"
+                                            th:text="${#numbers.formatDecimal(usagePercentage, 1, 1) + '%'}">0.0%</h5>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-4">
+                                <div class="card border-0 shadow-sm rounded-1 h-100">
+                                    <div class="card-body p-3">
+                                        <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">This
+                                            Month</small>
+                                        <h5 class="fw-bold text-dark mb-0 mt-1" th:text="${thisMonthUsage}">0</h5>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-4">
+                                <div class="card border-0 shadow-sm rounded-1 h-100">
+                                    <div class="card-body p-3">
+                                        <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Last
+                                            Month</small>
+                                        <h5 class="fw-bold text-dark mb-0 mt-1" th:text="${lastMonthUsage}">0</h5>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-4">
+                                <div class="card border-0 shadow-sm rounded-1 h-100"
+                                    th:classappend="${growthRate >= 0 ? 'border-start border-4 border-success' : 'border-start border-4 border-danger'}">
+                                    <div class="card-body p-3">
+                                        <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">MoM
+                                            Growth</small>
+                                        <h5 class="fw-bold mb-0 mt-1"
+                                            th:classappend="${growthRate >= 0 ? 'text-success' : 'text-danger'}"
+                                            th:text="${(growthRate >= 0 ? '+' : '') + #numbers.formatDecimal(growthRate, 1, 1) + '%'}">
+                                            0.0%</h5>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top Clients & Contractors -->
+                <div class="row">
+                    <div class="col-lg-6">
+                        <h6 class="text-uppercase text-secondary fw-bold small ls-1 mb-3">
+                            <i class="fas fa-building me-2"></i>Top 5 Clients
+                        </h6>
+                        <div class="card border-0 shadow-sm rounded-1 mb-4">
+                            <div class="list-group list-group-flush">
+                                <div th:each="tc, stat : ${topClients}" class="list-group-item px-4 py-3 border-top">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="d-flex align-items-center">
+                                            <span
+                                                class="badge rounded-circle bg-primary text-white me-3 fw-bold shadow-sm"
+                                                style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;"
+                                                th:text="${stat.count}">1</span>
+                                            <span class="fw-semibold text-dark" th:text="${tc[1]}">Client Name</span>
+                                        </div>
+                                        <span class="badge bg-light text-dark rounded-pill"
+                                            th:text="${tc[2] + ' txns'}">0 txns</span>
+                                    </div>
+                                </div>
+                                <div th:if="${#lists.isEmpty(topClients)}" class="text-center text-muted small py-4">
+                                    <i class="fas fa-inbox fa-2x mb-2 opacity-25"></i>
+                                    <p class="mb-0">No client data available</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-6">
+                        <h6 class="text-uppercase text-secondary fw-bold small ls-1 mb-3">
+                            <i class="fas fa-hard-hat me-2"></i>Top 5 Contractors
+                        </h6>
+                        <div class="card border-0 shadow-sm rounded-1 mb-4">
+                            <div class="list-group list-group-flush">
+                                <div th:each="tc, stat : ${topContractors}"
+                                    class="list-group-item px-4 py-3 border-top">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="d-flex align-items-center">
+                                            <span
+                                                class="badge rounded-circle bg-success text-white me-3 fw-bold shadow-sm"
+                                                style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;"
+                                                th:text="${stat.count}">1</span>
+                                            <span class="fw-semibold text-dark" th:text="${tc[1]}">Contractor
+                                                Name</span>
+                                        </div>
+                                        <span class="fw-bold text-success"
+                                            th:text="${#numbers.formatCurrency(tc[2])}">$0.00</span>
+                                    </div>
+                                </div>
+                                <div th:if="${#lists.isEmpty(topContractors)}"
+                                    class="text-center text-muted small py-4">
+                                    <i class="fas fa-inbox fa-2x mb-2 opacity-25"></i>
+                                    <p class="mb-0">No contractor data available</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <script>
+            // Placeholder script
+        </script>
+    </div>
+</body>
+
+</html>
