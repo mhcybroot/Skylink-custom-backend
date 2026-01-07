@@ -20,6 +20,12 @@ public class CompanyController {
     @Autowired
     private root.cyb.mh.attendancesystem.service.PaymentDashboardService paymentDashboardService;
 
+    @Autowired
+    private root.cyb.mh.attendancesystem.repository.PaymentRequestRepository paymentRequestRepository;
+
+    @Autowired
+    private root.cyb.mh.attendancesystem.repository.ContractorRepository contractorRepository;
+
     @GetMapping
     public String listCompanies(Model model) {
         model.addAttribute("companies", companyRepository.findAll());
@@ -79,8 +85,117 @@ public class CompanyController {
                 () -> new root.cyb.mh.attendancesystem.exception.ResourceNotFoundException("Company not found"));
         model.addAttribute("company", company);
 
+        // 1. Get Base Stats from Service (Legacy & BI)
         root.cyb.mh.attendancesystem.model.dto.DashboardStatsDTO stats = paymentDashboardService.getCompanyStats(id);
         model.addAttribute("stats", stats);
+
+        // 2. SWOT Calculations
+        java.time.LocalDate today = java.time.LocalDate.now();
+        java.math.BigDecimal totalSpend = paymentRequestRepository.sumPaidAmountByCompanyId(id);
+        if (totalSpend == null)
+            totalSpend = java.math.BigDecimal.ZERO;
+
+        long activeContractors = paymentRequestRepository.countActiveContractorsByCompany(id);
+        long totalContractors = contractorRepository.count();
+        double utilization = (totalContractors > 0) ? ((double) activeContractors / totalContractors) * 100 : 0.0;
+
+        java.math.BigDecimal avgTx = paymentRequestRepository.avgApprovedByCompanyInfo(id);
+        if (avgTx == null)
+            avgTx = java.math.BigDecimal.ZERO;
+        long highValueTx = paymentRequestRepository.countHighValueTransactionsByCompany(id, avgTx);
+
+        // Weaknesses
+        long pending = paymentRequestRepository.countPendingByCompanyId(id);
+        long rejected = paymentRequestRepository.countByCompanyAndStatus(id,
+                root.cyb.mh.attendancesystem.model.enums.RequestStatus.REJECTED);
+        long approved = paymentRequestRepository.countByCompanyAndStatus(id,
+                root.cyb.mh.attendancesystem.model.enums.RequestStatus.APPROVED);
+        long totalReq = pending + rejected + approved;
+        double rejectionRate = (totalReq > 0) ? ((double) rejected / totalReq) * 100 : 0.0;
+
+        java.time.LocalDate oldestDate = paymentRequestRepository.findOldestPendingDateByCompany(id);
+        long oldestPendingDays = (oldestDate != null)
+                ? java.time.temporal.ChronoUnit.DAYS.between(oldestDate, today)
+                : 0;
+
+        long issues = paymentRequestRepository.countIssueRequestsByCompany(id);
+        double issueRate = (totalReq > 0) ? ((double) issues / totalReq) * 100 : 0.0;
+
+        // Opportunities
+        int cm = today.getMonthValue();
+        int cy = today.getYear();
+        int lm = cm == 1 ? 12 : cm - 1;
+        int ly = cm == 1 ? cy - 1 : cy;
+
+        java.math.BigDecimal cmSpend = paymentRequestRepository.sumPaidByCompanyIdYearMonth(id, cy, cm);
+        java.math.BigDecimal lmSpend = paymentRequestRepository.sumPaidByCompanyIdYearMonth(id, ly, lm);
+        if (cmSpend == null)
+            cmSpend = java.math.BigDecimal.ZERO;
+        if (lmSpend == null)
+            lmSpend = java.math.BigDecimal.ZERO;
+
+        double momGrowth = (lmSpend.compareTo(java.math.BigDecimal.ZERO) > 0)
+                ? cmSpend.subtract(lmSpend).divide(lmSpend, 4, java.math.RoundingMode.HALF_UP)
+                        .multiply(java.math.BigDecimal.valueOf(100)).doubleValue()
+                : 0.0;
+
+        // Threats
+        java.math.BigDecimal topConSpend = paymentRequestRepository.sumTopContractorSpendByCompany(id);
+        if (topConSpend == null)
+            topConSpend = java.math.BigDecimal.ZERO;
+        double concentration = (totalSpend.compareTo(java.math.BigDecimal.ZERO) > 0)
+                ? topConSpend.divide(totalSpend, 4, java.math.RoundingMode.HALF_UP)
+                        .multiply(java.math.BigDecimal.valueOf(100)).doubleValue()
+                : 0.0;
+
+        java.math.BigDecimal topMethodSpend = paymentRequestRepository.sumTopPaymentMethodAmountByCompany(id);
+        if (topMethodSpend == null)
+            topMethodSpend = java.math.BigDecimal.ZERO;
+        double methodDep = (totalSpend.compareTo(java.math.BigDecimal.ZERO) > 0)
+                ? topMethodSpend.divide(totalSpend, 4, java.math.RoundingMode.HALF_UP)
+                        .multiply(java.math.BigDecimal.valueOf(100)).doubleValue()
+                : 0.0;
+
+        boolean isDeclining = momGrowth < -10;
+        long urgentPending = paymentRequestRepository.countHighPriorityPendingByCompany(id);
+
+        // Add Attributes
+        model.addAttribute("totalSpend", totalSpend);
+        model.addAttribute("activeContractors", activeContractors);
+        model.addAttribute("utilization", utilization);
+        model.addAttribute("avgTransactionValue", avgTx);
+        model.addAttribute("highValueTxCount", highValueTx);
+
+        model.addAttribute("rejectionRate", rejectionRate);
+        model.addAttribute("pendingRequests", pending);
+        model.addAttribute("oldestPendingDays", oldestPendingDays);
+        model.addAttribute("issueRate", issueRate);
+
+        model.addAttribute("momGrowth", momGrowth);
+        model.addAttribute("currentMonthSpend", cmSpend);
+        model.addAttribute("prevMonthSpend", lmSpend);
+
+        // Peak Month
+        java.util.List<Object[]> peakRaw = paymentRequestRepository.findPeakMonthByCompanyIdAndYear(id, cy);
+        String peakMonth = (!peakRaw.isEmpty())
+                ? java.time.Month.of(((Number) peakRaw.get(0)[0]).intValue()).name()
+                : "N/A";
+        model.addAttribute("peakMonth", peakMonth);
+
+        model.addAttribute("concentration", concentration);
+        model.addAttribute("paymentMethodDependency", methodDep);
+        model.addAttribute("isDeclining", isDeclining);
+        model.addAttribute("urgentPending", urgentPending);
+
+        // Fix Placeholders
+        Double avgPayDays = paymentRequestRepository.findAvgPaymentDurationDaysByCompany(id);
+        long avgPayDaysInt = (avgPayDays != null) ? (long) Math.ceil(avgPayDays) : 0;
+
+        java.time.LocalDate thirtyDaysAgo = today.minusDays(30);
+        long newContractors = paymentRequestRepository.countNewContractorsByCompanySince(id, thirtyDaysAgo);
+
+        model.addAttribute("avgPaymentDays", avgPayDaysInt);
+        model.addAttribute("newContractors", newContractors);
 
         return "company/dashboard";
     }

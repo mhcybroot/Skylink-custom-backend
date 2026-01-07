@@ -607,4 +607,72 @@ public interface PaymentRequestRepository extends JpaRepository<PaymentRequest, 
         @org.springframework.data.jpa.repository.Query("SELECT COUNT(DISTINCT p.contractor.id) FROM PaymentRequest p WHERE p.contractor IS NOT NULL AND p.amount > :threshold AND p.status = 'APPROVED'")
         long countVendorsAboveThreshold(
                         @org.springframework.data.repository.query.Param("threshold") java.math.BigDecimal threshold);
+
+        // ============================================
+        // COMPANY SWOT ANALYTICS
+        // ============================================
+
+        // STRENGTHS
+        @org.springframework.data.jpa.repository.Query("SELECT COALESCE(SUM(p.amount), 0) FROM PaymentRequest p WHERE p.company.id = :companyId AND p.paymentStatus = 'PAID'")
+        java.math.BigDecimal sumPaidAmountByCompanyId(
+                        @org.springframework.data.repository.query.Param("companyId") Long companyId);
+
+        @org.springframework.data.jpa.repository.Query("SELECT COALESCE(AVG(p.amount), 0) FROM PaymentRequest p WHERE p.company.id = :companyId AND p.status = 'APPROVED'")
+        java.math.BigDecimal avgApprovedByCompanyInfo(
+                        @org.springframework.data.repository.query.Param("companyId") Long companyId);
+
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(DISTINCT p.contractor) FROM PaymentRequest p WHERE p.company.id = :companyId AND p.contractor IS NOT NULL AND p.paymentStatus = 'PAID'")
+        long countActiveContractorsByCompany(
+                        @org.springframework.data.repository.query.Param("companyId") Long companyId);
+
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(p) FROM PaymentRequest p WHERE p.company.id = :companyId AND p.status = 'APPROVED' AND p.amount > :threshold")
+        long countHighValueTransactionsByCompany(
+                        @org.springframework.data.repository.query.Param("companyId") Long companyId,
+                        @org.springframework.data.repository.query.Param("threshold") java.math.BigDecimal threshold);
+
+        // WEAKNESSES
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(p) FROM PaymentRequest p WHERE p.company.id = :companyId AND p.status = 'PENDING'")
+        long countPendingByCompanyId(@org.springframework.data.repository.query.Param("companyId") Long companyId);
+
+        @org.springframework.data.jpa.repository.Query("SELECT MIN(p.requestDate) FROM PaymentRequest p WHERE p.company.id = :companyId AND p.status = 'PENDING'")
+        java.time.LocalDate findOldestPendingDateByCompany(
+                        @org.springframework.data.repository.query.Param("companyId") Long companyId);
+
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(p) FROM PaymentRequest p WHERE p.company.id = :companyId AND p.paymentStatus = 'ISSUE'")
+        long countIssueRequestsByCompany(@org.springframework.data.repository.query.Param("companyId") Long companyId);
+
+        // OPPORTUNITIES
+        @org.springframework.data.jpa.repository.Query("SELECT COALESCE(SUM(p.amount), 0) FROM PaymentRequest p WHERE p.company.id = :companyId AND p.paymentStatus = 'PAID' AND extract(year from p.requestDate) = :year AND extract(month from p.requestDate) = :month")
+        java.math.BigDecimal sumPaidByCompanyIdYearMonth(
+                        @org.springframework.data.repository.query.Param("companyId") Long companyId,
+                        @org.springframework.data.repository.query.Param("year") int year,
+                        @org.springframework.data.repository.query.Param("month") int month);
+
+        @org.springframework.data.jpa.repository.Query("SELECT extract(month from p.requestDate), SUM(p.amount) FROM PaymentRequest p WHERE p.company.id = :companyId AND p.paymentStatus = 'PAID' AND extract(year from p.requestDate) = :year GROUP BY extract(month from p.requestDate) ORDER BY SUM(p.amount) DESC")
+        List<Object[]> findPeakMonthByCompanyIdAndYear(
+                        @org.springframework.data.repository.query.Param("companyId") Long companyId,
+                        @org.springframework.data.repository.query.Param("year") int year);
+
+        // THREATS
+        @org.springframework.data.jpa.repository.Query("SELECT COALESCE(SUM(p.amount), 0) FROM PaymentRequest p WHERE p.company.id = :companyId AND p.status = 'APPROVED' AND p.contractor.id = (SELECT p2.contractor.id FROM PaymentRequest p2 WHERE p2.company.id = :companyId AND p2.status = 'APPROVED' GROUP BY p2.contractor.id ORDER BY SUM(p2.amount) DESC LIMIT 1)")
+        java.math.BigDecimal sumTopContractorSpendByCompany(
+                        @org.springframework.data.repository.query.Param("companyId") Long companyId);
+
+        @org.springframework.data.jpa.repository.Query("SELECT COALESCE(SUM(p.amount), 0) FROM PaymentRequest p WHERE p.company.id = :companyId AND p.status = 'APPROVED' AND p.paymentMethod.id = (SELECT p2.paymentMethod.id FROM PaymentRequest p2 WHERE p2.company.id = :companyId AND p2.status = 'APPROVED' AND p2.paymentMethod IS NOT NULL GROUP BY p2.paymentMethod.id ORDER BY SUM(p2.amount) DESC LIMIT 1)")
+        java.math.BigDecimal sumTopPaymentMethodAmountByCompany(
+                        @org.springframework.data.repository.query.Param("companyId") Long companyId);
+
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(p) FROM PaymentRequest p WHERE p.company.id = :companyId AND p.status = 'PENDING' AND (p.priority = 'HIGH' OR p.priority = 'URGENT')")
+        long countHighPriorityPendingByCompany(
+                        @org.springframework.data.repository.query.Param("companyId") Long companyId);
+
+        // PLACEHOLDER FIXES
+        @org.springframework.data.jpa.repository.Query(value = "SELECT COALESCE(AVG(CAST(last_modified AS DATE) - request_date), 0) FROM payment_requests WHERE company_id = :companyId AND payment_status = 'PAID'", nativeQuery = true)
+        Double findAvgPaymentDurationDaysByCompany(
+                        @org.springframework.data.repository.query.Param("companyId") Long companyId);
+
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(DISTINCT p.contractor.id) FROM PaymentRequest p WHERE p.company.id = :companyId AND p.requestDate >= :sinceDate AND p.contractor.id NOT IN (SELECT p2.contractor.id FROM PaymentRequest p2 WHERE p2.company.id = :companyId AND p2.requestDate < :sinceDate)")
+        long countNewContractorsByCompanySince(
+                        @org.springframework.data.repository.query.Param("companyId") Long companyId,
+                        @org.springframework.data.repository.query.Param("sinceDate") java.time.LocalDate sinceDate);
 }
