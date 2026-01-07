@@ -543,37 +543,194 @@ public class MasterDataController {
 
         model.addAttribute("method", method);
 
-        // Usage Overview - count all transactions for this payment method
+        // Basic counts
         long totalTransactions = paymentRequestRepository.countByPaymentMethodId(id);
-        // For status counts, use RequestStatus (approval status)
         long pendingTransactions = paymentRequestRepository.countByPaymentMethodIdAndStatus(id,
                 root.cyb.mh.attendancesystem.model.enums.RequestStatus.PENDING);
         long approvedTransactions = paymentRequestRepository.countByPaymentMethodIdAndStatus(id,
                 root.cyb.mh.attendancesystem.model.enums.RequestStatus.APPROVED);
-        // Calculate paid as approved (since PAID is in PaymentStatus, not
-        // RequestStatus)
-        long paidTransactions = approvedTransactions; // Approved requests are effectively processed
+        long rejectedTransactions = paymentRequestRepository.countRejectedByPaymentMethod(id);
 
         model.addAttribute("totalTransactions", totalTransactions);
-        model.addAttribute("paidTransactions", paidTransactions);
         model.addAttribute("pendingTransactions", pendingTransactions);
         model.addAttribute("approvedTransactions", approvedTransactions);
+        model.addAttribute("rejectedTransactions", rejectedTransactions);
 
-        // Financial Metrics
-        java.math.BigDecimal totalAmountProcessed = paymentRequestRepository.sumByPaymentMethodIdPaid(id);
-        java.math.BigDecimal avgAmount = paymentRequestRepository.avgByPaymentMethodIdPaid(id);
-        java.math.BigDecimal maxAmount = paymentRequestRepository.maxByPaymentMethodIdPaid(id);
+        // ============================================
+        // STRENGTHS
+        // ============================================
 
+        // 1. Total Revenue
+        java.math.BigDecimal totalAmountProcessed = paymentRequestRepository.sumApprovedByPaymentMethod(id);
         if (totalAmountProcessed == null)
             totalAmountProcessed = java.math.BigDecimal.ZERO;
+        model.addAttribute("totalRevenue", totalAmountProcessed);
+
+        // 2. Success Rate %
+        double successRate = totalTransactions > 0 ? (double) approvedTransactions / totalTransactions * 100 : 0;
+        model.addAttribute("successRate", successRate);
+
+        // 3. Average Transaction
+        java.math.BigDecimal avgAmount = paymentRequestRepository.avgByPaymentMethodIdPaid(id);
         if (avgAmount == null)
             avgAmount = java.math.BigDecimal.ZERO;
-        if (maxAmount == null)
-            maxAmount = java.math.BigDecimal.ZERO;
-
-        model.addAttribute("totalAmountProcessed", totalAmountProcessed);
         model.addAttribute("avgAmount", avgAmount);
-        model.addAttribute("maxAmount", maxAmount);
+
+        // 4. Client Retention Rate
+        long repeatClients = paymentRequestRepository.countRepeatClients(id);
+        long distinctClients = paymentRequestRepository.countDistinctClientsByPaymentMethod(id);
+        double clientRetention = distinctClients > 0 ? (double) repeatClients / distinctClients * 100 : 0;
+        model.addAttribute("clientRetention", clientRetention);
+        model.addAttribute("repeatClients", repeatClients);
+        model.addAttribute("distinctClients", distinctClients);
+
+        // 5. Contractor Loyalty Rate
+        long repeatContractors = paymentRequestRepository.countRepeatContractors(id);
+        long distinctContractors = paymentRequestRepository.countDistinctContractorsByPaymentMethod(id);
+        double contractorLoyalty = distinctContractors > 0 ? (double) repeatContractors / distinctContractors * 100 : 0;
+        model.addAttribute("contractorLoyalty", contractorLoyalty);
+        model.addAttribute("repeatContractors", repeatContractors);
+        model.addAttribute("distinctContractors", distinctContractors);
+
+        // 6. High-Value Transactions (above average)
+        long highValueCount = paymentRequestRepository.countHighValueTransactions(id, avgAmount);
+        model.addAttribute("highValueCount", highValueCount);
+
+        // ============================================
+        // WEAKNESSES
+        // ============================================
+
+        // 7. Rejection Rate %
+        double rejectionRate = totalTransactions > 0 ? (double) rejectedTransactions / totalTransactions * 100 : 0;
+        model.addAttribute("rejectionRate", rejectionRate);
+
+        // 8. Pending Backlog
+        model.addAttribute("pendingBacklog", pendingTransactions);
+
+        // 9. Oldest Pending (Days)
+        java.time.LocalDate oldestPendingDate = paymentRequestRepository.findOldestPendingDate(id);
+        long oldestPendingDays = 0;
+        if (oldestPendingDate != null) {
+            oldestPendingDays = java.time.temporal.ChronoUnit.DAYS.between(oldestPendingDate,
+                    java.time.LocalDate.now());
+        }
+        model.addAttribute("oldestPendingDays", oldestPendingDays);
+
+        // 10. Low-Value Transaction %
+        java.math.BigDecimal lowThreshold = new java.math.BigDecimal("100");
+        long lowValueCount = paymentRequestRepository.countLowValueTransactions(id, lowThreshold);
+        double lowValuePercentage = totalTransactions > 0 ? (double) lowValueCount / totalTransactions * 100 : 0;
+        model.addAttribute("lowValuePercentage", lowValuePercentage);
+        model.addAttribute("lowValueCount", lowValueCount);
+
+        // 11. Inactive Period (Days)
+        java.time.LocalDate lastTransactionDate = paymentRequestRepository.findLastTransactionDate(id);
+        long inactiveDays = 0;
+        if (lastTransactionDate != null) {
+            inactiveDays = java.time.temporal.ChronoUnit.DAYS.between(lastTransactionDate, java.time.LocalDate.now());
+        }
+        model.addAttribute("inactiveDays", inactiveDays);
+        model.addAttribute("lastTransactionDate", lastTransactionDate);
+
+        // ============================================
+        // OPPORTUNITIES
+        // ============================================
+
+        // 12. Month-over-Month Growth
+        int currentYear = java.time.LocalDate.now().getYear();
+        int currentMonth = java.time.LocalDate.now().getMonthValue();
+        int previousMonth = currentMonth == 1 ? 12 : currentMonth - 1;
+        int previousYear = currentMonth == 1 ? currentYear - 1 : currentYear;
+
+        long thisMonthUsage = paymentRequestRepository.countByPaymentMethodIdAndYearMonth(id, currentYear,
+                currentMonth);
+        long lastMonthUsage = paymentRequestRepository.countByPaymentMethodIdAndYearMonth(id, previousYear,
+                previousMonth);
+        double growthRate = lastMonthUsage > 0 ? ((double) thisMonthUsage - lastMonthUsage) / lastMonthUsage * 100 : 0;
+
+        model.addAttribute("thisMonthUsage", thisMonthUsage);
+        model.addAttribute("lastMonthUsage", lastMonthUsage);
+        model.addAttribute("growthRate", growthRate);
+
+        // 13. New Clients This Month
+        long newClientsThisMonth = paymentRequestRepository.countNewClientsThisMonth(id, currentYear, currentMonth);
+        model.addAttribute("newClientsThisMonth", newClientsThisMonth);
+
+        // 14. New Contractors This Month
+        long newContractorsThisMonth = paymentRequestRepository.countNewContractorsThisMonth(id, currentYear,
+                currentMonth);
+        model.addAttribute("newContractorsThisMonth", newContractorsThisMonth);
+
+        // 15. Untapped Clients (Total active clients - clients using this method)
+        long totalActiveClients = clientRepository.findByActiveTrue().size();
+        long untappedClients = totalActiveClients - distinctClients;
+        if (untappedClients < 0)
+            untappedClients = 0;
+        model.addAttribute("untappedClients", untappedClients);
+        model.addAttribute("totalActiveClients", totalActiveClients);
+
+        // 16. Quarterly Trend
+        int twoMonthsAgo = previousMonth == 1 ? 12 : previousMonth - 1;
+        int twoMonthsAgoYear = previousMonth == 1 ? previousYear - 1 : previousYear;
+        long twoMonthsAgoUsage = paymentRequestRepository.countByPaymentMethodIdAndYearMonth(id, twoMonthsAgoYear,
+                twoMonthsAgo);
+        String quarterlyTrend = "→";
+        if (thisMonthUsage > lastMonthUsage && lastMonthUsage > twoMonthsAgoUsage)
+            quarterlyTrend = "↑↑";
+        else if (thisMonthUsage > lastMonthUsage)
+            quarterlyTrend = "↑";
+        else if (thisMonthUsage < lastMonthUsage && lastMonthUsage < twoMonthsAgoUsage)
+            quarterlyTrend = "↓↓";
+        else if (thisMonthUsage < lastMonthUsage)
+            quarterlyTrend = "↓";
+        model.addAttribute("quarterlyTrend", quarterlyTrend);
+        model.addAttribute("twoMonthsAgoUsage", twoMonthsAgoUsage);
+
+        // 17. Peak Day of Week
+        java.util.List<Object[]> dayDistribution = paymentRequestRepository.findDayOfWeekDistribution(id);
+        String peakDay = "N/A";
+        if (!dayDistribution.isEmpty() && dayDistribution.get(0)[0] != null) {
+            peakDay = dayDistribution.get(0)[0].toString();
+        }
+        model.addAttribute("peakDay", peakDay);
+
+        // ============================================
+        // THREATS
+        // ============================================
+
+        // 18. Client Concentration Risk %
+        java.math.BigDecimal topClientAmount = paymentRequestRepository.findTopClientAmount(id);
+        if (topClientAmount == null)
+            topClientAmount = java.math.BigDecimal.ZERO;
+        double clientConcentration = totalAmountProcessed.compareTo(java.math.BigDecimal.ZERO) > 0
+                ? topClientAmount.divide(totalAmountProcessed, 4, java.math.RoundingMode.HALF_UP)
+                        .multiply(java.math.BigDecimal.valueOf(100)).doubleValue()
+                : 0;
+        model.addAttribute("clientConcentration", clientConcentration);
+
+        // 19. Contractor Concentration %
+        java.math.BigDecimal topContractorAmount = paymentRequestRepository.findTopContractorAmount(id);
+        if (topContractorAmount == null)
+            topContractorAmount = java.math.BigDecimal.ZERO;
+        double contractorConcentration = totalAmountProcessed.compareTo(java.math.BigDecimal.ZERO) > 0
+                ? topContractorAmount.divide(totalAmountProcessed, 4, java.math.RoundingMode.HALF_UP)
+                        .multiply(java.math.BigDecimal.valueOf(100)).doubleValue()
+                : 0;
+        model.addAttribute("contractorConcentration", contractorConcentration);
+
+        // 20. Declining Usage Flag
+        boolean isDeclining = growthRate < 0;
+        model.addAttribute("isDeclining", isDeclining);
+
+        // 21. High-Priority Pending
+        long highPriorityPending = paymentRequestRepository.countHighPriorityPending(id);
+        model.addAttribute("highPriorityPending", highPriorityPending);
+
+        // 22. Issue Rate %
+        long issueTransactions = paymentRequestRepository.countIssueTransactions(id);
+        double issueRate = totalTransactions > 0 ? (double) issueTransactions / totalTransactions * 100 : 0;
+        model.addAttribute("issueRate", issueRate);
+        model.addAttribute("issueTransactions", issueTransactions);
 
         // Popularity - Calculate rank and usage percentage
         java.util.List<Object[]> allMethodsRanked = paymentRequestRepository.findAllPaymentMethodsRankedByUsage();
@@ -593,22 +750,6 @@ public class MasterDataController {
         model.addAttribute("usageRank", rank > 0 ? rank : "N/A");
         model.addAttribute("totalMethods", allMethodsRanked.size());
         model.addAttribute("usagePercentage", usagePercentage);
-
-        // Trend - Month over Month
-        int currentYear = java.time.LocalDate.now().getYear();
-        int currentMonth = java.time.LocalDate.now().getMonthValue();
-        int previousMonth = currentMonth == 1 ? 12 : currentMonth - 1;
-        int previousYear = currentMonth == 1 ? currentYear - 1 : currentYear;
-
-        long thisMonthUsage = paymentRequestRepository.countByPaymentMethodIdAndYearMonth(id, currentYear,
-                currentMonth);
-        long lastMonthUsage = paymentRequestRepository.countByPaymentMethodIdAndYearMonth(id, previousYear,
-                previousMonth);
-        double growthRate = lastMonthUsage > 0 ? ((double) thisMonthUsage - lastMonthUsage) / lastMonthUsage * 100 : 0;
-
-        model.addAttribute("thisMonthUsage", thisMonthUsage);
-        model.addAttribute("lastMonthUsage", lastMonthUsage);
-        model.addAttribute("growthRate", growthRate);
 
         // Top Clients and Contractors
         java.util.List<Object[]> topClients = paymentRequestRepository.findTopClientsByPaymentMethod(id,

@@ -346,4 +346,102 @@ public interface PaymentRequestRepository extends JpaRepository<PaymentRequest, 
         // All payment methods ranked by usage
         @org.springframework.data.jpa.repository.Query("SELECT p.paymentMethod.id, COUNT(p) FROM PaymentRequest p WHERE p.paymentMethod IS NOT NULL GROUP BY p.paymentMethod.id ORDER BY COUNT(p) DESC")
         List<Object[]> findAllPaymentMethodsRankedByUsage();
+
+        // ============================================
+        // SWOT ANALYTICS - STRENGTHS
+        // ============================================
+
+        // Count high-value transactions (above threshold)
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(p) FROM PaymentRequest p WHERE p.paymentMethod.id = :methodId AND p.amount > :threshold")
+        long countHighValueTransactions(@org.springframework.data.repository.query.Param("methodId") Long methodId,
+                        @org.springframework.data.repository.query.Param("threshold") java.math.BigDecimal threshold);
+
+        // Count repeat clients (clients with more than 1 transaction)
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(DISTINCT p.client.id) FROM PaymentRequest p WHERE p.paymentMethod.id = :methodId AND p.client IS NOT NULL AND p.client.id IN (SELECT p2.client.id FROM PaymentRequest p2 WHERE p2.paymentMethod.id = :methodId GROUP BY p2.client.id HAVING COUNT(p2) > 1)")
+        long countRepeatClients(@org.springframework.data.repository.query.Param("methodId") Long methodId);
+
+        // Count distinct clients using this method
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(DISTINCT p.client.id) FROM PaymentRequest p WHERE p.paymentMethod.id = :methodId AND p.client IS NOT NULL")
+        long countDistinctClientsByPaymentMethod(
+                        @org.springframework.data.repository.query.Param("methodId") Long methodId);
+
+        // Count repeat contractors
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(DISTINCT p.contractor.id) FROM PaymentRequest p WHERE p.paymentMethod.id = :methodId AND p.contractor IS NOT NULL AND p.contractor.id IN (SELECT p2.contractor.id FROM PaymentRequest p2 WHERE p2.paymentMethod.id = :methodId GROUP BY p2.contractor.id HAVING COUNT(p2) > 1)")
+        long countRepeatContractors(@org.springframework.data.repository.query.Param("methodId") Long methodId);
+
+        // Count distinct contractors
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(DISTINCT p.contractor.id) FROM PaymentRequest p WHERE p.paymentMethod.id = :methodId AND p.contractor IS NOT NULL")
+        long countDistinctContractorsByPaymentMethod(
+                        @org.springframework.data.repository.query.Param("methodId") Long methodId);
+
+        // ============================================
+        // SWOT ANALYTICS - WEAKNESSES
+        // ============================================
+
+        // Count rejected transactions
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(p) FROM PaymentRequest p WHERE p.paymentMethod.id = :methodId AND p.status = 'REJECTED'")
+        long countRejectedByPaymentMethod(@org.springframework.data.repository.query.Param("methodId") Long methodId);
+
+        // Find oldest pending request date
+        @org.springframework.data.jpa.repository.Query("SELECT MIN(p.requestDate) FROM PaymentRequest p WHERE p.paymentMethod.id = :methodId AND p.status = 'PENDING'")
+        java.time.LocalDate findOldestPendingDate(
+                        @org.springframework.data.repository.query.Param("methodId") Long methodId);
+
+        // Count low-value transactions (below threshold)
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(p) FROM PaymentRequest p WHERE p.paymentMethod.id = :methodId AND p.amount < :threshold")
+        long countLowValueTransactions(@org.springframework.data.repository.query.Param("methodId") Long methodId,
+                        @org.springframework.data.repository.query.Param("threshold") java.math.BigDecimal threshold);
+
+        // Find last transaction date
+        @org.springframework.data.jpa.repository.Query("SELECT MAX(p.requestDate) FROM PaymentRequest p WHERE p.paymentMethod.id = :methodId")
+        java.time.LocalDate findLastTransactionDate(
+                        @org.springframework.data.repository.query.Param("methodId") Long methodId);
+
+        // ============================================
+        // SWOT ANALYTICS - OPPORTUNITIES
+        // ============================================
+
+        // Count new clients this month (first appearance)
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(DISTINCT p.client.id) FROM PaymentRequest p WHERE p.paymentMethod.id = :methodId AND p.client IS NOT NULL AND extract(year from p.requestDate) = :year AND extract(month from p.requestDate) = :month AND p.client.id NOT IN (SELECT p2.client.id FROM PaymentRequest p2 WHERE p2.paymentMethod.id = :methodId AND (extract(year from p2.requestDate) < :year OR (extract(year from p2.requestDate) = :year AND extract(month from p2.requestDate) < :month)))")
+        long countNewClientsThisMonth(@org.springframework.data.repository.query.Param("methodId") Long methodId,
+                        @org.springframework.data.repository.query.Param("year") int year,
+                        @org.springframework.data.repository.query.Param("month") int month);
+
+        // Count new contractors this month
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(DISTINCT p.contractor.id) FROM PaymentRequest p WHERE p.paymentMethod.id = :methodId AND p.contractor IS NOT NULL AND extract(year from p.requestDate) = :year AND extract(month from p.requestDate) = :month AND p.contractor.id NOT IN (SELECT p2.contractor.id FROM PaymentRequest p2 WHERE p2.paymentMethod.id = :methodId AND (extract(year from p2.requestDate) < :year OR (extract(year from p2.requestDate) = :year AND extract(month from p2.requestDate) < :month)))")
+        long countNewContractorsThisMonth(@org.springframework.data.repository.query.Param("methodId") Long methodId,
+                        @org.springframework.data.repository.query.Param("year") int year,
+                        @org.springframework.data.repository.query.Param("month") int month);
+
+        // Get day of week distribution (PostgreSQL compatible)
+        @org.springframework.data.jpa.repository.Query(value = "SELECT to_char(request_date, 'Day') as day_name, COUNT(*) FROM payment_requests WHERE payment_method_ref_id = :methodId GROUP BY to_char(request_date, 'Day') ORDER BY COUNT(*) DESC", nativeQuery = true)
+        List<Object[]> findDayOfWeekDistribution(
+                        @org.springframework.data.repository.query.Param("methodId") Long methodId);
+
+        // ============================================
+        // SWOT ANALYTICS - THREATS
+        // ============================================
+
+        // Top client amount for concentration
+        @org.springframework.data.jpa.repository.Query("SELECT COALESCE(SUM(p.amount), 0) FROM PaymentRequest p WHERE p.paymentMethod.id = :methodId AND p.status = 'APPROVED' AND p.client.id = (SELECT p2.client.id FROM PaymentRequest p2 WHERE p2.paymentMethod.id = :methodId AND p2.status = 'APPROVED' GROUP BY p2.client.id ORDER BY SUM(p2.amount) DESC LIMIT 1)")
+        java.math.BigDecimal findTopClientAmount(
+                        @org.springframework.data.repository.query.Param("methodId") Long methodId);
+
+        // Top contractor amount for concentration
+        @org.springframework.data.jpa.repository.Query("SELECT COALESCE(SUM(p.amount), 0) FROM PaymentRequest p WHERE p.paymentMethod.id = :methodId AND p.status = 'APPROVED' AND p.contractor.id = (SELECT p2.contractor.id FROM PaymentRequest p2 WHERE p2.paymentMethod.id = :methodId AND p2.status = 'APPROVED' GROUP BY p2.contractor.id ORDER BY SUM(p2.amount) DESC LIMIT 1)")
+        java.math.BigDecimal findTopContractorAmount(
+                        @org.springframework.data.repository.query.Param("methodId") Long methodId);
+
+        // Count high-priority pending
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(p) FROM PaymentRequest p WHERE p.paymentMethod.id = :methodId AND p.status = 'PENDING' AND p.priority = 'HIGH'")
+        long countHighPriorityPending(@org.springframework.data.repository.query.Param("methodId") Long methodId);
+
+        // Count issue transactions
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(p) FROM PaymentRequest p WHERE p.paymentMethod.id = :methodId AND p.paymentStatus = 'ISSUE'")
+        long countIssueTransactions(@org.springframework.data.repository.query.Param("methodId") Long methodId);
+
+        // Sum approved amount by payment method
+        @org.springframework.data.jpa.repository.Query("SELECT COALESCE(SUM(p.amount), 0) FROM PaymentRequest p WHERE p.paymentMethod.id = :methodId AND p.status = 'APPROVED'")
+        java.math.BigDecimal sumApprovedByPaymentMethod(
+                        @org.springframework.data.repository.query.Param("methodId") Long methodId);
 }
