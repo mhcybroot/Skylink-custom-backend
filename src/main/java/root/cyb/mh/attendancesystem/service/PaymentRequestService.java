@@ -90,11 +90,37 @@ public class PaymentRequestService {
     }
 
     private void notifyAdminsNewRequest(PaymentRequest request) {
-        List<User> admins = userRepository.findByRole("ADMIN");
-        String message = "New Payment Request submitted by " + getRequesterName(request);
+        String requesterName = getRequesterName(request);
+        String message = "New Payment Request submitted by " + requesterName;
         String link = "/payment-requests/" + request.getId();
+
+        // 1. Notify Admins
+        List<User> admins = userRepository.findByRole("ADMIN");
         for (User admin : admins) {
             notificationService.sendNotification(admin.getUsername(), "New Payment Request", message, "INFO", link);
+        }
+
+        // 2. Notify HR
+        List<User> hrs = userRepository.findByRole("HR");
+        for (User hr : hrs) {
+            // Avoid duplicate if user is both ADMIN and HR (optional check, but good
+            // practice)
+            if (admins.stream().noneMatch(a -> a.getUsername().equals(hr.getUsername()))) {
+                notificationService.sendNotification(hr.getUsername(), "New Payment Request", message, "INFO", link);
+            }
+        }
+
+        // 3. Notify Supervisor
+        if (request.getEmployeeRequester() != null) {
+            root.cyb.mh.attendancesystem.model.Employee supervisor = request.getEmployeeRequester().getReportsTo();
+            if (supervisor != null) {
+                // Use supervisor.getId() as username based on existing pattern
+                // Avoid if supervisor is already notified as Admin/HR? (Unlikely but possible)
+                // Just send it. Duplicate notifications are better than missing ones, or logic
+                // is complex to dedup across entities.
+                notificationService.sendNotification(supervisor.getId(), "New Payment Request (Team)", message, "INFO",
+                        link);
+            }
         }
     }
 
