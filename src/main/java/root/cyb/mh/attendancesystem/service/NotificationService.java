@@ -11,6 +11,9 @@ import java.util.List;
 public class NotificationService {
 
     @Autowired
+    private PushNotificationService pushNotificationService;
+
+    @Autowired
     private SimpMessagingTemplate messagingTemplate;
 
     @Autowired
@@ -30,6 +33,14 @@ public class NotificationService {
         // 2. Push via WebSocket
         // Destination: /user/{username}/queue/notifications
         messagingTemplate.convertAndSendToUser(username, "/queue/notifications", notification);
+
+        // 3. Push via Service Worker (Web Push)
+        try {
+            pushNotificationService.sendPushNotification(username, message);
+        } catch (Exception e) {
+            // Log but don't fail the WebSocket/DB save
+            System.err.println("Web Push Failed: " + e.getMessage());
+        }
     }
 
     public List<Notification> getUnreadNotifications(String username) {

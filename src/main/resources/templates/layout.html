@@ -190,6 +190,96 @@
     <!-- Page Specific Scripts -->
     <div th:replace="${scripts}"></div>
 
+    <!-- Web Push Logic -->
+    <script>
+        async function enablePushNotifications() {
+            if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+                alert('Push notifications are not supported on this browser.');
+                return;
+            }
+
+            // Register SW if not already (redundant if registered on load, but safe)
+            const registration = await navigator.serviceWorker.ready;
+
+            // Ask Permission
+            const permission = await Notification.requestPermission();
+            if (permission !== 'granted') {
+                alert('Permission denied for notifications.');
+                return;
+            }
+
+            // Get Public Key
+            const response = await fetch('/push/public-key');
+            const publicKey = await response.text();
+
+            // Subscribe
+            const convertedVapidKey = urlBase64ToUint8Array(publicKey);
+            const subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: convertedVapidKey
+            });
+
+            // Send to Backend
+            await fetch('/push/subscribe', {
+                method: 'POST',
+                body: JSON.stringify({
+                    endpoint: subscription.endpoint,
+                    keys: subscription.toJSON().keys
+                }),
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="_csrf"]').content
+                }
+            });
+
+            alert('Push notifications enabled!');
+        }
+
+        // Helper
+        function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding)
+                .replace(/\-/g, '+')
+                .replace(/_/g, '/');
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray;
+        }
+
+        // Register SW on load and sync subscription
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('/sw.js').then(async function (registration) {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+
+                    // Check if already subscribed
+                    const subscription = await registration.pushManager.getSubscription();
+                    if (subscription) {
+                        const csrfMeta = document.querySelector('meta[name="_csrf"]');
+                        const headers = { 'Content-Type': 'application/json' };
+                        if (csrfMeta) {
+                            headers['X-CSRF-TOKEN'] = csrfMeta.content;
+                        }
+
+                        // Resync with backend (in case DB was reset or cache clear)
+                        await fetch('/push/subscribe', {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                endpoint: subscription.endpoint,
+                                keys: subscription.toJSON().keys
+                            }),
+                            headers: headers
+                        }).catch(err => console.error('Failed to sync push subscription:', err));
+                    }
+                }, function (err) {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
+    </script>
 </body>
 
 </html>
