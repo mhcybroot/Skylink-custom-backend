@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <title>Notification History</title>
+</head>
+
+<body>
+    <div th:replace="~{layout :: layout(~{::section}, ~{::script}, 'notifications')}">
+        <section class="bg-light min-vh-100 py-4">
+            <div class="container">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h4 class="fw-bold mb-1" style="font-family: 'Inter', sans-serif; letter-spacing: -0.5px;">
+                            Notification History</h4>
+                        <p class="text-muted small mb-0">View all your past alerts and messages.</p>
+                    </div>
+                    <!-- <button class="btn btn-outline-secondary btn-sm rounded-pill px-3" onclick="markAllAsRead()">
+                        <i class="fas fa-check-double me-2"></i>Mark all read
+                    </button> -->
+                </div>
+
+                <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
+                    <div class="card-body p-0">
+                        <div th:if="${#lists.isEmpty(notifications)}" class="text-center py-5">
+                            <div class="opacity-25 mb-3"><i class="fas fa-bell-slash fa-3x"></i></div>
+                            <h6 class="text-muted">No notification history found.</h6>
+                        </div>
+
+                        <div th:unless="${#lists.isEmpty(notifications)}" class="list-group list-group-flush">
+                            <a th:each="n : ${notifications}" th:href="${n.linkAction}"
+                                class="list-group-item list-group-item-action d-flex align-items-center py-3 px-4 notification-row"
+                                th:classappend="${!n.read ? 'bg-light-blue' : ''}">
+
+                                <!-- Icon Selection Logic (Thymeleaf) -->
+                                <div class="me-3">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center"
+                                        style="width: 48px; height: 48px;" th:classappend="${
+                                            n.type == 'SUCCESS' || #strings.contains(n.title, 'APPROVED') ? 'bg-success-subtle text-success' : 
+                                            (n.type == 'ERROR' || #strings.contains(n.title, 'REJECTED') ? 'bg-danger-subtle text-danger' : 
+                                            (#strings.contains(n.title, 'Payment') || #strings.contains(n.title, 'PAID') ? 'bg-warning-subtle text-warning' : 'bg-primary-subtle text-primary'))
+                                         }">
+                                        <i class="fas fa-lg" th:classappend="${
+                                            n.type == 'SUCCESS' || #strings.contains(n.title, 'APPROVED') ? 'fa-check' : 
+                                            (n.type == 'ERROR' || #strings.contains(n.title, 'REJECTED') ? 'fa-times' : 
+                                            (#strings.contains(n.title, 'Payment') || #strings.contains(n.title, 'PAID') ? 'fa-dollar-sign' : 'fa-info'))
+                                           }"></i>
+                                    </div>
+                                </div>
+
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <h6 class="mb-0 fw-bold text-dark" th:text="${n.title}">Title</h6>
+                                        <small class="text-muted"
+                                            th:text="${#temporals.format(n.createdAt, 'MMM d, h:mm a')}">Time</small>
+                                    </div>
+                                    <p class="mb-0 text-muted small" th:text="${n.message}">Message content goes here...
+                                    </p>
+                                </div>
+
+                                <div class="ms-3" th:if="${!n.read}">
+                                    <span class="badge bg-primary rounded-pill p-1"
+                                        style="width: 10px; height: 10px;"></span>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <script>
+            // Reuse markAllAsRead from layout (global) or specific logic here needed?
+            // Layout JS is loaded, so markAllAsRead() should work if it calls the endpoint.
+            // But visually update list here? Reload page?
+            // Let's reload page on success for simplicity on the history page.
+
+            // Override or Extend
+            const originalMarkAll = window.markAllAsRead;
+            window.markAllAsRead = function () {
+                fetch('/notifications/mark-all-read', {
+                    method: 'POST', headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="_csrf"]').content
+                    }
+                }).then(() => {
+                    location.reload();
+                });
+            };
+        </script>
+        <style>
+            .bg-light-blue {
+                background-color: #f0f9ff;
+            }
+
+            .notification-row:hover {
+                background-color: #f8f9fa;
+            }
+        </style>
+    </div>
+</body>
+
+</html>

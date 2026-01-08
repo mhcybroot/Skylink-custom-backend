@@ -198,6 +198,14 @@ public class PaymentRequestController {
         Optional<PaymentRequest> requestOpt = paymentRequestService.getRequestById(id);
         if (requestOpt.isPresent()) {
             PaymentRequest existingRequest = requestOpt.get();
+            // Capture Old State for Notification
+            root.cyb.mh.attendancesystem.model.enums.RequestStatus oldStatus = existingRequest.getStatus();
+            root.cyb.mh.attendancesystem.model.enums.PaymentStatus oldPaymentStatus = existingRequest
+                    .getPaymentStatus();
+            String oldCheckStatus = existingRequest.getCheckStatus();
+            String oldRemarks = existingRequest.getRemarks();
+            String oldReference = existingRequest.getPaymentReferenceNumber();
+            root.cyb.mh.attendancesystem.model.enums.PPWStatus oldPpw = existingRequest.getPpwUpdateStatus();
 
             boolean isAdminOrHr = userDetails.getAuthorities().stream()
                     .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_HR"));
@@ -295,7 +303,6 @@ public class PaymentRequestController {
                 supervisorOpt.ifPresent(existingRequest::setApprovalEmployee);
             }
 
-            // Handle Proof File Upload
             if (proofFile != null && !proofFile.isEmpty()) {
                 try {
                     String baseDir = System.getProperty("user.dir");
@@ -311,18 +318,55 @@ public class PaymentRequestController {
                     java.io.File destFile = new java.io.File(uploadDir + fileName);
                     proofFile.transferTo(destFile);
 
-                    // Save relative path or absolute?
-                    // Saving absolute path makes it easier to load later without worrying about
-                    // working dir changes.
-                    // But for portability, maybe relative is better.
-                    // Let's save the absolute path since the controller uses Paths.get(path) later.
                     existingRequest.setPaymentProofPath(destFile.getAbsolutePath());
                 } catch (java.io.IOException e) {
-                    e.printStackTrace(); // In prod, log this
+                    e.printStackTrace();
                 }
             }
 
+            // Capture old status before update if not captured earlier?
+            // Actually existingRequest is modified directly above.
+            // We need to capture oldStatus AT THE TOP of the method, but existingRequest is
+            // modified throughout.
+            // Wait! The Replace tool replaces lines 299-325.
+
+            // Problem: I need access to oldStatus which I should have captured at logical
+            // start.
+            // But I am only replacing the end.
+
+            // I should capture oldStatus BEFORE the modifications start?
+            // The modifications start around line 276.
+
+            // I will ABORT this tool call and use a wider range or multiple chunks.
+            // Or better: I assume 'oldStatus' was NOT captured at top (it wasn't).
+            // So checking it now is impossible because 'existingRequest' IS ALREADY
+            // MODIFIED.
+
+            // I MUST modify the TOP of the method to capture 'oldStatus'.
+            // AND the BOTTOM to use it.
+
+            // I will use multi_replace to do both.
+
             paymentRequestService.updateRequest(existingRequest);
+
+            // Notify Requester if ANY field changed
+            java.util.List<String> changes = new java.util.ArrayList<>();
+            if (existingRequest.getStatus() != oldStatus)
+                changes.add("Status");
+            if (existingRequest.getPaymentStatus() != oldPaymentStatus)
+                changes.add("Payment Status");
+            if (!java.util.Objects.equals(existingRequest.getCheckStatus(), oldCheckStatus))
+                changes.add("Check Status");
+            if (!java.util.Objects.equals(existingRequest.getRemarks(), oldRemarks))
+                changes.add("Remarks");
+            if (!java.util.Objects.equals(existingRequest.getPaymentReferenceNumber(), oldReference))
+                changes.add("Ref Number");
+            if (existingRequest.getPpwUpdateStatus() != oldPpw)
+                changes.add("PPW Status");
+
+            if (!changes.isEmpty()) {
+                paymentRequestService.notifyRequesterUpdate(existingRequest, changes);
+            }
         }
         return "redirect:/payment-requests/" + id;
     }

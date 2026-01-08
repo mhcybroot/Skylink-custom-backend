@@ -97,6 +97,96 @@
     <!-- Global UX Scripts -->
     <script sec:authorize="hasRole('ADMIN')" src="/js/command-palette.js"></script>
 
+    <!-- WebSocket Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+
+    <script>
+        // Real-Time Notifications (Simplified - Toasts Only)
+        var stompClient = null;
+
+        document.addEventListener('DOMContentLoaded', function () {
+            connectWebSocket();
+        });
+
+        function connectWebSocket() {
+            var socket = new SockJS('/ws-skylink');
+            stompClient = Stomp.over(socket);
+            stompClient.debug = null; // Disable debug logs
+            stompClient.connect({}, function (frame) {
+                console.log('Connected to Notification Service');
+                stompClient.subscribe('/user/queue/notifications', function (notification) {
+                    handleNotification(JSON.parse(notification.body));
+                });
+            });
+        }
+
+        function handleNotification(notification) {
+            // Only Show Toast
+            showToast(notification);
+        }
+
+        // Mark All Read (Used by History Page if needed, or define locally there)
+        // History page has its own script logic or uses this? 
+        // Logic in history.html: `onclick="markAllAsRead()"`
+        // So we KEEP this function.
+        function markAllAsRead() {
+            fetch('/notifications/mark-all-read', {
+                method: 'POST', headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="_csrf"]').content
+                }
+            }).then(response => {
+                if (response.ok) {
+                    // Reload to reflect changes if on history page
+                    // layout doesn't know context, but simple reload is fine or just let page handle it?
+                    // History page script had: .then(() => { location.reload(); });
+                    // But it overrode window.markAllAsRead?
+                    // Step 6139: "const originalMarkAll = window.markAllAsRead; window.markAllAsRead = function() { ... }"
+                    // So History page handles its own reload.
+                    // This global function is technically not used by Topbar anymore (button removed).
+                    // But let's keep it as utility for History page to fallback/override.
+                }
+            }).catch(err => console.error('Error marking all read:', err));
+        }
+
+        function showToast(n) {
+            // Create a toast element dynamically
+            const toastContainer = document.getElementById('toastContainer');
+            if (!toastContainer) createToastContainer();
+
+            const toastId = 'toast-' + n.id;
+            const bgClass = n.type === 'SUCCESS' ? 'text-bg-success' : (n.type === 'ERROR' ? 'text-bg-danger' : 'text-bg-light');
+
+            // Use Modern Toast CSS
+            const typeBorder = n.type === 'SUCCESS' ? 'toast-border-success' : (n.type === 'ERROR' ? 'toast-border-error' : (n.type === 'INFO' ? 'toast-border-info' : 'toast-border-warning'));
+
+            const html = `
+                <div id="${toastId}" class="toast toast-modern ${typeBorder} align-items-center mb-2" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="d-flex">
+                        <div class="toast-body text-dark">
+                            <strong class="d-block mb-1">${n.title}</strong>
+                            <div class="small opacity-75">${n.message}</div>
+                        </div>
+                        <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('toastContainer').insertAdjacentHTML('beforeend', html);
+            const toastEl = document.getElementById(toastId);
+            const toast = new bootstrap.Toast(toastEl);
+            toast.show();
+        }
+
+        function createToastContainer() {
+            const container = document.createElement('div');
+            container.id = 'toastContainer';
+            container.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+            container.style.zIndex = '1050';
+            document.body.appendChild(container);
+        }
+    </script>
+
     <!-- Page Specific Scripts -->
     <div th:replace="${scripts}"></div>
 

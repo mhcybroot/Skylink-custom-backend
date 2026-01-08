@@ -20,15 +20,25 @@ public class PaymentRequestService {
     @Autowired
     private root.cyb.mh.attendancesystem.repository.EmployeeRepository employeeRepository;
 
+    @Autowired
+    private NotificationService notificationService;
+
+    @Autowired
+    private root.cyb.mh.attendancesystem.repository.UserRepository userRepository;
+
     public PaymentRequest createRequest(PaymentRequest paymentRequest, User requester) {
         paymentRequest.setRequester(requester);
-        return saveRequest(paymentRequest);
+        PaymentRequest saved = saveRequest(paymentRequest);
+        notifyAdminsNewRequest(saved);
+        return saved;
     }
 
     public PaymentRequest createRequest(PaymentRequest paymentRequest,
             root.cyb.mh.attendancesystem.model.Employee employeeRequester) {
         paymentRequest.setEmployeeRequester(employeeRequester);
-        return saveRequest(paymentRequest);
+        PaymentRequest saved = saveRequest(paymentRequest);
+        notifyAdminsNewRequest(saved);
+        return saved;
     }
 
     private PaymentRequest saveRequest(PaymentRequest paymentRequest) {
@@ -77,6 +87,102 @@ public class PaymentRequestService {
 
     public PaymentRequest updateRequest(PaymentRequest paymentRequest) {
         return paymentRequestRepository.save(paymentRequest);
+    }
+
+    private void notifyAdminsNewRequest(PaymentRequest request) {
+        List<User> admins = userRepository.findByRole("ADMIN");
+        String message = "New Payment Request submitted by " + getRequesterName(request);
+        String link = "/payment-requests/" + request.getId();
+        for (User admin : admins) {
+            notificationService.sendNotification(admin.getUsername(), "New Payment Request", message, "INFO", link);
+        }
+    }
+
+    public void notifyRequesterStatusChange(PaymentRequest request) {
+        String username = null;
+        if (request.getRequester() != null) {
+            username = request.getRequester().getUsername();
+        } else if (request.getEmployeeRequester() != null) {
+            username = request.getEmployeeRequester().getId();
+        }
+
+        if (username != null) {
+            String title = "Request " + request.getStatus();
+            String message = "Your Payment Request #" + request.getId() + " was " + request.getStatus();
+            String link = "/payment-requests/" + request.getId();
+            String type = request.getStatus() == RequestStatus.APPROVED ? "SUCCESS" : "ERROR"; // or WARNING
+            notificationService.sendNotification(username, title, message, type, link);
+        }
+    }
+
+    public void notifyRequesterPaymentStatusChange(PaymentRequest request) {
+        String username = null;
+        if (request.getRequester() != null) {
+            username = request.getRequester().getUsername();
+        } else if (request.getEmployeeRequester() != null) {
+            username = request.getEmployeeRequester().getId();
+        }
+
+        if (username != null) {
+            String title = "Payment Status Updated";
+            String message = "Payment Request #" + request.getId() + " is now " + request.getPaymentStatus();
+            String link = "/payment-requests/" + request.getId();
+            String type = "INFO";
+            if (request.getPaymentStatus() == root.cyb.mh.attendancesystem.model.enums.PaymentStatus.PAID) {
+                type = "SUCCESS";
+            }
+            notificationService.sendNotification(username, title, message, type, link);
+        }
+    }
+
+    public void notifyRequesterUpdate(PaymentRequest request, java.util.List<String> changes) {
+        if (changes == null || changes.isEmpty())
+            return;
+
+        String username = null;
+        if (request.getRequester() != null) {
+            username = request.getRequester().getUsername();
+        } else if (request.getEmployeeRequester() != null) {
+            username = request.getEmployeeRequester().getId();
+        }
+
+        if (username != null) {
+            String title = "Request Updated";
+            String link = "/payment-requests/" + request.getId();
+            String type = "INFO";
+
+            // Priority Status Messages
+            if (changes.contains("Status")) {
+                if (request.getStatus() == root.cyb.mh.attendancesystem.model.enums.RequestStatus.APPROVED) {
+                    title = "Request APPROVED";
+                    type = "SUCCESS";
+                } else if (request.getStatus() == root.cyb.mh.attendancesystem.model.enums.RequestStatus.REJECTED) {
+                    title = "Request REJECTED";
+                    type = "ERROR";
+                }
+            } else if (changes.contains("Payment Status")
+                    && request.getPaymentStatus() == root.cyb.mh.attendancesystem.model.enums.PaymentStatus.PAID) {
+                title = "Payment Sent (PAID)";
+                type = "SUCCESS";
+            }
+
+            String message;
+            if (changes.size() == 1) {
+                message = "Your request #" + request.getId() + " updated: " + changes.get(0) + " changed.";
+            } else {
+                message = "Your request #" + request.getId() + " updated. Changes: " + String.join(", ", changes);
+            }
+
+            notificationService.sendNotification(username, title, message, type, link);
+        }
+    }
+
+    private String getRequesterName(PaymentRequest request) {
+        if (request.getRequester() != null)
+            return request.getRequester().getUsername();
+        if (request.getEmployeeRequester() != null)
+            return request.getEmployeeRequester().getName();
+        return "Unknown";
     }
 
     public void deleteRequest(Long id) {
