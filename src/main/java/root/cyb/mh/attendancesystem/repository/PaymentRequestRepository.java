@@ -705,9 +705,29 @@ public interface PaymentRequestRepository extends JpaRepository<PaymentRequest, 
         @org.springframework.data.jpa.repository.Query(value = "SELECT COUNT(*) FROM (SELECT client_id FROM payment_requests GROUP BY client_id HAVING COUNT(*) > :count) as sub", nativeQuery = true)
         long countHighVolumeClients(@org.springframework.data.repository.query.Param("count") int count);
 
-        @org.springframework.data.jpa.repository.Query("SELECT c.area, SUM(p.amount) FROM PaymentRequest p JOIN p.contractor c WHERE p.status = 'PAID' GROUP BY c.area ORDER BY SUM(p.amount) DESC")
+        @org.springframework.data.jpa.repository.Query("SELECT c.area, SUM(p.amount) FROM PaymentRequest p JOIN p.contractor c WHERE p.paymentStatus = 'PAID' GROUP BY c.area ORDER BY SUM(p.amount) DESC")
         java.util.List<Object[]> sumSpendByArea();
 
-        @org.springframework.data.jpa.repository.Query("SELECT c.zipCode, SUM(p.amount) FROM PaymentRequest p JOIN p.contractor c WHERE p.status = 'PAID' GROUP BY c.zipCode ORDER BY SUM(p.amount) DESC")
+        @org.springframework.data.jpa.repository.Query("SELECT c.zipCode, SUM(p.amount) FROM PaymentRequest p JOIN p.contractor c WHERE p.paymentStatus = 'PAID' GROUP BY c.zipCode ORDER BY SUM(p.amount) DESC")
         java.util.List<Object[]> sumSpendByZipCode();
+
+        List<PaymentRequest> findByContractorArea(String area);
+
+        List<PaymentRequest> findByContractorAreaIsNull();
+
+        List<PaymentRequest> findByContractorZipCode(String zipCode);
+
+        List<PaymentRequest> findByContractorZipCodeIsNull();
+
+        @org.springframework.data.jpa.repository.Query("SELECT SUM(p.amount) FROM PaymentRequest p JOIN p.contractor c WHERE c.area = :area AND p.paymentStatus = 'PAID'")
+        java.math.BigDecimal sumPaidAmountByArea(@org.springframework.data.repository.query.Param("area") String area);
+
+        @org.springframework.data.jpa.repository.Query("SELECT SUM(p.amount) FROM PaymentRequest p JOIN p.contractor c WHERE (c.area IS NULL OR c.area = '') AND p.paymentStatus = 'PAID'")
+        java.math.BigDecimal sumPaidAmountByAreaUnknown();
+
+        @org.springframework.data.jpa.repository.Query("SELECT SUM(p.amount) FROM PaymentRequest p JOIN p.contractor c WHERE c.zipCode = :zip AND p.paymentStatus = 'PAID'")
+        java.math.BigDecimal sumPaidAmountByZip(@org.springframework.data.repository.query.Param("zip") String zip);
+
+        @org.springframework.data.jpa.repository.Query("SELECT SUM(p.amount) FROM PaymentRequest p JOIN p.contractor c WHERE (c.zipCode IS NULL OR c.zipCode = '') AND p.paymentStatus = 'PAID'")
+        java.math.BigDecimal sumPaidAmountByZipUnknown();
 }

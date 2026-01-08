@@ -29,4 +29,12 @@ public interface ContractorRepository extends JpaRepository<Contractor, Long> {
 
         @org.springframework.data.jpa.repository.Query("SELECT c.zipCode, COUNT(c) FROM Contractor c GROUP BY c.zipCode ORDER BY COUNT(c) DESC")
         List<Object[]> countContractorsByZipCode();
+
+        List<Contractor> findByArea(String area);
+
+        List<Contractor> findByAreaIsNull();
+
+        List<Contractor> findByZipCode(String zipCode);
+
+        List<Contractor> findByZipCodeIsNull();
 }

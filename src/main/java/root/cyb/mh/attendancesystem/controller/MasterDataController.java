@@ -1142,6 +1142,72 @@ public class MasterDataController {
         return "master-data/vendor-dashboard";
     }
 
+    @GetMapping("/contractors/analytics/details")
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
+    public String getAnalyticsDetails(@RequestParam("type") String type, @RequestParam("value") String value,
+            Model model) {
+        model.addAttribute("detailType", type);
+        model.addAttribute("detailValue", value);
+
+        java.util.List<Contractor> contractors = new java.util.ArrayList<>();
+        java.util.List<PaymentRequest> payments = new java.util.ArrayList<>();
+
+        if ("area".equalsIgnoreCase(type)) {
+            if (value == null || value.trim().isEmpty() || "Unknown".equalsIgnoreCase(value)
+                    || "Unknown/Not Set".equalsIgnoreCase(value)) {
+                contractors = contractorRepository.findByAreaIsNull();
+                contractors.addAll(contractorRepository.findByArea(""));
+                payments = paymentRequestRepository.findByContractorAreaIsNull();
+                payments.addAll(paymentRequestRepository.findByContractorArea(""));
+                model.addAttribute("subtitle", "Area: Unknown/Not Set");
+            } else {
+                contractors = contractorRepository.findByArea(value);
+                payments = paymentRequestRepository.findByContractorArea(value);
+                model.addAttribute("subtitle", "Area: " + value);
+            }
+        } else if ("zip".equalsIgnoreCase(type)) {
+            if (value == null || value.trim().isEmpty() || "Unknown".equalsIgnoreCase(value)) {
+                contractors = contractorRepository.findByZipCodeIsNull();
+                contractors.addAll(contractorRepository.findByZipCode(""));
+                payments = paymentRequestRepository.findByContractorZipCodeIsNull();
+                payments.addAll(paymentRequestRepository.findByContractorZipCode(""));
+                model.addAttribute("subtitle", "Zip Code: Unknown");
+            } else {
+                contractors = contractorRepository.findByZipCode(value);
+                payments = paymentRequestRepository.findByContractorZipCode(value);
+                model.addAttribute("subtitle", "Zip Code: " + value);
+            }
+        }
+
+        model.addAttribute("contractors", contractors);
+        model.addAttribute("payments", payments);
+
+        // Summary Stats
+        model.addAttribute("totalContractors", contractors.size());
+
+        java.math.BigDecimal totalSpend = java.math.BigDecimal.ZERO;
+        if ("area".equalsIgnoreCase(type)) {
+            if (value == null || value.trim().isEmpty() || "Unknown".equalsIgnoreCase(value)
+                    || "Unknown/Not Set".equalsIgnoreCase(value)) {
+                totalSpend = paymentRequestRepository.sumPaidAmountByAreaUnknown();
+            } else {
+                totalSpend = paymentRequestRepository.sumPaidAmountByArea(value);
+            }
+        } else if ("zip".equalsIgnoreCase(type)) {
+            if (value == null || value.trim().isEmpty() || "Unknown".equalsIgnoreCase(value)) {
+                totalSpend = paymentRequestRepository.sumPaidAmountByZipUnknown();
+            } else {
+                totalSpend = paymentRequestRepository.sumPaidAmountByZip(value);
+            }
+        }
+
+        if (totalSpend == null)
+            totalSpend = java.math.BigDecimal.ZERO;
+        model.addAttribute("totalSpend", totalSpend);
+
+        return "master-data/analytics-details";
+    }
+
     @GetMapping("/clients/{id}/dashboard")
     @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
     public String getClientDashboard(@PathVariable Long id, Model model) {

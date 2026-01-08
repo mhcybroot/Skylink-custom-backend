@@ -443,17 +443,8 @@
                                             <tr th:each="loc, stat : ${locationStats}" th:if="${stat.index < 5}"
                                                 class="border-bottom">
                                                 <td class="ps-4 fw-medium text-dark">
-                                                    <div class="d-flex align-items-center justify-content-between">
-                                                        <div>
-                                                            <i class="fas fa-map-marker-alt me-2 text-muted"></i>
-                                                            <a th:href="@{/master-data/contractors/analytics/details(type='area', value=${loc.area})}"
-                                                                class="text-dark text-decoration-none hover-primary text-truncate"
-                                                                style="max-width: 150px;" th:text="${loc.area}">Area</a>
-                                                        </div>
-                                                        <a th:href="@{/master-data/contractors/analytics/details(type='area', value=${loc.area})}"
-                                                            class="text-muted ms-2" title="View Details"><i
-                                                                class="fas fa-external-link-alt small"></i></a>
-                                                    </div>
+                                                    <i class="fas fa-map-marker-alt me-2 text-muted"></i><span
+                                                        th:text="${loc.area}">Area</span>
                                                 </td>
                                                 <td class="text-center">
                                                     <span class="badge rounded-1 bg-light text-dark border fw-normal"
@@ -506,14 +497,8 @@
                                             <tr th:each="stat, iter : ${zipStats}" th:if="${iter.index < 5}"
                                                 class="border-bottom">
                                                 <td class="ps-4 fw-medium text-dark">
-                                                    <div class="d-flex align-items-center justify-content-between">
-                                                        <a th:href="@{/master-data/contractors/analytics/details(type='zip', value=${stat.zip})}"
-                                                            class="font-monospace bg-light border rounded px-1 text-dark text-decoration-none"
-                                                            th:text="${stat.zip}">00000</a>
-                                                        <a th:href="@{/master-data/contractors/analytics/details(type='zip', value=${stat.zip})}"
-                                                            class="text-muted ms-2" title="View Details"><i
-                                                                class="fas fa-external-link-alt small"></i></a>
-                                                    </div>
+                                                    <span class="font-monospace bg-light border rounded px-1"
+                                                        th:text="${stat.zip}">00000</span>
                                                 </td>
                                                 <td class="text-center">
                                                     <span class="badge rounded-1 bg-light text-dark border fw-normal"
@@ -624,19 +609,9 @@
                                     </thead>
                                     <tbody>
                                         <tr th:each="loc : ${locationStats}" class="border-bottom">
-                                            <td class="ps-4 fw-medium text-dark">
-                                                <div class="d-flex align-items-center justify-content-between">
-                                                    <div>
-                                                        <i class="fas fa-map-marker-alt me-2 text-muted"></i>
-                                                        <a th:href="@{/master-data/contractors/analytics/details(type='area', value=${loc.area})}"
-                                                            class="text-dark text-decoration-none hover-primary"
-                                                            th:text="${loc.area}">Area</a>
-                                                    </div>
-                                                    <a th:href="@{/master-data/contractors/analytics/details(type='area', value=${loc.area})}"
-                                                        class="text-muted ms-2" title="View Details"><i
-                                                            class="fas fa-external-link-alt small"></i></a>
-                                                </div>
-                                            </td>
+                                            <td class="ps-4 fw-medium text-dark"><i
+                                                    class="fas fa-map-marker-alt me-2 text-muted"></i><span
+                                                    th:text="${loc.area}">Area</span></td>
                                             <td class="text-center"><span
                                                     class="badge rounded-1 bg-light text-dark border fw-normal"
                                                     th:text="${loc.count}">0</span></td>
@@ -682,16 +657,9 @@
                                     </thead>
                                     <tbody>
                                         <tr th:each="stat : ${zipStats}" class="border-bottom">
-                                            <td class="ps-4 fw-medium text-dark">
-                                                <div class="d-flex align-items-center justify-content-between">
-                                                    <a th:href="@{/master-data/contractors/analytics/details(type='zip', value=${stat.zip})}"
-                                                        class="font-monospace bg-light border rounded px-1 text-dark text-decoration-none"
-                                                        th:text="${stat.zip}">00000</a>
-                                                    <a th:href="@{/master-data/contractors/analytics/details(type='zip', value=${stat.zip})}"
-                                                        class="text-muted ms-2" title="View Details"><i
-                                                            class="fas fa-external-link-alt small"></i></a>
-                                                </div>
-                                            </td>
+                                            <td class="ps-4 fw-medium text-dark"><span
+                                                    class="font-monospace bg-light border rounded px-1"
+                                                    th:text="${stat.zip}">00000</span></td>
                                             <td class="text-center"><span
                                                     class="badge rounded-1 bg-light text-dark border fw-normal"
                                                     th:text="${stat.count}">0</span></td>
