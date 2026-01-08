@@ -21,6 +21,12 @@ import root.cyb.mh.attendancesystem.repository.PaymentRequestRepository;
 import java.util.List;
 import java.util.Optional;
 
+import java.time.LocalDate;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import root.cyb.mh.attendancesystem.specification.PaymentRequestSpecification;
+
 @Controller
 @RequestMapping("/payment-requests")
 public class PaymentRequestController {
@@ -57,50 +63,184 @@ public class PaymentRequestController {
     private root.cyb.mh.attendancesystem.service.EmailService emailService;
 
     @GetMapping
-    public String listRequests(@RequestParam(required = false) String view,
+    public String listRequests(
+            @RequestParam(required = false) String view,
             @RequestParam(required = false, defaultValue = "lastModified") String sortField,
             @RequestParam(required = false, defaultValue = "desc") String sortDir,
+
+            // Filters
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) Long contractorId,
+            @RequestParam(required = false) Long clientId,
+            @RequestParam(required = false) Long paymentMethodId,
+            @RequestParam(required = false) String workOrderNumber,
+            @RequestParam(required = false) String requesterName,
+            @RequestParam(required = false) PaymentPriority priority,
+            @RequestParam(required = false) RequestStatus status,
+            @RequestParam(required = false) PaymentStatus paymentStatus,
+            @RequestParam(required = false) PPWStatus ppwUpdateStatus,
+
             Model model,
             @AuthenticationPrincipal UserDetails userDetails) {
+
         boolean isAdminOrHr = userDetails.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_HR"));
 
-        List<PaymentRequest> requests;
-        String title = "Payment Requests";
+        Specification<PaymentRequest> spec = createSpecification(
+                startDate, endDate, contractorId, clientId, paymentMethodId,
+                workOrderNumber, requesterName, priority, status, paymentStatus,
+                ppwUpdateStatus, view, userDetails, isAdminOrHr);
 
+        // Security / View Constraints for Title
+        String title = "Payment Requests";
         if (isAdminOrHr) {
-            requests = paymentRequestService.getAllRequests();
             title = "All Payment Requests";
         } else {
             Optional<root.cyb.mh.attendancesystem.model.Employee> empOpt = employeeRepository
                     .findById(userDetails.getUsername());
-            if (empOpt.isPresent()) {
-                root.cyb.mh.attendancesystem.model.Employee employee = empOpt.get();
-                if ("team".equals(view)) {
-                    requests = paymentRequestService.getTeamRequests(employee);
-                    title = "Team Payment Requests";
-                    model.addAttribute("isTeamView", true);
-                } else {
-                    requests = paymentRequestService.getRequestsByRequester(employee);
-                    title = "My Payment Requests";
-                }
+            if (empOpt.isPresent() && "team".equals(view)) {
+                title = "Team Payment Requests";
             } else {
-                requests = List.of();
+                title = "My Payment Requests";
             }
         }
 
-        // Apply Sorting
-        paymentRequestService.sortRequests(requests, sortField, sortDir);
+        // Sorting
+        Sort sort = Sort.by(sortDir.equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC, sortField);
+
+        List<PaymentRequest> requests = paymentRequestRepository.findAll(spec, sort);
 
         model.addAttribute("requests", requests);
         model.addAttribute("pageTitle", title);
 
-        // Sorting params for UI
+        // Sorting params
         model.addAttribute("sortField", sortField);
         model.addAttribute("sortDir", sortDir);
         model.addAttribute("reverseSortDir", sortDir.equals("asc") ? "desc" : "asc");
 
+        // Filter Params for UI
+        model.addAttribute("startDate", startDate);
+        model.addAttribute("endDate", endDate);
+        model.addAttribute("contractorId", contractorId);
+        model.addAttribute("clientId", clientId);
+        model.addAttribute("paymentMethodId", paymentMethodId);
+        model.addAttribute("workOrderNumber", workOrderNumber);
+        model.addAttribute("requesterName", requesterName);
+        model.addAttribute("priority", priority);
+        // Note: 'status' might conflict with RequestStatus enum in Thymeleaf if not
+        // careful, but usually ok as attribute
+        model.addAttribute("status", status);
+        model.addAttribute("paymentStatus", paymentStatus);
+        model.addAttribute("ppwUpdateStatus", ppwUpdateStatus);
+
+        // Master Data for Dropdowns
+        model.addAttribute("activeContractors", contractorRepository.findByActiveTrue());
+        model.addAttribute("activeClients", clientRepository.findByActiveTrue());
+        model.addAttribute("activePaymentMethods", paymentMethodRepository.findByActiveTrue());
+        model.addAttribute("priorities", PaymentPriority.values());
+        model.addAttribute("requestStatuses", RequestStatus.values());
+        model.addAttribute("paymentStatuses", PaymentStatus.values());
+        model.addAttribute("ppwStatuses", PPWStatus.values());
+
         return "payment-request/list";
+    }
+
+    @GetMapping("/export")
+    public void exportRequests(
+            @RequestParam(required = false) String view,
+            @RequestParam(required = false, defaultValue = "lastModified") String sortField,
+            @RequestParam(required = false, defaultValue = "desc") String sortDir,
+            @RequestParam(defaultValue = "pdf") String format,
+            @RequestParam(required = false) List<String> columns,
+
+            // Filters
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) Long contractorId,
+            @RequestParam(required = false) Long clientId,
+            @RequestParam(required = false) Long paymentMethodId,
+            @RequestParam(required = false) String workOrderNumber,
+            @RequestParam(required = false) String requesterName,
+            @RequestParam(required = false) PaymentPriority priority,
+            @RequestParam(required = false) RequestStatus status,
+            @RequestParam(required = false) PaymentStatus paymentStatus,
+            @RequestParam(required = false) PPWStatus ppwUpdateStatus,
+
+            jakarta.servlet.http.HttpServletResponse response,
+            @AuthenticationPrincipal UserDetails userDetails) throws java.io.IOException {
+
+        boolean isAdminOrHr = userDetails.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_HR"));
+
+        Specification<PaymentRequest> spec = createSpecification(
+                startDate, endDate, contractorId, clientId, paymentMethodId,
+                workOrderNumber, requesterName, priority, status, paymentStatus,
+                ppwUpdateStatus, view, userDetails, isAdminOrHr);
+
+        Sort sort = Sort.by(sortDir.equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC, sortField);
+        List<PaymentRequest> requests = paymentRequestRepository.findAll(spec, sort);
+
+        if ("csv".equalsIgnoreCase(format)) {
+            response.setContentType("text/csv");
+            response.setHeader("Content-Disposition", "attachment; filename=payment_requests.csv");
+            dataImportExportService.exportPaymentRequestsToCsv(response.getWriter(), requests, columns);
+        } else {
+            response.setContentType("application/pdf");
+            response.setHeader("Content-Disposition", "attachment; filename=payment_requests.pdf");
+            dataImportExportService.exportPaymentRequestsToPdf(response.getOutputStream(), requests,
+                    "Payment Requests Export", columns);
+        }
+    }
+
+    private Specification<PaymentRequest> createSpecification(
+            LocalDate startDate, LocalDate endDate,
+            Long contractorId, Long clientId, Long paymentMethodId,
+            String workOrderNumber, String requesterName,
+            PaymentPriority priority, RequestStatus status,
+            PaymentStatus paymentStatus, PPWStatus ppwUpdateStatus,
+            String view, UserDetails userDetails, boolean isAdminOrHr) {
+
+        Specification<PaymentRequest> spec = PaymentRequestSpecification.getFilterSpec(
+                startDate, endDate,
+                contractorId, clientId, paymentMethodId,
+                workOrderNumber, requesterName,
+                priority, status, paymentStatus, ppwUpdateStatus);
+
+        if (!isAdminOrHr) {
+            Optional<root.cyb.mh.attendancesystem.model.Employee> empOpt = employeeRepository
+                    .findById(userDetails.getUsername());
+
+            if (empOpt.isPresent()) {
+                root.cyb.mh.attendancesystem.model.Employee employee = empOpt.get();
+                if ("team".equals(view)) {
+                    Specification<PaymentRequest> teamSpec = (root, query, cb) -> {
+                        jakarta.persistence.criteria.Join<PaymentRequest, User> userJoin = root.join("requester",
+                                jakarta.persistence.criteria.JoinType.LEFT);
+                        jakarta.persistence.criteria.Join<PaymentRequest, root.cyb.mh.attendancesystem.model.Employee> empJoin = root
+                                .join("employeeRequester", jakarta.persistence.criteria.JoinType.LEFT);
+                        return cb.or(
+                                cb.equal(userJoin.get("username"), userDetails.getUsername()),
+                                cb.equal(empJoin.get("id"), employee.getId()));
+                    };
+                    spec = spec.and(teamSpec);
+                } else {
+                    Specification<PaymentRequest> selfSpec = (root, query, cb) -> {
+                        jakarta.persistence.criteria.Join<PaymentRequest, User> userJoin = root.join("requester",
+                                jakarta.persistence.criteria.JoinType.LEFT);
+                        jakarta.persistence.criteria.Join<PaymentRequest, root.cyb.mh.attendancesystem.model.Employee> empJoin = root
+                                .join("employeeRequester", jakarta.persistence.criteria.JoinType.LEFT);
+                        return cb.or(
+                                cb.equal(userJoin.get("username"), userDetails.getUsername()),
+                                cb.equal(empJoin.get("id"), employee.getId()));
+                    };
+                    spec = spec.and(selfSpec);
+                }
+            } else {
+                spec = spec.and((root, query, cb) -> cb.disjunction());
+            }
+        }
+        return spec;
     }
 
     @GetMapping("/new")
