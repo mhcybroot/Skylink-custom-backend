@@ -49,6 +49,7 @@ public class PushNotificationService {
         return publicKey;
     }
 
+    @org.springframework.transaction.annotation.Transactional
     public void subscribe(String username, String endpoint, String p256dh, String auth) {
         // Check if exists
         // Simple logic: delete old if endpoint same? Or strictly unique endpoint
@@ -74,6 +75,7 @@ public class PushNotificationService {
         subscriptionRepository.save(sub);
     }
 
+    @org.springframework.transaction.annotation.Transactional
     public void sendPushNotification(String username, String message) {
         List<PushSubscription> subscriptions = subscriptionRepository.findByUsername(username);
 
