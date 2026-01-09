@@ -361,12 +361,22 @@
                                         <span>Manage Departments</span>
                                     </a>
                                 </div>
-                                <div class="col-md-12">
-                                    <form action="/devices/download" method="post">
-                                        <button type="submit" class="btn btn-outline-success w-100 p-3">
-                                            <i class="fas fa-sync me-2"></i> Sync All Devices (Download Logs)
+                                <div class="col-md-6">
+                                    <form action="/devices/download" method="post" class="h-100">
+                                        <button type="submit"
+                                            class="btn btn-outline-success w-100 p-3 h-100 d-flex flex-column align-items-center justify-content-center">
+                                            <i class="fas fa-sync fa-2x mb-2"></i>
+                                            <span>Sync Devices</span>
                                         </button>
                                     </form>
+                                </div>
+                                <div class="col-md-6">
+                                    <button
+                                        class="btn btn-outline-dark w-100 p-3 h-100 d-flex flex-column align-items-center justify-content-center"
+                                        data-bs-toggle="modal" data-bs-target="#importWorkOrderModal">
+                                        <i class="fas fa-file-csv fa-2x mb-2"></i>
+                                        <span>Import Work Orders</span>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -521,6 +531,33 @@
 
         </script>
     </div>
+    <!-- Import Work Order Modal -->
+    <div class="modal fade" id="importWorkOrderModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border rounded-1 shadow">
+                <div class="modal-header bg-dark text-white py-3 rounded-top-1">
+                    <h6 class="modal-title fw-bold"><i class="fas fa-file-import me-2"></i>Import Work Orders</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form action="/data/import" method="post" enctype="multipart/form-data">
+                        <input type="hidden" name="type" value="workorders">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-muted text-uppercase">Select CSV File</label>
+                            <input type="file" name="file" class="form-control rounded-1" accept=".csv" required>
+                            <div class="form-text small">Please upload a valid Work Orders CSV file.</div>
+                        </div>
+                        <div class="text-end border-top pt-3 mt-4">
+                            <button type="button" class="btn btn-sm btn-outline-secondary rounded-1 me-1"
+                                data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-sm btn-dark rounded-1 px-4">Import Data</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
+
 
 </html>

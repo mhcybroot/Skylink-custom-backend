@@ -9,6 +9,8 @@ import java.util.List;
 public interface ContractorRepository extends JpaRepository<Contractor, Long> {
         List<Contractor> findByActiveTrue();
 
+        java.util.Optional<Contractor> findByName(String name);
+
         List<Contractor> findByActiveTrue(org.springframework.data.domain.Sort sort);
 
         @org.springframework.data.jpa.repository.Query("SELECT c FROM Contractor c WHERE " +

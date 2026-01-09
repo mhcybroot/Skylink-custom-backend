@@ -8,4 +8,6 @@ import java.util.List;
 @Repository
 public interface ClientRepository extends JpaRepository<Client, Long> {
     List<Client> findByActiveTrue();
+
+    java.util.Optional<Client> findByCode(String code);
 }

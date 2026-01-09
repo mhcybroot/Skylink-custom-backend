@@ -71,6 +71,9 @@ public class DataManagementController {
             case "users":
                 dataService.importUsers(file.getInputStream());
                 break;
+            case "workorders":
+                dataService.importWorkOrders(file.getInputStream());
+                return "redirect:/dashboard?success=import";
             default:
                 return "redirect:/settings?error=unknowntype";
         }

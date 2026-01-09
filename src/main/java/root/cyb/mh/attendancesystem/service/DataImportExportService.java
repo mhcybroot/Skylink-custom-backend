@@ -28,6 +28,12 @@ public class DataImportExportService {
     private WorkScheduleRepository workScheduleRepository;
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private WorkOrderRepository workOrderRepository;
+    @Autowired
+    private ClientRepository clientRepository;
+    @Autowired
+    private ContractorRepository contractorRepository;
 
     // --- EXPORT METODS ---
 
@@ -716,5 +722,113 @@ public class DataImportExportService {
         c2.setPaddingTop(10);
         c2.setPaddingBottom(10);
         table.addCell(c2);
+    }
+
+    public void importWorkOrders(InputStream is) throws IOException {
+        BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+        Iterable<CSVRecord> records = CSVFormat.DEFAULT.withFirstRecordAsHeader().parse(reader);
+        java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("MM-dd-yy");
+
+        for (CSVRecord record : records) {
+            String woNum = record.get("WO #");
+            // Skip empty rows
+            if (woNum == null || woNum.trim().isEmpty())
+                continue;
+
+            WorkOrder wo = workOrderRepository.findByWoNumber(woNum).orElse(new WorkOrder());
+            wo.setWoNumber(woNum);
+            wo.setStatus(record.get("Status"));
+            wo.setWorkType(record.get("Work Type"));
+
+            // Date Due
+            String dateDueStr = record.get("Date Due");
+            if (dateDueStr != null && !dateDueStr.equals("00-00-00") && !dateDueStr.isEmpty()) {
+                try {
+                    wo.setDateDue(LocalDate.parse(dateDueStr, formatter));
+                } catch (Exception e) {
+                }
+            }
+
+            // Client
+            String clientCode = record.get("Client");
+            wo.setOriginalClientString(clientCode);
+            if (clientCode != null && !clientCode.trim().isEmpty() && !clientCode.trim().equals("-")) {
+                wo.setClient(clientRepository.findByCode(clientCode)
+                        .orElseGet(() -> {
+                            Client newClient = new Client();
+                            newClient.setCode(clientCode);
+                            newClient.setName(clientCode); // Default name to code
+                            newClient.setActive(true);
+                            return clientRepository.save(newClient);
+                        }));
+            }
+
+            // Contractor
+            String contName = record.get("Contractor");
+            wo.setOriginalContractorString(contName);
+            if (contName != null && !contName.trim().isEmpty() && !contName.trim().equals("-")) {
+                wo.setContractor(contractorRepository.findByName(contName)
+                        .orElseGet(() -> {
+                            Contractor newCont = new Contractor();
+                            newCont.setName(contName);
+                            newCont.setActive(true);
+                            return contractorRepository.save(newCont);
+                        }));
+            }
+
+            wo.setAddress(record.get("Address"));
+            wo.setCity(record.get("City"));
+            wo.setState(record.get("State"));
+            wo.setZip(record.get("Zip"));
+
+            String photos = record.get("Photos");
+            if (photos != null && !photos.isEmpty()) {
+                try {
+                    wo.setPhotosCount(Integer.parseInt(photos));
+                } catch (NumberFormatException e) {
+                }
+            }
+
+            wo.setAdmin(record.get("Admin"));
+            wo.setCategory(record.get("Category"));
+
+            // Date Received
+            String dateRecStr = record.get("Date Received");
+            if (dateRecStr != null && !dateRecStr.equals("00-00-00") && !dateRecStr.isEmpty()) {
+                try {
+                    wo.setDateReceived(LocalDate.parse(dateRecStr, formatter));
+                } catch (Exception e) {
+                }
+            }
+
+            // Invoices
+            wo.setContractorInvoicePaid("Yes".equalsIgnoreCase(record.get("Cont. Invoice Paid")));
+            wo.setClientInvoicePaid("Yes".equalsIgnoreCase(record.get("Client Invoice Paid")));
+
+            try {
+                String cTotal = record.get("Client Invoice Total");
+                if (cTotal != null && !cTotal.isEmpty())
+                    wo.setClientInvoiceTotal(new java.math.BigDecimal(cTotal));
+            } catch (Exception e) {
+            }
+
+            try {
+                String contTotal = record.get("Cont. Invoice Total");
+                if (contTotal != null && !contTotal.isEmpty())
+                    wo.setContractorInvoiceTotal(new java.math.BigDecimal(contTotal));
+            } catch (Exception e) {
+            }
+
+            // Invoice Date
+            String invDateStr = record.get("Invoice Date");
+            if (invDateStr != null && !invDateStr.equals("00-00-00") && !invDateStr.isEmpty()) {
+                try {
+                    wo.setInvoiceDate(LocalDate.parse(invDateStr, formatter));
+                } catch (Exception e) {
+                }
+            }
+
+            workOrderRepository.save(wo);
+        }
     }
 }
