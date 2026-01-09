@@ -108,6 +108,22 @@ public class WorkOrderController {
                 .collect(Collectors.toList());
         stats.setTopContractors(top5);
 
+        // Work Orders Over Time
+        List<Object[]> overTimeData = workOrderRepository.findWorkOrderCountsByMonth();
+        Map<String, Long> overTimeMap = new java.util.LinkedHashMap<>();
+        java.time.format.DateTimeFormatter monthYearFmt = java.time.format.DateTimeFormatter.ofPattern("MMM yyyy");
+
+        for (Object[] row : overTimeData) {
+            Integer year = (Integer) row[0];
+            Integer month = (Integer) row[1];
+            Long count = (Long) row[2];
+            if (year != null && month != null) {
+                java.time.YearMonth ym = java.time.YearMonth.of(year, month);
+                overTimeMap.put(ym.format(monthYearFmt), count);
+            }
+        }
+        stats.setWorkOrdersOverTime(overTimeMap);
+
         model.addAttribute("stats", stats);
         model.addAttribute("activeLink", "work-orders");
         return "work-order/dashboard";

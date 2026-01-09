@@ -21,8 +21,10 @@ public class WorkOrderDashboardDTO {
     private BigDecimal avgCost;
     private BigDecimal avgMargin;
 
+    // Charts
     private Map<String, Long> statusDistribution;
     private List<ContractorStat> topContractors;
+    private Map<String, Long> workOrdersOverTime;
 
     @Data
     public static class ContractorStat {

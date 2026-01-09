@@ -33,4 +33,7 @@ public interface WorkOrderRepository extends JpaRepository<WorkOrder, Long> {
 
     @Query("SELECT w FROM WorkOrder w WHERE w.status NOT IN ('Closed', 'Complete', 'Cancelled') OR w.status IS NULL")
     List<WorkOrder> findOpenWorkOrders();
+
+    @Query("SELECT YEAR(w.dateReceived), MONTH(w.dateReceived), COUNT(w) FROM WorkOrder w WHERE w.dateReceived IS NOT NULL GROUP BY YEAR(w.dateReceived), MONTH(w.dateReceived) ORDER BY YEAR(w.dateReceived), MONTH(w.dateReceived)")
+    List<Object[]> findWorkOrderCountsByMonth();
 }
