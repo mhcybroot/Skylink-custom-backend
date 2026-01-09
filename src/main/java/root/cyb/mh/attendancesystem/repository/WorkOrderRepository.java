@@ -48,4 +48,7 @@ public interface WorkOrderRepository extends JpaRepository<WorkOrder, Long> {
 
     @Query("SELECT w.contractor.name, w.contractorInvoiceTotal, w.dateReceived, w.invoiceDate FROM WorkOrder w WHERE w.contractor IS NOT NULL AND w.invoiceDate IS NOT NULL AND w.dateReceived IS NOT NULL")
     List<Object[]> findContractorPerformanceData();
+
+    @Query("SELECT w.workType, w.dateReceived, w.invoiceDate FROM WorkOrder w WHERE w.workType IS NOT NULL AND w.invoiceDate IS NOT NULL AND w.dateReceived IS NOT NULL")
+    List<Object[]> findCycleTimeByWorkType();
 }

@@ -209,6 +209,56 @@ public class WorkOrderController {
         stats.setContractorScorecards(scorecards);
         stats.setBenchmark(new WorkOrderDashboardDTO.ScorecardBenchmark(globalAvgCost, globalAvgDays));
 
+        // Cycle Time Analysis
+        // By Work Type
+        List<Object[]> workTypeCycleData = workOrderRepository.findCycleTimeByWorkType();
+        Map<String, List<Long>> byWorkTypeRaw = workTypeCycleData.stream().collect(Collectors.groupingBy(
+                row -> (String) row[0],
+                Collectors.mapping(row -> {
+                    java.time.LocalDate dr = (java.time.LocalDate) row[1];
+                    java.time.LocalDate inv = (java.time.LocalDate) row[2];
+                    return java.time.temporal.ChronoUnit.DAYS.between(dr, inv);
+                }, Collectors.toList())));
+        Map<String, Double> byWorkType = new java.util.LinkedHashMap<>();
+        byWorkTypeRaw.entrySet().stream()
+                .sorted((a, b) -> Double.compare(
+                        b.getValue().stream().mapToLong(Long::longValue).average().orElse(0),
+                        a.getValue().stream().mapToLong(Long::longValue).average().orElse(0)))
+                .forEach(e -> byWorkType.put(e.getKey(),
+                        e.getValue().stream().mapToLong(Long::longValue).average().orElse(0)));
+
+        // By Contractor (from existing data)
+        Map<String, Double> byContractor = new java.util.LinkedHashMap<>();
+        scorecards.stream()
+                .sorted((a, b) -> Double.compare(b.getAverageDaysToComplete(), a.getAverageDaysToComplete()))
+                .forEach(s -> byContractor.put(s.getName(), s.getAverageDaysToComplete()));
+
+        // Histogram Distribution
+        Map<String, Long> distribution = new java.util.LinkedHashMap<>();
+        distribution.put("0-3 days", 0L);
+        distribution.put("4-7 days", 0L);
+        distribution.put("8-14 days", 0L);
+        distribution.put("15-30 days", 0L);
+        distribution.put("30+ days", 0L);
+
+        rawPerfData.forEach(row -> {
+            java.time.LocalDate dr = (java.time.LocalDate) row[2];
+            java.time.LocalDate inv = (java.time.LocalDate) row[3];
+            long days = java.time.temporal.ChronoUnit.DAYS.between(dr, inv);
+            if (days <= 3)
+                distribution.merge("0-3 days", 1L, Long::sum);
+            else if (days <= 7)
+                distribution.merge("4-7 days", 1L, Long::sum);
+            else if (days <= 14)
+                distribution.merge("8-14 days", 1L, Long::sum);
+            else if (days <= 30)
+                distribution.merge("15-30 days", 1L, Long::sum);
+            else
+                distribution.merge("30+ days", 1L, Long::sum);
+        });
+
+        stats.setCycleTimeAnalysis(new WorkOrderDashboardDTO.CycleTimeAnalysis(byWorkType, byContractor, distribution));
+
         model.addAttribute("stats", stats);
         model.addAttribute("activeLink", "work-orders");
         return "work-order/dashboard";

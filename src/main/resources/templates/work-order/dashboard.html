@@ -296,6 +296,45 @@
                 </div>
             </div>
 
+            <!-- Cycle Time Analysis -->
+            <div class="row g-4 mb-5">
+                <!-- Histogram -->
+                <div class="col-md-4">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header bg-white py-3">
+                            <h6 class="mb-0 fw-bold">Cycle Time Distribution</h6>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="cycleHistogramChart" height="250"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- By Work Type -->
+                <div class="col-md-4">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header bg-white py-3">
+                            <h6 class="mb-0 fw-bold">Avg Cycle Time by Work Type</h6>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="cycleByWorkTypeChart" height="250"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- By Contractor -->
+                <div class="col-md-4">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header bg-white py-3">
+                            <h6 class="mb-0 fw-bold">Avg Cycle Time by Contractor</h6>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="cycleByContractorChart" height="250"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </section>
         <script th:inline="javascript">
             /*<![CDATA[*/
@@ -505,6 +544,77 @@
                         plugins: {
                             legend: { display: false }
                         }
+                    }
+                });
+
+                // Cycle Time Histogram
+                const cycleHistogramCtx = document.getElementById('cycleHistogramChart').getContext('2d');
+                const cycleDistribution = /*[[${stats.cycleTimeAnalysis.distribution}]]*/ {};
+
+                new Chart(cycleHistogramCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(cycleDistribution),
+                        datasets: [{
+                            label: 'Work Orders',
+                            data: Object.values(cycleDistribution),
+                            backgroundColor: '#17a2b8',
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+                        plugins: { legend: { display: false } }
+                    }
+                });
+
+                // Cycle Time by Work Type
+                const cycleByWorkTypeCtx = document.getElementById('cycleByWorkTypeChart').getContext('2d');
+                const cycleByWorkType = /*[[${stats.cycleTimeAnalysis.byWorkType}]]*/ {};
+
+                new Chart(cycleByWorkTypeCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(cycleByWorkType),
+                        datasets: [{
+                            label: 'Avg Days',
+                            data: Object.values(cycleByWorkType),
+                            backgroundColor: '#6f42c1',
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: 'y',
+                        scales: { x: { beginAtZero: true } },
+                        plugins: { legend: { display: false } }
+                    }
+                });
+
+                // Cycle Time by Contractor
+                const cycleByContractorCtx = document.getElementById('cycleByContractorChart').getContext('2d');
+                const cycleByContractor = /*[[${stats.cycleTimeAnalysis.byContractor}]]*/ {};
+
+                new Chart(cycleByContractorCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(cycleByContractor),
+                        datasets: [{
+                            label: 'Avg Days',
+                            data: Object.values(cycleByContractor),
+                            backgroundColor: '#fd7e14',
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: 'y',
+                        scales: { x: { beginAtZero: true } },
+                        plugins: { legend: { display: false } }
                     }
                 });
             });

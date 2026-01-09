@@ -34,6 +34,24 @@ public class WorkOrderDashboardDTO {
     private List<ContractorScorecard> contractorScorecards;
     private ScorecardBenchmark benchmark;
 
+    // Cycle Time Analysis
+    private CycleTimeAnalysis cycleTimeAnalysis;
+
+    @Data
+    @AllArgsConstructor
+    public static class CycleTimeAnalysis {
+        private Map<String, Double> byWorkType;
+        private Map<String, Double> byContractor;
+        private Map<String, Long> distribution; // Histogram buckets
+    }
+
+    @Data
+    @AllArgsConstructor
+    public static class ScorecardBenchmark {
+        private BigDecimal globalAverageCost;
+        private Double globalAverageDays;
+    }
+
     @Data
     @AllArgsConstructor
     public static class ClientStat {
@@ -62,13 +80,6 @@ public class WorkOrderDashboardDTO {
         private long totalWorkOrders;
         private BigDecimal averageCost;
         private Double averageDaysToComplete;
-    }
-
-    @Data
-    @AllArgsConstructor
-    public static class ScorecardBenchmark {
-        private BigDecimal globalAverageCost;
-        private Double globalAverageDays;
     }
 
     @Data
