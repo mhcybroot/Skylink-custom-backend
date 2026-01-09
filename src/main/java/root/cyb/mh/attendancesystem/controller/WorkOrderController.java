@@ -152,6 +152,63 @@ public class WorkOrderController {
                 .collect(Collectors.toList());
         stats.setStateDistribution(stateStats);
 
+        // Contractor Scorecards
+        List<Object[]> rawPerfData = workOrderRepository.findContractorPerformanceData();
+
+        // Process data to compute metrics per contractor
+        Map<String, List<Object[]>> groupedByContractor = rawPerfData.stream()
+                .collect(Collectors.groupingBy(row -> (String) row[0]));
+
+        List<WorkOrderDashboardDTO.ContractorScorecard> scorecards = new java.util.ArrayList<>();
+        BigDecimal globalSumCost = BigDecimal.ZERO;
+        double globalSumDays = 0;
+        long globalCount = 0;
+
+        for (Map.Entry<String, List<Object[]>> entry : groupedByContractor.entrySet()) {
+            String name = entry.getKey();
+            List<Object[]> rows = entry.getValue();
+            long count = rows.size();
+
+            BigDecimal sumCost = BigDecimal.ZERO;
+            long sumDays = 0;
+
+            for (Object[] row : rows) {
+                BigDecimal cost = (BigDecimal) row[1];
+                java.time.LocalDate dateReceived = (java.time.LocalDate) row[2];
+                java.time.LocalDate invoiceDate = (java.time.LocalDate) row[3];
+
+                if (cost != null)
+                    sumCost = sumCost.add(cost);
+                if (dateReceived != null && invoiceDate != null) {
+                    long days = java.time.temporal.ChronoUnit.DAYS.between(dateReceived, invoiceDate);
+                    sumDays += Math.max(0, days); // Ensure no negative days
+                }
+            }
+
+            BigDecimal avgCost = count > 0
+                    ? sumCost.divide(BigDecimal.valueOf(count), 2, java.math.RoundingMode.HALF_UP)
+                    : BigDecimal.ZERO;
+            double avgDays = count > 0 ? (double) sumDays / count : 0.0;
+
+            scorecards.add(new WorkOrderDashboardDTO.ContractorScorecard(name, count, avgCost, avgDays));
+
+            globalSumCost = globalSumCost.add(sumCost);
+            globalSumDays += sumDays;
+            globalCount += count;
+        }
+
+        // Compute Benchmark
+        BigDecimal globalAvgCost = globalCount > 0
+                ? globalSumCost.divide(BigDecimal.valueOf(globalCount), 2, java.math.RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
+        double globalAvgDays = globalCount > 0 ? globalSumDays / globalCount : 0.0;
+
+        // Sort scorecards by Volume desc
+        scorecards.sort((a, b) -> Long.compare(b.getTotalWorkOrders(), a.getTotalWorkOrders()));
+
+        stats.setContractorScorecards(scorecards);
+        stats.setBenchmark(new WorkOrderDashboardDTO.ScorecardBenchmark(globalAvgCost, globalAvgDays));
+
         model.addAttribute("stats", stats);
         model.addAttribute("activeLink", "work-orders");
         return "work-order/dashboard";

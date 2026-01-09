@@ -45,4 +45,7 @@ public interface WorkOrderRepository extends JpaRepository<WorkOrder, Long> {
 
     @Query("SELECT w.state, COUNT(w) as cnt FROM WorkOrder w WHERE w.state IS NOT NULL GROUP BY w.state ORDER BY cnt DESC")
     List<Object[]> findWorkOrderDistributionByState();
+
+    @Query("SELECT w.contractor.name, w.contractorInvoiceTotal, w.dateReceived, w.invoiceDate FROM WorkOrder w WHERE w.contractor IS NOT NULL AND w.invoiceDate IS NOT NULL AND w.dateReceived IS NOT NULL")
+    List<Object[]> findContractorPerformanceData();
 }

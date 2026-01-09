@@ -30,6 +30,10 @@ public class WorkOrderDashboardDTO {
     private List<WorkTypeStat> workTypeMargins;
     private List<StateStat> stateDistribution;
 
+    // Performance Scorecards
+    private List<ContractorScorecard> contractorScorecards;
+    private ScorecardBenchmark benchmark;
+
     @Data
     @AllArgsConstructor
     public static class ClientStat {
@@ -49,6 +53,22 @@ public class WorkOrderDashboardDTO {
     public static class WorkTypeStat {
         private String workType;
         private BigDecimal totalMargin;
+    }
+
+    @Data
+    @AllArgsConstructor
+    public static class ContractorScorecard {
+        private String name;
+        private long totalWorkOrders;
+        private BigDecimal averageCost;
+        private Double averageDaysToComplete;
+    }
+
+    @Data
+    @AllArgsConstructor
+    public static class ScorecardBenchmark {
+        private BigDecimal globalAverageCost;
+        private Double globalAverageDays;
     }
 
     @Data
