@@ -252,9 +252,20 @@
                 const statusLabels = Object.keys(statusDist);
                 const statusData = Object.values(statusDist);
                 const statusColors = statusLabels.map(s => {
-                    if (s === 'Complete') return '#198754';
-                    if (s === 'Cancelled') return '#6c757d';
-                    return '#ffc107'; // In Progress / Unknown
+                    const status = (s || '').trim(); // Normalizing
+                    switch (status) {
+                        case 'Unassigned': return '#ffc107'; // Yellow
+                        case 'Approved and Assigned': return '#0dcaf0'; // Cyan
+                        case 'Infield': return '#0d6efd'; // Blue
+                        case 'Ready for Office': return '#6f42c1'; // Purple
+                        case 'Review Needed': return '#fd7e14'; // Orange
+                        case 'Completed': return '#198754'; // Green
+                        case 'Past Due': return '#dc3545'; // Red
+                        case 'Closed':
+                        case 'Closed / Complete': return '#083d77'; // Gray
+                        case 'Cancelled': return '#00171f'; // Dark Gray
+                        default: return '#e9ecef'; // Light Gray
+                    }
                 });
 
                 new Chart(statusCtx, {
