@@ -88,6 +88,12 @@ public class WorkOrderController {
         stats.setCancelledWorkOrders(cancelled);
         stats.setStatusDistribution(dist);
 
+        // Invoice Payment Status Counts (only where amount > 0)
+        stats.setClientInvoicesPaid(workOrderRepository.countClientInvoicesByPaid(true));
+        stats.setClientInvoicesUnpaid(workOrderRepository.countClientInvoicesByPaid(false));
+        stats.setContractorInvoicesPaid(workOrderRepository.countContractorInvoicesByPaid(true));
+        stats.setContractorInvoicesUnpaid(workOrderRepository.countContractorInvoicesByPaid(false));
+
         // Averages
         if (total > 0) {
             BigDecimal divisor = new BigDecimal(total);

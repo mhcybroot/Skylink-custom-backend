@@ -13,6 +13,12 @@ public class WorkOrderDashboardDTO {
     private long closedWorkOrders;
     private long cancelledWorkOrders;
 
+    // Invoice Payment Status
+    private long clientInvoicesPaid;
+    private long clientInvoicesUnpaid;
+    private long contractorInvoicesPaid;
+    private long contractorInvoicesUnpaid;
+
     private BigDecimal totalRevenue; // Client Invoice Total
     private BigDecimal totalCost; // Contractor Invoice Total
     private BigDecimal totalMargin;

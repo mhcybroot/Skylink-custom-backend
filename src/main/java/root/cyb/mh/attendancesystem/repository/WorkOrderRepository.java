@@ -2,6 +2,7 @@ package root.cyb.mh.attendancesystem.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import root.cyb.mh.attendancesystem.model.WorkOrder;
 
@@ -57,4 +58,10 @@ public interface WorkOrderRepository extends JpaRepository<WorkOrder, Long> {
 
     @Query("SELECT w.state, SUM(w.clientInvoiceTotal), SUM(w.contractorInvoiceTotal) FROM WorkOrder w WHERE w.state IS NOT NULL GROUP BY w.state")
     List<Object[]> findMarginByState();
+
+    @Query("SELECT COUNT(w) FROM WorkOrder w WHERE w.clientInvoicePaid = :paid AND w.clientInvoiceTotal > 0")
+    long countClientInvoicesByPaid(@Param("paid") boolean paid);
+
+    @Query("SELECT COUNT(w) FROM WorkOrder w WHERE w.contractorInvoicePaid = :paid AND w.contractorInvoiceTotal > 0")
+    long countContractorInvoicesByPaid(@Param("paid") boolean paid);
 }

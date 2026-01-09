@@ -68,6 +68,42 @@
                 </div>
             </div>
 
+            <!-- Invoice Payment Status Cards -->
+            <div class="row g-4 mb-4">
+                <div class="col-md-3">
+                    <div class="card shadow-sm h-100 border-0 border-start border-4 border-success">
+                        <div class="card-body">
+                            <div class="text-muted small text-uppercase fw-bold mb-1">Client Invoices Paid</div>
+                            <div class="h2 mb-0 fw-bold text-success" th:text="${stats.clientInvoicesPaid}">0</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card shadow-sm h-100 border-0 border-start border-4 border-warning">
+                        <div class="card-body">
+                            <div class="text-muted small text-uppercase fw-bold mb-1">Client Invoices Unpaid</div>
+                            <div class="h2 mb-0 fw-bold text-warning" th:text="${stats.clientInvoicesUnpaid}">0</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card shadow-sm h-100 border-0 border-start border-4 border-success">
+                        <div class="card-body">
+                            <div class="text-muted small text-uppercase fw-bold mb-1">Contractor Invoices Paid</div>
+                            <div class="h2 mb-0 fw-bold text-success" th:text="${stats.contractorInvoicesPaid}">0</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card shadow-sm h-100 border-0 border-start border-4 border-danger">
+                        <div class="card-body">
+                            <div class="text-muted small text-uppercase fw-bold mb-1">Contractor Invoices Unpaid</div>
+                            <div class="h2 mb-0 fw-bold text-danger" th:text="${stats.contractorInvoicesUnpaid}">0</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Row 2: Financial Averages -->
             <div class="row g-3 mb-4">
                 <div class="col-md-4">
