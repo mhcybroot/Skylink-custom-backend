@@ -42,4 +42,7 @@ public interface WorkOrderRepository extends JpaRepository<WorkOrder, Long> {
 
     @Query("SELECT w.workType, SUM(w.clientInvoiceTotal), SUM(w.contractorInvoiceTotal) FROM WorkOrder w WHERE w.workType IS NOT NULL GROUP BY w.workType")
     List<Object[]> findWorkTypeMargins();
+
+    @Query("SELECT w.state, COUNT(w) as cnt FROM WorkOrder w WHERE w.state IS NOT NULL GROUP BY w.state ORDER BY cnt DESC")
+    List<Object[]> findWorkOrderDistributionByState();
 }

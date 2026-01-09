@@ -145,6 +145,13 @@ public class WorkOrderController {
                 .collect(Collectors.toList());
         stats.setWorkTypeMargins(margins);
 
+        // State Distribution
+        List<Object[]> stateData = workOrderRepository.findWorkOrderDistributionByState();
+        List<WorkOrderDashboardDTO.StateStat> stateStats = stateData.stream()
+                .map(row -> new WorkOrderDashboardDTO.StateStat((String) row[0], (Long) row[1]))
+                .collect(Collectors.toList());
+        stats.setStateDistribution(stateStats);
+
         model.addAttribute("stats", stats);
         model.addAttribute("activeLink", "work-orders");
         return "work-order/dashboard";

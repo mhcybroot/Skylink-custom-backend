@@ -28,12 +28,20 @@ public class WorkOrderDashboardDTO {
     private Map<String, Long> workOrdersOverTime;
     private List<ClientStat> topClients;
     private List<WorkTypeStat> workTypeMargins;
+    private List<StateStat> stateDistribution;
 
     @Data
     @AllArgsConstructor
     public static class ClientStat {
         private String name;
         private BigDecimal totalRevenue;
+    }
+
+    @Data
+    @AllArgsConstructor
+    public static class StateStat {
+        private String state;
+        private Long count;
     }
 
     @Data
