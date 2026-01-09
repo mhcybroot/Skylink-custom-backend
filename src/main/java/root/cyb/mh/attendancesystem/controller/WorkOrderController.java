@@ -132,6 +132,19 @@ public class WorkOrderController {
                 .collect(Collectors.toList());
         stats.setTopClients(topClients);
 
+        // Margin by Work Type
+        List<Object[]> workTypeData = workOrderRepository.findWorkTypeMargins();
+        List<WorkOrderDashboardDTO.WorkTypeStat> margins = workTypeData.stream()
+                .map(row -> {
+                    String type = (String) row[0];
+                    BigDecimal rev = row[1] != null ? (BigDecimal) row[1] : BigDecimal.ZERO;
+                    BigDecimal cost = row[2] != null ? (BigDecimal) row[2] : BigDecimal.ZERO;
+                    return new WorkOrderDashboardDTO.WorkTypeStat(type, rev.subtract(cost));
+                })
+                .sorted((a, b) -> b.getTotalMargin().compareTo(a.getTotalMargin()))
+                .collect(Collectors.toList());
+        stats.setWorkTypeMargins(margins);
+
         model.addAttribute("stats", stats);
         model.addAttribute("activeLink", "work-orders");
         return "work-order/dashboard";

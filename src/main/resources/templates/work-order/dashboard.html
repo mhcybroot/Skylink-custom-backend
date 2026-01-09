@@ -152,37 +152,54 @@
                 </div>
             </div>
 
-            <!-- Financial Summary Table -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-white py-3">
-                    <h6 class="mb-0 fw-bold">Financial Summary</h6>
+            <!-- Margin by Work Type & Financial Summary -->
+            <div class="row g-4 mb-4">
+                <!-- Margin Chart -->
+                <div class="col-md-8">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header bg-white py-3">
+                            <h6 class="mb-0 fw-bold">Profit Margin by Work Type</h6>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="marginChart" height="300"></canvas>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body p-0">
-                    <table class="table mb-0">
-                        <thead class="bg-light">
-                            <tr>
-                                <th class="ps-4">Category</th>
-                                <th class="text-end pe-4">Amount</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td class="ps-4">Total Client Invoiced (Revenue)</td>
-                                <td class="text-end pe-4 fw-bold text-success"
-                                    th:text="${#numbers.formatCurrency(stats.totalRevenue)}">$0.00</td>
-                            </tr>
-                            <tr>
-                                <td class="ps-4">Total Contractor Paid (Cost)</td>
-                                <td class="text-end pe-4 fw-bold text-danger"
-                                    th:text="${#numbers.formatCurrency(stats.totalCost)}">$0.00</td>
-                            </tr>
-                            <tr class="bg-light">
-                                <td class="ps-4 fw-bold">Net Profit / Margin</td>
-                                <td class="text-end pe-4 fw-bold text-primary"
-                                    th:text="${#numbers.formatCurrency(stats.totalMargin)}">$0.00</td>
-                            </tr>
-                        </tbody>
-                    </table>
+
+                <!-- Financial Summary Table -->
+                <div class="col-md-4">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header bg-white py-3">
+                            <h6 class="mb-0 fw-bold">Financial Summary</h6>
+                        </div>
+                        <div class="card-body p-0">
+                            <table class="table mb-0">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th class="ps-4">Category</th>
+                                        <th class="text-end pe-4">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="ps-4">Total Revenue</td>
+                                        <td class="text-end pe-4 fw-bold text-success"
+                                            th:text="${#numbers.formatCurrency(stats.totalRevenue)}">$0.00</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="ps-4">Total Cost</td>
+                                        <td class="text-end pe-4 fw-bold text-danger"
+                                            th:text="${#numbers.formatCurrency(stats.totalCost)}">$0.00</td>
+                                    </tr>
+                                    <tr class="bg-light">
+                                        <td class="ps-4 fw-bold">Net Profit</td>
+                                        <td class="text-end pe-4 fw-bold text-primary"
+                                            th:text="${#numbers.formatCurrency(stats.totalMargin)}">$0.00</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -293,6 +310,58 @@
                                         }
                                         if (context.parsed.y !== null) {
                                             label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(context.parsed.y);
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+
+                // Margin by Work Type Chart
+                const marginCtx = document.getElementById('marginChart').getContext('2d');
+                const workTypeMargins = /*[[${stats.workTypeMargins}]]*/[];
+
+                const marginLabels = workTypeMargins.map(m => m.workType);
+                const marginData = workTypeMargins.map(m => m.totalMargin);
+
+                new Chart(marginCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: marginLabels,
+                        datasets: [{
+                            label: 'Profit Margin',
+                            data: marginData,
+                            backgroundColor: '#6610f2',
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: 'y',
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function (value) {
+                                        return '$' + value;
+                                    }
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: function (context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed.x !== null) {
+                                            label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(context.parsed.x);
                                         }
                                         return label;
                                     }

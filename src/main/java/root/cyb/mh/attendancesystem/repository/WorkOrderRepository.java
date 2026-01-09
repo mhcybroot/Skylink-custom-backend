@@ -39,4 +39,7 @@ public interface WorkOrderRepository extends JpaRepository<WorkOrder, Long> {
 
     @Query("SELECT w.client.name, SUM(w.clientInvoiceTotal) as total FROM WorkOrder w WHERE w.client IS NOT NULL GROUP BY w.client.name ORDER BY total DESC")
     List<Object[]> findTopClientsByRevenue();
+
+    @Query("SELECT w.workType, SUM(w.clientInvoiceTotal), SUM(w.contractorInvoiceTotal) FROM WorkOrder w WHERE w.workType IS NOT NULL GROUP BY w.workType")
+    List<Object[]> findWorkTypeMargins();
 }
