@@ -36,4 +36,7 @@ public interface WorkOrderRepository extends JpaRepository<WorkOrder, Long> {
 
     @Query("SELECT YEAR(w.dateReceived), MONTH(w.dateReceived), COUNT(w) FROM WorkOrder w WHERE w.dateReceived IS NOT NULL GROUP BY YEAR(w.dateReceived), MONTH(w.dateReceived) ORDER BY YEAR(w.dateReceived), MONTH(w.dateReceived)")
     List<Object[]> findWorkOrderCountsByMonth();
+
+    @Query("SELECT w.client.name, SUM(w.clientInvoiceTotal) as total FROM WorkOrder w WHERE w.client IS NOT NULL GROUP BY w.client.name ORDER BY total DESC")
+    List<Object[]> findTopClientsByRevenue();
 }

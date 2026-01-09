@@ -1,6 +1,7 @@
 package root.cyb.mh.attendancesystem.dto;
 
 import lombok.Data;
+import lombok.AllArgsConstructor;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +26,14 @@ public class WorkOrderDashboardDTO {
     private Map<String, Long> statusDistribution;
     private List<ContractorStat> topContractors;
     private Map<String, Long> workOrdersOverTime;
+    private List<ClientStat> topClients;
+
+    @Data
+    @AllArgsConstructor
+    public static class ClientStat {
+        private String name;
+        private BigDecimal totalRevenue;
+    }
 
     @Data
     public static class ContractorStat {

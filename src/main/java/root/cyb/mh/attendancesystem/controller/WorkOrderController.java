@@ -124,6 +124,14 @@ public class WorkOrderController {
         }
         stats.setWorkOrdersOverTime(overTimeMap);
 
+        // Top Clients by Revenue
+        List<Object[]> topClientsData = workOrderRepository.findTopClientsByRevenue();
+        List<WorkOrderDashboardDTO.ClientStat> topClients = topClientsData.stream()
+                .limit(5)
+                .map(row -> new WorkOrderDashboardDTO.ClientStat((String) row[0], (BigDecimal) row[1]))
+                .collect(Collectors.toList());
+        stats.setTopClients(topClients);
+
         model.addAttribute("stats", stats);
         model.addAttribute("activeLink", "work-orders");
         return "work-order/dashboard";

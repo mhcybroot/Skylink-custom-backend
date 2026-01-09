@@ -116,7 +116,7 @@
             <!-- Charts Row -->
             <div class="row g-4 mb-4">
                 <!-- Status Distribution -->
-                <div class="col-md-5">
+                <div class="col-md-4">
                     <div class="card shadow-sm h-100">
                         <div class="card-header bg-white py-3">
                             <h6 class="mb-0 fw-bold">Status Distribution</h6>
@@ -128,13 +128,25 @@
                 </div>
 
                 <!-- Top Contractors -->
-                <div class="col-md-7">
+                <div class="col-md-4">
                     <div class="card shadow-sm h-100">
                         <div class="card-header bg-white py-3">
-                            <h6 class="mb-0 fw-bold">Top 5 Contractors (by Volume)</h6>
+                            <h6 class="mb-0 fw-bold">Top 5 Contractors (Volume)</h6>
                         </div>
                         <div class="card-body">
                             <canvas id="contractorChart" height="250"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top Clients -->
+                <div class="col-md-4">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header bg-white py-3">
+                            <h6 class="mb-0 fw-bold">Top 5 Clients (Revenue)</h6>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="clientChart" height="250"></canvas>
                         </div>
                     </div>
                 </div>
@@ -230,12 +242,62 @@
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        indexAxis: 'y',
                         scales: {
-                            x: { beginAtZero: true }
+                            y: { beginAtZero: true }
                         },
                         plugins: {
                             legend: { display: false }
+                        }
+                    }
+                });
+
+                // Top Clients Chart
+                const clientCtx = document.getElementById('clientChart').getContext('2d');
+                const topClients = /*[[${stats.topClients}]]*/[];
+
+                const clientLabels = topClients.map(c => c.name);
+                const clientData = topClients.map(c => c.totalRevenue);
+
+                new Chart(clientCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: clientLabels,
+                        datasets: [{
+                            label: 'Revenue',
+                            data: clientData,
+                            backgroundColor: '#198754',
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function (value) {
+                                        return '$' + value;
+                                    }
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: function (context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed.y !== null) {
+                                            label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(context.parsed.y);
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
                         }
                     }
                 });
