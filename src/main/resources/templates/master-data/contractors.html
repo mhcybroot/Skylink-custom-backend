@@ -266,8 +266,11 @@
                                     <div class="col-md-6">
                                         <label class="form-label small fw-bold text-muted text-uppercase">Area /
                                             Location</label>
-                                        <input type="text" class="form-control rounded-1" th:field="*{area}"
-                                            placeholder="e.g. Downtown, NY">
+                                        <select class="form-select rounded-1" th:field="*{area}">
+                                            <option value="">-- Select State --</option>
+                                            <option th:each="state : ${usStates}" th:value="${state}"
+                                                th:text="${state}"></option>
+                                        </select>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label small fw-bold text-muted text-uppercase">Zip
@@ -336,7 +339,11 @@
                                     <div class="col-md-6">
                                         <label class="form-label small fw-bold text-muted text-uppercase">Area /
                                             Location</label>
-                                        <input type="text" class="form-control rounded-1" id="editArea" name="area">
+                                        <select class="form-select rounded-1" id="editArea" name="area">
+                                            <option value="">-- Select State --</option>
+                                            <option th:each="state : ${usStates}" th:value="${state}"
+                                                th:text="${state}"></option>
+                                        </select>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label small fw-bold text-muted text-uppercase">Zip

@@ -27,6 +27,14 @@ public class MasterDataController {
     @Autowired
     private root.cyb.mh.attendancesystem.repository.EmployeeRepository employeeRepository;
 
+    // List of US States
+    private static final java.util.List<String> US_STATES = java.util.Arrays.asList(
+            "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
+            "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
+            "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
+            "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
+            "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY");
+
     // --- CONTRACTORS (Employees, Admin, HR) ---
     @GetMapping("/contractors")
     @PreAuthorize("hasAnyRole('EMPLOYEE', 'ADMIN', 'HR')")
@@ -53,6 +61,7 @@ public class MasterDataController {
         model.addAttribute("reverseDir", dir.equals("asc") ? "desc" : "asc");
 
         model.addAttribute("activePaymentMethods", paymentMethodRepository.findByActiveTrue());
+        model.addAttribute("usStates", US_STATES);
         model.addAttribute("newContractor", new Contractor());
         return "master-data/contractors";
     }
