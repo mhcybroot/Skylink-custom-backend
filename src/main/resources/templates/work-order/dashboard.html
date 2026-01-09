@@ -20,10 +20,44 @@
                 </div>
             </div>
 
-            <!-- Row 1: Status Counts -->
+            <!-- Date Range Filter -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body py-2">
+                    <form method="get" action="/admin/work-orders/dashboard" class="row g-2 align-items-end">
+                        <div class="col-auto">
+                            <label class="form-label small mb-0 text-muted">Start Date</label>
+                            <input type="date" name="startDate" class="form-control form-control-sm"
+                                th:value="${startDate}" />
+                        </div>
+                        <div class="col-auto">
+                            <label class="form-label small mb-0 text-muted">End Date</label>
+                            <input type="date" name="endDate" class="form-control form-control-sm"
+                                th:value="${endDate}" />
+                        </div>
+                        <div class="col-auto">
+                            <button type="submit" class="btn btn-primary btn-sm">
+                                <i class="fas fa-filter me-1"></i> Apply Filter
+                            </button>
+                        </div>
+                        <div class="col-auto">
+                            <a href="/admin/work-orders/dashboard" class="btn btn-outline-secondary btn-sm">
+                                <i class="fas fa-times me-1"></i> Clear
+                            </a>
+                        </div>
+                        <div class="col-auto ms-auto" th:if="${startDate != null and endDate != null}">
+                            <span class="badge bg-info text-dark">
+                                Showing: <span th:text="${#temporals.format(startDate, 'MMM d, yyyy')}"></span>
+                                - <span th:text="${#temporals.format(endDate, 'MMM d, yyyy')}"></span>
+                            </span>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
             <div class="row g-3 mb-3">
                 <div class="col-md-3">
-                    <a href="/admin/work-orders" class="text-decoration-none">
+                    <a th:href="@{/admin/work-orders(startDate=${startDate},endDate=${endDate})}"
+                        class="text-decoration-none">
                         <div
                             class="card shadow-sm h-100 border-0 border-start border-4 border-primary hover-shadow transition">
                             <div class="card-body">
@@ -34,7 +68,8 @@
                     </a>
                 </div>
                 <div class="col-md-3">
-                    <a href="/admin/work-orders?status=open" class="text-decoration-none">
+                    <a th:href="@{/admin/work-orders(status='open',startDate=${startDate},endDate=${endDate})}"
+                        class="text-decoration-none">
                         <div
                             class="card shadow-sm h-100 border-0 border-start border-4 border-warning hover-shadow transition">
                             <div class="card-body">
@@ -45,7 +80,8 @@
                     </a>
                 </div>
                 <div class="col-md-3">
-                    <a href="/admin/work-orders?status=closed" class="text-decoration-none">
+                    <a th:href="@{/admin/work-orders(status='closed',startDate=${startDate},endDate=${endDate})}"
+                        class="text-decoration-none">
                         <div
                             class="card shadow-sm h-100 border-0 border-start border-4 border-success hover-shadow transition">
                             <div class="card-body">
@@ -56,7 +92,8 @@
                     </a>
                 </div>
                 <div class="col-md-3">
-                    <a href="/admin/work-orders?status=cancelled" class="text-decoration-none">
+                    <a th:href="@{/admin/work-orders(status='cancelled',startDate=${startDate},endDate=${endDate})}"
+                        class="text-decoration-none">
                         <div
                             class="card shadow-sm h-100 border-0 border-start border-4 border-secondary hover-shadow transition">
                             <div class="card-body">
@@ -71,7 +108,8 @@
             <!-- Invoice Payment Status Cards -->
             <div class="row g-4 mb-4">
                 <div class="col-md-3">
-                    <a href="/admin/work-orders?clientInvoicePaid=true" class="text-decoration-none">
+                    <a th:href="@{/admin/work-orders(clientInvoicePaid='true',startDate=${startDate},endDate=${endDate})}"
+                        class="text-decoration-none">
                         <div
                             class="card shadow-sm h-100 border-0 border-start border-4 border-success hover-shadow transition">
                             <div class="card-body">
@@ -82,7 +120,8 @@
                     </a>
                 </div>
                 <div class="col-md-3">
-                    <a href="/admin/work-orders?clientInvoicePaid=false" class="text-decoration-none">
+                    <a th:href="@{/admin/work-orders(clientInvoicePaid='false',startDate=${startDate},endDate=${endDate})}"
+                        class="text-decoration-none">
                         <div
                             class="card shadow-sm h-100 border-0 border-start border-4 border-warning hover-shadow transition">
                             <div class="card-body">
@@ -94,7 +133,8 @@
                     </a>
                 </div>
                 <div class="col-md-3">
-                    <a href="/admin/work-orders?contractorInvoicePaid=true" class="text-decoration-none">
+                    <a th:href="@{/admin/work-orders(contractorInvoicePaid='true',startDate=${startDate},endDate=${endDate})}"
+                        class="text-decoration-none">
                         <div
                             class="card shadow-sm h-100 border-0 border-start border-4 border-success hover-shadow transition">
                             <div class="card-body">
@@ -106,7 +146,8 @@
                     </a>
                 </div>
                 <div class="col-md-3">
-                    <a href="/admin/work-orders?contractorInvoicePaid=false" class="text-decoration-none">
+                    <a th:href="@{/admin/work-orders(contractorInvoicePaid='false',startDate=${startDate},endDate=${endDate})}"
+                        class="text-decoration-none">
                         <div
                             class="card shadow-sm h-100 border-0 border-start border-4 border-danger hover-shadow transition">
                             <div class="card-body">
