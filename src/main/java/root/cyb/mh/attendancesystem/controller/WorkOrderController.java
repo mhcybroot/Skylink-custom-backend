@@ -7,6 +7,13 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import root.cyb.mh.attendancesystem.repository.WorkOrderRepository;
 
+import root.cyb.mh.attendancesystem.dto.WorkOrderDashboardDTO;
+import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 @Controller
 @RequestMapping("/admin/work-orders")
 public class WorkOrderController {
@@ -19,5 +26,60 @@ public class WorkOrderController {
         model.addAttribute("workOrders", workOrderRepository.findAll());
         model.addAttribute("activeLink", "work-orders");
         return "work-order/list";
+    }
+
+    @GetMapping("/dashboard")
+    public String workOrderDashboard(Model model) {
+        WorkOrderDashboardDTO stats = new WorkOrderDashboardDTO();
+
+        // Financials
+        BigDecimal totalRev = workOrderRepository.sumClientInvoiceTotal();
+        BigDecimal totalCost = workOrderRepository.sumContractorInvoiceTotal();
+        stats.setTotalRevenue(totalRev != null ? totalRev : BigDecimal.ZERO);
+        stats.setTotalCost(totalCost != null ? totalCost : BigDecimal.ZERO);
+        stats.setTotalMargin(stats.getTotalRevenue().subtract(stats.getTotalCost()));
+
+        // Counts
+        List<Object[]> statusCounts = workOrderRepository.countByStatus();
+        long total = 0;
+        long open = 0;
+        long closed = 0;
+        long cancelled = 0;
+        Map<String, Long> dist = new HashMap<>();
+
+        for (Object[] row : statusCounts) {
+            String status = (String) row[0];
+            Long count = (Long) row[1];
+            if (status == null)
+                status = "Unknown";
+
+            total += count;
+            dist.put(status, count);
+
+            if ("Complete".equalsIgnoreCase(status)) {
+                closed += count;
+            } else if ("Cancelled".equalsIgnoreCase(status)) {
+                cancelled += count;
+            } else {
+                open += count;
+            }
+        }
+        stats.setTotalWorkOrders(total);
+        stats.setOpenWorkOrders(open);
+        stats.setClosedWorkOrders(closed);
+        stats.setCancelledWorkOrders(cancelled);
+        stats.setStatusDistribution(dist);
+
+        // Top Contractors
+        List<Object[]> topContractors = workOrderRepository.findTopContractors();
+        List<WorkOrderDashboardDTO.ContractorStat> top5 = topContractors.stream()
+                .limit(5)
+                .map(row -> new WorkOrderDashboardDTO.ContractorStat((String) row[0], (Long) row[1]))
+                .collect(Collectors.toList());
+        stats.setTopContractors(top5);
+
+        model.addAttribute("stats", stats);
+        model.addAttribute("activeLink", "work-orders");
+        return "work-order/dashboard";
     }
 }
