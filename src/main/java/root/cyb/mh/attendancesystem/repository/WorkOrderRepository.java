@@ -10,8 +10,10 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+
 @Repository
-public interface WorkOrderRepository extends JpaRepository<WorkOrder, Long> {
+public interface WorkOrderRepository extends JpaRepository<WorkOrder, Long>, JpaSpecificationExecutor<WorkOrder> {
     Optional<WorkOrder> findByWoNumber(String woNumber);
 
     @Query("SELECT w.status, COUNT(w) FROM WorkOrder w GROUP BY w.status")

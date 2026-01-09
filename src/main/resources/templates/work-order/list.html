@@ -54,7 +54,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr th:each="wo : ${workOrders}" class="text-nowrap">
+                                <tr th:each="wo : ${workOrders.content}" class="text-nowrap">
                                     <td class="ps-3">
                                         <span class="badge"
                                             th:classappend="${wo.status == 'Complete' ? 'bg-success' : (wo.status == 'In Progress' ? 'bg-warning text-dark' : 'bg-secondary')}"
@@ -91,7 +91,7 @@
                                     <td th:text="${wo.contractorInvoiceTotal}">0.00</td>
                                     <td th:text="${wo.invoiceDate}">2021-01-01</td>
                                 </tr>
-                                <tr th:if="${workOrders.isEmpty()}">
+                                <tr th:if="${workOrders.content.isEmpty()}">
                                     <td colspan="19" class="text-center py-4 text-muted">
                                         <i class="fas fa-inbox fa-3x mb-3 d-block opacity-50"></i>
                                         No work orders found. Import one to get started.
@@ -101,6 +101,12 @@
                         </table>
                     </div>
                 </div>
+                <!-- Pagination Controls -->
+                <!-- Pagination Controls -->
+                <div
+                    th:replace="~{fragments/pagination :: pagination(page=${workOrders}, baseUrl='/admin/work-orders')}">
+                </div>
+
             </div>
 
             <!-- Re-use the existing modal or include it here if not global -->
