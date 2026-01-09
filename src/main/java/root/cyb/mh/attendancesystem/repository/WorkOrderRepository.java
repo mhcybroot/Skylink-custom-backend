@@ -64,4 +64,8 @@ public interface WorkOrderRepository extends JpaRepository<WorkOrder, Long> {
 
     @Query("SELECT COUNT(w) FROM WorkOrder w WHERE w.contractorInvoicePaid = :paid AND w.contractorInvoiceTotal > 0")
     long countContractorInvoicesByPaid(@Param("paid") boolean paid);
+
+    List<WorkOrder> findByClientInvoicePaidAndClientInvoiceTotalGreaterThan(boolean paid, BigDecimal amount);
+
+    List<WorkOrder> findByContractorInvoicePaidAndContractorInvoiceTotalGreaterThan(boolean paid, BigDecimal amount);
 }

@@ -23,7 +23,11 @@ public class WorkOrderController {
     private WorkOrderRepository workOrderRepository;
 
     @GetMapping
-    public String listWorkOrders(@RequestParam(required = false) String status, Model model) {
+    public String listWorkOrders(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Boolean clientInvoicePaid,
+            @RequestParam(required = false) Boolean contractorInvoicePaid,
+            Model model) {
         List<WorkOrder> workOrders;
         String filterName = "All Work Orders";
 
@@ -36,6 +40,14 @@ public class WorkOrderController {
         } else if ("open".equalsIgnoreCase(status)) {
             workOrders = workOrderRepository.findOpenWorkOrders();
             filterName = "Open / In Progress Work Orders";
+        } else if (clientInvoicePaid != null) {
+            workOrders = workOrderRepository.findByClientInvoicePaidAndClientInvoiceTotalGreaterThan(clientInvoicePaid,
+                    BigDecimal.ZERO);
+            filterName = clientInvoicePaid ? "Client Invoices Paid" : "Client Invoices Unpaid";
+        } else if (contractorInvoicePaid != null) {
+            workOrders = workOrderRepository.findByContractorInvoicePaidAndContractorInvoiceTotalGreaterThan(
+                    contractorInvoicePaid, BigDecimal.ZERO);
+            filterName = contractorInvoicePaid ? "Contractor Invoices Paid" : "Contractor Invoices Unpaid";
         } else {
             workOrders = workOrderRepository.findAll();
         }
