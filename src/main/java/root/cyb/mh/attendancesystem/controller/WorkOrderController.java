@@ -5,8 +5,9 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import root.cyb.mh.attendancesystem.repository.WorkOrderRepository;
-
+import root.cyb.mh.attendancesystem.model.WorkOrder;
 import root.cyb.mh.attendancesystem.dto.WorkOrderDashboardDTO;
 import java.math.BigDecimal;
 import java.util.HashMap;
@@ -22,9 +23,26 @@ public class WorkOrderController {
     private WorkOrderRepository workOrderRepository;
 
     @GetMapping
-    public String listWorkOrders(Model model) {
-        model.addAttribute("workOrders", workOrderRepository.findAll());
+    public String listWorkOrders(@RequestParam(required = false) String status, Model model) {
+        List<WorkOrder> workOrders;
+        String filterName = "All Work Orders";
+
+        if ("closed".equalsIgnoreCase(status)) {
+            workOrders = workOrderRepository.findClosedWorkOrders();
+            filterName = "Closed / Complete Work Orders";
+        } else if ("cancelled".equalsIgnoreCase(status)) {
+            workOrders = workOrderRepository.findCancelledWorkOrders();
+            filterName = "Cancelled Work Orders";
+        } else if ("open".equalsIgnoreCase(status)) {
+            workOrders = workOrderRepository.findOpenWorkOrders();
+            filterName = "Open / In Progress Work Orders";
+        } else {
+            workOrders = workOrderRepository.findAll();
+        }
+
+        model.addAttribute("workOrders", workOrders);
         model.addAttribute("activeLink", "work-orders");
+        model.addAttribute("currentFilter", filterName);
         return "work-order/list";
     }
 
@@ -56,7 +74,7 @@ public class WorkOrderController {
             total += count;
             dist.put(status, count);
 
-            if ("Complete".equalsIgnoreCase(status)) {
+            if ("Complete".equalsIgnoreCase(status) || "Closed".equalsIgnoreCase(status)) {
                 closed += count;
             } else if ("Cancelled".equalsIgnoreCase(status)) {
                 cancelled += count;
@@ -69,6 +87,18 @@ public class WorkOrderController {
         stats.setClosedWorkOrders(closed);
         stats.setCancelledWorkOrders(cancelled);
         stats.setStatusDistribution(dist);
+
+        // Averages
+        if (total > 0) {
+            BigDecimal divisor = new BigDecimal(total);
+            stats.setAvgRevenue(stats.getTotalRevenue().divide(divisor, 2, java.math.RoundingMode.HALF_UP));
+            stats.setAvgCost(stats.getTotalCost().divide(divisor, 2, java.math.RoundingMode.HALF_UP));
+            stats.setAvgMargin(stats.getTotalMargin().divide(divisor, 2, java.math.RoundingMode.HALF_UP));
+        } else {
+            stats.setAvgRevenue(BigDecimal.ZERO);
+            stats.setAvgCost(BigDecimal.ZERO);
+            stats.setAvgMargin(BigDecimal.ZERO);
+        }
 
         // Top Contractors
         List<Object[]> topContractors = workOrderRepository.findTopContractors();

@@ -20,39 +20,80 @@
                 </div>
             </div>
 
-            <!-- Metric Cards -->
+            <!-- Row 1: Status Counts -->
+            <div class="row g-3 mb-3">
+                <div class="col-md-3">
+                    <a href="/admin/work-orders" class="text-decoration-none">
+                        <div
+                            class="card shadow-sm h-100 border-0 border-start border-4 border-primary hover-shadow transition">
+                            <div class="card-body">
+                                <div class="text-muted small text-uppercase fw-bold mb-1">Total Work Orders</div>
+                                <div class="h2 mb-0 fw-bold text-dark" th:text="${stats.totalWorkOrders}">0</div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-md-3">
+                    <a href="/admin/work-orders?status=open" class="text-decoration-none">
+                        <div
+                            class="card shadow-sm h-100 border-0 border-start border-4 border-warning hover-shadow transition">
+                            <div class="card-body">
+                                <div class="text-muted small text-uppercase fw-bold mb-1">Open / In Progress</div>
+                                <div class="h2 mb-0 fw-bold text-dark" th:text="${stats.openWorkOrders}">0</div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-md-3">
+                    <a href="/admin/work-orders?status=closed" class="text-decoration-none">
+                        <div
+                            class="card shadow-sm h-100 border-0 border-start border-4 border-success hover-shadow transition">
+                            <div class="card-body">
+                                <div class="text-muted small text-uppercase fw-bold mb-1">Closed / Complete</div>
+                                <div class="h2 mb-0 fw-bold text-success" th:text="${stats.closedWorkOrders}">0</div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-md-3">
+                    <a href="/admin/work-orders?status=cancelled" class="text-decoration-none">
+                        <div
+                            class="card shadow-sm h-100 border-0 border-start border-4 border-secondary hover-shadow transition">
+                            <div class="card-body">
+                                <div class="text-muted small text-uppercase fw-bold mb-1">Cancelled</div>
+                                <div class="h2 mb-0 fw-bold text-muted" th:text="${stats.cancelledWorkOrders}">0</div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Row 2: Financial Averages -->
             <div class="row g-3 mb-4">
-                <div class="col-md-3">
-                    <div class="card shadow-sm h-100 border-0 border-start border-4 border-primary">
+                <div class="col-md-4">
+                    <div class="card shadow-sm h-100">
                         <div class="card-body">
-                            <div class="text-muted small text-uppercase fw-bold mb-1">Total Work Orders</div>
-                            <div class="h2 mb-0 fw-bold text-dark" th:text="${stats.totalWorkOrders}">0</div>
+                            <div class="text-muted small text-uppercase fw-bold mb-1">Avg Revenue / WO</div>
+                            <div class="h3 mb-0 fw-bold text-success"
+                                th:text="${#numbers.formatCurrency(stats.avgRevenue)}">$0.00</div>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="card shadow-sm h-100 border-0 border-start border-4 border-warning">
+                <div class="col-md-4">
+                    <div class="card shadow-sm h-100">
                         <div class="card-body">
-                            <div class="text-muted small text-uppercase fw-bold mb-1">Open / In Progress</div>
-                            <div class="h2 mb-0 fw-bold text-dark" th:text="${stats.openWorkOrders}">0</div>
+                            <div class="text-muted small text-uppercase fw-bold mb-1">Avg Cost / WO</div>
+                            <div class="h3 mb-0 fw-bold text-danger"
+                                th:text="${#numbers.formatCurrency(stats.avgCost)}">$0.00</div>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="card shadow-sm h-100 border-0 border-start border-4 border-success">
+                <div class="col-md-4">
+                    <div class="card shadow-sm h-100">
                         <div class="card-body">
-                            <div class="text-muted small text-uppercase fw-bold mb-1">Total Revenue</div>
-                            <div class="h2 mb-0 fw-bold text-success"
-                                th:text="${#numbers.formatCurrency(stats.totalRevenue)}">$0.00</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card shadow-sm h-100 border-0 border-start border-4 border-info">
-                        <div class="card-body">
-                            <div class="text-muted small text-uppercase fw-bold mb-1">Gross Margin</div>
-                            <div class="h2 mb-0 fw-bold text-primary"
-                                th:text="${#numbers.formatCurrency(stats.totalMargin)}">$0.00</div>
+                            <div class="text-muted small text-uppercase fw-bold mb-1">Avg Margin / WO</div>
+                            <div class="h3 mb-0 fw-bold text-primary"
+                                th:text="${#numbers.formatCurrency(stats.avgMargin)}">$0.00</div>
                         </div>
                     </div>
                 </div>

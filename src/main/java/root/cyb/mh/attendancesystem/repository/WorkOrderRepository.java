@@ -24,4 +24,13 @@ public interface WorkOrderRepository extends JpaRepository<WorkOrder, Long> {
 
     @Query("SELECT w.contractor.name, COUNT(w) as cnt FROM WorkOrder w WHERE w.contractor IS NOT NULL GROUP BY w.contractor.name ORDER BY cnt DESC")
     List<Object[]> findTopContractors();
+
+    @Query("SELECT w FROM WorkOrder w WHERE w.status IN ('Closed', 'Complete')")
+    List<WorkOrder> findClosedWorkOrders();
+
+    @Query("SELECT w FROM WorkOrder w WHERE w.status = 'Cancelled'")
+    List<WorkOrder> findCancelledWorkOrders();
+
+    @Query("SELECT w FROM WorkOrder w WHERE w.status NOT IN ('Closed', 'Complete', 'Cancelled') OR w.status IS NULL")
+    List<WorkOrder> findOpenWorkOrders();
 }

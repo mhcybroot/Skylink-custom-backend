@@ -16,6 +16,11 @@ public class WorkOrderDashboardDTO {
     private BigDecimal totalCost; // Contractor Invoice Total
     private BigDecimal totalMargin;
 
+    // Averages
+    private BigDecimal avgRevenue;
+    private BigDecimal avgCost;
+    private BigDecimal avgMargin;
+
     private Map<String, Long> statusDistribution;
     private List<ContractorStat> topContractors;
 
