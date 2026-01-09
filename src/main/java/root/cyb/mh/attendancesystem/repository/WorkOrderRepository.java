@@ -51,4 +51,10 @@ public interface WorkOrderRepository extends JpaRepository<WorkOrder, Long> {
 
     @Query("SELECT w.workType, w.dateReceived, w.invoiceDate FROM WorkOrder w WHERE w.workType IS NOT NULL AND w.invoiceDate IS NOT NULL AND w.dateReceived IS NOT NULL")
     List<Object[]> findCycleTimeByWorkType();
+
+    @Query("SELECT w.client.name, SUM(w.clientInvoiceTotal), SUM(w.contractorInvoiceTotal) FROM WorkOrder w WHERE w.client IS NOT NULL GROUP BY w.client.name")
+    List<Object[]> findMarginByClient();
+
+    @Query("SELECT w.state, SUM(w.clientInvoiceTotal), SUM(w.contractorInvoiceTotal) FROM WorkOrder w WHERE w.state IS NOT NULL GROUP BY w.state")
+    List<Object[]> findMarginByState();
 }

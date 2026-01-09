@@ -259,6 +259,36 @@ public class WorkOrderController {
 
         stats.setCycleTimeAnalysis(new WorkOrderDashboardDTO.CycleTimeAnalysis(byWorkType, byContractor, distribution));
 
+        // Profitability Analysis
+        // By Client
+        List<Object[]> marginByClientData = workOrderRepository.findMarginByClient();
+        Map<String, BigDecimal> marginByClient = new java.util.LinkedHashMap<>();
+        marginByClientData.stream()
+                .map(row -> {
+                    String name = (String) row[0];
+                    BigDecimal rev = row[1] != null ? (BigDecimal) row[1] : BigDecimal.ZERO;
+                    BigDecimal cost = row[2] != null ? (BigDecimal) row[2] : BigDecimal.ZERO;
+                    return new java.util.AbstractMap.SimpleEntry<>(name, rev.subtract(cost));
+                })
+                .sorted((a, b) -> b.getValue().compareTo(a.getValue()))
+                .limit(10)
+                .forEach(e -> marginByClient.put(e.getKey(), e.getValue()));
+
+        // By State
+        List<Object[]> marginByStateData = workOrderRepository.findMarginByState();
+        Map<String, BigDecimal> marginByState = new java.util.LinkedHashMap<>();
+        marginByStateData.stream()
+                .map(row -> {
+                    String state = (String) row[0];
+                    BigDecimal rev = row[1] != null ? (BigDecimal) row[1] : BigDecimal.ZERO;
+                    BigDecimal cost = row[2] != null ? (BigDecimal) row[2] : BigDecimal.ZERO;
+                    return new java.util.AbstractMap.SimpleEntry<>(state, rev.subtract(cost));
+                })
+                .sorted((a, b) -> b.getValue().compareTo(a.getValue()))
+                .forEach(e -> marginByState.put(e.getKey(), e.getValue()));
+
+        stats.setProfitabilityAnalysis(new WorkOrderDashboardDTO.ProfitabilityAnalysis(marginByClient, marginByState));
+
         model.addAttribute("stats", stats);
         model.addAttribute("activeLink", "work-orders");
         return "work-order/dashboard";

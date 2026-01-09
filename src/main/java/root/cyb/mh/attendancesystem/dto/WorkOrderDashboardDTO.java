@@ -37,12 +37,22 @@ public class WorkOrderDashboardDTO {
     // Cycle Time Analysis
     private CycleTimeAnalysis cycleTimeAnalysis;
 
+    // Profitability Analysis
+    private ProfitabilityAnalysis profitabilityAnalysis;
+
     @Data
     @AllArgsConstructor
     public static class CycleTimeAnalysis {
         private Map<String, Double> byWorkType;
         private Map<String, Double> byContractor;
         private Map<String, Long> distribution; // Histogram buckets
+    }
+
+    @Data
+    @AllArgsConstructor
+    public static class ProfitabilityAnalysis {
+        private Map<String, BigDecimal> byClient;
+        private Map<String, BigDecimal> byState;
     }
 
     @Data
