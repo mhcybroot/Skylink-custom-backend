@@ -25,12 +25,15 @@ public class SecurityConfig {
                                                 .requestMatchers("/iclock/**").permitAll() // Allow ADMS Device
                                                                                            // Communication
                                                 // Admin Only Areas
-                                                .requestMatchers("/settings/**", "/users/**", "/devices/**")
+                                                .requestMatchers("/users/**", "/devices/**")
                                                 .hasRole("ADMIN")
+                                                .requestMatchers("/settings/**").hasAnyRole("ADMIN", "HR")
                                                 .requestMatchers("/employees/add", "/employees/edit/**",
                                                                 "/employees/delete/**")
                                                 .hasAnyRole("ADMIN", "HR")
                                                 .requestMatchers("/admin/shifts/**").hasAnyRole("ADMIN", "HR")
+                                                .requestMatchers("/master-data/**", "/admin/work-orders/**")
+                                                .hasRole("ADMIN")
                                                 .requestMatchers("/departments/add", "/departments/delete/**")
                                                 .hasRole("ADMIN")
                                                 // Employee Area
