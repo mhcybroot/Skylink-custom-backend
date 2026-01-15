@@ -30,6 +30,7 @@ public class SecurityConfig {
                                                 .requestMatchers("/employees/add", "/employees/edit/**",
                                                                 "/employees/delete/**")
                                                 .hasAnyRole("ADMIN", "HR")
+                                                .requestMatchers("/admin/shifts/**").hasAnyRole("ADMIN", "HR")
                                                 .requestMatchers("/departments/add", "/departments/delete/**")
                                                 .hasRole("ADMIN")
                                                 // Employee Area
