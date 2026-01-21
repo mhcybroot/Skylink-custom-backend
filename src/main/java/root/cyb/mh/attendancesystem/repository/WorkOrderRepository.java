@@ -16,6 +16,10 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 public interface WorkOrderRepository extends JpaRepository<WorkOrder, Long>, JpaSpecificationExecutor<WorkOrder> {
     Optional<WorkOrder> findByWoNumber(String woNumber);
 
+    void deleteByImportBatchId(Long importBatchId);
+
+    void deleteByImportBatchIdIsNull();
+
     @Query("SELECT w.status, COUNT(w) FROM WorkOrder w GROUP BY w.status")
     List<Object[]> countByStatus();
 

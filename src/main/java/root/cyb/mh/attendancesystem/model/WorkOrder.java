@@ -36,6 +36,16 @@ public class WorkOrder {
     @JoinColumn(name = "contractor_id")
     private Contractor contractor;
 
+    private Long importBatchId;
+
+    public Long getImportBatchId() {
+        return importBatchId;
+    }
+
+    public void setImportBatchId(Long importBatchId) {
+        this.importBatchId = importBatchId;
+    }
+
     private String originalContractorString; // Raw CSV Value
 
     private Integer photosCount; // Photos

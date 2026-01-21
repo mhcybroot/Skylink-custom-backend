@@ -724,111 +724,146 @@ public class DataImportExportService {
         table.addCell(c2);
     }
 
+    @Autowired
+    private ImportLogRepository importLogRepository;
+
+    @org.springframework.transaction.annotation.Transactional
     public void importWorkOrders(InputStream is) throws IOException {
+        // Create Import Log
+        ImportLog log = new ImportLog();
+        log.setImportDate(java.time.LocalDateTime.now());
+        log.setImportType("WORK_ORDER");
+        log.setStatus("PROCESSING");
+        log = importLogRepository.save(log);
+
         BufferedReader reader = new BufferedReader(new InputStreamReader(is));
-        Iterable<CSVRecord> records = CSVFormat.DEFAULT.withFirstRecordAsHeader().parse(reader);
+        // Use a list to hold records to count them first? Or stream.
+        // Stream is better for memory but we need count for log.
+        // Let's parse all first since CSVs aren't massive.
+        List<CSVRecord> records = CSVFormat.DEFAULT.withFirstRecordAsHeader().parse(reader).getRecords();
+
         java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("MM-dd-yy");
+        int count = 0;
 
-        for (CSVRecord record : records) {
-            String woNum = record.get("WO #");
-            // Skip empty rows
-            if (woNum == null || woNum.trim().isEmpty())
-                continue;
+        try {
+            for (CSVRecord record : records) {
+                String woNum = record.get("WO #");
+                if (woNum == null || woNum.trim().isEmpty())
+                    continue;
 
-            WorkOrder wo = workOrderRepository.findByWoNumber(woNum).orElse(new WorkOrder());
-            wo.setWoNumber(woNum);
-            wo.setStatus(record.get("Status"));
-            wo.setWorkType(record.get("Work Type"));
+                WorkOrder wo = workOrderRepository.findByWoNumber(woNum).orElse(new WorkOrder());
 
-            // Date Due
-            String dateDueStr = record.get("Date Due");
-            if (dateDueStr != null && !dateDueStr.equals("00-00-00") && !dateDueStr.isEmpty()) {
+                // If new, set batch ID. If existing, SHOULD we overwrite batch ID?
+                // Usually yes, latest import source.
+                wo.setImportBatchId(log.getId());
+
+                wo.setWoNumber(woNum);
+                wo.setStatus(record.get("Status"));
+                wo.setWorkType(record.get("Work Type"));
+
+                // Date Due
+                String dateDueStr = record.get("Date Due");
+                if (dateDueStr != null && !dateDueStr.equals("00-00-00") && !dateDueStr.isEmpty()) {
+                    try {
+                        wo.setDateDue(LocalDate.parse(dateDueStr, formatter));
+                    } catch (Exception e) {
+                    }
+                }
+
+                // Client
+                String clientCode = record.get("Client");
+                wo.setOriginalClientString(clientCode);
+                if (clientCode != null && !clientCode.trim().isEmpty() && !clientCode.trim().equals("-")) {
+                    wo.setClient(clientRepository.findByCode(clientCode)
+                            .orElseGet(() -> {
+                                Client newClient = new Client();
+                                newClient.setCode(clientCode);
+                                newClient.setName(clientCode);
+                                newClient.setActive(true);
+                                return clientRepository.save(newClient);
+                            }));
+                }
+
+                // Contractor
+                String contName = record.get("Contractor");
+                wo.setOriginalContractorString(contName);
+                if (contName != null && !contName.trim().isEmpty() && !contName.trim().equals("-")) {
+                    wo.setContractor(contractorRepository.findByName(contName)
+                            .orElseGet(() -> {
+                                Contractor newCont = new Contractor();
+                                newCont.setName(contName);
+                                newCont.setActive(true);
+                                return contractorRepository.save(newCont);
+                            }));
+                }
+
+                wo.setAddress(record.get("Address"));
+                wo.setCity(record.get("City"));
+                wo.setState(record.get("State"));
+                wo.setZip(record.get("Zip"));
+
+                String photos = record.get("Photos");
+                if (photos != null && !photos.isEmpty()) {
+                    try {
+                        wo.setPhotosCount(Integer.parseInt(photos));
+                    } catch (NumberFormatException e) {
+                    }
+                }
+
+                wo.setAdmin(record.get("Admin"));
+                wo.setCategory(record.get("Category"));
+
+                // Date Received
+                String dateRecStr = record.get("Date Received");
+                if (dateRecStr != null && !dateRecStr.equals("00-00-00") && !dateRecStr.isEmpty()) {
+                    try {
+                        wo.setDateReceived(LocalDate.parse(dateRecStr, formatter));
+                    } catch (Exception e) {
+                    }
+                }
+
+                // Invoices
+                wo.setContractorInvoicePaid("Yes".equalsIgnoreCase(record.get("Cont. Invoice Paid")));
+                wo.setClientInvoicePaid("Yes".equalsIgnoreCase(record.get("Client Invoice Paid")));
+
                 try {
-                    wo.setDateDue(LocalDate.parse(dateDueStr, formatter));
+                    String cTotal = record.get("Client Invoice Total");
+                    if (cTotal != null && !cTotal.isEmpty())
+                        wo.setClientInvoiceTotal(new java.math.BigDecimal(cTotal));
                 } catch (Exception e) {
                 }
-            }
 
-            // Client
-            String clientCode = record.get("Client");
-            wo.setOriginalClientString(clientCode);
-            if (clientCode != null && !clientCode.trim().isEmpty() && !clientCode.trim().equals("-")) {
-                wo.setClient(clientRepository.findByCode(clientCode)
-                        .orElseGet(() -> {
-                            Client newClient = new Client();
-                            newClient.setCode(clientCode);
-                            newClient.setName(clientCode); // Default name to code
-                            newClient.setActive(true);
-                            return clientRepository.save(newClient);
-                        }));
-            }
-
-            // Contractor
-            String contName = record.get("Contractor");
-            wo.setOriginalContractorString(contName);
-            if (contName != null && !contName.trim().isEmpty() && !contName.trim().equals("-")) {
-                wo.setContractor(contractorRepository.findByName(contName)
-                        .orElseGet(() -> {
-                            Contractor newCont = new Contractor();
-                            newCont.setName(contName);
-                            newCont.setActive(true);
-                            return contractorRepository.save(newCont);
-                        }));
-            }
-
-            wo.setAddress(record.get("Address"));
-            wo.setCity(record.get("City"));
-            wo.setState(record.get("State"));
-            wo.setZip(record.get("Zip"));
-
-            String photos = record.get("Photos");
-            if (photos != null && !photos.isEmpty()) {
                 try {
-                    wo.setPhotosCount(Integer.parseInt(photos));
-                } catch (NumberFormatException e) {
-                }
-            }
-
-            wo.setAdmin(record.get("Admin"));
-            wo.setCategory(record.get("Category"));
-
-            // Date Received
-            String dateRecStr = record.get("Date Received");
-            if (dateRecStr != null && !dateRecStr.equals("00-00-00") && !dateRecStr.isEmpty()) {
-                try {
-                    wo.setDateReceived(LocalDate.parse(dateRecStr, formatter));
+                    String contTotal = record.get("Cont. Invoice Total");
+                    if (contTotal != null && !contTotal.isEmpty())
+                        wo.setContractorInvoiceTotal(new java.math.BigDecimal(contTotal));
                 } catch (Exception e) {
                 }
-            }
 
-            // Invoices
-            wo.setContractorInvoicePaid("Yes".equalsIgnoreCase(record.get("Cont. Invoice Paid")));
-            wo.setClientInvoicePaid("Yes".equalsIgnoreCase(record.get("Client Invoice Paid")));
-
-            try {
-                String cTotal = record.get("Client Invoice Total");
-                if (cTotal != null && !cTotal.isEmpty())
-                    wo.setClientInvoiceTotal(new java.math.BigDecimal(cTotal));
-            } catch (Exception e) {
-            }
-
-            try {
-                String contTotal = record.get("Cont. Invoice Total");
-                if (contTotal != null && !contTotal.isEmpty())
-                    wo.setContractorInvoiceTotal(new java.math.BigDecimal(contTotal));
-            } catch (Exception e) {
-            }
-
-            // Invoice Date
-            String invDateStr = record.get("Invoice Date");
-            if (invDateStr != null && !invDateStr.equals("00-00-00") && !invDateStr.isEmpty()) {
-                try {
-                    wo.setInvoiceDate(LocalDate.parse(invDateStr, formatter));
-                } catch (Exception e) {
+                // Invoice Date
+                String invDateStr = record.get("Invoice Date");
+                if (invDateStr != null && !invDateStr.equals("00-00-00") && !invDateStr.isEmpty()) {
+                    try {
+                        wo.setInvoiceDate(LocalDate.parse(invDateStr, formatter));
+                    } catch (Exception e) {
+                    }
                 }
+
+                workOrderRepository.save(wo);
+                count++;
             }
 
-            workOrderRepository.save(wo);
+            // Update Log Success
+            log.setRecordsProcessed(count);
+            log.setStatus("SUCCESS");
+            importLogRepository.save(log);
+
+        } catch (Exception e) {
+            // Log Failure
+            log.setStatus("FAILED");
+            log.setErrorMessage(e.getMessage());
+            importLogRepository.save(log);
+            throw e;
         }
     }
 }

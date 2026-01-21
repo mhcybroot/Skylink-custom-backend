@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <title>Import History</title>
+</head>
+
+<body>
+    <div th:replace="~{layout :: layout(~{::section}, ~{::script}, 'import-history')}">
+        <section>
+            <div class="row mb-3">
+                <div class="col-12 d-flex justify-content-between align-items-center">
+                    <div>
+                        <h3 class="fw-bold"><i class="fas fa-history text-primary me-2"></i>Import History</h3>
+                        <p class="text-muted mb-0">View and manage past data imports. Use the 'Undo' button to remove
+                            data added by a specific import.</p>
+                    </div>
+                    <div>
+                        <button class="btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#cleanupModal">
+                            <i class="fas fa-trash-alt me-2"></i> Cleanup Legacy Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cleanup Modal -->
+            <div class="modal fade" id="cleanupModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Confirm Cleanup</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body text-start">
+                            <p class="text-danger fw-bold"><i class="fas fa-exclamation-triangle me-2"></i>Warning:
+                                Irreversible Action</p>
+                            <p>This will delete ALL Work Orders that are <strong>not linked to an import batch</strong>.
+                            </p>
+                            <p class="small text-muted">Use this to remove old data imported before the tracking system
+                                was enabled.</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <form th:action="@{/admin/imports/cleanup}" method="post">
+                                <button type="submit" class="btn btn-danger">Confirm Cleanup</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="ps-4">Date</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                    <th>Records</th>
+                                    <th class="text-end pe-4">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="log : ${logs}">
+                                    <td class="ps-4">
+                                        <div class="fw-bold"
+                                            th:text="${#temporals.format(log.importDate, 'yyyy-MM-dd HH:mm')}">Date
+                                        </div>
+                                        <div class="small text-muted"
+                                            th:text="${#temporals.format(log.importDate, 'h:mm a')}">Time</div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary" th:text="${log.importType}">WORK_ORDER</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge"
+                                            th:classappend="${log.status == 'SUCCESS' ? 'bg-success' : 'bg-danger'}"
+                                            th:text="${log.status}">SUCCESS</span>
+                                        <div th:if="${log.errorMessage}" class="small text-danger mt-1"
+                                            th:text="${log.errorMessage}">Error</div>
+                                    </td>
+                                    <td th:text="${log.recordsProcessed}">100</td>
+                                    <td class="text-end pe-4">
+                                        <button class="btn btn-sm btn-outline-danger" onclick="showUndoModal(this)"
+                                            th:data-id="${log.id}"
+                                            th:data-date="${#temporals.format(log.importDate, 'yyyy-MM-dd HH:mm')}"
+                                            th:data-records="${log.recordsProcessed}">
+                                            <i class="fas fa-undo me-1"></i> Undo Import
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr th:if="${logs.isEmpty()}">
+                                    <td colspan="5" class="text-center py-4 text-muted">
+                                        No import history found.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Single Shared Delete Modal -->
+            <div class="modal fade" id="undoModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Confirm Undo</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body text-start">
+                            <p class="text-danger fw-bold"><i class="fas fa-exclamation-triangle me-2"></i>Warning:
+                                Irreversible Action</p>
+                            <p>Are you sure you want to undo this import?</p>
+                            <ul class="mb-3">
+                                <li>Date: <strong id="modalDate"></strong></li>
+                                <li>Records: <strong id="modalRecords"></strong></li>
+                            </ul>
+                            <p>This will <strong>PERMANENTLY DELETE</strong> all Work Orders associated with this import
+                                batch.</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <form id="undoForm" action="" method="post">
+                                <button type="submit" class="btn btn-danger">Confirm Undo</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+        <script>
+            function showUndoModal(btn) {
+                const id = btn.getAttribute('data-id');
+                const date = btn.getAttribute('data-date');
+                const records = btn.getAttribute('data-records');
+
+                document.getElementById('modalDate').textContent = date;
+                document.getElementById('modalRecords').textContent = records;
+                document.getElementById('undoForm').action = '/admin/imports/' + id + '/delete';
+
+                var myModal = new bootstrap.Modal(document.getElementById('undoModal'));
+                myModal.show();
+            }
+        </script>
+    </div>
+</body>
+
+</html>
