@@ -32,6 +32,8 @@ public class SecurityConfig {
                                                                 "/employees/delete/**")
                                                 .hasAnyRole("ADMIN", "HR")
                                                 .requestMatchers("/admin/shifts/**").hasAnyRole("ADMIN", "HR")
+                                                .requestMatchers("/master-data/contractors/**", "/master-data/api/**")
+                                                .hasAnyRole("ADMIN", "HR", "EMPLOYEE")
                                                 .requestMatchers("/master-data/**", "/admin/work-orders/**")
                                                 .hasRole("ADMIN")
                                                 .requestMatchers("/departments/add", "/departments/delete/**")
