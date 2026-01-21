@@ -282,6 +282,17 @@
                                     <span class="text-muted small">Approval</span>
                                     <span class="fw-bold" th:text="${paymentRequest.status}"></span>
                                 </div>
+                                <div class="d-flex justify-content-between mb-2"
+                                    th:if="${paymentRequest.approvalAuthority != null or paymentRequest.approvalEmployee != null}">
+                                    <span class="text-muted small">Reviewed By</span>
+                                    <span class="fw-bold"
+                                        th:text="${paymentRequest.approvalAuthority != null ? paymentRequest.approvalAuthority.username : paymentRequest.approvalEmployee.name}"></span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2" th:if="${paymentRequest.checkStatus}">
+                                    <span class="text-muted small">Check Info</span>
+                                    <span class="fw-bold small text-end" style="font-size: 0.75rem;"
+                                        th:text="${paymentRequest.checkStatus}"></span>
+                                </div>
                                 <div class="d-flex justify-content-between mb-2">
                                     <span class="text-muted small">Processing</span>
                                     <span class="fw-bold"
