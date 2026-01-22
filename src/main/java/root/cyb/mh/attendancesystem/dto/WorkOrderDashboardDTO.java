@@ -154,6 +154,9 @@ public class WorkOrderDashboardDTO {
     private List<StateStat> moderateMarginHighVolumeStates;
     private List<StateStat> lowRiskStates;
 
+    // Geographic Analysis by Series
+    private List<GeographicSeriesStat> stateSeriesBreakdown;
+
     @Data
     @AllArgsConstructor
     public static class MonthlyStat {
@@ -172,6 +175,18 @@ public class WorkOrderDashboardDTO {
         private String month; // "Jan 2026"
         private String yearMonth; // "2026-01" (for sorting)
         private String seriesName; // "Series 100", "Series 200", etc.
+        private long workOrderCount;
+        private BigDecimal revenue;
+        private BigDecimal cost;
+        private BigDecimal profit;
+        private BigDecimal margin; // Percentage
+    }
+
+    @Data
+    @AllArgsConstructor
+    public static class GeographicSeriesStat {
+        private String location; // State or Zip
+        private String seriesName; // "Series 100", "Series200", etc.
         private long workOrderCount;
         private BigDecimal revenue;
         private BigDecimal cost;

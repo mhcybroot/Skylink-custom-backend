@@ -566,6 +566,74 @@ public class WorkOrderReportService {
                 });
                 System.out.println("=== END DEBUG ===");
 
+                // 4. Geographic Analysis by Series
+                // State × Series breakdown
+                List<WorkOrderDashboardDTO.GeographicSeriesStat> stateSeriesStats = workOrders.stream()
+                                .filter(w -> w.getState() != null && !w.getState().trim().isEmpty()
+                                                && w.getClient() != null)
+                                .collect(Collectors.groupingBy(w -> w.getState().trim().toUpperCase()))
+                                .entrySet().stream()
+                                .flatMap(stateEntry -> {
+                                        String state = stateEntry.getKey();
+
+                                        // Within each state, group by Series
+                                        return stateEntry.getValue().stream()
+                                                        .collect(Collectors.groupingBy(w -> {
+                                                                // Extract Series from Client Code
+                                                                String code = "0";
+                                                                if (w.getClient() != null
+                                                                                && w.getClient().getCode() != null) {
+                                                                        code = w.getClient().getCode()
+                                                                                        .replaceAll("[^0-9]", "");
+                                                                }
+                                                                if (code.isEmpty())
+                                                                        return "Unknown Series";
+                                                                try {
+                                                                        int clientNum = Integer.parseInt(code);
+                                                                        int seriesBase = (clientNum / 100) * 100;
+                                                                        return "Series " + seriesBase;
+                                                                } catch (NumberFormatException e) {
+                                                                        return "Unknown Series";
+                                                                }
+                                                        }))
+                                                        .entrySet().stream()
+                                                        .map(seriesEntry -> {
+                                                                String seriesName = seriesEntry.getKey();
+                                                                List<WorkOrder> orders = seriesEntry.getValue();
+
+                                                                BigDecimal rev = orders.stream()
+                                                                                .map(WorkOrder::getClientInvoiceTotal)
+                                                                                .filter(Objects::nonNull)
+                                                                                .reduce(BigDecimal.ZERO,
+                                                                                                BigDecimal::add);
+
+                                                                BigDecimal cost = orders.stream()
+                                                                                .map(WorkOrder::getContractorInvoiceTotal)
+                                                                                .filter(Objects::nonNull)
+                                                                                .reduce(BigDecimal.ZERO,
+                                                                                                BigDecimal::add);
+
+                                                                BigDecimal profit = rev.subtract(cost);
+                                                                BigDecimal margin = BigDecimal.ZERO;
+                                                                if (rev.compareTo(BigDecimal.ZERO) > 0) {
+                                                                        margin = profit.divide(rev, 4,
+                                                                                        java.math.RoundingMode.HALF_UP)
+                                                                                        .multiply(BigDecimal
+                                                                                                        .valueOf(100));
+                                                                }
+
+                                                                return new WorkOrderDashboardDTO.GeographicSeriesStat(
+                                                                                state, seriesName, orders.size(), rev,
+                                                                                cost, profit, margin);
+                                                        });
+                                })
+                                .sorted(Comparator.comparing(WorkOrderDashboardDTO.GeographicSeriesStat::getLocation)
+                                                .thenComparing(WorkOrderDashboardDTO.GeographicSeriesStat::getRevenue)
+                                                .reversed())
+                                .collect(Collectors.toList());
+
+                stats.setStateSeriesBreakdown(stateSeriesStats);
+
                 return stats;
         }
 }
