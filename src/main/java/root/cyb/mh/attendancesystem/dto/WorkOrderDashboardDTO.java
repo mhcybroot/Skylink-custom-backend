@@ -140,6 +140,9 @@ public class WorkOrderDashboardDTO {
     // Monthly Comparison
     private List<MonthlyStat> monthlyStats;
 
+    // Monthly Performance by Series
+    private List<MonthlySeriesStat> monthlySeriesPerformance;
+
     // Geographic Analysis
     private List<StateStat> topStatesByVolume;
     private List<StateStat> topStatesByRevenue;
@@ -161,6 +164,19 @@ public class WorkOrderDashboardDTO {
         private BigDecimal cost;
         private BigDecimal profit;
         private BigDecimal margin;
+    }
+
+    @Data
+    @AllArgsConstructor
+    public static class MonthlySeriesStat {
+        private String month; // "Jan 2026"
+        private String yearMonth; // "2026-01" (for sorting)
+        private String seriesName; // "Series 100", "Series 200", etc.
+        private long workOrderCount;
+        private BigDecimal revenue;
+        private BigDecimal cost;
+        private BigDecimal profit;
+        private BigDecimal margin; // Percentage
     }
 
     @Data

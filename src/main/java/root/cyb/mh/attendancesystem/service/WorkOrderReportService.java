@@ -396,6 +396,78 @@ public class WorkOrderReportService {
 
                 stats.setMonthlyStats(monthlyStats);
 
+                // 2b. Monthly Performance by Series
+                // Multi-dimensional grouping: Month × Series
+                List<WorkOrderDashboardDTO.MonthlySeriesStat> monthlySeriesPerf = workOrders.stream()
+                                .filter(w -> w.getInvoiceDate() != null && w.getClient() != null)
+                                .collect(Collectors.groupingBy(w -> w.getInvoiceDate().format(sortFormatter))) // Group
+                                                                                                               // by
+                                                                                                               // month
+                                .entrySet().stream()
+                                .flatMap(monthEntry -> {
+                                        String yearMonth = monthEntry.getKey();
+                                        String displayMonth = monthEntry.getValue().get(0).getInvoiceDate()
+                                                        .format(monthFormatter);
+
+                                        // Within each month, group by Series
+                                        return monthEntry.getValue().stream()
+                                                        .collect(Collectors.groupingBy(w -> {
+                                                                // Determine Series from Client Code
+                                                                String code = "0";
+                                                                if (w.getClient() != null
+                                                                                && w.getClient().getCode() != null) {
+                                                                        code = w.getClient().getCode()
+                                                                                        .replaceAll("[^0-9]", "");
+                                                                }
+                                                                if (code.isEmpty())
+                                                                        return "Unknown Series";
+                                                                try {
+                                                                        int clientNum = Integer.parseInt(code);
+                                                                        int seriesBase = (clientNum / 100) * 100;
+                                                                        return "Series " + seriesBase;
+                                                                } catch (NumberFormatException e) {
+                                                                        return "Unknown Series";
+                                                                }
+                                                        }))
+                                                        .entrySet().stream()
+                                                        .map(seriesEntry -> {
+                                                                String seriesName = seriesEntry.getKey();
+                                                                List<WorkOrder> seriesOrders = seriesEntry.getValue();
+
+                                                                BigDecimal rev = seriesOrders.stream()
+                                                                                .map(WorkOrder::getClientInvoiceTotal)
+                                                                                .filter(Objects::nonNull)
+                                                                                .reduce(BigDecimal.ZERO,
+                                                                                                BigDecimal::add);
+
+                                                                BigDecimal cost = seriesOrders.stream()
+                                                                                .map(WorkOrder::getContractorInvoiceTotal)
+                                                                                .filter(Objects::nonNull)
+                                                                                .reduce(BigDecimal.ZERO,
+                                                                                                BigDecimal::add);
+
+                                                                BigDecimal profit = rev.subtract(cost);
+                                                                BigDecimal margin = BigDecimal.ZERO;
+                                                                if (rev.compareTo(BigDecimal.ZERO) > 0) {
+                                                                        margin = profit.divide(rev, 4,
+                                                                                        java.math.RoundingMode.HALF_UP)
+                                                                                        .multiply(BigDecimal
+                                                                                                        .valueOf(100));
+                                                                }
+
+                                                                return new WorkOrderDashboardDTO.MonthlySeriesStat(
+                                                                                displayMonth, yearMonth, seriesName,
+                                                                                seriesOrders.size(), rev, cost, profit,
+                                                                                margin);
+                                                        });
+                                })
+                                .sorted(Comparator.comparing(WorkOrderDashboardDTO.MonthlySeriesStat::getYearMonth)
+                                                .reversed()
+                                                .thenComparing(WorkOrderDashboardDTO.MonthlySeriesStat::getSeriesName))
+                                .collect(Collectors.toList());
+
+                stats.setMonthlySeriesPerformance(monthlySeriesPerf);
+
                 // 3. Geographic Analysis
                 // Helper to map groupings to StateStat
                 // 3. Geographic Analysis
