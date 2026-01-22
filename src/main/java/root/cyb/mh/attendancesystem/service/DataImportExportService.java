@@ -737,12 +737,13 @@ public class DataImportExportService {
         log = importLogRepository.save(log);
 
         BufferedReader reader = new BufferedReader(new InputStreamReader(is));
-        // Use a list to hold records to count them first? Or stream.
-        // Stream is better for memory but we need count for log.
-        // Let's parse all first since CSVs aren't massive.
         List<CSVRecord> records = CSVFormat.DEFAULT.withFirstRecordAsHeader().parse(reader).getRecords();
 
-        java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("MM-dd-yy");
+        // Update Total Records
+        log.setTotalRecords(records.size());
+        importLogRepository.save(log);
+
+        java.time.format.DateTimeFormatter dateFormatter = java.time.format.DateTimeFormatter.ofPattern("MM-dd-yy");
         int count = 0;
 
         try {
@@ -753,100 +754,84 @@ public class DataImportExportService {
 
                 WorkOrder wo = workOrderRepository.findByWoNumber(woNum).orElse(new WorkOrder());
 
-                // If new, set batch ID. If existing, SHOULD we overwrite batch ID?
-                // Usually yes, latest import source.
+                // Set Import Batch ID
                 wo.setImportBatchId(log.getId());
-
                 wo.setWoNumber(woNum);
-                wo.setStatus(record.get("Status"));
+
+                // Basic Fields
+                wo.setInvoiceNumber(record.get("Invoice #"));
+                wo.setPpwNumber(record.get("PPW#"));
+                wo.setLoanNumber(record.get("Loan #"));
+                wo.setCustomerBank(record.get("Customer/Bank"));
+                wo.setAdmin(record.get("Assigned Admin"));
                 wo.setWorkType(record.get("Work Type"));
 
-                // Date Due
-                String dateDueStr = record.get("Date Due");
-                if (dateDueStr != null && !dateDueStr.equals("00-00-00") && !dateDueStr.isEmpty()) {
-                    try {
-                        wo.setDateDue(LocalDate.parse(dateDueStr, formatter));
-                    } catch (Exception e) {
-                    }
+                // Infer Status
+                String sentDate = record.get("Sent to Client");
+                String paidDate = record.get("Client Paid Date");
+
+                if (paidDate != null && !paidDate.trim().isEmpty()) {
+                    wo.setStatus("Closed");
+                } else if (sentDate != null && !sentDate.trim().isEmpty()) {
+                    wo.setStatus("Invoiced");
+                } else {
+                    wo.setStatus("Open");
                 }
 
-                // Client
-                String clientCode = record.get("Client");
-                wo.setOriginalClientString(clientCode);
-                if (clientCode != null && !clientCode.trim().isEmpty() && !clientCode.trim().equals("-")) {
-                    wo.setClient(clientRepository.findByCode(clientCode)
-                            .orElseGet(() -> {
-                                Client newClient = new Client();
-                                newClient.setCode(clientCode);
-                                newClient.setName(clientCode);
-                                newClient.setActive(true);
-                                return clientRepository.save(newClient);
-                            }));
-                }
-
-                // Contractor
-                String contName = record.get("Contractor");
-                wo.setOriginalContractorString(contName);
-                if (contName != null && !contName.trim().isEmpty() && !contName.trim().equals("-")) {
-                    wo.setContractor(contractorRepository.findByName(contName)
-                            .orElseGet(() -> {
-                                Contractor newCont = new Contractor();
-                                newCont.setName(contName);
-                                newCont.setActive(true);
-                                return contractorRepository.save(newCont);
-                            }));
-                }
-
+                // Address
                 wo.setAddress(record.get("Address"));
                 wo.setCity(record.get("City"));
                 wo.setState(record.get("State"));
                 wo.setZip(record.get("Zip"));
 
-                String photos = record.get("Photos");
-                if (photos != null && !photos.isEmpty()) {
-                    try {
-                        wo.setPhotosCount(Integer.parseInt(photos));
-                    } catch (NumberFormatException e) {
-                    }
+                // Dates
+                wo.setInvoiceDate(parseDate(record.get("Invoice Date"), dateFormatter));
+                wo.setDateDue(parseDate(record.get("Date Due"), dateFormatter));
+                wo.setDateDueClient(parseDate(record.get("Date Due Client"), dateFormatter));
+                wo.setSentToClientDate(parseDate(record.get("Sent to Client"), dateFormatter));
+                wo.setClientPaidDate(parseDate(record.get("Client Paid Date"), dateFormatter));
+
+                // Financials
+                wo.setContractorInvoiceTotal(parseCurrency(record.get(" Contractor Total ")));
+                wo.setContractorPaidAmount(parseCurrency(record.get(" Contractor Paid Amount ")));
+                wo.setContractorDiscountPercent(parsePercentage(record.get("Contractor Discount%")));
+
+                wo.setClientInvoiceTotal(parseCurrency(record.get(" Client Total ")));
+                wo.setClientPaidAmount(parseCurrency(record.get(" Client Paid Amount ")));
+                wo.setClientDiscountTotal(parseCurrency(record.get(" Client Discount Total ")));
+                wo.setClientDiscountPercent(parsePercentage(record.get("Client Discount%")));
+                wo.setWriteOffAmount(parseCurrency(record.get(" Write Off Amount ")));
+
+                // Derived Booleans
+                wo.setContractorInvoicePaid(wo.getContractorPaidAmount() != null
+                        && wo.getContractorPaidAmount().compareTo(java.math.BigDecimal.ZERO) > 0);
+                wo.setClientInvoicePaid(wo.getClientPaidDate() != null);
+
+                // Relationships
+                String clientName = record.get("Client");
+                wo.setOriginalClientString(clientName);
+                if (clientName != null && !clientName.trim().isEmpty()) {
+                    String finalClientName = clientName;
+                    wo.setClient(clientRepository.findByCode(clientName)
+                            .orElseGet(() -> {
+                                Client c = new Client();
+                                c.setName(finalClientName);
+                                c.setCode(finalClientName);
+                                c.setActive(true);
+                                return clientRepository.save(c);
+                            }));
                 }
 
-                wo.setAdmin(record.get("Admin"));
-                wo.setCategory(record.get("Category"));
-
-                // Date Received
-                String dateRecStr = record.get("Date Received");
-                if (dateRecStr != null && !dateRecStr.equals("00-00-00") && !dateRecStr.isEmpty()) {
-                    try {
-                        wo.setDateReceived(LocalDate.parse(dateRecStr, formatter));
-                    } catch (Exception e) {
-                    }
-                }
-
-                // Invoices
-                wo.setContractorInvoicePaid("Yes".equalsIgnoreCase(record.get("Cont. Invoice Paid")));
-                wo.setClientInvoicePaid("Yes".equalsIgnoreCase(record.get("Client Invoice Paid")));
-
-                try {
-                    String cTotal = record.get("Client Invoice Total");
-                    if (cTotal != null && !cTotal.isEmpty())
-                        wo.setClientInvoiceTotal(new java.math.BigDecimal(cTotal));
-                } catch (Exception e) {
-                }
-
-                try {
-                    String contTotal = record.get("Cont. Invoice Total");
-                    if (contTotal != null && !contTotal.isEmpty())
-                        wo.setContractorInvoiceTotal(new java.math.BigDecimal(contTotal));
-                } catch (Exception e) {
-                }
-
-                // Invoice Date
-                String invDateStr = record.get("Invoice Date");
-                if (invDateStr != null && !invDateStr.equals("00-00-00") && !invDateStr.isEmpty()) {
-                    try {
-                        wo.setInvoiceDate(LocalDate.parse(invDateStr, formatter));
-                    } catch (Exception e) {
-                    }
+                String contName = record.get("Contractor");
+                wo.setOriginalContractorString(contName);
+                if (contName != null && !contName.trim().isEmpty()) {
+                    wo.setContractor(contractorRepository.findByName(contName)
+                            .orElseGet(() -> {
+                                Contractor c = new Contractor();
+                                c.setName(contName);
+                                c.setActive(true);
+                                return contractorRepository.save(c);
+                            }));
                 }
 
                 workOrderRepository.save(wo);
@@ -855,6 +840,7 @@ public class DataImportExportService {
 
             // Update Log Success
             log.setRecordsProcessed(count);
+            log.setSuccessCount(count);
             log.setStatus("SUCCESS");
             importLogRepository.save(log);
 
@@ -864,6 +850,41 @@ public class DataImportExportService {
             log.setErrorMessage(e.getMessage());
             importLogRepository.save(log);
             throw e;
+        }
+    }
+
+    private LocalDate parseDate(String dateStr, java.time.format.DateTimeFormatter formatter) {
+        if (dateStr == null || dateStr.trim().isEmpty())
+            return null;
+        try {
+            return LocalDate.parse(dateStr.trim(), formatter);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private java.math.BigDecimal parseCurrency(String amountStr) {
+        if (amountStr == null || amountStr.trim().isEmpty())
+            return java.math.BigDecimal.ZERO;
+        try {
+            // Remove $ , and spaces
+            String clean = amountStr.replace("$", "").replace(",", "").replace(" ", "").trim();
+            if (clean.equals("-"))
+                return java.math.BigDecimal.ZERO;
+            return new java.math.BigDecimal(clean);
+        } catch (Exception e) {
+            return java.math.BigDecimal.ZERO;
+        }
+    }
+
+    private java.math.BigDecimal parsePercentage(String percentStr) {
+        if (percentStr == null || percentStr.trim().isEmpty())
+            return java.math.BigDecimal.ZERO;
+        try {
+            String clean = percentStr.replace("%", "").trim();
+            return new java.math.BigDecimal(clean);
+        } catch (Exception e) {
+            return java.math.BigDecimal.ZERO;
         }
     }
 }

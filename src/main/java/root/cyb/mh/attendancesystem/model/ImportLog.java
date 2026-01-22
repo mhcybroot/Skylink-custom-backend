@@ -15,7 +15,7 @@ public class ImportLog {
 
     private LocalDateTime importDate;
 
-    private Integer recordsProcessed;
+    private Integer recordsProcessed = 0;
 
     private String status; // SUCCESS, FAILED, PARTIAL
 
@@ -23,6 +23,12 @@ public class ImportLog {
 
     @Column(columnDefinition = "TEXT")
     private String errorMessage;
+
+    private Integer failureCount = 0;
+
+    private Integer successCount = 0;
+
+    private Integer totalRecords = 0;
 
     public Long getId() {
         return id;
@@ -78,5 +84,29 @@ public class ImportLog {
 
     public void setErrorMessage(String errorMessage) {
         this.errorMessage = errorMessage;
+    }
+
+    public Integer getFailureCount() {
+        return failureCount;
+    }
+
+    public void setFailureCount(Integer failureCount) {
+        this.failureCount = failureCount;
+    }
+
+    public Integer getSuccessCount() {
+        return successCount;
+    }
+
+    public void setSuccessCount(Integer successCount) {
+        this.successCount = successCount;
+    }
+
+    public Integer getTotalRecords() {
+        return totalRecords;
+    }
+
+    public void setTotalRecords(Integer totalRecords) {
+        this.totalRecords = totalRecords;
     }
 }

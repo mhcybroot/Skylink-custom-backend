@@ -161,43 +161,96 @@
                 </div>
             </div>
 
-            <!-- Row 2: Financial Averages -->
+            <!-- Row 2: Financial Averages & Realized -->
             <div class="row g-3 mb-4">
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="card shadow-sm h-100">
                         <div class="card-body">
-                            <div class="text-muted small text-uppercase fw-bold mb-1">Avg Revenue / WO</div>
+                            <div class="text-muted small text-uppercase fw-bold mb-1">Total Revenue (Invoiced)</div>
                             <div class="h3 mb-0 fw-bold text-success"
-                                th:text="${#numbers.formatCurrency(stats.avgRevenue)}">$0.00</div>
+                                th:text="${#numbers.formatCurrency(stats.totalRevenue)}">$0.00</div>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
+                    <div class="card shadow-sm h-100 border-start border-4 border-success">
+                        <div class="card-body">
+                            <div class="text-muted small text-uppercase fw-bold mb-1">Realized Revenue (Paid)</div>
+                            <div class="h3 mb-0 fw-bold text-success"
+                                th:text="${#numbers.formatCurrency(stats.realizedRevenue)}">$0.00</div>
+                            <small class="text-muted">Unrealized: <span
+                                    th:text="${#numbers.formatCurrency(stats.unrealizedRevenue)}"></span></small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
                     <div class="card shadow-sm h-100">
                         <div class="card-body">
-                            <div class="text-muted small text-uppercase fw-bold mb-1">Avg Cost / WO</div>
+                            <div class="text-muted small text-uppercase fw-bold mb-1">Total Cost</div>
                             <div class="h3 mb-0 fw-bold text-danger"
-                                th:text="${#numbers.formatCurrency(stats.avgCost)}">$0.00</div>
+                                th:text="${#numbers.formatCurrency(stats.totalCost)}">$0.00</div>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="card shadow-sm h-100">
                         <div class="card-body">
-                            <div class="text-muted small text-uppercase fw-bold mb-1">Avg Margin / WO</div>
+                            <div class="text-muted small text-uppercase fw-bold mb-1">Net Margin</div>
                             <div class="h3 mb-0 fw-bold text-primary"
-                                th:text="${#numbers.formatCurrency(stats.avgMargin)}">$0.00</div>
+                                th:text="${#numbers.formatCurrency(stats.totalMargin)}">$0.00</div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Work Orders Over Time Chart -->
+            <!-- New Key Metrics Row -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <div class="card shadow-sm h-100 bg-light">
+                        <div class="card-body text-center">
+                            <h6 class="text-uppercase text-muted small fw-bold">Avg Days: Due &rarr; Invoiced</h6>
+                            <h2 class="fw-bold text-dark"
+                                th:text="${#numbers.formatDecimal(stats.cycleTimeAnalysis.avgDaysDueToInvoice, 1, 1)}">
+                                0.0</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card shadow-sm h-100 bg-light">
+                        <div class="card-body text-center">
+                            <h6 class="text-uppercase text-muted small fw-bold">Avg Days: Invoiced &rarr; Paid</h6>
+                            <h2 class="fw-bold text-dark"
+                                th:text="${#numbers.formatDecimal(stats.cycleTimeAnalysis.avgDaysInvoiceToPay, 1, 1)}">
+                                0.0</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card shadow-sm h-100 bg-light">
+                        <div class="card-body text-center">
+                            <h6 class="text-uppercase text-muted small fw-bold">Total Client Discounts</h6>
+                            <h2 class="fw-bold text-warning"
+                                th:text="${#numbers.formatCurrency(stats.totalClientDiscount)}">$0.00</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card shadow-sm h-100 bg-light">
+                        <div class="card-body text-center">
+                            <h6 class="text-uppercase text-muted small fw-bold">Total Write-Offs</h6>
+                            <h2 class="fw-bold text-danger" th:text="${#numbers.formatCurrency(stats.totalWriteOffs)}">
+                                $0.00</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Invoiced Volume Trend -->
             <div class="row mb-4">
                 <div class="col-12">
                     <div class="card shadow-sm">
                         <div class="card-header bg-white py-3">
-                            <h6 class="mb-0 fw-bold">Work Orders Over Time</h6>
+                            <h6 class="mb-0 fw-bold">Invoiced Volume Trend (Monthly)</h6>
                         </div>
                         <div class="card-body">
                             <canvas id="overTimeChart" height="100"></canvas>
@@ -232,65 +285,28 @@
                     </div>
                 </div>
 
-                <!-- Top Clients -->
+                <!-- Top Banks (NEW) -->
                 <div class="col-md-4">
                     <div class="card shadow-sm h-100">
                         <div class="card-header bg-white py-3">
-                            <h6 class="mb-0 fw-bold">Top 5 Clients (Revenue)</h6>
+                            <h6 class="mb-0 fw-bold">Top 5 Banks (Revenue)</h6>
                         </div>
                         <div class="card-body">
-                            <canvas id="clientChart" height="250"></canvas>
+                            <canvas id="bankChart" height="250"></canvas>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Margin by Work Type & Financial Summary -->
+            <!-- Margin by Work Type -->
             <div class="row g-4 mb-4">
-                <!-- Margin Chart -->
-                <div class="col-md-8">
+                <div class="col-12">
                     <div class="card shadow-sm h-100">
                         <div class="card-header bg-white py-3">
                             <h6 class="mb-0 fw-bold">Profit Margin by Work Type</h6>
                         </div>
                         <div class="card-body">
                             <canvas id="marginChart" height="300"></canvas>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Financial Summary Table -->
-                <div class="col-md-4">
-                    <div class="card shadow-sm h-100">
-                        <div class="card-header bg-white py-3">
-                            <h6 class="mb-0 fw-bold">Financial Summary</h6>
-                        </div>
-                        <div class="card-body p-0">
-                            <table class="table mb-0">
-                                <thead class="bg-light">
-                                    <tr>
-                                        <th class="ps-4">Category</th>
-                                        <th class="text-end pe-4">Amount</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td class="ps-4">Total Revenue</td>
-                                        <td class="text-end pe-4 fw-bold text-success"
-                                            th:text="${#numbers.formatCurrency(stats.totalRevenue)}">$0.00</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="ps-4">Total Cost</td>
-                                        <td class="text-end pe-4 fw-bold text-danger"
-                                            th:text="${#numbers.formatCurrency(stats.totalCost)}">$0.00</td>
-                                    </tr>
-                                    <tr class="bg-light">
-                                        <td class="ps-4 fw-bold">Net Profit</td>
-                                        <td class="text-end pe-4 fw-bold text-primary"
-                                            th:text="${#numbers.formatCurrency(stats.totalMargin)}">$0.00</td>
-                                    </tr>
-                                </tbody>
-                            </table>
                         </div>
                     </div>
                 </div>
@@ -342,8 +358,8 @@
                                 Benchmark: <span
                                     th:text="${#numbers.formatCurrency(stats.benchmark.globalAverageCost)}">$0</span> /
                                 <span
-                                    th:text="${#numbers.formatDecimal(stats.benchmark.globalAverageDays, 1, 1)}">0.0</span>
-                                days
+                                    th:text="${#numbers.formatDecimal(stats.benchmark.globalAverageDaysToInvoice, 1, 1)}">0.0</span>
+                                days (Invoicing Speed)
                             </span>
                         </div>
                         <div class="card-body p-0">
@@ -354,7 +370,7 @@
                                             <th class="ps-4">Contractor</th>
                                             <th class="text-center">Volume</th>
                                             <th class="text-end">Avg Cost</th>
-                                            <th class="text-end pe-4">Avg Days</th>
+                                            <th class="text-end pe-4">Avg Days (Inv Speed)</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -367,62 +383,19 @@
                                             </td>
                                             <td class="text-end">
                                                 <span th:text="${#numbers.formatCurrency(c.averageCost)}">$0.00</span>
-                                                <i class="fas fa-arrow-down text-success small ms-1"
-                                                    th:if="${c.averageCost.compareTo(stats.benchmark.globalAverageCost) <= 0}"></i>
-                                                <i class="fas fa-arrow-up text-danger small ms-1"
-                                                    th:if="${c.averageCost.compareTo(stats.benchmark.globalAverageCost) > 0}"></i>
                                             </td>
                                             <td class="text-end pe-4">
                                                 <span
-                                                    th:text="${#numbers.formatDecimal(c.averageDaysToComplete, 1, 1)}">0.0</span>
+                                                    th:text="${#numbers.formatDecimal(c.averageDaysToInvoice, 1, 1)}">0.0</span>
                                                 <i class="fas fa-arrow-down text-success small ms-1"
-                                                    th:if="${c.averageDaysToComplete <= stats.benchmark.globalAverageDays}"></i>
+                                                    th:if="${c.averageDaysToInvoice <= stats.benchmark.globalAverageDaysToInvoice}"></i>
                                                 <i class="fas fa-arrow-up text-danger small ms-1"
-                                                    th:if="${c.averageDaysToComplete > stats.benchmark.globalAverageDays}"></i>
+                                                    th:if="${c.averageDaysToInvoice > stats.benchmark.globalAverageDaysToInvoice}"></i>
                                             </td>
                                         </tr>
                                     </tbody>
                                 </table>
                             </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Cycle Time Analysis -->
-            <div class="row g-4 mb-5">
-                <!-- Histogram -->
-                <div class="col-md-4">
-                    <div class="card shadow-sm h-100">
-                        <div class="card-header bg-white py-3">
-                            <h6 class="mb-0 fw-bold">Cycle Time Distribution</h6>
-                        </div>
-                        <div class="card-body">
-                            <canvas id="cycleHistogramChart" height="250"></canvas>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- By Work Type -->
-                <div class="col-md-4">
-                    <div class="card shadow-sm h-100">
-                        <div class="card-header bg-white py-3">
-                            <h6 class="mb-0 fw-bold">Avg Cycle Time by Work Type</h6>
-                        </div>
-                        <div class="card-body">
-                            <canvas id="cycleByWorkTypeChart" height="250"></canvas>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- By Contractor -->
-                <div class="col-md-4">
-                    <div class="card shadow-sm h-100">
-                        <div class="card-header bg-white py-3">
-                            <h6 class="mb-0 fw-bold">Avg Cycle Time by Contractor</h6>
-                        </div>
-                        <div class="card-body">
-                            <canvas id="cycleByContractorChart" height="250"></canvas>
                         </div>
                     </div>
                 </div>
@@ -441,15 +414,14 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Margin by State -->
+                <!-- Margin by Bank -->
                 <div class="col-md-6">
                     <div class="card shadow-sm h-100">
                         <div class="card-header bg-white py-3">
-                            <h6 class="mb-0 fw-bold">Profit Margin by State</h6>
+                            <h6 class="mb-0 fw-bold">Profit Margin by Bank (Top 10)</h6>
                         </div>
                         <div class="card-body">
-                            <canvas id="marginByStateChart" height="300"></canvas>
+                            <canvas id="marginByBankChart" height="300"></canvas>
                         </div>
                     </div>
                 </div>
@@ -462,7 +434,7 @@
                 // Status Chart
                 const statusCtx = document.getElementById('statusChart').getContext('2d');
                 const statusDist = /*[[${stats.statusDistribution}]]*/ {};
-
+                // ... (Status Chart logic same as before, re-use existing colors) ...
                 const statusLabels = Object.keys(statusDist);
                 const statusData = Object.values(statusDist);
                 const statusColors = statusLabels.map(s => {
@@ -481,173 +453,100 @@
                         default: return '#e9ecef'; // Light Gray
                     }
                 });
-
                 new Chart(statusCtx, {
                     type: 'doughnut',
-                    data: {
-                        labels: statusLabels,
-                        datasets: [{
-                            data: statusData,
-                            backgroundColor: statusColors,
-                            borderWidth: 0
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { position: 'bottom' }
-                        }
-                    }
+                    data: { labels: statusLabels, datasets: [{ data: statusData, backgroundColor: statusColors, borderWidth: 0 }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
                 });
 
-                // Contractor Chart
+
+                // Contractor Chart (Volume)
                 const contCtx = document.getElementById('contractorChart').getContext('2d');
                 const topContractors = /*[[${stats.topContractors}]]*/[];
-
-                const contLabels = topContractors.map(c => c.name);
-                const contData = topContractors.map(c => c.count);
-
                 new Chart(contCtx, {
                     type: 'bar',
                     data: {
-                        labels: contLabels,
-                        datasets: [{
-                            label: 'Work Orders',
-                            data: contData,
-                            backgroundColor: '#0d6efd',
-                            borderRadius: 4
-                        }]
+                        labels: topContractors.map(c => c.name),
+                        datasets: [{ label: 'Work Orders', data: topContractors.map(c => c.count), backgroundColor: '#0d6efd', borderRadius: 4 }]
                     },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            y: { beginAtZero: true }
-                        },
-                        plugins: {
-                            legend: { display: false }
-                        }
-                    }
+                    options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } }
                 });
 
-                // Top Clients Chart
-                const clientCtx = document.getElementById('clientChart').getContext('2d');
-                const topClients = /*[[${stats.topClients}]]*/[];
-
-                const clientLabels = topClients.map(c => c.name);
-                const clientData = topClients.map(c => c.totalRevenue);
-
-                new Chart(clientCtx, {
+                // Top Banks Chart (Revenue) - NEW
+                const bankCtx = document.getElementById('bankChart').getContext('2d');
+                const topBanks = /*[[${stats.topBanks}]]*/[];
+                new Chart(bankCtx, {
                     type: 'bar',
                     data: {
-                        labels: clientLabels,
-                        datasets: [{
-                            label: 'Revenue',
-                            data: clientData,
-                            backgroundColor: '#198754',
-                            borderRadius: 4
-                        }]
+                        labels: topBanks.map(c => c.name),
+                        datasets: [{ label: 'Revenue', data: topBanks.map(c => c.revenue), backgroundColor: '#6f42c1', borderRadius: 4 }]
                     },
                     options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                ticks: {
-                                    callback: function (value) {
-                                        return '$' + value;
-                                    }
-                                }
-                            }
-                        },
-                        plugins: {
-                            legend: { display: false },
-                            tooltip: {
-                                callbacks: {
-                                    label: function (context) {
-                                        let label = context.dataset.label || '';
-                                        if (label) {
-                                            label += ': ';
-                                        }
-                                        if (context.parsed.y !== null) {
-                                            label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(context.parsed.y);
-                                        }
-                                        return label;
-                                    }
-                                }
-                            }
-                        }
+                        responsive: true, maintainAspectRatio: false,
+                        scales: { y: { beginAtZero: true, ticks: { callback: function (val) { return '$' + val; } } } },
+                        plugins: { legend: { display: false }, tooltip: { callbacks: { label: function (ctx) { return '$' + ctx.parsed.y.toLocaleString(); } } } }
                     }
                 });
+
 
                 // Margin by Work Type Chart
                 const marginCtx = document.getElementById('marginChart').getContext('2d');
                 const workTypeMargins = /*[[${stats.workTypeMargins}]]*/[];
-
-                const marginLabels = workTypeMargins.map(m => m.workType);
-                const marginData = workTypeMargins.map(m => m.totalMargin);
-
                 new Chart(marginCtx, {
                     type: 'bar',
                     data: {
-                        labels: marginLabels,
-                        datasets: [{
-                            label: 'Profit Margin',
-                            data: marginData,
-                            backgroundColor: '#6610f2',
-                            borderRadius: 4
-                        }]
+                        labels: workTypeMargins.map(m => m.workType),
+                        datasets: [{ label: 'Profit Margin', data: workTypeMargins.map(m => m.totalMargin), backgroundColor: '#198754', borderRadius: 4 }]
                     },
                     options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        indexAxis: 'y',
-                        scales: {
-                            x: {
-                                beginAtZero: true,
-                                ticks: {
-                                    callback: function (value) {
-                                        return '$' + value;
-                                    }
-                                }
-                            }
-                        },
-                        plugins: {
-                            legend: { display: false },
-                            tooltip: {
-                                callbacks: {
-                                    label: function (context) {
-                                        let label = context.dataset.label || '';
-                                        if (label) {
-                                            label += ': ';
-                                        }
-                                        if (context.parsed.x !== null) {
-                                            label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(context.parsed.x);
-                                        }
-                                        return label;
-                                    }
-                                }
-                            }
-                        }
+                        responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+                        scales: { x: { beginAtZero: true, ticks: { callback: function (val) { return '$' + val; } } } },
+                        plugins: { legend: { display: false }, tooltip: { callbacks: { label: function (ctx) { return '$' + ctx.parsed.x.toLocaleString(); } } } }
                     }
                 });
 
-                // Work Orders Over Time Chart
+                // Margin by Client Chart
+                const marginByClientCtx = document.getElementById('marginByClientChart').getContext('2d');
+                const marginByClient = /*[[${stats.profitabilityAnalysis.byClient}]]*/ {};
+                new Chart(marginByClientCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(marginByClient),
+                        datasets: [{ label: 'Profit Margin', data: Object.values(marginByClient), backgroundColor: '#20c997', borderRadius: 4 }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+                        scales: { x: { beginAtZero: true, ticks: { callback: function (val) { return '$' + val; } } } },
+                        plugins: { legend: { display: false }, tooltip: { callbacks: { label: function (ctx) { return '$' + ctx.parsed.x.toLocaleString(); } } } }
+                    }
+                });
+
+                // Margin by Bank Chart - NEW
+                const marginByBankCtx = document.getElementById('marginByBankChart').getContext('2d');
+                const marginByBank = /*[[${stats.profitabilityAnalysis.byBank}]]*/ {};
+                new Chart(marginByBankCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(marginByBank),
+                        datasets: [{ label: 'Profit Margin', data: Object.values(marginByBank), backgroundColor: '#fd7e14', borderRadius: 4 }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+                        scales: { x: { beginAtZero: true, ticks: { callback: function (val) { return '$' + val; } } } },
+                        plugins: { legend: { display: false }, tooltip: { callbacks: { label: function (ctx) { return '$' + ctx.parsed.x.toLocaleString(); } } } }
+                    }
+                });
+
+                // Work Orders Over Time Chart (RESTORED)
                 const overTimeCtx = document.getElementById('overTimeChart').getContext('2d');
                 const overTimeDataMap = /*[[${stats.workOrdersOverTime}]]*/ {};
-
-                const timeLabels = Object.keys(overTimeDataMap);
-                const timeData = Object.values(overTimeDataMap);
-
                 new Chart(overTimeCtx, {
                     type: 'line',
                     data: {
-                        labels: timeLabels,
+                        labels: Object.keys(overTimeDataMap),
                         datasets: [{
-                            label: 'Work Orders',
-                            data: timeData,
+                            label: 'Invoiced Orders',
+                            data: Object.values(overTimeDataMap),
                             borderColor: '#0d6efd',
                             backgroundColor: 'rgba(13, 110, 253, 0.1)',
                             borderWidth: 2,
@@ -656,171 +555,12 @@
                         }]
                     },
                     options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            y: { beginAtZero: true, ticks: { precision: 0 } }
-                        },
-                        plugins: {
-                            legend: { display: false }
-                        }
-                    }
-                });
-
-                // Cycle Time Histogram
-                const cycleHistogramCtx = document.getElementById('cycleHistogramChart').getContext('2d');
-                const cycleDistribution = /*[[${stats.cycleTimeAnalysis.distribution}]]*/ {};
-
-                new Chart(cycleHistogramCtx, {
-                    type: 'bar',
-                    data: {
-                        labels: Object.keys(cycleDistribution),
-                        datasets: [{
-                            label: 'Work Orders',
-                            data: Object.values(cycleDistribution),
-                            backgroundColor: '#17a2b8',
-                            borderRadius: 4
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
+                        responsive: true, maintainAspectRatio: false,
                         scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
                         plugins: { legend: { display: false } }
                     }
                 });
 
-                // Cycle Time by Work Type
-                const cycleByWorkTypeCtx = document.getElementById('cycleByWorkTypeChart').getContext('2d');
-                const cycleByWorkType = /*[[${stats.cycleTimeAnalysis.byWorkType}]]*/ {};
-
-                new Chart(cycleByWorkTypeCtx, {
-                    type: 'bar',
-                    data: {
-                        labels: Object.keys(cycleByWorkType),
-                        datasets: [{
-                            label: 'Avg Days',
-                            data: Object.values(cycleByWorkType),
-                            backgroundColor: '#6f42c1',
-                            borderRadius: 4
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        indexAxis: 'y',
-                        scales: { x: { beginAtZero: true } },
-                        plugins: { legend: { display: false } }
-                    }
-                });
-
-                // Cycle Time by Contractor
-                const cycleByContractorCtx = document.getElementById('cycleByContractorChart').getContext('2d');
-                const cycleByContractor = /*[[${stats.cycleTimeAnalysis.byContractor}]]*/ {};
-
-                new Chart(cycleByContractorCtx, {
-                    type: 'bar',
-                    data: {
-                        labels: Object.keys(cycleByContractor),
-                        datasets: [{
-                            label: 'Avg Days',
-                            data: Object.values(cycleByContractor),
-                            backgroundColor: '#fd7e14',
-                            borderRadius: 4
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        indexAxis: 'y',
-                        scales: { x: { beginAtZero: true } },
-                        plugins: { legend: { display: false } }
-                    }
-                });
-
-                // Margin by Client Chart
-                const marginByClientCtx = document.getElementById('marginByClientChart').getContext('2d');
-                const marginByClient = /*[[${stats.profitabilityAnalysis.byClient}]]*/ {};
-
-                new Chart(marginByClientCtx, {
-                    type: 'bar',
-                    data: {
-                        labels: Object.keys(marginByClient),
-                        datasets: [{
-                            label: 'Profit Margin',
-                            data: Object.values(marginByClient),
-                            backgroundColor: '#198754',
-                            borderRadius: 4
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        indexAxis: 'y',
-                        scales: {
-                            x: {
-                                beginAtZero: true,
-                                ticks: {
-                                    callback: function (value) {
-                                        return '$' + value.toLocaleString();
-                                    }
-                                }
-                            }
-                        },
-                        plugins: {
-                            legend: { display: false },
-                            tooltip: {
-                                callbacks: {
-                                    label: function (context) {
-                                        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(context.parsed.x);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-
-                // Margin by State Chart
-                const marginByStateCtx = document.getElementById('marginByStateChart').getContext('2d');
-                const marginByState = /*[[${stats.profitabilityAnalysis.byState}]]*/ {};
-
-                new Chart(marginByStateCtx, {
-                    type: 'bar',
-                    data: {
-                        labels: Object.keys(marginByState),
-                        datasets: [{
-                            label: 'Profit Margin',
-                            data: Object.values(marginByState),
-                            backgroundColor: '#0d6efd',
-                            borderRadius: 4
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        indexAxis: 'y',
-                        scales: {
-                            x: {
-                                beginAtZero: true,
-                                ticks: {
-                                    callback: function (value) {
-                                        return '$' + value.toLocaleString();
-                                    }
-                                }
-                            }
-                        },
-                        plugins: {
-                            legend: { display: false },
-                            tooltip: {
-                                callbacks: {
-                                    label: function (context) {
-                                        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(context.parsed.x);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
             });
             /*]]>*/
         </script>

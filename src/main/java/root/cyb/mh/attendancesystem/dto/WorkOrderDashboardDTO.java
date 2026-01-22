@@ -19,14 +19,22 @@ public class WorkOrderDashboardDTO {
     private long contractorInvoicesPaid;
     private long contractorInvoicesUnpaid;
 
-    private BigDecimal totalRevenue; // Client Invoice Total
-    private BigDecimal totalCost; // Contractor Invoice Total
+    // Base Financials
+    private BigDecimal totalRevenue;
+    private BigDecimal totalCost;
     private BigDecimal totalMargin;
-
-    // Averages
     private BigDecimal avgRevenue;
     private BigDecimal avgCost;
     private BigDecimal avgMargin;
+    private BigDecimal globalGrossMarginPercent;
+
+    // Detailed Financials
+    private BigDecimal totalClientDiscount;
+    private BigDecimal totalContractorDiscount;
+    private BigDecimal totalWriteOffs;
+    private BigDecimal realizedRevenue; // Actual Paid
+    private BigDecimal realizedCost; // Actual Paid
+    private BigDecimal unrealizedRevenue;
 
     // Charts
     private Map<String, Long> statusDistribution;
@@ -35,12 +43,13 @@ public class WorkOrderDashboardDTO {
     private List<ClientStat> topClients;
     private List<WorkTypeStat> workTypeMargins;
     private List<StateStat> stateDistribution;
+    private List<BankStat> topBanks;
 
     // Performance Scorecards
     private List<ContractorScorecard> contractorScorecards;
     private ScorecardBenchmark benchmark;
 
-    // Cycle Time Analysis
+    // Cycle Time Analysis (New Definition)
     private CycleTimeAnalysis cycleTimeAnalysis;
 
     // Profitability Analysis
@@ -49,9 +58,9 @@ public class WorkOrderDashboardDTO {
     @Data
     @AllArgsConstructor
     public static class CycleTimeAnalysis {
-        private Map<String, Double> byWorkType;
-        private Map<String, Double> byContractor;
-        private Map<String, Long> distribution; // Histogram buckets
+        private Double avgDaysDueToInvoice;
+        private Double avgDaysInvoiceToPay;
+        private Map<String, Double> invoicingLagByWorkType;
     }
 
     @Data
@@ -59,13 +68,14 @@ public class WorkOrderDashboardDTO {
     public static class ProfitabilityAnalysis {
         private Map<String, BigDecimal> byClient;
         private Map<String, BigDecimal> byState;
+        private Map<String, BigDecimal> byBank;
     }
 
     @Data
     @AllArgsConstructor
     public static class ScorecardBenchmark {
         private BigDecimal globalAverageCost;
-        private Double globalAverageDays;
+        private Double globalAverageDaysToInvoice;
     }
 
     @Data
@@ -84,6 +94,14 @@ public class WorkOrderDashboardDTO {
 
     @Data
     @AllArgsConstructor
+    public static class BankStat {
+        private String name;
+        private Long count;
+        private BigDecimal revenue;
+    }
+
+    @Data
+    @AllArgsConstructor
     public static class WorkTypeStat {
         private String workType;
         private BigDecimal totalMargin;
@@ -95,7 +113,21 @@ public class WorkOrderDashboardDTO {
         private String name;
         private long totalWorkOrders;
         private BigDecimal averageCost;
-        private Double averageDaysToComplete;
+        private Double averageDaysToInvoice;
+    }
+
+    // Series Analysis (LLC/Series 100, 200, etc.)
+    private List<SeriesStat> seriesStats;
+    private SeriesStat grandTotalSeries;
+
+    @Data
+    @AllArgsConstructor
+    public static class SeriesStat {
+        private String seriesName; // "Series 100"
+        private BigDecimal clientInvoiceTotal; // Revenue
+        private BigDecimal contractorInvoiceTotal; // Cost
+        private BigDecimal profitLoss; // Revenue - Cost
+        private BigDecimal profitMarginPercent; // (Profit / Revenue) * 100
     }
 
     @Data

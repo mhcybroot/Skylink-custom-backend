@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(~{::content}, ~{::scripts}, 'work-orders')}">
+
+<div th:fragment="content">
+    <style>
+        .report-header {
+            border-bottom: 2px solid #000;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+        }
+
+        .stat-card {
+            background: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .print-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+
+            /* HIDE LAYOUT ELEMENTS */
+            #sidebar-wrapper,
+            .navbar,
+            .topbar,
+            #sidebarToggle {
+                display: none !important;
+            }
+
+            #page-content-wrapper {
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100% !important;
+                min-width: 100% !important;
+            }
+
+            #wrapper {
+                padding-left: 0 !important;
+                background: #fff !important;
+            }
+
+            body {
+                background-color: #fff;
+                margin: 0;
+                padding: 0;
+            }
+
+            .container,
+            .container-fluid {
+                max-width: 100% !important;
+                width: 100% !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+
+            .card {
+                border: 1px solid #ccc !important;
+                break-inside: avoid;
+                box-shadow: none !important;
+            }
+
+            table {
+                font-size: 11px;
+                width: 100% !important;
+            }
+
+            .bg-light {
+                background-color: #fff !important;
+            }
+        }
+    </style>
+
+    <div class="container-fluid">
+        <!-- HEADER -->
+        <div class="report-header d-flex justify-content-between align-items-end mt-3">
+            <div>
+                <h1 class="h3 fw-bold text-uppercase mb-0">Work Order Report</h1>
+                <p class="text-muted mb-0" th:text="${reportTitle}">Custom Report</p>
+                <small class="text-muted">Generated on <span
+                        th:text="${#temporals.format(generatedDate, 'MMM dd, yyyy HH:mm')}">Date</span></small>
+            </div>
+            <div class="text-end">
+                <span class="d-block fw-bold h4 mb-0" th:text="${stats.totalWorkOrders}">0</span>
+                <span class="text-uppercase small text-muted">Total Records</span>
+            </div>
+        </div>
+
+        <!-- LLC PERFORMANCE PANEL -->
+        <h5 class="fw-bold text-uppercase border-bottom pb-2 mb-3">LLC Performance</h5>
+        <div class="card shadow-sm border-0 mb-5">
+            <div class="card-body">
+                <div class="row">
+                    <!-- Key Metrics -->
+                    <div class="col-md-6 border-end">
+                        <h6 class="text-uppercase text-muted fw-bold small mb-3">Key Metrics</h6>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Closed WOs:</span>
+                            <span class="fw-bold" th:text="${stats.closedWorkOrders}">91</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Contractor Cost:</span>
+                            <span class="fw-bold" th:text="${#numbers.formatCurrency(stats.totalCost)}">$6,665</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Client Value:</span>
+                            <span class="fw-bold"
+                                th:text="${#numbers.formatCurrency(stats.totalRevenue)}">$12,614.71</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Gross Profit:</span>
+                            <span class="fw-bold text-success"
+                                th:text="${#numbers.formatCurrency(stats.totalMargin)}">$5,949.71</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Gross Margin:</span>
+                            <span class="fw-bold text-success"
+                                th:text="${#numbers.formatDecimal(stats.globalGrossMarginPercent, 1, 1) + '%'}">47.2%</span>
+                        </div>
+                    </div>
+
+                    <!-- Operational Metrics -->
+                    <div class="col-md-6 ps-md-4">
+                        <h6 class="text-uppercase text-muted fw-bold small mb-3">Operational Metrics</h6>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Avg Cost / WO:</span>
+                            <span class="fw-bold" th:text="${#numbers.formatCurrency(stats.avgCost)}">~$73</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Avg Value / WO:</span>
+                            <span class="fw-bold" th:text="${#numbers.formatCurrency(stats.avgRevenue)}">~$139</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Avg Gross Profit / WO:</span>
+                            <span class="fw-bold" th:text="${#numbers.formatCurrency(stats.avgMargin)}">~$65</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- LLC / SERIES PROFIT TABLE -->
+        <h5 class="fw-bold text-center mb-3 text-uppercase border-bottom pb-2">LLC wise Profit/Loss Calculation</h5>
+        <div class="row justify-content-center mb-5">
+            <div class="col-md-10">
+                <div class="card shadow-sm border-0">
+                    <div class="card-body p-0">
+                        <table class="table table-bordered table-striped mb-0 text-center align-middle">
+                            <thead class="bg-warning text-dark">
+                                <tr>
+                                    <th class="py-2">LLC / Series</th>
+                                    <th class="py-2">Client Invoice Total</th>
+                                    <th class="py-2">Contractor Invoice Total</th>
+                                    <th class="py-2">Profit/Loss</th>
+                                    <th class="py-2">Profit Margin</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="series : ${stats.seriesStats}">
+                                    <td class="fw-bold text-start ps-4" th:text="${series.seriesName}">Series 100</td>
+                                    <td th:text="${#numbers.formatCurrency(series.clientInvoiceTotal)}">$0.00</td>
+                                    <td th:text="${#numbers.formatCurrency(series.contractorInvoiceTotal)}">$0.00</td>
+                                    <td th:text="${#numbers.formatCurrency(series.profitLoss)}"
+                                        th:classappend="${series.profitLoss >= 0} ? 'text-success' : 'text-danger fw-bold'">
+                                        $0.00</td>
+                                    <td th:text="${#numbers.formatDecimal(series.profitMarginPercent, 1, 1) + '%'}">0.0%
+                                    </td>
+                                </tr>
+                            </tbody>
+                            <tfoot class="bg-warning text-dark fw-bold">
+                                <tr th:if="${stats.grandTotalSeries != null}">
+                                    <td class="text-start ps-4">Grand Total</td>
+                                    <td th:text="${#numbers.formatCurrency(stats.grandTotalSeries.clientInvoiceTotal)}">
+                                        $0.00</td>
+                                    <td
+                                        th:text="${#numbers.formatCurrency(stats.grandTotalSeries.contractorInvoiceTotal)}">
+                                        $0.00</td>
+                                    <td th:text="${#numbers.formatCurrency(stats.grandTotalSeries.profitLoss)}">$0.00
+                                    </td>
+                                    <td
+                                        th:text="${#numbers.formatDecimal(stats.grandTotalSeries.profitMarginPercent, 1, 1) + '%'}">
+                                        0.0%</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECONDARY STATS ROW -->
+        <div class="row g-4 mb-5">
+            <div class="col-md-6">
+                <!-- Top Banks Table -->
+                <div class="card h-100 shadow-sm border-0">
+                    <div class="card-header bg-light fw-bold text-uppercase small">Top Revenue Sources (Banks)</div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm table-striped mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Bank</th>
+                                    <th class="text-end">Orders</th>
+                                    <th class="text-end">Revenue</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="bank : ${stats.topBanks}">
+                                    <td th:text="${bank.name}">Bank</td>
+                                    <td class="text-end" th:text="${bank.count}">0</td>
+                                    <td class="text-end" th:text="${#numbers.formatCurrency(bank.revenue)}">$0</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <!-- Status Breakdown -->
+                <div class="card h-100 shadow-sm border-0">
+                    <div class="card-header bg-light fw-bold text-uppercase small">Status Distribution</div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm table-striped mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Status</th>
+                                    <th class="text-end">Count</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="entry : ${stats.statusDistribution}">
+                                    <td th:text="${entry.key}">Status</td>
+                                    <td class="text-end" th:text="${entry.value}">0</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DETAILED DATA TABLE -->
+        <h5 class="fw-bold border-bottom pb-2 mb-3">Included Work Orders</h5>
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped table-hover table-sm" style="font-size: 0.85rem;">
+                <thead class="table-dark">
+                    <tr>
+                        <th>WO #</th>
+                        <th>Invoice #</th>
+                        <th>Status</th>
+                        <th>Work Type</th>
+                        <th>Client</th>
+                        <th>Bank</th>
+                        <th>Date Due</th>
+                        <th class="text-end">Inv Amount</th>
+                        <th class="text-end">Cost</th>
+                        <th class="text-end">Paid</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="wo : ${reportData}">
+                        <td th:text="${wo.woNumber}">WO-1</td>
+                        <td th:text="${wo.invoiceNumber}">INV-1</td>
+                        <td th:text="${wo.status}">Open</td>
+                        <td th:text="${wo.workType}">Cut</td>
+                        <td th:text="${wo.client != null ? wo.client.name : (wo.originalClientString)}">Client</td>
+                        <td th:text="${wo.customerBank}">Bank</td>
+                        <td th:text="${wo.dateDueClient}">Jan 1</td>
+                        <td class="text-end"
+                            th:text="${wo.clientInvoiceTotal != null ? #numbers.formatCurrency(wo.clientInvoiceTotal) : '-'}">
+                            $100</td>
+                        <td class="text-end"
+                            th:text="${wo.contractorInvoiceTotal != null ? #numbers.formatCurrency(wo.contractorInvoiceTotal) : '-'}">
+                            $50</td>
+                        <td class="text-end" th:text="${wo.clientInvoicePaid ? 'Yes' : 'No'}">No</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- PRINT BUTTON (Hidden in Print) -->
+    <div class="print-btn no-print">
+        <button onclick="window.print()" class="btn btn-primary shadow rounded-pill px-4">
+            <i class="fas fa-print me-2"></i> Print / Save PDF
+        </button>
+        <button onclick="window.history.back()" class="btn btn-secondary shadow rounded-pill px-4 ms-2">
+            Back
+        </button>
+    </div>
+</div>
+
+<th:block th:fragment="scripts">
+    <!-- No specific scripts needed for this page -->
+</th:block>
+
+</html>

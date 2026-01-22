@@ -65,6 +65,25 @@ public class WorkOrder {
     @Column(updatable = false)
     private java.time.LocalDateTime createdAt;
 
+    // New Fields for Redesign (invoice_report.csv)
+    private String invoiceNumber;
+    private String ppwNumber;
+    private String loanNumber;
+    private String customerBank;
+
+    private LocalDate dateDueClient;
+    private LocalDate sentToClientDate;
+    private LocalDate clientPaidDate;
+
+    // Financials
+    private BigDecimal contractorDiscountPercent; // e.g. 0.00
+    private BigDecimal contractorPaidAmount;
+
+    private BigDecimal clientDiscountPercent;
+    private BigDecimal clientDiscountTotal;
+    private BigDecimal clientPaidAmount;
+    private BigDecimal writeOffAmount;
+
     @PrePersist
     protected void onCreate() {
         createdAt = java.time.LocalDateTime.now();
