@@ -101,11 +101,16 @@
             <div class="card-body">
                 <div class="row">
                     <!-- Key Metrics -->
-                    <div class="col-md-6 border-end">
+                    <!-- Key Metrics -->
+                    <div class="col-md-4 border-end">
                         <h6 class="text-uppercase text-muted fw-bold small mb-3">Key Metrics</h6>
                         <div class="d-flex justify-content-between mb-2">
                             <span>Closed WOs:</span>
                             <span class="fw-bold" th:text="${stats.closedWorkOrders}">91</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Invoiced WOs:</span>
+                            <span class="fw-bold" th:text="${stats.invoicedWorkOrders}">0</span>
                         </div>
                         <div class="d-flex justify-content-between mb-2">
                             <span>Contractor Cost:</span>
@@ -129,7 +134,7 @@
                     </div>
 
                     <!-- Operational Metrics -->
-                    <div class="col-md-6 ps-md-4">
+                    <div class="col-md-4 ps-md-4 border-end">
                         <h6 class="text-uppercase text-muted fw-bold small mb-3">Operational Metrics</h6>
                         <div class="d-flex justify-content-between mb-2">
                             <span>Avg Cost / WO:</span>
@@ -142,6 +147,142 @@
                         <div class="d-flex justify-content-between">
                             <span>Avg Gross Profit / WO:</span>
                             <span class="fw-bold" th:text="${#numbers.formatCurrency(stats.avgMargin)}">~$65</span>
+                        </div>
+                    </div>
+
+                    <!-- Financial Detail -->
+                    <div class="col-md-4 ps-md-4">
+                        <h6 class="text-uppercase text-muted fw-bold small mb-3">Financial Detail</h6>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Realized Rev:</span>
+                            <span class="fw-bold text-primary"
+                                th:text="${#numbers.formatCurrency(stats.grandTotalSeries.totalClientPaid)}">$0</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Unrealized Rev:</span>
+                            <span class="fw-bold"
+                                th:text="${#numbers.formatCurrency(stats.grandTotalSeries.clientInvoiceTotal - stats.grandTotalSeries.totalClientPaid)}">$0</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Client Disc:</span>
+                            <span class="fw-bold text-secondary"
+                                th:text="${#numbers.formatCurrency(stats.grandTotalSeries.totalClientDiscount)}">$0</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Write Offs:</span>
+                            <span class="fw-bold text-warning"
+                                th:text="${#numbers.formatCurrency(stats.grandTotalSeries.totalWriteOffs)}">$0</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Cont. Paid:</span>
+                            <span class="fw-bold text-danger"
+                                th:text="${#numbers.formatCurrency(stats.grandTotalSeries.totalContractorPaid)}">$0</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Cont. Balance:</span>
+                            <span class="fw-bold text-danger"
+                                th:text="${#numbers.formatCurrency(stats.grandTotalSeries.contractorInvoiceTotal - stats.grandTotalSeries.totalContractorPaid)}">$0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dynamic Series Performance Panels -->
+        <div th:each="series : ${stats.seriesStats}" class="mb-5">
+            <h5 class="fw-bold text-uppercase border-bottom pb-2 mb-3">
+                <i class="fas fa-layer-group me-2 text-info"></i><span
+                    th:text="${series.seriesName} + ' Performance'">Series Performance</span>
+            </h5>
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Series Key Metrics -->
+                        <!-- Series Key Metrics -->
+                        <div class="col-md-4 border-end">
+                            <h6 class="text-uppercase text-muted fw-bold small mb-3">Key Metrics</h6>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Closed WOs:</span>
+                                <span class="fw-bold" th:text="${series.closedWorkOrders}">0</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Invoiced WOs:</span>
+                                <span class="fw-bold" th:text="${series.invoicedWorkOrders}">0</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Contractor Cost:</span>
+                                <span class="fw-bold text-danger"
+                                    th:text="${#numbers.formatCurrency(series.contractorInvoiceTotal)}">$0.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Client Value:</span>
+                                <span class="fw-bold text-primary"
+                                    th:text="${#numbers.formatCurrency(series.clientInvoiceTotal)}">$0.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Gross Profit:</span>
+                                <span class="fw-bold text-success"
+                                    th:text="${#numbers.formatCurrency(series.profitLoss)}">$0.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Gross Margin:</span>
+                                <span class="fw-bold text-success"
+                                    th:text="${#numbers.formatDecimal(series.profitMarginPercent, 1, 1) + '%'}">0.0%</span>
+                            </div>
+                        </div>
+
+                        <!-- Series Operational Metrics -->
+                        <div class="col-md-4 ps-md-4 border-end">
+                            <h6 class="text-uppercase text-muted fw-bold small mb-3">Operational Metrics</h6>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Avg Cost / WO:</span>
+                                <span class="fw-bold" th:text="${#numbers.formatCurrency(series.avgCost)}">$0.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Avg Value / WO:</span>
+                                <span class="fw-bold"
+                                    th:text="${#numbers.formatCurrency(series.avgRevenue)}">$0.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Avg Gross Profit / WO:</span>
+                                <span class="fw-bold"
+                                    th:text="${#numbers.formatCurrency(series.avgMargin)}">$0.00</span>
+                            </div>
+                        </div>
+
+                        <!-- Series Financial Detail -->
+                        <div class="col-md-4 ps-md-4">
+                            <h6 class="text-uppercase text-muted fw-bold small mb-3">Financial Detail</h6>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Realized Rev:</span>
+                                <span class="fw-bold text-primary"
+                                    th:text="${#numbers.formatCurrency(series.totalClientPaid)}">$0</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Unrealized Rev:</span>
+                                <span class="fw-bold"
+                                    th:text="${#numbers.formatCurrency(series.clientInvoiceTotal - series.totalClientPaid)}">$0</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Client Disc:</span>
+                                <span class="fw-bold text-secondary"
+                                    th:text="${#numbers.formatCurrency(series.totalClientDiscount)}">$0</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Write Offs:</span>
+                                <span class="fw-bold text-warning"
+                                    th:text="${#numbers.formatCurrency(series.totalWriteOffs)}">$0</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Cont. Paid:</span>
+                                <span class="fw-bold text-danger"
+                                    th:text="${#numbers.formatCurrency(series.totalContractorPaid)}">$0</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Cont. Balance:</span>
+                                <span class="fw-bold text-danger"
+                                    th:text="${#numbers.formatCurrency(series.contractorInvoiceTotal - series.totalContractorPaid)}">$0</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -197,26 +338,64 @@
             </div>
         </div>
 
-        <!-- SECONDARY STATS ROW -->
+        <!-- Monthly Performance Comparison -->
+        <h5 class="fw-bold text-center mb-3 text-uppercase border-bottom pb-2">Monthly Performance Comparison</h5>
+        <div class="row justify-content-center mb-5">
+            <div class="col-md-10">
+                <div class="card shadow-sm border-0">
+                    <div class="card-body p-0">
+                        <table class="table table-bordered table-striped mb-0 text-center align-middle">
+                            <thead class="bg-primary text-white">
+                                <tr>
+                                    <th class="py-2">Month</th>
+                                    <th class="py-2">Work Orders</th>
+                                    <th class="py-2">Revenue</th>
+                                    <th class="py-2">Cost</th>
+                                    <th class="py-2">Profit</th>
+                                    <th class="py-2">Margin</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="month : ${stats.monthlyStats}">
+                                    <td class="fw-bold text-start ps-4" th:text="${month.month}">Jan 2025</td>
+                                    <td th:text="${month.totalWorkOrders}">0</td>
+                                    <td th:text="${#numbers.formatCurrency(month.revenue)}">$0.00</td>
+                                    <td th:text="${#numbers.formatCurrency(month.cost)}">$0.00</td>
+                                    <td th:text="${#numbers.formatCurrency(month.profit)}"
+                                        th:classappend="${month.profit >= 0} ? 'text-success' : 'text-danger fw-bold'">
+                                        $0.00</td>
+                                    <td th:text="${#numbers.formatDecimal(month.margin, 1, 1) + '%'}">0.0%</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Geographic Analysis -->
+        <h5 class="fw-bold text-center mb-3 text-uppercase border-bottom pb-2">Geographic Analysis</h5>
         <div class="row g-4 mb-5">
+            <!-- Top States -->
             <div class="col-md-6">
-                <!-- Top Banks Table -->
                 <div class="card h-100 shadow-sm border-0">
-                    <div class="card-header bg-light fw-bold text-uppercase small">Top Revenue Sources (Banks)</div>
+                    <div class="card-header bg-success text-white fw-bold text-uppercase small">Top States by Volume
+                    </div>
                     <div class="card-body p-0">
                         <table class="table table-sm table-striped mb-0">
                             <thead>
                                 <tr>
-                                    <th>Bank</th>
-                                    <th class="text-end">Orders</th>
+                                    <th>State</th>
+                                    <th class="text-end">Work Orders</th>
                                     <th class="text-end">Revenue</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr th:each="bank : ${stats.topBanks}">
-                                    <td th:text="${bank.name}">Bank</td>
-                                    <td class="text-end" th:text="${bank.count}">0</td>
-                                    <td class="text-end" th:text="${#numbers.formatCurrency(bank.revenue)}">$0</td>
+                                <tr th:each="state : ${stats.topStatesByVolume}">
+                                    <td th:text="${state.state}">TX</td>
+                                    <td class="text-end fw-bold" th:text="${state.count}">0</td>
+                                    <td class="text-end text-muted" th:text="${#numbers.formatCurrency(state.revenue)}">
+                                        $0</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -224,21 +403,75 @@
                 </div>
             </div>
             <div class="col-md-6">
-                <!-- Status Breakdown -->
                 <div class="card h-100 shadow-sm border-0">
-                    <div class="card-header bg-light fw-bold text-uppercase small">Status Distribution</div>
+                    <div class="card-header bg-success text-white fw-bold text-uppercase small">Top States by Value
+                    </div>
                     <div class="card-body p-0">
                         <table class="table table-sm table-striped mb-0">
                             <thead>
                                 <tr>
-                                    <th>Status</th>
-                                    <th class="text-end">Count</th>
+                                    <th>State</th>
+                                    <th class="text-end">Revenue</th>
+                                    <th class="text-end">Work Orders</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr th:each="entry : ${stats.statusDistribution}">
-                                    <td th:text="${entry.key}">Status</td>
-                                    <td class="text-end" th:text="${entry.value}">0</td>
+                                <tr th:each="state : ${stats.topStatesByRevenue}">
+                                    <td th:text="${state.state}">NY</td>
+                                    <td class="text-end fw-bold text-primary"
+                                        th:text="${#numbers.formatCurrency(state.revenue)}">$0</td>
+                                    <td class="text-end text-muted" th:text="${state.count}">0</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top Zips -->
+            <div class="col-md-6">
+                <div class="card h-100 shadow-sm border-0">
+                    <div class="card-header bg-info text-dark fw-bold text-uppercase small">Top Zips by Volume</div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm table-striped mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Zip Code</th>
+                                    <th class="text-end">Work Orders</th>
+                                    <th class="text-end">Revenue</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="zipItem : ${stats.topZipsByVolume}">
+                                    <td th:text="${zipItem.zip}">00000</td>
+                                    <td class="text-end fw-bold" th:text="${zipItem.count}">0</td>
+                                    <td class="text-end text-muted"
+                                        th:text="${#numbers.formatCurrency(zipItem.revenue)}">$0
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card h-100 shadow-sm border-0">
+                    <div class="card-header bg-info text-dark fw-bold text-uppercase small">Top Zips by Value</div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm table-striped mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Zip Code</th>
+                                    <th class="text-end">Revenue</th>
+                                    <th class="text-end">Work Orders</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="zipItem : ${stats.topZipsByRevenue}">
+                                    <td th:text="${zipItem.zip}">00000</td>
+                                    <td class="text-end fw-bold text-primary"
+                                        th:text="${#numbers.formatCurrency(zipItem.revenue)}">$0</td>
+                                    <td class="text-end text-muted" th:text="${zipItem.count}">0</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -247,59 +480,228 @@
             </div>
         </div>
 
-        <!-- DETAILED DATA TABLE -->
-        <h5 class="fw-bold border-bottom pb-2 mb-3">Included Work Orders</h5>
-        <div class="table-responsive">
-            <table class="table table-bordered table-striped table-hover table-sm" style="font-size: 0.85rem;">
-                <thead class="table-dark">
-                    <tr>
-                        <th>WO #</th>
-                        <th>Invoice #</th>
-                        <th>Status</th>
-                        <th>Work Type</th>
-                        <th>Client</th>
-                        <th>Bank</th>
-                        <th>Date Due</th>
-                        <th class="text-end">Inv Amount</th>
-                        <th class="text-end">Cost</th>
-                        <th class="text-end">Paid</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr th:each="wo : ${reportData}">
-                        <td th:text="${wo.woNumber}">WO-1</td>
-                        <td th:text="${wo.invoiceNumber}">INV-1</td>
-                        <td th:text="${wo.status}">Open</td>
-                        <td th:text="${wo.workType}">Cut</td>
-                        <td th:text="${wo.client != null ? wo.client.name : (wo.originalClientString)}">Client</td>
-                        <td th:text="${wo.customerBank}">Bank</td>
-                        <td th:text="${wo.dateDueClient}">Jan 1</td>
-                        <td class="text-end"
-                            th:text="${wo.clientInvoiceTotal != null ? #numbers.formatCurrency(wo.clientInvoiceTotal) : '-'}">
-                            $100</td>
-                        <td class="text-end"
-                            th:text="${wo.contractorInvoiceTotal != null ? #numbers.formatCurrency(wo.contractorInvoiceTotal) : '-'}">
-                            $50</td>
-                        <td class="text-end" th:text="${wo.clientInvoicePaid ? 'Yes' : 'No'}">No</td>
-                    </tr>
-                </tbody>
-            </table>
+        <!-- State Margin & Efficiency Snapshot -->
+        <h5 class="fw-bold text-center mb-3 text-uppercase border-bottom pb-2">State Margin & Efficiency Snapshot</h5>
+        <div class="row g-4 mb-5">
+            <!-- High Margin -->
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm border-0">
+                    <div class="card-header bg-success text-white fw-bold text-uppercase small text-center">High-Margin
+                        States (≥50%)</div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm table-striped mb-0 text-center">
+                            <thead>
+                                <tr>
+                                    <th>State</th>
+                                    <th>Margin</th>
+                                    <th>Profit</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="state : ${stats.highMarginStates}">
+                                    <td class="fw-bold" th:text="${state.state}">IN</td>
+                                    <td class="text-success fw-bold"
+                                        th:text="${#numbers.formatDecimal(state.margin, 1, 1) + '%'}">60.0%</td>
+                                    <td class="small" th:text="${#numbers.formatCurrency(state.profit)}">$500</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Moderate Margin / High Volume -->
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm border-0">
+                    <div class="card-header bg-primary text-white fw-bold text-uppercase small text-center">Moderate
+                        Margin / High Vol</div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm table-striped mb-0 text-center">
+                            <thead>
+                                <tr>
+                                    <th>State</th>
+                                    <th>Volume</th>
+                                    <th>Margin</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="state : ${stats.moderateMarginHighVolumeStates}">
+                                    <td class="fw-bold" th:text="${state.state}">TX</td>
+                                    <td class="fw-bold" th:text="${state.count}">100</td>
+                                    <td class="text-primary"
+                                        th:text="${#numbers.formatDecimal(state.margin, 1, 1) + '%'}">40.0%</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Low / Risk -->
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm border-0">
+                    <div class="card-header bg-danger text-white fw-bold text-uppercase small text-center">Low or
+                        RiskStates
+                        <div class="card-body p-0">
+                            <table class="table table-sm table-striped mb-0 text-center">
+                                <thead>
+                                    <tr>
+                                        <th>State</th>
+                                        <th>Margin</th>
+                                        <th>Profit/Loss</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="state : ${stats.lowRiskStates}">
+                                        <td class="fw-bold" th:text="${state.state}">WY</td>
+                                        <td class="text-danger fw-bold"
+                                            th:text="${#numbers.formatDecimal(state.margin, 1, 1) + '%'}">10.0%</td>
+                                        <td class="small text-danger"
+                                            th:text="${#numbers.formatCurrency(state.profit)}">-$200</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECONDARY STATS ROW -->
+            <div class="row g-4 mb-5">
+                <div class="col-md-6">
+                    <!-- Top Banks Table -->
+                    <div class="card h-100 shadow-sm border-0">
+                        <div class="card-header bg-light fw-bold text-uppercase small">Top Revenue Sources (Banks)</div>
+                        <div class="card-body p-0">
+                            <table class="table table-sm table-striped mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Bank</th>
+                                        <th class="text-end">Orders</th>
+                                        <th class="text-end">Revenue</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="bank : ${stats.topBanks}">
+                                        <td th:text="${bank.name}">Bank</td>
+                                        <td class="text-end" th:text="${bank.count}">0</td>
+                                        <td class="text-end" th:text="${#numbers.formatCurrency(bank.revenue)}">$0</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <!-- Status Breakdown -->
+                    <div class="card h-100 shadow-sm border-0">
+                        <div class="card-header bg-light fw-bold text-uppercase small">Status Distribution</div>
+                        <div class="card-body p-0">
+                            <table class="table table-sm table-striped mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Status</th>
+                                        <th class="text-end">Count</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="entry : ${stats.statusDistribution}">
+                                        <td th:text="${entry.key}">Status</td>
+                                        <td class="text-end" th:text="${entry.value}">0</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DETAILED DATA TABLE -->
+            <h5 class="fw-bold border-bottom pb-2 mb-3">Included Work Orders</h5>
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped table-hover table-sm" style="font-size: 0.7rem;">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>WO #</th>
+                            <th>Inv #</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Client</th>
+                            <th>Bank</th>
+                            <th>Date Due</th>
+                            <th>Due Client</th>
+                            <th>Sent Client</th>
+
+                            <th class="text-end">Cont. Total</th>
+                            <th class="text-end">Cont. Paid</th>
+                            <th class="text-end">Cont. Disc%</th>
+
+                            <th class="text-end">Client Total</th>
+                            <th class="text-end">Client Paid</th>
+                            <th>Paid Date</th>
+                            <th class="text-end">Client Disc%</th>
+                            <th class="text-end">Disc Total</th>
+                            <th class="text-end">Write Off</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="wo : ${reportData}">
+                            <td th:text="${wo.woNumber}">WO-1</td>
+                            <td th:text="${wo.invoiceNumber}">INV-1</td>
+                            <td th:text="${wo.workType}">Cut</td>
+                            <td th:text="${wo.status}">Open</td>
+                            <td th:text="${wo.client != null ? wo.client.code : (wo.originalClientString)}">Client</td>
+                            <td th:text="${wo.customerBank}">Bank</td>
+
+                            <td th:text="${wo.dateDue}">Jan 1</td>
+                            <td th:text="${wo.dateDueClient}">Jan 5</td>
+                            <td th:text="${wo.sentToClientDate}">Jan 6</td>
+
+                            <td class="text-end text-danger"
+                                th:text="${wo.contractorInvoiceTotal != null ? #numbers.formatCurrency(wo.contractorInvoiceTotal) : '-'}">
+                                $50</td>
+                            <td class="text-end"
+                                th:text="${wo.contractorPaidAmount != null ? #numbers.formatCurrency(wo.contractorPaidAmount) : '-'}">
+                                $50</td>
+                            <td class="text-end"
+                                th:text="${wo.contractorDiscountPercent != null ? wo.contractorDiscountPercent + '%' : '-'}">
+                                0%</td>
+
+                            <td class="text-end text-primary"
+                                th:text="${wo.clientInvoiceTotal != null ? #numbers.formatCurrency(wo.clientInvoiceTotal) : '-'}">
+                                $100</td>
+                            <td class="text-end"
+                                th:text="${wo.clientPaidAmount != null ? #numbers.formatCurrency(wo.clientPaidAmount) : '-'}">
+                                $100</td>
+                            <td th:text="${wo.clientPaidDate}">Jan 10</td>
+                            <td class="text-end"
+                                th:text="${wo.clientDiscountPercent != null ? wo.clientDiscountPercent + '%' : '-'}">
+                                0%</td>
+                            <td class="text-end"
+                                th:text="${(wo.clientInvoiceTotal != null && wo.clientDiscountPercent != null) ? #numbers.formatCurrency(wo.clientInvoiceTotal * wo.clientDiscountPercent / 100) : '$0.00'}">
+                                $0</td>
+                            <td class="text-end text-warning"
+                                th:text="${wo.writeOffAmount != null ? #numbers.formatCurrency(wo.writeOffAmount) : '-'}">
+                                $0</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- PRINT BUTTON (Hidden in Print) -->
+        <div class="print-btn no-print">
+            <button onclick="window.print()" class="btn btn-primary shadow rounded-pill px-4">
+                <i class="fas fa-print me-2"></i> Print / Save PDF
+            </button>
+            <button onclick="window.history.back()" class="btn btn-secondary shadow rounded-pill px-4 ms-2">
+                Back
+            </button>
         </div>
     </div>
 
-    <!-- PRINT BUTTON (Hidden in Print) -->
-    <div class="print-btn no-print">
-        <button onclick="window.print()" class="btn btn-primary shadow rounded-pill px-4">
-            <i class="fas fa-print me-2"></i> Print / Save PDF
-        </button>
-        <button onclick="window.history.back()" class="btn btn-secondary shadow rounded-pill px-4 ms-2">
-            Back
-        </button>
-    </div>
-</div>
-
-<th:block th:fragment="scripts">
-    <!-- No specific scripts needed for this page -->
-</th:block>
+    <th:block th:fragment="scripts">
+        <!-- No specific scripts needed for this page -->
+    </th:block>
 
 </html>

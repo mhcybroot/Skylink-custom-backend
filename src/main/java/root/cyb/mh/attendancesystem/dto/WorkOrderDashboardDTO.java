@@ -12,6 +12,7 @@ public class WorkOrderDashboardDTO {
     private long openWorkOrders;
     private long closedWorkOrders;
     private long cancelledWorkOrders;
+    private long invoicedWorkOrders;
 
     // Invoice Payment Status
     private long clientInvoicesPaid;
@@ -87,13 +88,6 @@ public class WorkOrderDashboardDTO {
 
     @Data
     @AllArgsConstructor
-    public static class StateStat {
-        private String state;
-        private Long count;
-    }
-
-    @Data
-    @AllArgsConstructor
     public static class BankStat {
         private String name;
         private Long count;
@@ -128,6 +122,45 @@ public class WorkOrderDashboardDTO {
         private BigDecimal contractorInvoiceTotal; // Cost
         private BigDecimal profitLoss; // Revenue - Cost
         private BigDecimal profitMarginPercent; // (Profit / Revenue) * 100
+
+        // Operational Metrics
+        private long closedWorkOrders;
+        private long invoicedWorkOrders;
+        private BigDecimal avgCost;
+        private BigDecimal avgRevenue;
+        private BigDecimal avgMargin;
+
+        // Financial Aggregates
+        private BigDecimal totalContractorPaid;
+        private BigDecimal totalClientPaid; // Realized Revenue
+        private BigDecimal totalWriteOffs;
+        private BigDecimal totalClientDiscount;
+    }
+
+    // Monthly Comparison
+    private List<MonthlyStat> monthlyStats;
+
+    // Geographic Analysis
+    private List<StateStat> topStatesByVolume;
+    private List<StateStat> topStatesByRevenue;
+    private List<ZipStat> topZipsByVolume;
+    private List<ZipStat> topZipsByRevenue;
+
+    // State Efficiency Snapshot
+    private List<StateStat> highMarginStates;
+    private List<StateStat> moderateMarginHighVolumeStates;
+    private List<StateStat> lowRiskStates;
+
+    @Data
+    @AllArgsConstructor
+    public static class MonthlyStat {
+        private String month; // e.g. "Jan 2025"
+        private String yearMonth; // e.g. "2025-01" for sorting
+        private long totalWorkOrders;
+        private BigDecimal revenue;
+        private BigDecimal cost;
+        private BigDecimal profit;
+        private BigDecimal margin;
     }
 
     @Data
@@ -139,5 +172,24 @@ public class WorkOrderDashboardDTO {
             this.name = name;
             this.count = count;
         }
+    }
+
+    @Data
+    @AllArgsConstructor
+    public static class StateStat {
+        private String state;
+        private long count;
+        private BigDecimal revenue;
+        private BigDecimal cost;
+        private BigDecimal profit;
+        private BigDecimal margin;
+    }
+
+    @Data
+    @AllArgsConstructor
+    public static class ZipStat {
+        private String zip;
+        private long count;
+        private BigDecimal revenue;
     }
 }

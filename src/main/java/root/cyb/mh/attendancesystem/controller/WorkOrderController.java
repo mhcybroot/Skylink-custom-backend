@@ -340,7 +340,8 @@ public class WorkOrderController {
                                 .collect(Collectors.groupingBy(WorkOrder::getState, Collectors.counting()))
                                 .entrySet().stream()
                                 .sorted((a, b) -> Long.compare(b.getValue(), a.getValue()))
-                                .map(e -> new WorkOrderDashboardDTO.StateStat(e.getKey(), e.getValue()))
+                                .map(e -> new WorkOrderDashboardDTO.StateStat(e.getKey(), e.getValue(), BigDecimal.ZERO,
+                                                BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO))
                                 .collect(Collectors.toList());
                 stats.setStateDistribution(stateStats);
 

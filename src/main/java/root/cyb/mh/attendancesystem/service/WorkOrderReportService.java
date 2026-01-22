@@ -6,14 +6,20 @@ import root.cyb.mh.attendancesystem.model.WorkOrder;
 import root.cyb.mh.attendancesystem.dto.WorkOrderDashboardDTO.ContractorStat;
 import root.cyb.mh.attendancesystem.dto.WorkOrderDashboardDTO.BankStat;
 import root.cyb.mh.attendancesystem.dto.WorkOrderDashboardDTO.WorkTypeStat;
+import root.cyb.mh.attendancesystem.dto.WorkOrderDashboardDTO.SeriesStat;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.Collections;
+import java.util.ArrayList;
+import root.cyb.mh.attendancesystem.dto.WorkOrderDashboardDTO.StateStat;
+import root.cyb.mh.attendancesystem.dto.WorkOrderDashboardDTO.ZipStat;
 
 @Service
 public class WorkOrderReportService {
@@ -34,6 +40,8 @@ public class WorkOrderReportService {
                                 .count());
                 stats.setCancelledWorkOrders(
                                 workOrders.stream().filter(w -> "Cancelled".equalsIgnoreCase(w.getStatus())).count());
+                stats.setInvoicedWorkOrders(
+                                workOrders.stream().filter(w -> "Invoiced".equalsIgnoreCase(w.getStatus())).count());
 
                 // Financials
                 BigDecimal totalRevenue = workOrders.stream()
@@ -124,8 +132,13 @@ public class WorkOrderReportService {
 
                 // Top Banks (Revenue)
                 List<BankStat> topBanks = workOrders.stream()
-                                .filter(w -> w.getCustomerBank() != null)
-                                .collect(Collectors.groupingBy(WorkOrder::getCustomerBank))
+                                .collect(Collectors.groupingBy(w -> {
+                                        String bank = w.getCustomerBank();
+                                        if (bank == null || bank.trim().isEmpty()) {
+                                                return "No Bank Assigned";
+                                        }
+                                        return bank.trim();
+                                }))
                                 .entrySet().stream()
                                 .map(entry -> {
                                         String bankName = entry.getKey();
@@ -192,7 +205,7 @@ public class WorkOrderReportService {
                                         }
                                 }));
 
-                List<root.cyb.mh.attendancesystem.dto.WorkOrderDashboardDTO.SeriesStat> seriesStats = seriesGroups
+                List<SeriesStat> seriesStats = seriesGroups
                                 .entrySet().stream()
                                 .map(entry -> {
                                         String seriesName = entry.getKey();
@@ -208,6 +221,36 @@ public class WorkOrderReportService {
                                                         .filter(Objects::nonNull)
                                                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
+                                        BigDecimal totalContractorPaid = orders.stream()
+                                                        .map(WorkOrder::getContractorPaidAmount)
+                                                        .filter(Objects::nonNull)
+                                                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                                        BigDecimal totalClientPaid = orders.stream()
+                                                        .map(WorkOrder::getClientPaidAmount)
+                                                        .filter(Objects::nonNull)
+                                                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                                        BigDecimal totalWriteOffs = orders.stream()
+                                                        .map(WorkOrder::getWriteOffAmount)
+                                                        .filter(Objects::nonNull)
+                                                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                                        BigDecimal totalClientDiscount = orders.stream()
+                                                        .map(o -> {
+                                                                if (o.getClientInvoiceTotal() != null && o
+                                                                                .getClientDiscountPercent() != null) {
+                                                                        return o.getClientInvoiceTotal().multiply(
+                                                                                        o.getClientDiscountPercent())
+                                                                                        .divide(BigDecimal.valueOf(100),
+                                                                                                        2,
+                                                                                                        java.math.RoundingMode.HALF_UP);
+                                                                }
+                                                                return BigDecimal.ZERO;
+                                                        })
+                                                        .filter(Objects::nonNull)
+                                                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
                                         BigDecimal profit = clientTotal.subtract(contractorTotal);
 
                                         BigDecimal margin = BigDecimal.ZERO;
@@ -216,22 +259,48 @@ public class WorkOrderReportService {
                                                                 .multiply(BigDecimal.valueOf(100)); // Percentage
                                         }
 
-                                        return new root.cyb.mh.attendancesystem.dto.WorkOrderDashboardDTO.SeriesStat(
-                                                        seriesName, clientTotal, contractorTotal, profit, margin);
+                                        // Operational Metrics
+                                        long closedCount = orders.stream()
+                                                        .filter(o -> "Closed".equalsIgnoreCase(o.getStatus()))
+                                                        .count();
+
+                                        long invoicedCount = orders.stream()
+                                                        .filter(o -> "Invoiced".equalsIgnoreCase(o.getStatus()))
+                                                        .count();
+
+                                        BigDecimal avgRev = BigDecimal.ZERO;
+                                        BigDecimal avgCost = BigDecimal.ZERO;
+                                        BigDecimal avgMar = BigDecimal.ZERO;
+
+                                        int totalCount = orders.size();
+                                        if (totalCount > 0) {
+                                                avgRev = clientTotal.divide(BigDecimal.valueOf(totalCount), 2,
+                                                                java.math.RoundingMode.HALF_UP);
+                                                avgCost = contractorTotal.divide(BigDecimal.valueOf(totalCount), 2,
+                                                                java.math.RoundingMode.HALF_UP);
+                                                avgMar = profit.divide(BigDecimal.valueOf(totalCount), 2,
+                                                                java.math.RoundingMode.HALF_UP);
+                                        }
+
+                                        return new SeriesStat(
+                                                        seriesName, clientTotal, contractorTotal, profit, margin,
+                                                        closedCount, invoicedCount, avgCost, avgRev, avgMar,
+                                                        totalContractorPaid, totalClientPaid, totalWriteOffs,
+                                                        totalClientDiscount);
                                 })
                                 // Sort by Series Name (Series 100, Series 200...)
                                 .sorted(Comparator.comparing(
-                                                root.cyb.mh.attendancesystem.dto.WorkOrderDashboardDTO.SeriesStat::getSeriesName))
+                                                SeriesStat::getSeriesName))
                                 .collect(Collectors.toList());
 
                 stats.setSeriesStats(seriesStats);
 
                 // Grand Total Series
                 BigDecimal grandClient = seriesStats.stream().map(
-                                root.cyb.mh.attendancesystem.dto.WorkOrderDashboardDTO.SeriesStat::getClientInvoiceTotal)
+                                SeriesStat::getClientInvoiceTotal)
                                 .reduce(BigDecimal.ZERO, BigDecimal::add);
                 BigDecimal grandContractor = seriesStats.stream().map(
-                                root.cyb.mh.attendancesystem.dto.WorkOrderDashboardDTO.SeriesStat::getContractorInvoiceTotal)
+                                SeriesStat::getContractorInvoiceTotal)
                                 .reduce(BigDecimal.ZERO, BigDecimal::add);
                 BigDecimal grandProfit = grandClient.subtract(grandContractor);
                 BigDecimal grandMargin = BigDecimal.ZERO;
@@ -239,8 +308,191 @@ public class WorkOrderReportService {
                         grandMargin = grandProfit.divide(grandClient, 4, java.math.RoundingMode.HALF_UP)
                                         .multiply(BigDecimal.valueOf(100));
                 }
-                stats.setGrandTotalSeries(new root.cyb.mh.attendancesystem.dto.WorkOrderDashboardDTO.SeriesStat(
-                                "Grand Total", grandClient, grandContractor, grandProfit, grandMargin));
+
+                // Grand Total Operational Metrics
+                long grandClosed = seriesStats.stream().mapToLong(
+                                SeriesStat::getClosedWorkOrders)
+                                .sum();
+                long grandInvoiced = seriesStats.stream().mapToLong(
+                                SeriesStat::getInvoicedWorkOrders)
+                                .sum();
+
+                // Grand Total Financial Aggregates
+                BigDecimal grandContractorPaid = seriesStats.stream().map(
+                                SeriesStat::getTotalContractorPaid)
+                                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                BigDecimal grandClientPaid = seriesStats.stream().map(
+                                SeriesStat::getTotalClientPaid)
+                                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                BigDecimal grandWriteOffs = seriesStats.stream().map(
+                                SeriesStat::getTotalWriteOffs)
+                                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                BigDecimal grandClientDiscount = seriesStats.stream().map(
+                                SeriesStat::getTotalClientDiscount)
+                                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                int totalSeriesCount = workOrders.size();
+
+                BigDecimal grandAvgCost = BigDecimal.ZERO;
+                BigDecimal grandAvgRev = BigDecimal.ZERO;
+                BigDecimal grandAvgMar = BigDecimal.ZERO;
+
+                if (totalSeriesCount > 0) {
+                        grandAvgCost = grandContractor.divide(BigDecimal.valueOf(totalSeriesCount), 2,
+                                        java.math.RoundingMode.HALF_UP);
+                        grandAvgRev = grandClient.divide(BigDecimal.valueOf(totalSeriesCount), 2,
+                                        java.math.RoundingMode.HALF_UP);
+                        grandAvgMar = grandProfit.divide(BigDecimal.valueOf(totalSeriesCount), 2,
+                                        java.math.RoundingMode.HALF_UP);
+                }
+
+                stats.setGrandTotalSeries(new SeriesStat(
+                                "Grand Total", grandClient, grandContractor, grandProfit, grandMargin,
+                                grandClosed, grandInvoiced, grandAvgCost, grandAvgRev, grandAvgMar,
+                                grandContractorPaid, grandClientPaid, grandWriteOffs, grandClientDiscount));
+
+                // 2. Monthly Comparison
+                DateTimeFormatter monthFormatter = DateTimeFormatter.ofPattern("MMM yyyy");
+                DateTimeFormatter sortFormatter = DateTimeFormatter.ofPattern("yyyy-MM");
+
+                List<WorkOrderDashboardDTO.MonthlyStat> monthlyStats = workOrders.stream()
+                                .filter(w -> w.getInvoiceDate() != null) // Only include invoiced orders or determine a
+                                                                         // fallback
+                                .collect(Collectors.groupingBy(w -> {
+                                        return w.getInvoiceDate().format(sortFormatter);
+                                }))
+                                .entrySet().stream()
+                                .map(entry -> {
+                                        String yearMonth = entry.getKey();
+                                        List<WorkOrder> monthOrders = entry.getValue();
+
+                                        // Determine display name from first order or parse yearMonth
+                                        String displayMonth = monthOrders.get(0).getInvoiceDate()
+                                                        .format(monthFormatter);
+
+                                        BigDecimal mRevenue = monthOrders.stream()
+                                                        .map(WorkOrder::getClientInvoiceTotal)
+                                                        .filter(Objects::nonNull)
+                                                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                                        BigDecimal mCost = monthOrders.stream()
+                                                        .map(WorkOrder::getContractorInvoiceTotal)
+                                                        .filter(Objects::nonNull)
+                                                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                                        BigDecimal mProfit = mRevenue.subtract(mCost);
+                                        BigDecimal mMargin = BigDecimal.ZERO;
+                                        if (mRevenue.compareTo(BigDecimal.ZERO) > 0) {
+                                                mMargin = mProfit.divide(mRevenue, 4, java.math.RoundingMode.HALF_UP)
+                                                                .multiply(BigDecimal.valueOf(100));
+                                        }
+
+                                        return new WorkOrderDashboardDTO.MonthlyStat(
+                                                        displayMonth, yearMonth, monthOrders.size(), mRevenue, mCost,
+                                                        mProfit, mMargin);
+                                })
+                                .sorted(Comparator.comparing(WorkOrderDashboardDTO.MonthlyStat::getYearMonth)
+                                                .reversed()) // Newest first
+                                .collect(Collectors.toList());
+
+                stats.setMonthlyStats(monthlyStats);
+
+                // 3. Geographic Analysis
+                // Helper to map groupings to StateStat
+                // 3. Geographic Analysis
+                // Helper to map groupings to StateStat
+                List<StateStat> allStateStats = workOrders.stream()
+                                .filter(w -> w.getState() != null && !w.getState().trim().isEmpty())
+                                .collect(Collectors.groupingBy(w -> w.getState().trim().toUpperCase()))
+                                .entrySet().stream()
+                                .map(entry -> {
+                                        String state = entry.getKey();
+                                        List<WorkOrder> list = entry.getValue();
+
+                                        BigDecimal rev = list.stream().map(WorkOrder::getClientInvoiceTotal)
+                                                        .filter(Objects::nonNull)
+                                                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                                        BigDecimal cost = list.stream().map(WorkOrder::getContractorInvoiceTotal)
+                                                        .filter(Objects::nonNull)
+                                                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                                        BigDecimal profit = rev.subtract(cost);
+                                        BigDecimal margin = BigDecimal.ZERO;
+                                        if (rev.compareTo(BigDecimal.ZERO) > 0) {
+                                                margin = profit.divide(rev, 4, java.math.RoundingMode.HALF_UP)
+                                                                .multiply(BigDecimal.valueOf(100));
+                                        }
+
+                                        return new StateStat(state, list.size(), rev, cost, profit, margin);
+                                })
+                                .collect(Collectors.toList());
+
+                stats.setTopStatesByVolume(allStateStats.stream()
+                                .sorted(Comparator.comparingLong(StateStat::getCount).reversed())
+                                .limit(10)
+                                .collect(Collectors.toList()));
+
+                stats.setTopStatesByRevenue(allStateStats.stream()
+                                .sorted(Comparator.comparing(StateStat::getRevenue).reversed())
+                                .limit(10)
+                                .collect(Collectors.toList()));
+
+                // State Efficiency Snapshot
+                // 1. High Margin: >= 50%
+                stats.setHighMarginStates(allStateStats.stream()
+                                .filter(s -> s.getMargin().compareTo(BigDecimal.valueOf(50)) >= 0)
+                                .sorted(Comparator.comparing(StateStat::getMargin).reversed())
+                                .limit(5)
+                                .collect(Collectors.toList()));
+
+                // 2. Moderate Margin / High Volume: 30% <= Margin < 50%
+                // Prioritize Volume (Count) for this bucket as requested
+                stats.setModerateMarginHighVolumeStates(allStateStats.stream()
+                                .filter(s -> s.getMargin().compareTo(BigDecimal.valueOf(30)) >= 0
+                                                && s.getMargin().compareTo(BigDecimal.valueOf(50)) < 0)
+                                .sorted(Comparator.comparingLong(StateStat::getCount).reversed())
+                                .limit(5)
+                                .collect(Collectors.toList()));
+
+                // 3. Low / Risk: Margin < 30%
+                stats.setLowRiskStates(allStateStats.stream()
+                                .filter(s -> s.getMargin().compareTo(BigDecimal.valueOf(30)) < 0)
+                                .sorted(Comparator.comparing(StateStat::getMargin)) // Lowest margin first
+                                .limit(5)
+                                .collect(Collectors.toList()));
+
+                // Zip Stats
+                List<ZipStat> allZipStats = workOrders.stream()
+                                .filter(w -> w.getZip() != null && !w.getZip().trim().isEmpty())
+                                .collect(Collectors.groupingBy(w -> w.getZip().trim()))
+                                .entrySet().stream()
+                                .map(entry -> {
+                                        String zip = entry.getKey();
+                                        List<WorkOrder> list = entry.getValue();
+                                        BigDecimal rev = list.stream().map(WorkOrder::getClientInvoiceTotal)
+                                                        .filter(Objects::nonNull)
+                                                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+                                        return new ZipStat(zip, list.size(), rev);
+                                })
+                                .collect(Collectors.toList());
+
+                stats.setTopZipsByVolume(allZipStats.stream()
+                                .sorted(Comparator.comparingLong(ZipStat::getCount).reversed())
+                                .limit(10)
+                                .collect(Collectors.toList()));
+
+                stats.setTopZipsByRevenue(allZipStats.stream()
+                                .sorted(Comparator.comparing(ZipStat::getRevenue).reversed())
+                                .limit(10)
+                                .collect(Collectors.toList()));
+
+                // DEBUG: Log zip codes to diagnose corruption
+                System.out.println("=== DEBUG: Top Zips by Revenue ===");
+                stats.getTopZipsByRevenue().forEach(z -> {
+                        System.out.println("Zip: [" + z.getZip() + "] Revenue: " + z.getRevenue() + " Count: "
+                                        + z.getCount());
+                });
+                System.out.println("=== END DEBUG ===");
 
                 return stats;
         }
