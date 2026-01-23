@@ -106,15 +106,18 @@
                         <h6 class="text-uppercase text-muted fw-bold small mb-3">Key Metrics</h6>
                         <div class="d-flex justify-content-between mb-2">
                             <span>Open WOs:</span>
-                            <span class="fw-bold" th:text="${stats.openWorkOrders}">0</span>
+                            <button class="btn btn-link p-0 fw-bold metric-filter" data-filter-type="open"
+                                th:text="${stats.openWorkOrders}">0</button>
                         </div>
                         <div class="d-flex justify-content-between mb-2">
                             <span>Closed WOs:</span>
-                            <span class="fw-bold" th:text="${stats.closedWorkOrders}">91</span>
+                            <button class="btn btn-link p-0 fw-bold metric-filter" data-filter-type="closed"
+                                th:text="${stats.closedWorkOrders}">91</button>
                         </div>
                         <div class="d-flex justify-content-between mb-2">
                             <span>Invoiced WOs:</span>
-                            <span class="fw-bold" th:text="${stats.invoicedWorkOrders}">0</span>
+                            <button class="btn btn-link p-0 fw-bold metric-filter" data-filter-type="invoiced"
+                                th:text="${stats.invoicedWorkOrders}">0</button>
                         </div>
                         <div class="d-flex justify-content-between mb-2">
                             <span>Contractor Cost:</span>
@@ -207,15 +210,21 @@
                             <h6 class="text-uppercase text-muted fw-bold small mb-3">Key Metrics</h6>
                             <div class="d-flex justify-content-between mb-2">
                                 <span>Open WOs:</span>
-                                <span class="fw-bold" th:text="${series.openWorkOrders}">0</span>
+                                <button class="btn btn-link p-0 fw-bold metric-filter" data-filter-type="open"
+                                    th:attr="data-filter-series=${series.seriesName}"
+                                    th:text="${series.openWorkOrders}">0</button>
                             </div>
                             <div class="d-flex justify-content-between mb-2">
                                 <span>Closed WOs:</span>
-                                <span class="fw-bold" th:text="${series.closedWorkOrders}">0</span>
+                                <button class="btn btn-link p-0 fw-bold metric-filter" data-filter-type="closed"
+                                    th:attr="data-filter-series=${series.seriesName}"
+                                    th:text="${series.closedWorkOrders}">0</button>
                             </div>
                             <div class="d-flex justify-content-between mb-2">
                                 <span>Invoiced WOs:</span>
-                                <span class="fw-bold" th:text="${series.invoicedWorkOrders}">0</span>
+                                <button class="btn btn-link p-0 fw-bold metric-filter" data-filter-type="invoiced"
+                                    th:attr="data-filter-series=${series.seriesName}"
+                                    th:text="${series.invoicedWorkOrders}">0</button>
                             </div>
                             <div class="d-flex justify-content-between mb-2">
                                 <span>Contractor Cost:</span>
@@ -709,7 +718,7 @@
             </div>
 
             <!-- DETAILED DATA TABLE -->
-            <h5 class="fw-bold border-bottom pb-2 mb-3">Included Work Orders</h5>
+            <h5 class="fw-bold border-bottom pb-2 mb-3" id="work-orders-table">Included Work Orders</h5>
             <div class="table-responsive">
                 <table class="table table-bordered table-striped table-hover table-sm" style="font-size: 0.7rem;">
                     <thead class="table-dark">
@@ -738,7 +747,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr th:each="wo : ${reportData}">
+                        <tr th:each="wo : ${reportData}" th:attr="data-status=${wo.status}, data-series=${wo.series}">
                             <td th:text="${wo.woNumber}">WO-1</td>
                             <td th:text="${wo.invoiceNumber}">INV-1</td>
                             <td th:text="${wo.invoiceDate}">Jan 1</td>
@@ -794,8 +803,135 @@
         </div>
     </div>
 
+    <!-- Scroll to Top Button -->
+    <button id="scrollToTopBtn" class="btn btn-primary no-print"
+        style="display: none; position: fixed; bottom: 80px; right: 20px; z-index: 1000; border-radius: 50%; width: 50px; height: 50px;">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+
     <th:block th:fragment="scripts">
-        <!-- No specific scripts needed for this page -->
+        <style>
+            .metric-filter {
+                color: #0d6efd;
+                text-decoration: none;
+                cursor: pointer;
+                transition: all 0.2s ease;
+            }
+
+            .metric-filter:hover {
+                text-decoration: underline;
+                color: #0a58ca;
+            }
+
+            .metric-filter.active {
+                color: #198754;
+                text-decoration: underline;
+                font-weight: bold;
+            }
+
+            .wo-row-hidden {
+                display: none;
+            }
+        </style>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                const filterButtons = document.querySelectorAll('.metric-filter');
+                const tableRows = document.querySelectorAll('tbody tr[data-status]');
+                let activeFilter = null;
+                let activeFilterSeries = null;
+
+                filterButtons.forEach(button => {
+                    button.addEventListener('click', function () {
+                        const filterType = this.getAttribute('data-filter-type');
+                        const filterSeries = this.getAttribute('data-filter-series');
+
+                        // If clicking the same filter, clear it
+                        if (activeFilter === filterType && activeFilterSeries === filterSeries) {
+                            clearFilter();
+                            return;
+                        }
+
+                        // Set new filter
+                        activeFilter = filterType;
+                        activeFilterSeries = filterSeries;
+
+                        // Update button states
+                        filterButtons.forEach(btn => btn.classList.remove('active'));
+                        this.classList.add('active');
+
+                        // Filter table rows
+                        tableRows.forEach(row => {
+                            const rowStatus = row.getAttribute('data-status');
+                            const rowSeries = row.getAttribute('data-series');
+
+                            if (!rowStatus) {
+                                row.classList.add('wo-row-hidden');
+                                return;
+                            }
+
+                            let matchesStatus = false;
+
+                            if (filterType === 'open') {
+                                // Open means NOT (Completed, Closed, Cancelled, Invoiced)
+                                matchesStatus = !['completed', 'closed', 'cancelled', 'invoiced'].includes(rowStatus.toLowerCase());
+                            } else if (filterType === 'closed') {
+                                // Closed means Closed OR Completed
+                                matchesStatus = ['closed', 'completed'].includes(rowStatus.toLowerCase());
+                            } else if (filterType === 'invoiced') {
+                                // Invoiced means exactly Invoiced
+                                matchesStatus = rowStatus.toLowerCase() === 'invoiced';
+                            }
+
+                            // If Series filter is set, also check series match
+                            let shouldShow = matchesStatus;
+                            if (filterSeries) {
+                                shouldShow = matchesStatus && (rowSeries === filterSeries);
+                            }
+
+                            if (shouldShow) {
+                                row.classList.remove('wo-row-hidden');
+                            } else {
+                                row.classList.add('wo-row-hidden');
+                            }
+                        });
+
+                        // Scroll to the work orders table
+                        setTimeout(() => {
+                            document.getElementById('work-orders-table').scrollIntoView({
+                                behavior: 'smooth',
+                                block: 'start'
+                            });
+                        }, 100);
+                    });
+                });
+
+                function clearFilter() {
+                    activeFilter = null;
+                    activeFilterSeries = null;
+                    filterButtons.forEach(btn => btn.classList.remove('active'));
+                    tableRows.forEach(row => row.classList.remove('wo-row-hidden'));
+                }
+
+                // Scroll to Top Button functionality
+                const scrollToTopBtn = document.getElementById('scrollToTopBtn');
+
+                window.addEventListener('scroll', function () {
+                    if (window.pageYOffset > 300) {
+                        scrollToTopBtn.style.display = 'block';
+                    } else {
+                        scrollToTopBtn.style.display = 'none';
+                    }
+                });
+
+                scrollToTopBtn.addEventListener('click', function () {
+                    window.scrollTo({
+                        top: 0,
+                        behavior: 'smooth'
+                    });
+                });
+            });
+        </script>
     </th:block>
 
 </html>

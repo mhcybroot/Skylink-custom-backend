@@ -88,4 +88,21 @@ public class WorkOrder {
     protected void onCreate() {
         createdAt = java.time.LocalDateTime.now();
     }
+
+    // Helper method to get series name from client code
+    public String getSeries() {
+        if (client != null && client.getCode() != null) {
+            try {
+                String digits = client.getCode().replaceAll("[^0-9]", "");
+                if (!digits.isEmpty()) {
+                    int clientNum = Integer.parseInt(digits);
+                    int seriesBase = (clientNum / 100) * 100;
+                    return "Series " + seriesBase;
+                }
+            } catch (NumberFormatException e) {
+                // Fall through to Unknown
+            }
+        }
+        return "Unknown";
+    }
 }
