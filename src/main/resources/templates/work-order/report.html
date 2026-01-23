@@ -184,7 +184,11 @@
                     <tbody>
                         <tr th:each="admin : ${stats.adminPerformanceStats}">
                             <td class="fw-bold" th:text="${admin.adminName}">Admin Name</td>
-                            <td class="text-end" th:text="${admin.workOrderCount}">0</td>
+                            <td class="text-end">
+                                <button class="btn btn-link p-0 fw-bold metric-filter"
+                                    th:attr="data-filter-admin=${admin.adminName}"
+                                    th:text="${admin.workOrderCount}">0</button>
+                            </td>
                             <td class="text-end text-success fw-bold"
                                 th:text="${#numbers.formatCurrency(admin.totalRevenue)}">$0</td>
                             <td class="text-end fw-bold" th:classappend="${admin.grossMargin >= 40 ? 'text-success' : 
@@ -240,7 +244,11 @@
                     <tbody>
                         <tr th:each="type : ${stats.workTypePerformanceStats}">
                             <td class="fw-bold" th:text="${type.workType}">Type</td>
-                            <td class="text-end" th:text="${type.workOrderCount}">0</td>
+                            <td class="text-end">
+                                <button class="btn btn-link p-0 fw-bold metric-filter"
+                                    th:attr="data-filter-work-type=${type.workType}"
+                                    th:text="${type.workOrderCount}">0</button>
+                            </td>
                             <td class="text-end text-success fw-bold"
                                 th:text="${#numbers.formatCurrency(type.totalRevenue)}">$0</td>
                             <td class="text-end text-danger" th:text="${#numbers.formatCurrency(type.totalCost)}">$0
@@ -771,7 +779,7 @@
                                 <tr th:each="client : ${stats.topClientsByRevenue}">
                                     <td class="fw-bold" th:text="${client.code}">C100</td>
                                     <td class="small" th:text="${client.name}">Client Name</td>
-                                    <td class="text-end fw-bold text-white bg-primary"
+                                    <td class="text-end fw-bold text-white "
                                         th:text="${#numbers.formatCurrency(client.totalRevenue)}">$0</td>
                                     <td class="text-end">
                                         <button class="btn btn-link p-0 text-muted metric-filter"
@@ -934,7 +942,7 @@
                 </thead>
                 <tbody>
                     <tr th:each="wo : ${reportData}"
-                        th:attr="data-status=${wo.status}, data-series=${wo.series}, data-state=${wo.state}, data-client-code=${wo.client != null ? wo.client.code : ''}">
+                        th:attr="data-status=${wo.status}, data-series=${wo.series}, data-state=${wo.state}, data-client-code=${wo.client != null ? wo.client.code : ''}, data-admin=${wo.admin}, data-work-type=${wo.workType}">
                         <td th:text="${wo.woNumber}">WO-1</td>
                         <td th:text="${wo.invoiceNumber}">INV-1</td>
                         <td th:text="${wo.invoiceDate}">Jan 1</td>
@@ -1030,6 +1038,8 @@
             let activeFilterState = null;
             let activeFilterClient = null;
             let activeFilterStatus = null;
+            let activeFilterAdmin = null;
+            let activeFilterWorkType = null;
 
             filterButtons.forEach(button => {
                 button.addEventListener('click', function () {
@@ -1038,9 +1048,17 @@
                     const filterState = this.getAttribute('data-filter-state');
                     const filterClient = this.getAttribute('data-filter-client');
                     const filterStatus = this.getAttribute('data-filter-status');
+                    const filterAdmin = this.getAttribute('data-filter-admin');
+                    const filterWorkType = this.getAttribute('data-filter-work-type');
 
                     // If clicking the same filter, clear it
-                    if (activeFilter === filterType && activeFilterSeries === filterSeries && activeFilterState === filterState && activeFilterClient === filterClient && activeFilterStatus === filterStatus) {
+                    if (activeFilter === filterType &&
+                        activeFilterSeries === filterSeries &&
+                        activeFilterState === filterState &&
+                        activeFilterClient === filterClient &&
+                        activeFilterStatus === filterStatus &&
+                        activeFilterAdmin === filterAdmin &&
+                        activeFilterWorkType === filterWorkType) {
                         clearFilter();
                         return;
                     }
@@ -1051,6 +1069,8 @@
                     activeFilterState = filterState;
                     activeFilterClient = filterClient;
                     activeFilterStatus = filterStatus;
+                    activeFilterAdmin = filterAdmin;
+                    activeFilterWorkType = filterWorkType;
 
                     // Update button states
                     filterButtons.forEach(btn => btn.classList.remove('active'));
@@ -1062,6 +1082,8 @@
                         const rowSeries = row.getAttribute('data-series');
                         const rowState = row.getAttribute('data-state');
                         const rowClientCode = row.getAttribute('data-client-code');
+                        const rowAdmin = row.getAttribute('data-admin');
+                        const rowWorkType = row.getAttribute('data-work-type');
 
                         if (!rowStatus) {
                             row.classList.add('wo-row-hidden');
@@ -1074,29 +1096,26 @@
                         if (filterStatus) {
                             matchesStatus = rowStatus.toLowerCase() === filterStatus.toLowerCase();
                         } else if (filterType === 'open') {
-                            // Open means NOT (Completed, Closed, Cancelled, Invoiced)
                             matchesStatus = !['completed', 'closed', 'cancelled', 'invoiced'].includes(rowStatus.toLowerCase());
                         } else if (filterType === 'closed') {
-                            // Closed means Closed OR Completed
                             matchesStatus = ['closed', 'completed'].includes(rowStatus.toLowerCase());
                         } else if (filterType === 'invoiced') {
-                            // Invoiced means exactly Invoiced
                             matchesStatus = rowStatus.toLowerCase() === 'invoiced';
                         }
 
-                        // If Series filter is set, also check series match
-                        let shouldShow = matchesStatus || !filterType;
-                        if (filterSeries) {
-                            shouldShow = shouldShow && (rowSeries === filterSeries);
+                        // If Series/State/Client/Admin/WorkType filter is set, check match
+                        let shouldShow = matchesStatus || (!filterType && !filterStatus && !filterSeries && !filterState && !filterClient && !filterAdmin && !filterWorkType);
+
+                        // Special case: if we only have one of these category filters, we should show the row if it matches
+                        if (!filterType && !filterStatus) {
+                            shouldShow = true;
                         }
-                        // If State filter is set, also check state match
-                        if (filterState) {
-                            shouldShow = shouldShow && (rowState === filterState);
-                        }
-                        // If Client filter is set, also check client code match
-                        if (filterClient) {
-                            shouldShow = shouldShow && (rowClientCode === filterClient);
-                        }
+
+                        if (filterSeries) shouldShow = shouldShow && (rowSeries === filterSeries);
+                        if (filterState) shouldShow = shouldShow && (rowState === filterState);
+                        if (filterClient) shouldShow = shouldShow && (rowClientCode === filterClient);
+                        if (filterAdmin) shouldShow = shouldShow && (rowAdmin === filterAdmin);
+                        if (filterWorkType) shouldShow = shouldShow && (rowWorkType === filterWorkType);
 
                         if (shouldShow) {
                             row.classList.remove('wo-row-hidden');
@@ -1121,6 +1140,8 @@
                 activeFilterState = null;
                 activeFilterClient = null;
                 activeFilterStatus = null;
+                activeFilterAdmin = null;
+                activeFilterWorkType = null;
                 filterButtons.forEach(btn => btn.classList.remove('active'));
                 tableRows.forEach(row => row.classList.remove('wo-row-hidden'));
             }
