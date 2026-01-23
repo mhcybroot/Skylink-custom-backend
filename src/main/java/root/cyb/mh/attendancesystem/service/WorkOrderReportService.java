@@ -43,7 +43,8 @@ public class WorkOrderReportService {
                 stats.setOpenWorkOrders(workOrders
                                 .stream().filter(w -> !"Completed".equalsIgnoreCase(w.getStatus())
                                                 && !"Closed".equalsIgnoreCase(w.getStatus())
-                                                && !"Cancelled".equalsIgnoreCase(w.getStatus()))
+                                                && !"Cancelled".equalsIgnoreCase(w.getStatus())
+                                                && !"Invoiced".equalsIgnoreCase(w.getStatus()))
                                 .count());
                 stats.setClosedWorkOrders(workOrders.stream()
                                 .filter(w -> "Closed".equalsIgnoreCase(w.getStatus())
@@ -139,6 +140,55 @@ public class WorkOrderReportService {
                                 .map(e -> new ContractorStat(e.getKey(), e.getValue()))
                                 .collect(Collectors.toList());
                 stats.setTopContractors(topContractors);
+
+                // --- Client Code Analysis (Volume & Revenue) ---
+                List<WorkOrderDashboardDTO.ClientStat> allClientStats = workOrders.stream()
+                                .filter(w -> {
+                                        boolean hasClient = w.getClient() != null;
+                                        boolean hasLink = w.getOriginalClientString() != null;
+                                        return hasClient || hasLink; // Include everything we can identify
+                                })
+                                .collect(Collectors.groupingBy(w -> {
+                                        if (w.getClient() != null && w.getClient().getCode() != null) {
+                                                return w.getClient().getCode(); // e.g. "C100"
+                                        }
+                                        if (w.getOriginalClientString() != null) {
+                                                return w.getOriginalClientString(); // Fallback to raw string
+                                        }
+                                        return "Unknown";
+                                }))
+                                .entrySet().stream()
+                                .map(entry -> {
+                                        String code = entry.getKey();
+                                        List<WorkOrder> list = entry.getValue();
+
+                                        // Determine display name
+                                        String name = list.stream()
+                                                        .filter(w -> w.getClient() != null)
+                                                        .findFirst()
+                                                        .map(w -> w.getClient().getName())
+                                                        .orElse(code); // Fallback to Code if Name not found
+
+                                        BigDecimal rev = list.stream()
+                                                        .map(this::getEffectiveRevenue)
+                                                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                                        return new WorkOrderDashboardDTO.ClientStat(code, name, list.size(), rev);
+                                })
+                                .collect(Collectors.toList());
+
+                // Top Clients by Volume
+                stats.setTopClientsByVolume(allClientStats.stream()
+                                .sorted(Comparator.comparingLong(WorkOrderDashboardDTO.ClientStat::getCount).reversed())
+                                .limit(10)
+                                .collect(Collectors.toList()));
+
+                // Top Clients by Revenue
+                stats.setTopClientsByRevenue(allClientStats.stream()
+                                .sorted(Comparator.comparing(WorkOrderDashboardDTO.ClientStat::getTotalRevenue)
+                                                .reversed())
+                                .limit(10)
+                                .collect(Collectors.toList()));
 
                 // Margin By Work Type
                 List<WorkTypeStat> workTypeMargins = workOrders.stream()
@@ -243,6 +293,13 @@ public class WorkOrderReportService {
                                         }
 
                                         // Operational Metrics
+                                        long openCount = orders.stream()
+                                                        .filter(o -> !"Completed".equalsIgnoreCase(o.getStatus())
+                                                                        && !"Closed".equalsIgnoreCase(o.getStatus())
+                                                                        && !"Cancelled".equalsIgnoreCase(o.getStatus())
+                                                                        && !"Invoiced".equalsIgnoreCase(o.getStatus()))
+                                                        .count();
+
                                         long closedCount = orders.stream()
                                                         .filter(o -> "Closed".equalsIgnoreCase(o.getStatus()))
                                                         .count();
@@ -267,7 +324,7 @@ public class WorkOrderReportService {
 
                                         return new SeriesStat(
                                                         seriesName, clientTotal, contractorTotal, profit, margin,
-                                                        closedCount, invoicedCount, avgCost, avgRev, avgMar,
+                                                        openCount, closedCount, invoicedCount, avgCost, avgRev, avgMar,
                                                         totalContractorPaid, totalClientPaid, totalWriteOffs,
                                                         totalClientDiscount);
                                 })
@@ -293,6 +350,9 @@ public class WorkOrderReportService {
                 }
 
                 // Grand Total Operational Metrics
+                long grandOpen = seriesStats.stream().mapToLong(
+                                SeriesStat::getOpenWorkOrders)
+                                .sum();
                 long grandClosed = seriesStats.stream().mapToLong(
                                 SeriesStat::getClosedWorkOrders)
                                 .sum();
@@ -330,7 +390,7 @@ public class WorkOrderReportService {
 
                 stats.setGrandTotalSeries(new SeriesStat(
                                 "Grand Total", grandClient, grandContractor, grandProfit, grandMargin,
-                                grandClosed, grandInvoiced, grandAvgCost, grandAvgRev, grandAvgMar,
+                                grandOpen, grandClosed, grandInvoiced, grandAvgCost, grandAvgRev, grandAvgMar,
                                 grandContractorPaid, grandClientPaid, grandWriteOffs, grandClientDiscount));
 
                 // 2. Monthly Comparison

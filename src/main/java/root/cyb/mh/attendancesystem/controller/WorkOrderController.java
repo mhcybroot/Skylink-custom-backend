@@ -281,20 +281,6 @@ public class WorkOrderController {
                                                 java.util.LinkedHashMap::new));
                 stats.setWorkOrdersOverTime(overTimeMap);
 
-                // Top Clients by Revenue (from filtered list)
-                List<WorkOrderDashboardDTO.ClientStat> topClients = allWorkOrders.stream()
-                                .filter(w -> w.getClient() != null && w.getClientInvoiceTotal() != null)
-                                .collect(Collectors.groupingBy(
-                                                w -> w.getClient().getName(),
-                                                Collectors.reducing(BigDecimal.ZERO, WorkOrder::getClientInvoiceTotal,
-                                                                BigDecimal::add)))
-                                .entrySet().stream()
-                                .sorted((a, b) -> b.getValue().compareTo(a.getValue()))
-                                .limit(5)
-                                .map(e -> new WorkOrderDashboardDTO.ClientStat(e.getKey(), e.getValue()))
-                                .collect(Collectors.toList());
-                stats.setTopClients(topClients);
-
                 // Margin by Work Type (from filtered list)
                 List<WorkOrderDashboardDTO.WorkTypeStat> margins = allWorkOrders.stream()
                                 .filter(w -> w.getWorkType() != null)

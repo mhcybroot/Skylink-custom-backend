@@ -41,7 +41,7 @@ public class WorkOrderDashboardDTO {
     private Map<String, Long> statusDistribution;
     private List<ContractorStat> topContractors;
     private Map<String, Long> workOrdersOverTime;
-    private List<ClientStat> topClients;
+
     private List<WorkTypeStat> workTypeMargins;
     private List<StateStat> stateDistribution;
 
@@ -78,10 +78,15 @@ public class WorkOrderDashboardDTO {
         private Double globalAverageDaysToInvoice;
     }
 
+    private List<ClientStat> topClientsByVolume;
+    private List<ClientStat> topClientsByRevenue;
+
     @Data
     @AllArgsConstructor
     public static class ClientStat {
+        private String code;
         private String name;
+        private long count;
         private BigDecimal totalRevenue;
     }
 
@@ -115,6 +120,7 @@ public class WorkOrderDashboardDTO {
         private BigDecimal profitMarginPercent; // (Profit / Revenue) * 100
 
         // Operational Metrics
+        private long openWorkOrders;
         private long closedWorkOrders;
         private long invoicedWorkOrders;
         private BigDecimal avgCost;
