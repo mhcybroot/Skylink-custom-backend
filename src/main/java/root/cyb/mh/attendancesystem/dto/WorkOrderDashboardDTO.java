@@ -29,6 +29,10 @@ public class WorkOrderDashboardDTO {
     private BigDecimal avgMargin;
     private BigDecimal globalGrossMarginPercent;
 
+    // Admin Performance Metrics
+    private int uniqueClientCount;
+    private int uniqueStateCount;
+
     // Detailed Financials
     private BigDecimal totalClientDiscount;
     private BigDecimal totalContractorDiscount;

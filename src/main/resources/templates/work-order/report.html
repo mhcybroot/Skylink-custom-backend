@@ -78,6 +78,32 @@
                 background-color: #fff !important;
             }
         }
+
+        .metric-card {
+            padding: 1.5rem 1rem;
+            border-right: 1px solid #dee2e6;
+        }
+
+        .metric-card:last-child {
+            border-right: none;
+        }
+
+        .metric-card h6 {
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+        }
+
+        .metric-card h3 {
+            font-size: 2rem;
+        }
+
+        @media print {
+            .metric-card {
+                border-right: 1px solid #000;
+            }
+        }
     </style>
 
     <div class="container-fluid">
@@ -92,6 +118,39 @@
             <div class="text-end">
                 <span class="d-block fw-bold h4 mb-0" th:text="${stats.totalWorkOrders}">0</span>
                 <span class="text-uppercase small text-muted">Total Records</span>
+            </div>
+        </div>
+
+        <!-- ADMIN PERFORMANCE SUMMARY -->
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Performance</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md metric-card">
+                        <h6 class="text-muted small text-uppercase">Number of WOs</h6>
+                        <h3 class="fw-bold text-primary mb-0" th:text="${stats.totalWorkOrders}">0</h3>
+                    </div>
+                    <div class="col-md metric-card">
+                        <h6 class="text-muted small text-uppercase">Value</h6>
+                        <h3 class="fw-bold text-success mb-0" th:text="${#numbers.formatCurrency(stats.totalRevenue)}">
+                            $0</h3>
+                    </div>
+                    <div class="col-md metric-card">
+                        <h6 class="text-muted small text-uppercase">Gross Margin %</h6>
+                        <h3 class="fw-bold text-info mb-0"
+                            th:text="${#numbers.formatDecimal(stats.globalGrossMarginPercent, 1, 2) + '%'}">0%</h3>
+                    </div>
+                    <div class="col-md metric-card">
+                        <h6 class="text-muted small text-uppercase">Client Count</h6>
+                        <h3 class="fw-bold text-warning mb-0" th:text="${stats.uniqueClientCount}">0</h3>
+                    </div>
+                    <div class="col-md metric-card">
+                        <h6 class="text-muted small text-uppercase">State Count</h6>
+                        <h3 class="fw-bold text-danger mb-0" th:text="${stats.uniqueStateCount}">0</h3>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -611,7 +670,11 @@
                                     <td class="small" th:text="${client.name}">Client Name</td>
                                     <td class="text-end fw-bold text-white bg-primary"
                                         th:text="${#numbers.formatCurrency(client.totalRevenue)}">$0</td>
-                                    <td class="text-end text-muted" th:text="${client.count}">0</td>
+                                    <td class="text-end">
+                                        <button class="btn btn-link p-0 text-muted metric-filter"
+                                            th:attr="data-filter-client=${client.code}"
+                                            th:text="${client.count}">0</button>
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
@@ -724,7 +787,11 @@
                                 <tbody>
                                     <tr th:each="entry : ${stats.statusDistribution}">
                                         <td th:text="${entry.key}">Status</td>
-                                        <td class="text-end" th:text="${entry.value}">0</td>
+                                        <td class="text-end">
+                                            <button class="btn btn-link p-0 fw-bold metric-filter"
+                                                th:attr="data-filter-status=${entry.key}"
+                                                th:text="${entry.value}">0</button>
+                                        </td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -859,6 +926,7 @@
                 let activeFilterSeries = null;
                 let activeFilterState = null;
                 let activeFilterClient = null;
+                let activeFilterStatus = null;
 
                 filterButtons.forEach(button => {
                     button.addEventListener('click', function () {
@@ -866,9 +934,10 @@
                         const filterSeries = this.getAttribute('data-filter-series');
                         const filterState = this.getAttribute('data-filter-state');
                         const filterClient = this.getAttribute('data-filter-client');
+                        const filterStatus = this.getAttribute('data-filter-status');
 
                         // If clicking the same filter, clear it
-                        if (activeFilter === filterType && activeFilterSeries === filterSeries && activeFilterState === filterState && activeFilterClient === filterClient) {
+                        if (activeFilter === filterType && activeFilterSeries === filterSeries && activeFilterState === filterState && activeFilterClient === filterClient && activeFilterStatus === filterStatus) {
                             clearFilter();
                             return;
                         }
@@ -878,6 +947,7 @@
                         activeFilterSeries = filterSeries;
                         activeFilterState = filterState;
                         activeFilterClient = filterClient;
+                        activeFilterStatus = filterStatus;
 
                         // Update button states
                         filterButtons.forEach(btn => btn.classList.remove('active'));
@@ -897,7 +967,10 @@
 
                             let matchesStatus = false;
 
-                            if (filterType === 'open') {
+                            // Direct status filter (from Status Distribution)
+                            if (filterStatus) {
+                                matchesStatus = rowStatus.toLowerCase() === filterStatus.toLowerCase();
+                            } else if (filterType === 'open') {
                                 // Open means NOT (Completed, Closed, Cancelled, Invoiced)
                                 matchesStatus = !['completed', 'closed', 'cancelled', 'invoiced'].includes(rowStatus.toLowerCase());
                             } else if (filterType === 'closed') {
@@ -944,6 +1017,7 @@
                     activeFilterSeries = null;
                     activeFilterState = null;
                     activeFilterClient = null;
+                    activeFilterStatus = null;
                     filterButtons.forEach(btn => btn.classList.remove('active'));
                     tableRows.forEach(row => row.classList.remove('wo-row-hidden'));
                 }

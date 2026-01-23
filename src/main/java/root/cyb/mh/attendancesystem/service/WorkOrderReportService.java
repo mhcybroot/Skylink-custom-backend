@@ -118,6 +118,23 @@ public class WorkOrderReportService {
                         stats.setGlobalGrossMarginPercent(BigDecimal.ZERO);
                 }
 
+                // Admin Performance Metrics
+                // Count unique clients
+                long uniqueClients = workOrders.stream()
+                                .filter(wo -> wo.getClient() != null)
+                                .map(wo -> wo.getClient().getId())
+                                .distinct()
+                                .count();
+                stats.setUniqueClientCount((int) uniqueClients);
+
+                // Count unique states
+                long uniqueStates = workOrders.stream()
+                                .filter(wo -> wo.getState() != null && !wo.getState().isEmpty())
+                                .map(WorkOrder::getState)
+                                .distinct()
+                                .count();
+                stats.setUniqueStateCount((int) uniqueStates);
+
                 // --- Aggregations ---
 
                 // Status Distribution
