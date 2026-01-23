@@ -505,7 +505,11 @@
                             <tbody>
                                 <tr th:each="state : ${stats.topStatesByVolume}">
                                     <td th:text="${state.state}">TX</td>
-                                    <td class="text-end fw-bold" th:text="${state.count}">0</td>
+                                    <td class="text-end">
+                                        <button class="btn btn-link p-0 fw-bold metric-filter"
+                                            th:attr="data-filter-state=${state.state}"
+                                            th:text="${state.count}">0</button>
+                                    </td>
                                     <td class="text-end text-muted" th:text="${#numbers.formatCurrency(state.revenue)}">
                                         $0</td>
                                 </tr>
@@ -532,7 +536,11 @@
                                     <td th:text="${state.state}">NY</td>
                                     <td class="text-end fw-bold text-primary"
                                         th:text="${#numbers.formatCurrency(state.revenue)}">$0</td>
-                                    <td class="text-end text-muted" th:text="${state.count}">0</td>
+                                    <td class="text-end">
+                                        <button class="btn btn-link p-0 text-muted metric-filter"
+                                            th:attr="data-filter-state=${state.state}"
+                                            th:text="${state.count}">0</button>
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
