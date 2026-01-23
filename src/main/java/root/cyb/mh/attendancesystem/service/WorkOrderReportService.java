@@ -79,6 +79,7 @@ public class WorkOrderReportService {
                 stats.setTotalMargin(totalRevenue.subtract(totalCost));
 
                 // Realized vs Unrealized
+                // Realized vs Unrealized
                 BigDecimal realizedRevenue = workOrders.stream()
                                 .map(WorkOrder::getClientPaidAmount)
                                 .filter(Objects::nonNull)
@@ -86,10 +87,20 @@ public class WorkOrderReportService {
                 stats.setRealizedRevenue(realizedRevenue);
                 stats.setUnrealizedRevenue(totalRevenue.subtract(realizedRevenue));
 
-                stats.setRealizedCost(workOrders.stream()
+                // Paid/Unpaid Counts
+                long clientPaidCount = workOrders.stream()
+                                .filter(wo -> wo.getClientPaidAmount() != null
+                                                && wo.getClientPaidAmount().compareTo(BigDecimal.ZERO) > 0)
+                                .count();
+                stats.setClientPaidCount(clientPaidCount);
+                stats.setClientUnpaidCount(workOrders.size() - clientPaidCount);
+
+                BigDecimal realizedCost = workOrders.stream()
                                 .map(WorkOrder::getContractorPaidAmount)
                                 .filter(Objects::nonNull)
-                                .reduce(BigDecimal.ZERO, BigDecimal::add));
+                                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                stats.setRealizedCost(realizedCost);
+                stats.setContractorUnpaidAmount(totalCost.subtract(realizedCost));
 
                 // Discounts & Write-offs
                 stats.setTotalClientDiscount(workOrders.stream()

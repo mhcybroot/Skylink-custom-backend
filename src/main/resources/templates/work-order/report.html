@@ -96,7 +96,7 @@
         }
 
         .metric-card h3 {
-            font-size: 2rem;
+            font-size: 1.5rem;
         }
 
         @media print {
@@ -128,27 +128,67 @@
             </div>
             <div class="card-body">
                 <div class="row text-center">
-                    <div class="col-md metric-card">
+                    <div class="col-md-2 metric-card">
                         <h6 class="text-muted small text-uppercase">Number of WOs</h6>
                         <h3 class="fw-bold text-primary mb-0" th:text="${stats.totalWorkOrders}">0</h3>
                     </div>
-                    <div class="col-md metric-card">
+                    <div class="col-md-2 metric-card">
                         <h6 class="text-muted small text-uppercase">Value</h6>
                         <h3 class="fw-bold text-success mb-0" th:text="${#numbers.formatCurrency(stats.totalRevenue)}">
                             $0</h3>
                     </div>
-                    <div class="col-md metric-card">
+                    <div class="col-md-2 metric-card">
+                        <h6 class="text-muted small text-uppercase">Total Profit</h6>
+                        <h3 class="fw-bold text-success mb-0" th:text="${#numbers.formatCurrency(stats.totalMargin)}">
+                            $0</h3>
+                    </div>
+                    <div class="col-md-2 metric-card">
                         <h6 class="text-muted small text-uppercase">Gross Margin %</h6>
                         <h3 class="fw-bold text-info mb-0"
                             th:text="${#numbers.formatDecimal(stats.globalGrossMarginPercent, 1, 2) + '%'}">0%</h3>
                     </div>
-                    <div class="col-md metric-card">
+                    <div class="col-md-2 metric-card">
                         <h6 class="text-muted small text-uppercase">Client Count</h6>
                         <h3 class="fw-bold text-warning mb-0" th:text="${stats.uniqueClientCount}">0</h3>
                     </div>
-                    <div class="col-md metric-card">
+                    <div class="col-md-2 metric-card">
                         <h6 class="text-muted small text-uppercase">State Count</h6>
                         <h3 class="fw-bold text-danger mb-0" th:text="${stats.uniqueStateCount}">0</h3>
+                    </div>
+                </div>
+                <!-- Second Row: Payment Status -->
+                <div class="row text-center border-top">
+                    <div class="col-md-2 metric-card">
+                        <h6 class="text-muted small text-uppercase">Paid Count</h6>
+                        <button class="btn btn-link p-0 fw-bold metric-filter text-success h3 mb-0"
+                            style="font-size: 1.5rem; text-decoration: none;" data-filter-payment-status="paid"
+                            th:text="${stats.clientPaidCount}">0</button>
+                    </div>
+                    <div class="col-md-2 metric-card">
+                        <h6 class="text-muted small text-uppercase">Unpaid Count</h6>
+                        <button class="btn btn-link p-0 fw-bold metric-filter text-danger h3 mb-0"
+                            style="font-size: 1.5rem; text-decoration: none;" data-filter-payment-status="unpaid"
+                            th:text="${stats.clientUnpaidCount}">0</button>
+                    </div>
+                    <div class="col-md-2 metric-card">
+                        <h6 class="text-muted small text-uppercase">Realized Rev</h6>
+                        <h3 class="fw-bold text-success mb-0"
+                            th:text="${#numbers.formatCurrency(stats.realizedRevenue)}">$0</h3>
+                    </div>
+                    <div class="col-md-2 metric-card">
+                        <h6 class="text-muted small text-uppercase">Unrealized Rev</h6>
+                        <h3 class="fw-bold text-warning mb-0"
+                            th:text="${#numbers.formatCurrency(stats.unrealizedRevenue)}">$0</h3>
+                    </div>
+                    <div class="col-md-2 metric-card">
+                        <h6 class="text-muted small text-uppercase">Cont. Paid</h6>
+                        <h3 class="fw-bold text-primary mb-0" th:text="${#numbers.formatCurrency(stats.realizedCost)}">
+                            $0</h3>
+                    </div>
+                    <div class="col-md-2 metric-card">
+                        <h6 class="text-muted small text-uppercase">Cont. Balance</h6>
+                        <h3 class="fw-bold text-danger mb-0"
+                            th:text="${#numbers.formatCurrency(stats.contractorUnpaidAmount)}">$0</h3>
                     </div>
                 </div>
             </div>
@@ -985,7 +1025,7 @@
                 </thead>
                 <tbody>
                     <tr th:each="wo : ${reportData}"
-                        th:attr="data-status=${wo.status}, data-series=${wo.series}, data-state=${wo.state}, data-client-code=${wo.client != null ? wo.client.code : ''}, data-admin=${wo.admin}, data-work-type=${wo.workType}, data-contractor=${wo.contractor != null ? wo.contractor.name : (wo.originalContractorString != null ? wo.originalContractorString : '')}">
+                        th:attr="data-status=${wo.status}, data-series=${wo.series}, data-state=${wo.state}, data-client-code=${wo.client != null ? wo.client.code : ''}, data-admin=${wo.admin}, data-work-type=${wo.workType}, data-contractor=${wo.contractor != null ? wo.contractor.name : (wo.originalContractorString != null ? wo.originalContractorString : '')}, data-payment-status=${(wo.clientPaidAmount != null && wo.clientPaidAmount > 0) ? 'paid' : 'unpaid'}">
                         <td th:text="${wo.woNumber}">WO-1</td>
                         <td th:text="${wo.invoiceNumber}">INV-1</td>
                         <td th:text="${wo.invoiceDate}">Jan 1</td>
@@ -1084,6 +1124,7 @@
             let activeFilterAdmin = null;
             let activeFilterWorkType = null;
             let activeFilterContractor = null;
+            let activeFilterPaymentStatus = null;
 
             filterButtons.forEach(button => {
                 button.addEventListener('click', function () {
@@ -1095,6 +1136,7 @@
                     const filterAdmin = this.getAttribute('data-filter-admin');
                     const filterWorkType = this.getAttribute('data-filter-work-type');
                     const filterContractor = this.getAttribute('data-filter-contractor');
+                    const filterPaymentStatus = this.getAttribute('data-filter-payment-status');
 
                     // If clicking the same filter, clear it
                     if (activeFilter === filterType &&
@@ -1104,7 +1146,8 @@
                         activeFilterStatus === filterStatus &&
                         activeFilterAdmin === filterAdmin &&
                         activeFilterWorkType === filterWorkType &&
-                        activeFilterContractor === filterContractor) {
+                        activeFilterContractor === filterContractor &&
+                        activeFilterPaymentStatus === filterPaymentStatus) {
                         clearFilter();
                         return;
                     }
@@ -1118,6 +1161,7 @@
                     activeFilterAdmin = filterAdmin;
                     activeFilterWorkType = filterWorkType;
                     activeFilterContractor = filterContractor;
+                    activeFilterPaymentStatus = filterPaymentStatus;
 
                     // Update button states
                     filterButtons.forEach(btn => btn.classList.remove('active'));
@@ -1132,6 +1176,7 @@
                         const rowAdmin = row.getAttribute('data-admin');
                         const rowWorkType = row.getAttribute('data-work-type');
                         const rowContractor = row.getAttribute('data-contractor');
+                        const rowPaymentStatus = row.getAttribute('data-payment-status');
 
                         if (!rowStatus) {
                             row.classList.add('wo-row-hidden');
@@ -1151,8 +1196,8 @@
                             matchesStatus = rowStatus.toLowerCase() === 'invoiced';
                         }
 
-                        // If Series/State/Client/Admin/WorkType/Contractor filter is set, check match
-                        let shouldShow = matchesStatus || (!filterType && !filterStatus && !filterSeries && !filterState && !filterClient && !filterAdmin && !filterWorkType && !filterContractor);
+                        // If Series/State/Client/Admin/WorkType/Contractor/PaymentStatus filter is set, check match
+                        let shouldShow = matchesStatus || (!filterType && !filterStatus && !filterSeries && !filterState && !filterClient && !filterAdmin && !filterWorkType && !filterContractor && !filterPaymentStatus);
 
                         // Special case: if we only have one of these category filters, we should show the row if it matches
                         if (!filterType && !filterStatus) {
@@ -1165,6 +1210,7 @@
                         if (filterAdmin) shouldShow = shouldShow && (rowAdmin === filterAdmin);
                         if (filterWorkType) shouldShow = shouldShow && (rowWorkType === filterWorkType);
                         if (filterContractor) shouldShow = shouldShow && (rowContractor === filterContractor);
+                        if (filterPaymentStatus) shouldShow = shouldShow && (rowPaymentStatus === filterPaymentStatus);
 
                         if (shouldShow) {
                             row.classList.remove('wo-row-hidden');
@@ -1192,6 +1238,7 @@
                 activeFilterAdmin = null;
                 activeFilterWorkType = null;
                 activeFilterContractor = null;
+                activeFilterPaymentStatus = null;
                 filterButtons.forEach(btn => btn.classList.remove('active'));
                 tableRows.forEach(row => row.classList.remove('wo-row-hidden'));
             }

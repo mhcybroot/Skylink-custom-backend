@@ -19,6 +19,8 @@ public class WorkOrderDashboardDTO {
     private long clientInvoicesUnpaid;
     private long contractorInvoicesPaid;
     private long contractorInvoicesUnpaid;
+    private long clientPaidCount;
+    private long clientUnpaidCount;
 
     // Base Financials
     private BigDecimal totalRevenue;
@@ -40,6 +42,7 @@ public class WorkOrderDashboardDTO {
     private BigDecimal realizedRevenue; // Actual Paid
     private BigDecimal realizedCost; // Actual Paid
     private BigDecimal unrealizedRevenue;
+    private BigDecimal contractorUnpaidAmount; // Cont. Balance
 
     // Charts
     private Map<String, Long> statusDistribution;
