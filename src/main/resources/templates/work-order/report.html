@@ -466,7 +466,11 @@
                             <tr>
                                 <td></td>
                                 <td class="ps-4" th:text="${item.seriesName}">Series 100</td>
-                                <td class="text-end" th:text="${item.workOrderCount}">15</td>
+                                <td class="text-end">
+                                    <button class="btn btn-link p-0 fw-bold metric-filter"
+                                        th:attr="data-filter-state=${item.location}, data-filter-series=${item.seriesName}"
+                                        th:text="${item.workOrderCount}">15</button>
+                                </td>
                                 <td class="text-end" th:text="${#numbers.formatCurrency(item.revenue)}">$10,000</td>
                                 <td class="text-end fw-bold"
                                     th:classappend="${item.profit.compareTo(T(java.math.BigDecimal).ZERO) >= 0 ? 'text-success' : 'text-danger'}"
@@ -747,7 +751,8 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr th:each="wo : ${reportData}" th:attr="data-status=${wo.status}, data-series=${wo.series}">
+                        <tr th:each="wo : ${reportData}"
+                            th:attr="data-status=${wo.status}, data-series=${wo.series}, data-state=${wo.state}">
                             <td th:text="${wo.woNumber}">WO-1</td>
                             <td th:text="${wo.invoiceNumber}">INV-1</td>
                             <td th:text="${wo.invoiceDate}">Jan 1</td>
@@ -840,14 +845,16 @@
                 const tableRows = document.querySelectorAll('tbody tr[data-status]');
                 let activeFilter = null;
                 let activeFilterSeries = null;
+                let activeFilterState = null;
 
                 filterButtons.forEach(button => {
                     button.addEventListener('click', function () {
                         const filterType = this.getAttribute('data-filter-type');
                         const filterSeries = this.getAttribute('data-filter-series');
+                        const filterState = this.getAttribute('data-filter-state');
 
                         // If clicking the same filter, clear it
-                        if (activeFilter === filterType && activeFilterSeries === filterSeries) {
+                        if (activeFilter === filterType && activeFilterSeries === filterSeries && activeFilterState === filterState) {
                             clearFilter();
                             return;
                         }
@@ -855,6 +862,7 @@
                         // Set new filter
                         activeFilter = filterType;
                         activeFilterSeries = filterSeries;
+                        activeFilterState = filterState;
 
                         // Update button states
                         filterButtons.forEach(btn => btn.classList.remove('active'));
@@ -864,6 +872,7 @@
                         tableRows.forEach(row => {
                             const rowStatus = row.getAttribute('data-status');
                             const rowSeries = row.getAttribute('data-series');
+                            const rowState = row.getAttribute('data-state');
 
                             if (!rowStatus) {
                                 row.classList.add('wo-row-hidden');
@@ -884,9 +893,13 @@
                             }
 
                             // If Series filter is set, also check series match
-                            let shouldShow = matchesStatus;
+                            let shouldShow = matchesStatus || !filterType;
                             if (filterSeries) {
-                                shouldShow = matchesStatus && (rowSeries === filterSeries);
+                                shouldShow = shouldShow && (rowSeries === filterSeries);
+                            }
+                            // If State filter is set, also check state match
+                            if (filterState) {
+                                shouldShow = shouldShow && (rowState === filterState);
                             }
 
                             if (shouldShow) {
@@ -909,6 +922,7 @@
                 function clearFilter() {
                     activeFilter = null;
                     activeFilterSeries = null;
+                    activeFilterState = null;
                     filterButtons.forEach(btn => btn.classList.remove('active'));
                     tableRows.forEach(row => row.classList.remove('wo-row-hidden'));
                 }
