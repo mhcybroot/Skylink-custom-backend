@@ -998,29 +998,45 @@
         <h5 class="fw-bold border-bottom pb-2 mb-3" id="work-orders-table">Included Work Orders</h5>
         <div class="table-responsive">
             <table class="table table-bordered table-striped table-hover table-sm" style="font-size: 0.7rem;">
-                <thead class="table-dark">
-                    <tr>
-                        <th>WO #</th>
-                        <th>Inv #</th>
-                        <th>Inv Date</th>
-                        <th>Type</th>
-                        <th>Status</th>
-                        <th>Client</th>
-                        <th>Bank</th>
-                        <th>Date Due</th>
-                        <th>Due Client</th>
-                        <th>Sent Client</th>
+                <thead class="table-dark" style="cursor: pointer;">
+                    <tr id="woTableHeader">
+                        <th class="sortable" data-sort="woNumber">WO # <i class="fas fa-sort"></i></th>
+                        <th class="sortable" data-sort="invoiceNumber">Inv # <i class="fas fa-sort"></i></th>
+                        <th class="sortable" data-sort="invoiceDate">Inv Date <i class="fas fa-sort"></i></th>
+                        <th class="sortable" data-sort="ppwNumber">PPW # <i class="fas fa-sort"></i></th>
+                        <th class="sortable" data-sort="contractor">Contractor <i class="fas fa-sort"></i></th>
+                        <th class="sortable" data-sort="admin">Admin <i class="fas fa-sort"></i></th>
+                        <th class="sortable" data-sort="address">Address <i class="fas fa-sort"></i></th>
+                        <th class="sortable" data-sort="city">City <i class="fas fa-sort"></i></th>
+                        <th class="sortable" data-sort="state">State <i class="fas fa-sort"></i></th>
+                        <th class="sortable" data-sort="zip">Zip <i class="fas fa-sort"></i></th>
+                        <th class="sortable" data-sort="loanNumber">Loan # <i class="fas fa-sort"></i></th>
+                        <th class="sortable" data-sort="workType">Type <i class="fas fa-sort"></i></th>
+                        <th class="sortable" data-sort="status">Status <i class="fas fa-sort"></i></th>
+                        <th class="sortable" data-sort="client">Client <i class="fas fa-sort"></i></th>
+                        <th class="sortable" data-sort="bank">Bank <i class="fas fa-sort"></i></th>
+                        <th class="sortable" data-sort="dateDue">Date Due <i class="fas fa-sort"></i></th>
+                        <th class="sortable" data-sort="dateDueClient">Due Client <i class="fas fa-sort"></i></th>
+                        <th class="sortable" data-sort="sentToClientDate">Sent Client <i class="fas fa-sort"></i></th>
 
-                        <th class="text-end">Cont. Total</th>
-                        <th class="text-end">Cont. Paid</th>
-                        <th class="text-end">Cont. Disc%</th>
+                        <th class="text-end sortable" data-sort="contractorInvoiceTotal">Cont. Total <i
+                                class="fas fa-sort"></i></th>
+                        <th class="text-end sortable" data-sort="contractorPaidAmount">Cont. Paid <i
+                                class="fas fa-sort"></i></th>
+                        <th class="text-end sortable" data-sort="contractorDiscountPercent">Cont. Disc% <i
+                                class="fas fa-sort"></i></th>
 
-                        <th class="text-end">Client Total</th>
-                        <th class="text-end">Client Paid</th>
-                        <th>Paid Date</th>
-                        <th class="text-end">Client Disc%</th>
-                        <th class="text-end">Disc Total</th>
-                        <th class="text-end">Write Off</th>
+                        <th class="text-end sortable" data-sort="clientInvoiceTotal">Client Total <i
+                                class="fas fa-sort"></i></th>
+                        <th class="text-end sortable" data-sort="clientPaidAmount">Client Paid <i
+                                class="fas fa-sort"></i></th>
+                        <th class="sortable" data-sort="clientPaidDate">Paid Date <i class="fas fa-sort"></i></th>
+                        <th class="text-end sortable" data-sort="clientDiscountPercent">Client Disc% <i
+                                class="fas fa-sort"></i></th>
+                        <th class="text-end sortable" data-sort="clientDiscountTotal">Disc Total <i
+                                class="fas fa-sort"></i></th>
+                        <th class="text-end sortable" data-sort="writeOffAmount">Write Off <i class="fas fa-sort"></i>
+                        </th>
                     </tr>
                 </thead>
                 <tbody>
@@ -1029,6 +1045,15 @@
                         <td th:text="${wo.woNumber}">WO-1</td>
                         <td th:text="${wo.invoiceNumber}">INV-1</td>
                         <td th:text="${wo.invoiceDate}">Jan 1</td>
+                        <td th:text="${wo.ppwNumber}">PPW-1</td>
+                        <td th:text="${wo.contractor != null ? wo.contractor.name : (wo.originalContractorString)}">
+                            Contr</td>
+                        <td th:text="${wo.admin}">Admin</td>
+                        <td th:text="${wo.address}">Address</td>
+                        <td th:text="${wo.city}">City</td>
+                        <td th:text="${wo.state}">ST</td>
+                        <td th:text="${wo.zip}">12345</td>
+                        <td th:text="${wo.loanNumber}">Loan-1</td>
                         <td th:text="${wo.workType}">Cut</td>
                         <td th:text="${wo.status}">Open</td>
                         <td th:text="${wo.client != null ? wo.client.code : (wo.originalClientString)}">Client</td>
@@ -1075,17 +1100,13 @@
         <button onclick="window.print()" class="btn btn-primary shadow rounded-pill px-4">
             <i class="fas fa-print me-2"></i> Print / Save PDF
         </button>
-        <button onclick="window.history.back()" class="btn btn-secondary shadow rounded-pill px-4 ms-2">
+        <!-- <button onclick="window.history.back()" class="btn btn-secondary shadow rounded-pill px-4 ms-2">
             Back
-        </button>
+        </button> -->
     </div>
 </div>
 
-<!-- Scroll to Top Button -->
-<button id="scrollToTopBtn" class="btn btn-primary no-print"
-    style="display: none; position: fixed; bottom: 80px; right: 20px; z-index: 1000; border-radius: 50%; width: 50px; height: 50px;">
-    <i class="fas fa-arrow-up"></i>
-</button>
+
 
 <th:block th:fragment="scripts">
     <style>
@@ -1394,6 +1415,87 @@
                 });
             }
 
+            // Included Work Orders Table Sorting
+            const woTable = document.querySelector('#work-orders-table').nextElementSibling.querySelector('table');
+            if (woTable) {
+                const headers = woTable.querySelectorAll('th.sortable');
+                let currentSort = { column: null, ascending: true };
+
+                headers.forEach(header => {
+                    header.addEventListener('click', function () {
+                        const sortType = this.getAttribute('data-sort');
+                        const tbody = woTable.querySelector('tbody');
+                        const rows = Array.from(tbody.querySelectorAll('tr'));
+
+                        // Toggle sort direction
+                        if (currentSort.column === sortType) {
+                            currentSort.ascending = !currentSort.ascending;
+                        } else {
+                            currentSort.column = sortType;
+                            currentSort.ascending = true;
+                        }
+
+                        // Map sortType to column index
+                        const colMap = {
+                            'woNumber': 0, 'invoiceNumber': 1, 'invoiceDate': 2,
+                            'ppwNumber': 3, 'contractor': 4, 'admin': 5, 'address': 6, 'city': 7, 'state': 8, 'zip': 9, 'loanNumber': 10,
+                            'workType': 11, 'status': 12, 'client': 13, 'bank': 14,
+                            'dateDue': 15, 'dateDueClient': 16, 'sentToClientDate': 17,
+                            'contractorInvoiceTotal': 18, 'contractorPaidAmount': 19, 'contractorDiscountPercent': 20,
+                            'clientInvoiceTotal': 21, 'clientPaidAmount': 22, 'clientPaidDate': 23,
+                            'clientDiscountPercent': 24, 'clientDiscountTotal': 25, 'writeOffAmount': 26
+                        };
+
+                        const colIndex = colMap[sortType];
+
+                        // Sort rows
+                        rows.sort((a, b) => {
+                            let aVal = a.cells[colIndex].textContent.trim();
+                            let bVal = b.cells[colIndex].textContent.trim();
+
+                            // Numeric/Currency handling
+                            if (['contractorInvoiceTotal', 'contractorPaidAmount', 'clientInvoiceTotal', 'clientPaidAmount', 'clientDiscountTotal', 'writeOffAmount'].includes(sortType)) {
+                                aVal = parseFloat(aVal.replace(/[$,]/g, '').replace('-', '0')) || 0;
+                                bVal = parseFloat(bVal.replace(/[$,]/g, '').replace('-', '0')) || 0;
+                            }
+                            // Percentage handling
+                            else if (['contractorDiscountPercent', 'clientDiscountPercent'].includes(sortType)) {
+                                aVal = parseFloat(aVal.replace('%', '').replace('-', '0')) || 0;
+                                bVal = parseFloat(bVal.replace('%', '').replace('-', '0')) || 0;
+                            }
+                            // Date handling
+                            else if (['invoiceDate', 'dateDue', 'dateDueClient', 'sentToClientDate', 'clientPaidDate'].includes(sortType)) {
+                                let d1 = new Date(aVal);
+                                let d2 = new Date(bVal);
+                                if (!isNaN(d1) && !isNaN(d2)) {
+                                    aVal = d1.getTime();
+                                    bVal = d2.getTime();
+                                }
+                            }
+
+                            if (currentSort.ascending) {
+                                return aVal > bVal ? 1 : (aVal < bVal ? -1 : 0);
+                            } else {
+                                return aVal < bVal ? 1 : (aVal > bVal ? -1 : 0);
+                            }
+                        });
+
+                        // Re-append sorted rows
+                        rows.forEach(row => tbody.appendChild(row));
+
+                        // Update icons
+                        headers.forEach(h => {
+                            const icon = h.querySelector('i');
+                            if (h === header) {
+                                icon.className = currentSort.ascending ? 'fas fa-sort-up' : 'fas fa-sort-down';
+                            } else {
+                                icon.className = 'fas fa-sort';
+                            }
+                        });
+                    });
+                });
+            }
+
             // Contractor Scorecard Table Sorting
             const contractorTable = document.getElementById('contractorScorecardTable');
             if (contractorTable) {
@@ -1461,23 +1563,29 @@
                 });
             }
 
-            // Scroll to Top Button functionality
-            const scrollToTopBtn = document.getElementById('scrollToTopBtn');
 
-            window.addEventListener('scroll', function () {
-                if (window.pageYOffset > 300) {
-                    scrollToTopBtn.style.display = 'block';
-                } else {
-                    scrollToTopBtn.style.display = 'none';
-                }
-            });
+        });
 
-            scrollToTopBtn.addEventListener('click', function () {
-                window.scrollTo({
-                    top: 0,
-                    behavior: 'smooth'
-                });
-            });
+        // Scroll to Top Button (New Implementation)
+        const scrollBtn = document.createElement("button");
+        scrollBtn.innerHTML = '<i class="fas fa-arrow-up"></i>';
+        scrollBtn.id = "scrollTop";
+        scrollBtn.title = "Go to top";
+        scrollBtn.className = "btn btn-primary shadow no-print";
+        scrollBtn.style.cssText = "display: none; position: fixed; bottom: 30px; right: 30px; z-index: 9999; border-radius: 50%; width: 50px; height: 50px; font-size: 20px; text-align: center; line-height: 1.5; cursor: pointer;";
+
+        document.body.appendChild(scrollBtn);
+
+        window.onscroll = function () {
+            if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+                scrollBtn.style.display = "block";
+            } else {
+                scrollBtn.style.display = "none";
+            }
+        };
+
+        scrollBtn.addEventListener("click", function () {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         });
     </script>
 </th:block>
