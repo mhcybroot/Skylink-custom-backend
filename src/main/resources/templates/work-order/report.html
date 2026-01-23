@@ -519,56 +519,7 @@
                 </div>
             </div>
 
-            <!-- Top Zips -->
-            <div class="col-md-6">
-                <div class="card h-100 shadow-sm border-0">
-                    <div class="card-header bg-info text-dark fw-bold text-uppercase small">Top Zips by Volume</div>
-                    <div class="card-body p-0">
-                        <table class="table table-sm table-striped mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Zip Code</th>
-                                    <th class="text-end">Work Orders</th>
-                                    <th class="text-end">Revenue</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr th:each="zipItem : ${stats.topZipsByVolume}">
-                                    <td th:text="${zipItem.zip}">00000</td>
-                                    <td class="text-end fw-bold" th:text="${zipItem.count}">0</td>
-                                    <td class="text-end text-muted"
-                                        th:text="${#numbers.formatCurrency(zipItem.revenue)}">$0
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="card h-100 shadow-sm border-0">
-                    <div class="card-header bg-info text-dark fw-bold text-uppercase small">Top Zips by Value</div>
-                    <div class="card-body p-0">
-                        <table class="table table-sm table-striped mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Zip Code</th>
-                                    <th class="text-end">Revenue</th>
-                                    <th class="text-end">Work Orders</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr th:each="zipItem : ${stats.topZipsByRevenue}">
-                                    <td th:text="${zipItem.zip}">00000</td>
-                                    <td class="text-end fw-bold text-primary"
-                                        th:text="${#numbers.formatCurrency(zipItem.revenue)}">$0</td>
-                                    <td class="text-end text-muted" th:text="${zipItem.count}">0</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+
         </div>
 
         <!-- State Margin & Efficiency Snapshot -->

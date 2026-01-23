@@ -19,7 +19,6 @@ import java.util.LinkedHashMap;
 import java.util.Collections;
 import java.util.ArrayList;
 import root.cyb.mh.attendancesystem.dto.WorkOrderDashboardDTO.StateStat;
-import root.cyb.mh.attendancesystem.dto.WorkOrderDashboardDTO.ZipStat;
 
 @Service
 public class WorkOrderReportService {
@@ -550,38 +549,6 @@ public class WorkOrderReportService {
                                 .sorted(Comparator.comparing(StateStat::getMargin)) // Lowest margin first
                                 .limit(5)
                                 .collect(Collectors.toList()));
-
-                // Zip Stats
-                List<ZipStat> allZipStats = workOrders.stream()
-                                .filter(w -> w.getZip() != null && !w.getZip().trim().isEmpty())
-                                .collect(Collectors.groupingBy(w -> w.getZip().trim()))
-                                .entrySet().stream()
-                                .map(entry -> {
-                                        String zip = entry.getKey();
-                                        List<WorkOrder> list = entry.getValue();
-                                        BigDecimal rev = list.stream().map(this::getEffectiveRevenue)
-                                                        .reduce(BigDecimal.ZERO, BigDecimal::add);
-                                        return new ZipStat(zip, list.size(), rev);
-                                })
-                                .collect(Collectors.toList());
-
-                stats.setTopZipsByVolume(allZipStats.stream()
-                                .sorted(Comparator.comparingLong(ZipStat::getCount).reversed())
-                                .limit(10)
-                                .collect(Collectors.toList()));
-
-                stats.setTopZipsByRevenue(allZipStats.stream()
-                                .sorted(Comparator.comparing(ZipStat::getRevenue).reversed())
-                                .limit(10)
-                                .collect(Collectors.toList()));
-
-                // DEBUG: Log zip codes to diagnose corruption
-                System.out.println("=== DEBUG: Top Zips by Revenue ===");
-                stats.getTopZipsByRevenue().forEach(z -> {
-                        System.out.println("Zip: [" + z.getZip() + "] Revenue: " + z.getRevenue() + " Count: "
-                                        + z.getCount());
-                });
-                System.out.println("=== END DEBUG ===");
 
                 // 4. Geographic Analysis by Series
                 // State × Series breakdown

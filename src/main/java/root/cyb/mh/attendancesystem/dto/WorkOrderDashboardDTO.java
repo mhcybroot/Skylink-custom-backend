@@ -146,8 +146,6 @@ public class WorkOrderDashboardDTO {
     // Geographic Analysis
     private List<StateStat> topStatesByVolume;
     private List<StateStat> topStatesByRevenue;
-    private List<ZipStat> topZipsByVolume;
-    private List<ZipStat> topZipsByRevenue;
 
     // State Efficiency Snapshot
     private List<StateStat> highMarginStates;
@@ -216,11 +214,4 @@ public class WorkOrderDashboardDTO {
         private BigDecimal margin;
     }
 
-    @Data
-    @AllArgsConstructor
-    public static class ZipStat {
-        private String zip;
-        private long count;
-        private BigDecimal revenue;
-    }
 }
