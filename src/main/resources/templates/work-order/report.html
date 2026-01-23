@@ -560,44 +560,49 @@
         </div>
 
         <!-- LLC / SERIES PROFIT TABLE -->
-        <h5 class="fw-bold text-center mb-3 text-uppercase border-bottom pb-2">LLC wise Profit/Loss Calculation</h5>
-        <div class="row justify-content-center mb-5">
-            <div class="col-md-10">
+        <h5 class="fw-bold text-uppercase border-bottom pb-2 mb-3">LLC wise Profit/Loss Calculation</h5>
+        <div class="row mb-5">
+            <div class="col-12">
                 <div class="card shadow-sm border-0">
                     <div class="card-body p-0">
-                        <table class="table table-bordered table-striped mb-0 text-center align-middle">
-                            <thead class="bg-warning text-dark">
+                        <table class="table table-hover table-striped mb-0">
+                            <thead class="table-dark">
                                 <tr>
                                     <th class="py-2">LLC / Series</th>
-                                    <th class="py-2">Client Invoice Total</th>
-                                    <th class="py-2">Contractor Invoice Total</th>
-                                    <th class="py-2">Profit/Loss</th>
-                                    <th class="py-2">Profit Margin</th>
+                                    <th class="py-2 text-end">Client Invoice Total</th>
+                                    <th class="py-2 text-end">Contractor Invoice Total</th>
+                                    <th class="py-2 text-end">Profit/Loss</th>
+                                    <th class="py-2 text-end">Profit Margin</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr th:each="series : ${stats.seriesStats}">
                                     <td class="fw-bold text-start ps-4" th:text="${series.seriesName}">Series 100</td>
-                                    <td th:text="${#numbers.formatCurrency(series.clientInvoiceTotal)}">$0.00</td>
-                                    <td th:text="${#numbers.formatCurrency(series.contractorInvoiceTotal)}">$0.00</td>
-                                    <td th:text="${#numbers.formatCurrency(series.profitLoss)}"
+                                    <td class="text-end"
+                                        th:text="${#numbers.formatCurrency(series.clientInvoiceTotal)}">$0.00</td>
+                                    <td class="text-end"
+                                        th:text="${#numbers.formatCurrency(series.contractorInvoiceTotal)}">$0.00</td>
+                                    <td class="text-end" th:text="${#numbers.formatCurrency(series.profitLoss)}"
                                         th:classappend="${series.profitLoss >= 0} ? 'text-success' : 'text-danger fw-bold'">
                                         $0.00</td>
-                                    <td th:text="${#numbers.formatDecimal(series.profitMarginPercent, 1, 1) + '%'}">0.0%
+                                    <td class="text-end"
+                                        th:text="${#numbers.formatDecimal(series.profitMarginPercent, 1, 1) + '%'}">0.0%
                                     </td>
                                 </tr>
                             </tbody>
-                            <tfoot class="bg-warning text-dark fw-bold">
+                            <tfoot class="table-light fw-bold">
                                 <tr th:if="${stats.grandTotalSeries != null}">
                                     <td class="text-start ps-4">Grand Total</td>
-                                    <td th:text="${#numbers.formatCurrency(stats.grandTotalSeries.clientInvoiceTotal)}">
+                                    <td class="text-end"
+                                        th:text="${#numbers.formatCurrency(stats.grandTotalSeries.clientInvoiceTotal)}">
                                         $0.00</td>
-                                    <td
+                                    <td class="text-end"
                                         th:text="${#numbers.formatCurrency(stats.grandTotalSeries.contractorInvoiceTotal)}">
                                         $0.00</td>
-                                    <td th:text="${#numbers.formatCurrency(stats.grandTotalSeries.profitLoss)}">$0.00
+                                    <td class="text-end"
+                                        th:text="${#numbers.formatCurrency(stats.grandTotalSeries.profitLoss)}">$0.00
                                     </td>
-                                    <td
+                                    <td class="text-end"
                                         th:text="${#numbers.formatDecimal(stats.grandTotalSeries.profitMarginPercent, 1, 1) + '%'}">
                                         0.0%</td>
                                 </tr>
@@ -609,32 +614,33 @@
         </div>
 
         <!-- Monthly Performance Comparison -->
-        <h5 class="fw-bold text-center mb-3 text-uppercase border-bottom pb-2">Monthly Performance Comparison</h5>
-        <div class="row justify-content-center mb-5">
-            <div class="col-md-10">
+        <h5 class="fw-bold text-uppercase border-bottom pb-2 mb-3">Monthly Performance Comparison</h5>
+        <div class="row mb-5">
+            <div class="col-12">
                 <div class="card shadow-sm border-0">
                     <div class="card-body p-0">
-                        <table class="table table-bordered table-striped mb-0 text-center align-middle">
-                            <thead class="bg-primary text-white">
+                        <table class="table table-hover table-striped mb-0">
+                            <thead class="table-dark">
                                 <tr>
-                                    <th class="py-2">Month</th>
-                                    <th class="py-2">Work Orders</th>
-                                    <th class="py-2">Revenue</th>
-                                    <th class="py-2">Cost</th>
-                                    <th class="py-2">Profit</th>
-                                    <th class="py-2">Margin</th>
+                                    <th class="py-2 ps-4">Month</th>
+                                    <th class="py-2 text-end">Work Orders</th>
+                                    <th class="py-2 text-end">Revenue</th>
+                                    <th class="py-2 text-end">Cost</th>
+                                    <th class="py-2 text-end">Profit</th>
+                                    <th class="py-2 text-end">Margin</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr th:each="month : ${stats.monthlyStats}">
                                     <td class="fw-bold text-start ps-4" th:text="${month.month}">Jan 2025</td>
-                                    <td th:text="${month.totalWorkOrders}">0</td>
-                                    <td th:text="${#numbers.formatCurrency(month.revenue)}">$0.00</td>
-                                    <td th:text="${#numbers.formatCurrency(month.cost)}">$0.00</td>
-                                    <td th:text="${#numbers.formatCurrency(month.profit)}"
+                                    <td class="text-end" th:text="${month.totalWorkOrders}">0</td>
+                                    <td class="text-end" th:text="${#numbers.formatCurrency(month.revenue)}">$0.00</td>
+                                    <td class="text-end" th:text="${#numbers.formatCurrency(month.cost)}">$0.00</td>
+                                    <td class="text-end" th:text="${#numbers.formatCurrency(month.profit)}"
                                         th:classappend="${month.profit >= 0} ? 'text-success' : 'text-danger fw-bold'">
                                         $0.00</td>
-                                    <td th:text="${#numbers.formatDecimal(month.margin, 1, 1) + '%'}">0.0%</td>
+                                    <td class="text-end" th:text="${#numbers.formatDecimal(month.margin, 1, 1) + '%'}">
+                                        0.0%</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -644,13 +650,13 @@
         </div>
 
         <!-- Monthly Performance by Series -->
-        <h5 class="fw-bold text-center mb-3 text-uppercase border-bottom pb-2">Monthly Performance by Series</h5>
+        <h5 class="fw-bold text-uppercase border-bottom pb-2 mb-3">Monthly Performance by Series</h5>
         <div class="card shadow-sm border-0 mb-5">
             <div class="card-body p-0">
                 <table class="table table-sm table-hover mb-0">
-                    <thead class="table-light">
+                    <thead class="table-dark">
                         <tr>
-                            <th>Month</th>
+                            <th class="ps-4">Month</th>
                             <th>Series</th>
                             <th class="text-end">Work Orders</th>
                             <th class="text-end">Revenue</th>
@@ -691,13 +697,13 @@
         </div>
 
         <!-- Geographic Performance by Series -->
-        <h5 class="fw-bold text-center mb-3 text-uppercase border-bottom pb-2">Geographic Performance by Series</h5>
+        <h5 class="fw-bold text-uppercase border-bottom pb-2 mb-3">Geographic Performance by Series</h5>
         <div class="card shadow-sm border-0 mb-5">
             <div class="card-body p-0">
                 <table class="table table-sm table-hover mb-0">
-                    <thead class="table-light">
+                    <thead class="table-dark">
                         <tr>
-                            <th>State</th>
+                            <th class="ps-4">State</th>
                             <th class>Series</th>
                             <th class="text-end">Work Orders</th>
                             <th class="text-end">Revenue</th>
@@ -739,12 +745,12 @@
         </div>
 
         <!-- Geographic Analysis -->
-        <h5 class="fw-bold text-center mb-3 text-uppercase border-bottom pb-2">Geographic Analysis</h5>
+        <h5 class="fw-bold text-uppercase border-bottom pb-2 mb-3">Geographic Analysis</h5>
         <div class="row g-4 mb-5">
             <!-- Top States -->
             <div class="col-md-6">
                 <div class="card h-100 shadow-sm border-0">
-                    <div class="card-header bg-success text-white fw-bold text-uppercase small">Top States by Volume
+                    <div class="card-header bg-dark text-white fw-bold text-uppercase small">Top States by Volume
                     </div>
                     <div class="card-body p-0">
                         <table class="table table-sm table-striped mb-0">
@@ -773,7 +779,7 @@
             </div>
             <div class="col-md-6">
                 <div class="card h-100 shadow-sm border-0">
-                    <div class="card-header bg-success text-white fw-bold text-uppercase small">Top States by Value
+                    <div class="card-header bg-dark text-white fw-bold text-uppercase small">Top States by Value
                     </div>
                     <div class="card-body p-0">
                         <table class="table table-sm table-striped mb-0">
@@ -805,12 +811,12 @@
         </div>
 
         <!-- Client Code Analysis -->
-        <h5 class="fw-bold text-center mb-3 text-uppercase border-bottom pb-2">Client Code Analysis</h5>
+        <h5 class="fw-bold text-uppercase border-bottom pb-2 mb-3">Client Code Analysis</h5>
         <div class="row g-4 mb-5">
             <!-- Top Clients by Volume (Code) -->
             <div class="col-md-6">
                 <div class="card h-100 shadow-sm border-0">
-                    <div class="card-header bg-primary text-white fw-bold text-uppercase small">Top Clients by Volume
+                    <div class="card-header bg-dark text-white fw-bold text-uppercase small">Top Clients by Volume
                         (Code)
                     </div>
                     <div class="card-body p-0">
@@ -845,7 +851,7 @@
             <!-- Top Clients by Value (Code) -->
             <div class="col-md-6">
                 <div class="card h-100 shadow-sm border-0">
-                    <div class="card-header bg-primary text-white fw-bold text-uppercase small">Top Clients by Value
+                    <div class="card-header bg-dark text-white fw-bold text-uppercase small">Top Clients by Value
                         (Code)
                     </div>
                     <div class="card-body p-0">
@@ -862,7 +868,7 @@
                                 <tr th:each="client : ${stats.topClientsByRevenue}">
                                     <td class="fw-bold" th:text="${client.code}">C100</td>
                                     <td class="small" th:text="${client.name}">Client Name</td>
-                                    <td class="text-end fw-bold text-white "
+                                    <td class="text-end fw-bold text-success"
                                         th:text="${#numbers.formatCurrency(client.totalRevenue)}">$0</td>
                                     <td class="text-end">
                                         <button class="btn btn-link p-0 text-muted metric-filter"
@@ -877,8 +883,9 @@
             </div>
         </div>
 
+
         <!-- State Margin & Efficiency Snapshot -->
-        <h5 class="fw-bold text-center mb-3 text-uppercase border-bottom pb-2">State Margin & Efficiency Snapshot</h5>
+        <h5 class="fw-bold text-uppercase border-bottom pb-2 mb-3">State Margin & Efficiency Snapshot</h5>
         <div class="row g-4 mb-5">
             <!-- High Margin -->
             <div class="col-md-4">
@@ -966,10 +973,10 @@
         <!-- SECONDARY STATS ROW -->
         <div class="row g-4 mb-5">
 
-            <div class="col-md-6">
+            <div class="col-12">
                 <!-- Status Breakdown -->
                 <div class="card h-100 shadow-sm border-0">
-                    <div class="card-header bg-light fw-bold text-uppercase small">Status Distribution</div>
+                    <div class="card-header bg-dark text-white fw-bold text-uppercase small">Status Distribution</div>
                     <div class="card-body p-0">
                         <table class="table table-sm table-striped mb-0">
                             <thead>
@@ -1096,14 +1103,14 @@
     </div>
 
     <!-- PRINT BUTTON (Hidden in Print) -->
-    <div class="print-btn no-print">
+    <!-- <div class="print-btn no-print">
         <button onclick="window.print()" class="btn btn-primary shadow rounded-pill px-4">
             <i class="fas fa-print me-2"></i> Print / Save PDF
         </button>
         <!-- <button onclick="window.history.back()" class="btn btn-secondary shadow rounded-pill px-4 ms-2">
             Back
         </button> -->
-    </div>
+</div> -->
 </div>
 
 
