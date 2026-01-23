@@ -13,6 +13,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.time.temporal.ChronoUnit;
+import java.math.RoundingMode;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -29,6 +31,13 @@ public class WorkOrderReportService {
                         return w.getClientDiscountTotal();
                 }
                 return w.getClientInvoiceTotal() != null ? w.getClientInvoiceTotal() : BigDecimal.ZERO;
+        }
+
+        private String getContractorName(WorkOrder w) {
+                if (w.getContractor() != null && w.getContractor().getName() != null) {
+                        return w.getContractor().getName();
+                }
+                return w.getOriginalContractorString() != null ? w.getOriginalContractorString() : "Unknown";
         }
 
         public WorkOrderDashboardDTO calculateStatistics(List<WorkOrder> workOrders) {
@@ -766,6 +775,54 @@ public class WorkOrderReportService {
                                 .collect(Collectors.toList());
 
                 stats.setWorkTypePerformanceStats(workTypeStats);
+
+                // Contractor Scorecard
+                Map<String, List<WorkOrder>> contractorGroups = workOrders.stream()
+                                .collect(Collectors.groupingBy(this::getContractorName));
+
+                List<WorkOrderDashboardDTO.ContractorScorecardStat> scorecardStats = contractorGroups.entrySet()
+                                .stream()
+                                .map(entry -> {
+                                        String name = entry.getKey();
+                                        List<WorkOrder> cWOs = entry.getValue();
+
+                                        long volume = cWOs.size();
+
+                                        // Total Cost
+                                        BigDecimal scorecardCost = cWOs.stream()
+                                                        .map(wo -> wo.getContractorInvoiceTotal() != null
+                                                                        ? wo.getContractorInvoiceTotal()
+                                                                        : BigDecimal.ZERO)
+                                                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                                        // Total Revenue
+                                        BigDecimal scorecardRevenue = cWOs.stream()
+                                                        .map(this::getEffectiveRevenue)
+                                                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                                        // Average Cost
+                                        BigDecimal avgCost = volume > 0
+                                                        ? scorecardCost.divide(BigDecimal.valueOf(volume), 2,
+                                                                        RoundingMode.HALF_UP)
+                                                        : BigDecimal.ZERO;
+
+                                        // Average Speed (Days)
+                                        double avgSpeed = cWOs.stream()
+                                                        .filter(wo -> wo.getDateReceived() != null
+                                                                        && wo.getInvoiceDate() != null)
+                                                        .mapToLong(wo -> ChronoUnit.DAYS.between(wo.getDateReceived(),
+                                                                        wo.getInvoiceDate()))
+                                                        .average()
+                                                        .orElse(0.0);
+
+                                        return new WorkOrderDashboardDTO.ContractorScorecardStat(
+                                                        name, volume, avgCost, avgSpeed, scorecardCost,
+                                                        scorecardRevenue);
+                                })
+                                .sorted((a, b) -> Long.compare(b.getVolume(), a.getVolume()))
+                                .collect(Collectors.toList());
+
+                stats.setContractorScorecardStats(scorecardStats);
 
                 return stats;
         }

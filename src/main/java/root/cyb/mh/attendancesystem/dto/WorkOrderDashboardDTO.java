@@ -87,6 +87,7 @@ public class WorkOrderDashboardDTO {
 
     private List<AdminPerformanceStat> adminPerformanceStats;
     private List<WorkTypePerformanceStat> workTypePerformanceStats;
+    private List<ContractorScorecardStat> contractorScorecardStats;
 
     @Data
     @AllArgsConstructor
@@ -238,6 +239,17 @@ public class WorkOrderDashboardDTO {
         private BigDecimal totalCost;
         private BigDecimal profit;
         private BigDecimal marginPercent;
+    }
+
+    @Data
+    @AllArgsConstructor
+    public static class ContractorScorecardStat {
+        private String contractorName;
+        private long volume;
+        private BigDecimal avgCost;
+        private double avgSpeedDays;
+        private BigDecimal totalCost;
+        private BigDecimal totalRevenue;
     }
 
 }

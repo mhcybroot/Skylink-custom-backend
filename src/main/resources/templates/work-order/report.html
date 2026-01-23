@@ -155,7 +155,7 @@
         </div>
 
         <!-- ADMIN PERFORMANCE BY USER TABLE -->
-        <h5 class="fw-bold text-uppercase border-bottom pb-2 mb-3">Admin Performance by User</h5>
+        <h5 class="fw-bold text-uppercase border-bottom pb-2 mb-3">Admin Performance</h5>
         <div class="card shadow-sm border-0 mb-5">
             <div class="card-body p-0">
                 <table class="table table-hover table-striped mb-0" id="adminPerformanceTable">
@@ -259,6 +259,49 @@
                             <td class="text-end fw-bold" th:classappend="${type.marginPercent >= 40 ? 'text-success' : 
                                                 (type.marginPercent >= 30 ? 'text-warning' : 'text-danger')}"
                                 th:text="${#numbers.formatDecimal(type.marginPercent, 1, 2) + '%'}">0%</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- CONTRACTOR SCORECARD TABLE -->
+        <h5 class="fw-bold text-uppercase border-bottom pb-2 mb-3">Contractor Scorecard</h5>
+        <div class="card shadow-sm border-0 mb-5">
+            <div class="card-body p-0">
+                <table class="table table-hover table-striped mb-0" id="contractorScorecardTable">
+                    <thead class="table-dark">
+                        <tr>
+                            <th class="sortable" data-sort="contractor" style="cursor: pointer;">
+                                Contractor <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="text-end sortable" data-sort="volume" style="cursor: pointer;">
+                                Volume <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="text-end sortable" data-sort="avgCost" style="cursor: pointer;">
+                                Avg Cost <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="text-end sortable" data-sort="totalCost" style="cursor: pointer;">
+                                Total Cost <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="text-end sortable" data-sort="totalRevenue" style="cursor: pointer;">
+                                Total Revenue <i class="fas fa-sort"></i>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="stat : ${stats.contractorScorecardStats}">
+                            <td class="fw-bold" th:text="${stat.contractorName}">Contractor</td>
+                            <td class="text-end">
+                                <button class="btn btn-link p-0 fw-bold metric-filter"
+                                    th:attr="data-filter-contractor=${stat.contractorName}"
+                                    th:text="${stat.volume}">0</button>
+                            </td>
+                            <td class="text-end" th:text="${#numbers.formatCurrency(stat.avgCost)}">$0</td>
+                            <td class="text-end text-danger" th:text="${#numbers.formatCurrency(stat.totalCost)}">$0
+                            </td>
+                            <td class="text-end text-success fw-bold"
+                                th:text="${#numbers.formatCurrency(stat.totalRevenue)}">$0</td>
                         </tr>
                     </tbody>
                 </table>
@@ -942,7 +985,7 @@
                 </thead>
                 <tbody>
                     <tr th:each="wo : ${reportData}"
-                        th:attr="data-status=${wo.status}, data-series=${wo.series}, data-state=${wo.state}, data-client-code=${wo.client != null ? wo.client.code : ''}, data-admin=${wo.admin}, data-work-type=${wo.workType}">
+                        th:attr="data-status=${wo.status}, data-series=${wo.series}, data-state=${wo.state}, data-client-code=${wo.client != null ? wo.client.code : ''}, data-admin=${wo.admin}, data-work-type=${wo.workType}, data-contractor=${wo.contractor != null ? wo.contractor.name : (wo.originalContractorString != null ? wo.originalContractorString : '')}">
                         <td th:text="${wo.woNumber}">WO-1</td>
                         <td th:text="${wo.invoiceNumber}">INV-1</td>
                         <td th:text="${wo.invoiceDate}">Jan 1</td>
@@ -1040,6 +1083,7 @@
             let activeFilterStatus = null;
             let activeFilterAdmin = null;
             let activeFilterWorkType = null;
+            let activeFilterContractor = null;
 
             filterButtons.forEach(button => {
                 button.addEventListener('click', function () {
@@ -1050,6 +1094,7 @@
                     const filterStatus = this.getAttribute('data-filter-status');
                     const filterAdmin = this.getAttribute('data-filter-admin');
                     const filterWorkType = this.getAttribute('data-filter-work-type');
+                    const filterContractor = this.getAttribute('data-filter-contractor');
 
                     // If clicking the same filter, clear it
                     if (activeFilter === filterType &&
@@ -1058,7 +1103,8 @@
                         activeFilterClient === filterClient &&
                         activeFilterStatus === filterStatus &&
                         activeFilterAdmin === filterAdmin &&
-                        activeFilterWorkType === filterWorkType) {
+                        activeFilterWorkType === filterWorkType &&
+                        activeFilterContractor === filterContractor) {
                         clearFilter();
                         return;
                     }
@@ -1071,6 +1117,7 @@
                     activeFilterStatus = filterStatus;
                     activeFilterAdmin = filterAdmin;
                     activeFilterWorkType = filterWorkType;
+                    activeFilterContractor = filterContractor;
 
                     // Update button states
                     filterButtons.forEach(btn => btn.classList.remove('active'));
@@ -1084,6 +1131,7 @@
                         const rowClientCode = row.getAttribute('data-client-code');
                         const rowAdmin = row.getAttribute('data-admin');
                         const rowWorkType = row.getAttribute('data-work-type');
+                        const rowContractor = row.getAttribute('data-contractor');
 
                         if (!rowStatus) {
                             row.classList.add('wo-row-hidden');
@@ -1103,8 +1151,8 @@
                             matchesStatus = rowStatus.toLowerCase() === 'invoiced';
                         }
 
-                        // If Series/State/Client/Admin/WorkType filter is set, check match
-                        let shouldShow = matchesStatus || (!filterType && !filterStatus && !filterSeries && !filterState && !filterClient && !filterAdmin && !filterWorkType);
+                        // If Series/State/Client/Admin/WorkType/Contractor filter is set, check match
+                        let shouldShow = matchesStatus || (!filterType && !filterStatus && !filterSeries && !filterState && !filterClient && !filterAdmin && !filterWorkType && !filterContractor);
 
                         // Special case: if we only have one of these category filters, we should show the row if it matches
                         if (!filterType && !filterStatus) {
@@ -1116,6 +1164,7 @@
                         if (filterClient) shouldShow = shouldShow && (rowClientCode === filterClient);
                         if (filterAdmin) shouldShow = shouldShow && (rowAdmin === filterAdmin);
                         if (filterWorkType) shouldShow = shouldShow && (rowWorkType === filterWorkType);
+                        if (filterContractor) shouldShow = shouldShow && (rowContractor === filterContractor);
 
                         if (shouldShow) {
                             row.classList.remove('wo-row-hidden');
@@ -1142,6 +1191,7 @@
                 activeFilterStatus = null;
                 activeFilterAdmin = null;
                 activeFilterWorkType = null;
+                activeFilterContractor = null;
                 filterButtons.forEach(btn => btn.classList.remove('active'));
                 tableRows.forEach(row => row.classList.remove('wo-row-hidden'));
             }
@@ -1273,6 +1323,73 @@
                                 case 'margin':
                                     aVal = parseFloat(a.cells[5].textContent.replace('%', ''));
                                     bVal = parseFloat(b.cells[5].textContent.replace('%', ''));
+                                    break;
+                            }
+
+                            return currentSort.ascending ? aVal - bVal : bVal - aVal;
+                        });
+
+                        // Re-append sorted rows
+                        rows.forEach(row => tbody.appendChild(row));
+
+                        // Update sort icons
+                        headers.forEach(h => {
+                            const icon = h.querySelector('i');
+                            if (h === header) {
+                                icon.className = currentSort.ascending
+                                    ? 'fas fa-sort-up'
+                                    : 'fas fa-sort-down';
+                            } else {
+                                icon.className = 'fas fa-sort';
+                            }
+                        });
+                    });
+                });
+            }
+
+            // Contractor Scorecard Table Sorting
+            const contractorTable = document.getElementById('contractorScorecardTable');
+            if (contractorTable) {
+                const headers = contractorTable.querySelectorAll('th.sortable');
+                let currentSort = { column: null, ascending: true };
+
+                headers.forEach(header => {
+                    header.addEventListener('click', function () {
+                        const sortType = this.getAttribute('data-sort');
+                        const tbody = contractorTable.querySelector('tbody');
+                        const rows = Array.from(tbody.querySelectorAll('tr'));
+
+                        // Toggle sort direction
+                        if (currentSort.column === sortType) {
+                            currentSort.ascending = !currentSort.ascending;
+                        } else {
+                            currentSort.column = sortType;
+                            currentSort.ascending = true;
+                        }
+
+                        // Sort rows
+                        rows.sort((a, b) => {
+                            let aVal, bVal;
+
+                            switch (sortType) {
+                                case 'contractor':
+                                    aVal = a.cells[0].textContent.trim();
+                                    bVal = b.cells[0].textContent.trim();
+                                    return currentSort.ascending
+                                        ? aVal.localeCompare(bVal)
+                                        : bVal.localeCompare(aVal);
+
+                                case 'volume':
+                                    aVal = parseInt(a.cells[1].textContent.trim());
+                                    bVal = parseInt(b.cells[1].textContent.trim());
+                                    break;
+
+                                case 'avgCost':
+                                case 'totalCost':
+                                case 'totalRevenue':
+                                    const colIndex = sortType === 'avgCost' ? 2 : sortType === 'totalCost' ? 3 : 4;
+                                    aVal = parseFloat(a.cells[colIndex].textContent.replace(/[$,]/g, ''));
+                                    bVal = parseFloat(b.cells[colIndex].textContent.replace(/[$,]/g, ''));
                                     break;
                             }
 
