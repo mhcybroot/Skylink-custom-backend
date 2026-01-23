@@ -158,15 +158,27 @@
         <h5 class="fw-bold text-uppercase border-bottom pb-2 mb-3">Admin Performance by User</h5>
         <div class="card shadow-sm border-0 mb-5">
             <div class="card-body p-0">
-                <table class="table table-hover table-striped mb-0">
+                <table class="table table-hover table-striped mb-0" id="adminPerformanceTable">
                     <thead class="table-dark">
                         <tr>
-                            <th>Admin Name</th>
-                            <th class="text-end">Number of WOs</th>
-                            <th class="text-end">Value</th>
-                            <th class="text-end">Gross Margin %</th>
-                            <th class="text-end">Client Count</th>
-                            <th class="text-end">State Count</th>
+                            <th class="sortable" data-sort="name" style="cursor: pointer;">
+                                Admin Name <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="text-end sortable" data-sort="count" style="cursor: pointer;">
+                                Number of WOs <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="text-end sortable" data-sort="value" style="cursor: pointer;">
+                                Value <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="text-end sortable" data-sort="margin" style="cursor: pointer;">
+                                Gross Margin % <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="text-end sortable" data-sort="clients" style="cursor: pointer;">
+                                Client Count <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="text-end sortable" data-sort="states" style="cursor: pointer;">
+                                State Count <i class="fas fa-sort"></i>
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
@@ -1065,6 +1077,85 @@
                 activeFilterStatus = null;
                 filterButtons.forEach(btn => btn.classList.remove('active'));
                 tableRows.forEach(row => row.classList.remove('wo-row-hidden'));
+            }
+
+            // Admin Performance Table Sorting
+            const adminTable = document.getElementById('adminPerformanceTable');
+            if (adminTable) {
+                const headers = adminTable.querySelectorAll('th.sortable');
+                let currentSort = { column: null, ascending: true };
+
+                headers.forEach(header => {
+                    header.addEventListener('click', function () {
+                        const sortType = this.getAttribute('data-sort');
+                        const tbody = adminTable.querySelector('tbody');
+                        const rows = Array.from(tbody.querySelectorAll('tr'));
+
+                        // Toggle sort direction if clicking same column
+                        if (currentSort.column === sortType) {
+                            currentSort.ascending = !currentSort.ascending;
+                        } else {
+                            currentSort.column = sortType;
+                            currentSort.ascending = true;
+                        }
+
+                        // Sort rows
+                        rows.sort((a, b) => {
+                            let aVal, bVal;
+
+                            switch (sortType) {
+                                case 'name':
+                                    aVal = a.cells[0].textContent.trim();
+                                    bVal = b.cells[0].textContent.trim();
+                                    return currentSort.ascending
+                                        ? aVal.localeCompare(bVal)
+                                        : bVal.localeCompare(aVal);
+
+                                case 'count':
+                                    aVal = parseInt(a.cells[1].textContent.trim());
+                                    bVal = parseInt(b.cells[1].textContent.trim());
+                                    break;
+
+                                case 'value':
+                                    aVal = parseFloat(a.cells[2].textContent.replace(/[$,]/g, ''));
+                                    bVal = parseFloat(b.cells[2].textContent.replace(/[$,]/g, ''));
+                                    break;
+
+                                case 'margin':
+                                    aVal = parseFloat(a.cells[3].textContent.replace('%', ''));
+                                    bVal = parseFloat(b.cells[3].textContent.replace('%', ''));
+                                    break;
+
+                                case 'clients':
+                                    aVal = parseInt(a.cells[4].textContent.trim());
+                                    bVal = parseInt(b.cells[4].textContent.trim());
+                                    break;
+
+                                case 'states':
+                                    aVal = parseInt(a.cells[5].textContent.trim());
+                                    bVal = parseInt(b.cells[5].textContent.trim());
+                                    break;
+                            }
+
+                            return currentSort.ascending ? aVal - bVal : bVal - aVal;
+                        });
+
+                        // Re-append sorted rows
+                        rows.forEach(row => tbody.appendChild(row));
+
+                        // Update sort icons
+                        headers.forEach(h => {
+                            const icon = h.querySelector('i');
+                            if (h === header) {
+                                icon.className = currentSort.ascending
+                                    ? 'fas fa-sort-up'
+                                    : 'fas fa-sort-down';
+                            } else {
+                                icon.className = 'fas fa-sort';
+                            }
+                        });
+                    });
+                });
             }
 
             // Scroll to Top Button functionality
