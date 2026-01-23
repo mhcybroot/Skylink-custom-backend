@@ -574,7 +574,11 @@
                                 <tr th:each="client : ${stats.topClientsByVolume}">
                                     <td class="fw-bold" th:text="${client.code}">C100</td>
                                     <td class="small" th:text="${client.name}">Client Name</td>
-                                    <td class="text-end fw-bold" th:text="${client.count}">0</td>
+                                    <td class="text-end">
+                                        <button class="btn btn-link p-0 fw-bold metric-filter"
+                                            th:attr="data-filter-client=${client.code}"
+                                            th:text="${client.count}">0</button>
+                                    </td>
                                     <td class="text-end text-muted"
                                         th:text="${#numbers.formatCurrency(client.totalRevenue)}">
                                         $0</td>
@@ -760,7 +764,7 @@
                     </thead>
                     <tbody>
                         <tr th:each="wo : ${reportData}"
-                            th:attr="data-status=${wo.status}, data-series=${wo.series}, data-state=${wo.state}">
+                            th:attr="data-status=${wo.status}, data-series=${wo.series}, data-state=${wo.state}, data-client-code=${wo.client != null ? wo.client.code : ''}">
                             <td th:text="${wo.woNumber}">WO-1</td>
                             <td th:text="${wo.invoiceNumber}">INV-1</td>
                             <td th:text="${wo.invoiceDate}">Jan 1</td>
@@ -854,15 +858,17 @@
                 let activeFilter = null;
                 let activeFilterSeries = null;
                 let activeFilterState = null;
+                let activeFilterClient = null;
 
                 filterButtons.forEach(button => {
                     button.addEventListener('click', function () {
                         const filterType = this.getAttribute('data-filter-type');
                         const filterSeries = this.getAttribute('data-filter-series');
                         const filterState = this.getAttribute('data-filter-state');
+                        const filterClient = this.getAttribute('data-filter-client');
 
                         // If clicking the same filter, clear it
-                        if (activeFilter === filterType && activeFilterSeries === filterSeries && activeFilterState === filterState) {
+                        if (activeFilter === filterType && activeFilterSeries === filterSeries && activeFilterState === filterState && activeFilterClient === filterClient) {
                             clearFilter();
                             return;
                         }
@@ -871,6 +877,7 @@
                         activeFilter = filterType;
                         activeFilterSeries = filterSeries;
                         activeFilterState = filterState;
+                        activeFilterClient = filterClient;
 
                         // Update button states
                         filterButtons.forEach(btn => btn.classList.remove('active'));
@@ -881,6 +888,7 @@
                             const rowStatus = row.getAttribute('data-status');
                             const rowSeries = row.getAttribute('data-series');
                             const rowState = row.getAttribute('data-state');
+                            const rowClientCode = row.getAttribute('data-client-code');
 
                             if (!rowStatus) {
                                 row.classList.add('wo-row-hidden');
@@ -909,6 +917,10 @@
                             if (filterState) {
                                 shouldShow = shouldShow && (rowState === filterState);
                             }
+                            // If Client filter is set, also check client code match
+                            if (filterClient) {
+                                shouldShow = shouldShow && (rowClientCode === filterClient);
+                            }
 
                             if (shouldShow) {
                                 row.classList.remove('wo-row-hidden');
@@ -931,6 +943,7 @@
                     activeFilter = null;
                     activeFilterSeries = null;
                     activeFilterState = null;
+                    activeFilterClient = null;
                     filterButtons.forEach(btn => btn.classList.remove('active'));
                     tableRows.forEach(row => row.classList.remove('wo-row-hidden'));
                 }
