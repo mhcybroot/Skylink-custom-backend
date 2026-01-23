@@ -738,12 +738,18 @@ public class DataImportExportService {
 
         BufferedReader reader = new BufferedReader(new InputStreamReader(is));
         List<CSVRecord> records = CSVFormat.DEFAULT.withFirstRecordAsHeader().parse(reader).getRecords();
+        System.out.println("DEBUG: CSV Headers detected: " + records.get(0).getParser().getHeaderMap().keySet());
 
         // Update Total Records
         log.setTotalRecords(records.size());
         importLogRepository.save(log);
 
-        java.time.format.DateTimeFormatter dateFormatter = java.time.format.DateTimeFormatter.ofPattern("MM-dd-yy");
+        java.time.format.DateTimeFormatter dateFormatter = new java.time.format.DateTimeFormatterBuilder()
+                .appendOptional(java.time.format.DateTimeFormatter.ofPattern("MM-dd-yy"))
+                .appendOptional(java.time.format.DateTimeFormatter.ofPattern("M-d-yy"))
+                .appendOptional(java.time.format.DateTimeFormatter.ofPattern("MM/dd/yy"))
+                .appendOptional(java.time.format.DateTimeFormatter.ofPattern("M/d/yy"))
+                .toFormatter();
         int count = 0;
 
         try {
@@ -785,7 +791,11 @@ public class DataImportExportService {
                 wo.setZip(record.get("Zip"));
 
                 // Dates
-                wo.setInvoiceDate(parseDate(record.get("Invoice Date"), dateFormatter));
+                String rawInvoiceDate = record.get("Invoice Date");
+                if (count < 5) {
+                    System.out.println("DEBUG: Row " + count + " Raw Invoice Date: '" + rawInvoiceDate + "'");
+                }
+                wo.setInvoiceDate(parseDate(rawInvoiceDate, dateFormatter));
                 wo.setDateDue(parseDate(record.get("Date Due"), dateFormatter));
                 wo.setDateDueClient(parseDate(record.get("Date Due Client"), dateFormatter));
                 wo.setSentToClientDate(parseDate(record.get("Sent to Client"), dateFormatter));
@@ -857,8 +867,12 @@ public class DataImportExportService {
         if (dateStr == null || dateStr.trim().isEmpty())
             return null;
         try {
-            return LocalDate.parse(dateStr.trim(), formatter);
+            // Remove non-breaking spaces and trim
+            String clean = dateStr.replace("\u00A0", "").trim();
+            return LocalDate.parse(clean, formatter);
         } catch (Exception e) {
+            System.out.println("Failed to parse date: '" + dateStr + "'");
+            e.printStackTrace();
             return null;
         }
     }

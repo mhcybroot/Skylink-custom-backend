@@ -24,10 +24,22 @@ import root.cyb.mh.attendancesystem.dto.WorkOrderDashboardDTO.ZipStat;
 @Service
 public class WorkOrderReportService {
 
+        // Helper for Effective Revenue (Net Amount)
+        private BigDecimal getEffectiveRevenue(WorkOrder w) {
+                if (w.getClientDiscountTotal() != null && w.getClientDiscountTotal().compareTo(BigDecimal.ZERO) > 0) {
+                        return w.getClientDiscountTotal();
+                }
+                return w.getClientInvoiceTotal() != null ? w.getClientInvoiceTotal() : BigDecimal.ZERO;
+        }
+
         public WorkOrderDashboardDTO calculateStatistics(List<WorkOrder> workOrders) {
                 WorkOrderDashboardDTO stats = new WorkOrderDashboardDTO();
 
                 // Base Counts
+                System.out.println("DEBUG: calculateStatistics called with " + workOrders.size() + " orders.");
+                long validDates = workOrders.stream().filter(w -> w.getInvoiceDate() != null).count();
+                System.out.println("DEBUG: Orders with valid InvoiceDate: " + validDates);
+
                 stats.setTotalWorkOrders(workOrders.size());
                 stats.setOpenWorkOrders(workOrders
                                 .stream().filter(w -> !"Completed".equalsIgnoreCase(w.getStatus())
@@ -45,8 +57,7 @@ public class WorkOrderReportService {
 
                 // Financials
                 BigDecimal totalRevenue = workOrders.stream()
-                                .map(WorkOrder::getClientInvoiceTotal)
-                                .filter(Objects::nonNull)
+                                .map(this::getEffectiveRevenue)
                                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
                 BigDecimal totalCost = workOrders.stream()
@@ -144,8 +155,7 @@ public class WorkOrderReportService {
                                         String bankName = entry.getKey();
                                         List<WorkOrder> bankOrders = entry.getValue();
                                         BigDecimal rev = bankOrders.stream()
-                                                        .map(WorkOrder::getClientInvoiceTotal)
-                                                        .filter(Objects::nonNull)
+                                                        .map(this::getEffectiveRevenue)
                                                         .reduce(BigDecimal.ZERO, BigDecimal::add);
                                         return new BankStat(bankName, (long) bankOrders.size(), rev);
                                 })
@@ -163,9 +173,7 @@ public class WorkOrderReportService {
                                         String type = entry.getKey();
                                         BigDecimal margin = entry.getValue().stream()
                                                         .map(w -> {
-                                                                BigDecimal client = w.getClientInvoiceTotal() != null
-                                                                                ? w.getClientInvoiceTotal()
-                                                                                : BigDecimal.ZERO;
+                                                                BigDecimal client = getEffectiveRevenue(w);
                                                                 BigDecimal cont = w.getContractorInvoiceTotal() != null
                                                                                 ? w.getContractorInvoiceTotal()
                                                                                 : BigDecimal.ZERO;
@@ -212,8 +220,7 @@ public class WorkOrderReportService {
                                         List<WorkOrder> orders = entry.getValue();
 
                                         BigDecimal clientTotal = orders.stream()
-                                                        .map(WorkOrder::getClientInvoiceTotal)
-                                                        .filter(Objects::nonNull)
+                                                        .map(this::getEffectiveRevenue)
                                                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
                                         BigDecimal contractorTotal = orders.stream()
@@ -355,9 +362,10 @@ public class WorkOrderReportService {
                 DateTimeFormatter sortFormatter = DateTimeFormatter.ofPattern("yyyy-MM");
 
                 List<WorkOrderDashboardDTO.MonthlyStat> monthlyStats = workOrders.stream()
-                                .filter(w -> w.getInvoiceDate() != null) // Only include invoiced orders or determine a
-                                                                         // fallback
+                                // Removed .filter(w -> w.getInvoiceDate() != null) to debug
                                 .collect(Collectors.groupingBy(w -> {
+                                        if (w.getInvoiceDate() == null)
+                                                return "Unknown";
                                         return w.getInvoiceDate().format(sortFormatter);
                                 }))
                                 .entrySet().stream()
@@ -366,12 +374,16 @@ public class WorkOrderReportService {
                                         List<WorkOrder> monthOrders = entry.getValue();
 
                                         // Determine display name from first order or parse yearMonth
-                                        String displayMonth = monthOrders.get(0).getInvoiceDate()
-                                                        .format(monthFormatter);
+                                        // Determine display name
+                                        String displayMonth = "Unknown";
+                                        if (!"Unknown".equals(yearMonth) && !monthOrders.isEmpty()
+                                                        && monthOrders.get(0).getInvoiceDate() != null) {
+                                                displayMonth = monthOrders.get(0).getInvoiceDate()
+                                                                .format(monthFormatter);
+                                        }
 
                                         BigDecimal mRevenue = monthOrders.stream()
-                                                        .map(WorkOrder::getClientInvoiceTotal)
-                                                        .filter(Objects::nonNull)
+                                                        .map(this::getEffectiveRevenue)
                                                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
                                         BigDecimal mCost = monthOrders.stream()
@@ -399,15 +411,23 @@ public class WorkOrderReportService {
                 // 2b. Monthly Performance by Series
                 // Multi-dimensional grouping: Month × Series
                 List<WorkOrderDashboardDTO.MonthlySeriesStat> monthlySeriesPerf = workOrders.stream()
-                                .filter(w -> w.getInvoiceDate() != null && w.getClient() != null)
-                                .collect(Collectors.groupingBy(w -> w.getInvoiceDate().format(sortFormatter))) // Group
-                                                                                                               // by
-                                                                                                               // month
+                                .collect(Collectors.groupingBy(w -> {
+                                        if (w.getInvoiceDate() == null)
+                                                return "Unknown";
+                                        return w.getInvoiceDate().format(sortFormatter);
+                                })) // Group
+                                    // by
+                                    // month
                                 .entrySet().stream()
                                 .flatMap(monthEntry -> {
                                         String yearMonth = monthEntry.getKey();
-                                        String displayMonth = monthEntry.getValue().get(0).getInvoiceDate()
-                                                        .format(monthFormatter);
+                                        String tempDisplayMonth = "Unknown";
+                                        if (!"Unknown".equals(yearMonth) && !monthEntry.getValue().isEmpty()
+                                                        && monthEntry.getValue().get(0).getInvoiceDate() != null) {
+                                                tempDisplayMonth = monthEntry.getValue().get(0).getInvoiceDate()
+                                                                .format(monthFormatter);
+                                        }
+                                        final String displayMonth = tempDisplayMonth;
 
                                         // Within each month, group by Series
                                         return monthEntry.getValue().stream()
@@ -435,8 +455,7 @@ public class WorkOrderReportService {
                                                                 List<WorkOrder> seriesOrders = seriesEntry.getValue();
 
                                                                 BigDecimal rev = seriesOrders.stream()
-                                                                                .map(WorkOrder::getClientInvoiceTotal)
-                                                                                .filter(Objects::nonNull)
+                                                                                .map(this::getEffectiveRevenue)
                                                                                 .reduce(BigDecimal.ZERO,
                                                                                                 BigDecimal::add);
 
@@ -480,8 +499,7 @@ public class WorkOrderReportService {
                                         String state = entry.getKey();
                                         List<WorkOrder> list = entry.getValue();
 
-                                        BigDecimal rev = list.stream().map(WorkOrder::getClientInvoiceTotal)
-                                                        .filter(Objects::nonNull)
+                                        BigDecimal rev = list.stream().map(this::getEffectiveRevenue)
                                                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
                                         BigDecimal cost = list.stream().map(WorkOrder::getContractorInvoiceTotal)
@@ -541,8 +559,7 @@ public class WorkOrderReportService {
                                 .map(entry -> {
                                         String zip = entry.getKey();
                                         List<WorkOrder> list = entry.getValue();
-                                        BigDecimal rev = list.stream().map(WorkOrder::getClientInvoiceTotal)
-                                                        .filter(Objects::nonNull)
+                                        BigDecimal rev = list.stream().map(this::getEffectiveRevenue)
                                                         .reduce(BigDecimal.ZERO, BigDecimal::add);
                                         return new ZipStat(zip, list.size(), rev);
                                 })
@@ -602,8 +619,7 @@ public class WorkOrderReportService {
                                                                 List<WorkOrder> orders = seriesEntry.getValue();
 
                                                                 BigDecimal rev = orders.stream()
-                                                                                .map(WorkOrder::getClientInvoiceTotal)
-                                                                                .filter(Objects::nonNull)
+                                                                                .map(this::getEffectiveRevenue)
                                                                                 .reduce(BigDecimal.ZERO,
                                                                                                 BigDecimal::add);
 
