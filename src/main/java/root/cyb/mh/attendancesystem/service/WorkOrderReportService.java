@@ -725,6 +725,48 @@ public class WorkOrderReportService {
 
                 stats.setAdminPerformanceStats(adminStats);
 
+                // Work Type Performance
+                Map<String, List<WorkOrder>> workTypeGroups = workOrders.stream()
+                                .filter(wo -> wo.getWorkType() != null && !wo.getWorkType().trim().isEmpty())
+                                .collect(Collectors.groupingBy(WorkOrder::getWorkType));
+
+                List<WorkOrderDashboardDTO.WorkTypePerformanceStat> workTypeStats = workTypeGroups.entrySet()
+                                .stream()
+                                .map(entry -> {
+                                        String workType = entry.getKey();
+                                        List<WorkOrder> typeWOs = entry.getValue();
+
+                                        long woCount = typeWOs.size();
+
+                                        // Total revenue
+                                        BigDecimal revenue = typeWOs.stream()
+                                                        .map(this::getEffectiveRevenue)
+                                                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                                        // Total cost
+                                        BigDecimal cost = typeWOs.stream()
+                                                        .map(wo -> wo.getContractorInvoiceTotal() != null
+                                                                        ? wo.getContractorInvoiceTotal()
+                                                                        : BigDecimal.ZERO)
+                                                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                                        // Profit
+                                        BigDecimal profit = revenue.subtract(cost);
+
+                                        // Margin percentage
+                                        BigDecimal marginPercent = revenue.compareTo(BigDecimal.ZERO) > 0
+                                                        ? profit.divide(revenue, 4, java.math.RoundingMode.HALF_UP)
+                                                                        .multiply(BigDecimal.valueOf(100))
+                                                        : BigDecimal.ZERO;
+
+                                        return new WorkOrderDashboardDTO.WorkTypePerformanceStat(
+                                                        workType, woCount, revenue, cost, profit, marginPercent);
+                                })
+                                .sorted((a, b) -> b.getTotalRevenue().compareTo(a.getTotalRevenue()))
+                                .collect(Collectors.toList());
+
+                stats.setWorkTypePerformanceStats(workTypeStats);
+
                 return stats;
         }
 }

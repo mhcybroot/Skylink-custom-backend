@@ -187,9 +187,8 @@
                             <td class="text-end" th:text="${admin.workOrderCount}">0</td>
                             <td class="text-end text-success fw-bold"
                                 th:text="${#numbers.formatCurrency(admin.totalRevenue)}">$0</td>
-                            <td class="text-end fw-bold"
-                                th:classappend="${admin.grossMargin.compareTo(new java.math.BigDecimal('40')) >= 0 ? 'text-success' : 
-                                                (admin.grossMargin.compareTo(new java.math.BigDecimal('30')) >= 0 ? 'text-warning' : 'text-danger')}"
+                            <td class="text-end fw-bold" th:classappend="${admin.grossMargin >= 40 ? 'text-success' : 
+                                                (admin.grossMargin >= 30 ? 'text-warning' : 'text-danger')}"
                                 th:text="${#numbers.formatDecimal(admin.grossMargin, 1, 2) + '%'}">0%</td>
                             <td class="text-end" th:text="${admin.uniqueClientCount}">0</td>
                             <td class="text-end" th:text="${admin.uniqueStateCount}">0</td>
@@ -207,6 +206,53 @@
                             <td class="text-end" th:text="${stats.uniqueStateCount}">0</td>
                         </tr>
                     </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <!-- WORK TYPE PERFORMANCE TABLE -->
+        <h5 class="fw-bold text-uppercase border-bottom pb-2 mb-3">Work Type Performance</h5>
+        <div class="card shadow-sm border-0 mb-5">
+            <div class="card-body p-0">
+                <table class="table table-hover table-striped mb-0" id="workTypePerformanceTable">
+                    <thead class="table-dark">
+                        <tr>
+                            <th class="sortable" data-sort="type" style="cursor: pointer;">
+                                Work Type <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="text-end sortable" data-sort="count" style="cursor: pointer;">
+                                Work Orders <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="text-end sortable" data-sort="revenue" style="cursor: pointer;">
+                                Revenue <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="text-end sortable" data-sort="cost" style="cursor: pointer;">
+                                Cost <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="text-end sortable" data-sort="profit" style="cursor: pointer;">
+                                Profit <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="text-end sortable" data-sort="margin" style="cursor: pointer;">
+                                Margin % <i class="fas fa-sort"></i>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="type : ${stats.workTypePerformanceStats}">
+                            <td class="fw-bold" th:text="${type.workType}">Type</td>
+                            <td class="text-end" th:text="${type.workOrderCount}">0</td>
+                            <td class="text-end text-success fw-bold"
+                                th:text="${#numbers.formatCurrency(type.totalRevenue)}">$0</td>
+                            <td class="text-end text-danger" th:text="${#numbers.formatCurrency(type.totalCost)}">$0
+                            </td>
+                            <td class="text-end fw-bold"
+                                th:classappend="${type.profit >= 0 ? 'text-success' : 'text-danger'}"
+                                th:text="${#numbers.formatCurrency(type.profit)}">$0</td>
+                            <td class="text-end fw-bold" th:classappend="${type.marginPercent >= 40 ? 'text-success' : 
+                                                (type.marginPercent >= 30 ? 'text-warning' : 'text-danger')}"
+                                th:text="${#numbers.formatDecimal(type.marginPercent, 1, 2) + '%'}">0%</td>
+                        </tr>
+                    </tbody>
                 </table>
             </div>
         </div>
@@ -1134,6 +1180,78 @@
                                 case 'states':
                                     aVal = parseInt(a.cells[5].textContent.trim());
                                     bVal = parseInt(b.cells[5].textContent.trim());
+                                    break;
+                            }
+
+                            return currentSort.ascending ? aVal - bVal : bVal - aVal;
+                        });
+
+                        // Re-append sorted rows
+                        rows.forEach(row => tbody.appendChild(row));
+
+                        // Update sort icons
+                        headers.forEach(h => {
+                            const icon = h.querySelector('i');
+                            if (h === header) {
+                                icon.className = currentSort.ascending
+                                    ? 'fas fa-sort-up'
+                                    : 'fas fa-sort-down';
+                            } else {
+                                icon.className = 'fas fa-sort';
+                            }
+                        });
+                    });
+                });
+            }
+
+            // Work Type Performance Table Sorting
+            const workTypeTable = document.getElementById('workTypePerformanceTable');
+            if (workTypeTable) {
+                const headers = workTypeTable.querySelectorAll('th.sortable');
+                let currentSort = { column: null, ascending: true };
+
+                headers.forEach(header => {
+                    header.addEventListener('click', function () {
+                        const sortType = this.getAttribute('data-sort');
+                        const tbody = workTypeTable.querySelector('tbody');
+                        const rows = Array.from(tbody.querySelectorAll('tr'));
+
+                        // Toggle sort direction
+                        if (currentSort.column === sortType) {
+                            currentSort.ascending = !currentSort.ascending;
+                        } else {
+                            currentSort.column = sortType;
+                            currentSort.ascending = true;
+                        }
+
+                        // Sort rows
+                        rows.sort((a, b) => {
+                            let aVal, bVal;
+
+                            switch (sortType) {
+                                case 'type':
+                                    aVal = a.cells[0].textContent.trim();
+                                    bVal = b.cells[0].textContent.trim();
+                                    return currentSort.ascending
+                                        ? aVal.localeCompare(bVal)
+                                        : bVal.localeCompare(aVal);
+
+                                case 'count':
+                                    aVal = parseInt(a.cells[1].textContent.trim());
+                                    bVal = parseInt(b.cells[1].textContent.trim());
+                                    break;
+
+                                case 'revenue':
+                                case 'cost':
+                                case 'profit':
+                                    const colIndex = sortType === 'revenue' ? 2 : sortType === 'cost' ? 3 : 4;
+                                    aVal = parseFloat(a.cells[colIndex].textContent.replace(/[$,]/g, ''));
+                                    bVal = parseFloat(b.cells[colIndex].textContent.replace(/[$,]/g, ''));
+                                    break;
+
+                                case 'margin':
+                                    aVal = parseFloat(a.cells[5].textContent.replace('%', ''));
+                                    bVal = parseFloat(b.cells[5].textContent.replace('%', ''));
                                     break;
                             }
 

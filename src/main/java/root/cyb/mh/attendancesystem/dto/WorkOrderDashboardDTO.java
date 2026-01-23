@@ -86,6 +86,7 @@ public class WorkOrderDashboardDTO {
     private List<ClientStat> topClientsByRevenue;
 
     private List<AdminPerformanceStat> adminPerformanceStats;
+    private List<WorkTypePerformanceStat> workTypePerformanceStats;
 
     @Data
     @AllArgsConstructor
@@ -226,6 +227,17 @@ public class WorkOrderDashboardDTO {
         private BigDecimal grossMargin;
         private int uniqueClientCount;
         private int uniqueStateCount;
+    }
+
+    @Data
+    @AllArgsConstructor
+    public static class WorkTypePerformanceStat {
+        private String workType;
+        private long workOrderCount;
+        private BigDecimal totalRevenue;
+        private BigDecimal totalCost;
+        private BigDecimal profit;
+        private BigDecimal marginPercent;
     }
 
 }
