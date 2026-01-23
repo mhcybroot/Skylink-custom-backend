@@ -154,6 +154,51 @@
             </div>
         </div>
 
+        <!-- ADMIN PERFORMANCE BY USER TABLE -->
+        <h5 class="fw-bold text-uppercase border-bottom pb-2 mb-3">Admin Performance by User</h5>
+        <div class="card shadow-sm border-0 mb-5">
+            <div class="card-body p-0">
+                <table class="table table-hover table-striped mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Admin Name</th>
+                            <th class="text-end">Number of WOs</th>
+                            <th class="text-end">Value</th>
+                            <th class="text-end">Gross Margin %</th>
+                            <th class="text-end">Client Count</th>
+                            <th class="text-end">State Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="admin : ${stats.adminPerformanceStats}">
+                            <td class="fw-bold" th:text="${admin.adminName}">Admin Name</td>
+                            <td class="text-end" th:text="${admin.workOrderCount}">0</td>
+                            <td class="text-end text-success fw-bold"
+                                th:text="${#numbers.formatCurrency(admin.totalRevenue)}">$0</td>
+                            <td class="text-end fw-bold"
+                                th:classappend="${admin.grossMargin.compareTo(new java.math.BigDecimal('40')) >= 0 ? 'text-success' : 
+                                                (admin.grossMargin.compareTo(new java.math.BigDecimal('30')) >= 0 ? 'text-warning' : 'text-danger')}"
+                                th:text="${#numbers.formatDecimal(admin.grossMargin, 1, 2) + '%'}">0%</td>
+                            <td class="text-end" th:text="${admin.uniqueClientCount}">0</td>
+                            <td class="text-end" th:text="${admin.uniqueStateCount}">0</td>
+                        </tr>
+                    </tbody>
+                    <tfoot class="table-light fw-bold">
+                        <tr>
+                            <td>TOTAL</td>
+                            <td class="text-end" th:text="${stats.totalWorkOrders}">0</td>
+                            <td class="text-end text-success" th:text="${#numbers.formatCurrency(stats.totalRevenue)}">
+                                $0</td>
+                            <td class="text-end"
+                                th:text="${#numbers.formatDecimal(stats.globalGrossMarginPercent, 1, 2) + '%'}">0%</td>
+                            <td class="text-end" th:text="${stats.uniqueClientCount}">0</td>
+                            <td class="text-end" th:text="${stats.uniqueStateCount}">0</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
         <!-- LLC PERFORMANCE PANEL -->
         <h5 class="fw-bold text-uppercase border-bottom pb-2 mb-3">LLC Performance</h5>
         <div class="card shadow-sm border-0 mb-5">
@@ -744,303 +789,303 @@
             <div class="col-md-4">
                 <div class="card h-100 shadow-sm border-0">
                     <div class="card-header bg-danger text-white fw-bold text-uppercase small text-center">Low or
-                        RiskStates
-                        <div class="card-body p-0">
-                            <table class="table table-sm table-striped mb-0 text-center">
-                                <thead>
-                                    <tr>
-                                        <th>State</th>
-                                        <th>Margin</th>
-                                        <th>Profit/Loss</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr th:each="state : ${stats.lowRiskStates}">
-                                        <td class="fw-bold" th:text="${state.state}">WY</td>
-                                        <td class="text-danger fw-bold"
-                                            th:text="${#numbers.formatDecimal(state.margin, 1, 1) + '%'}">10.0%</td>
-                                        <td class="small text-danger"
-                                            th:text="${#numbers.formatCurrency(state.profit)}">-$200</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
+                        RiskStates </div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm table-striped mb-0 text-center">
+                            <thead>
+                                <tr>
+                                    <th>State</th>
+                                    <th>Margin</th>
+                                    <th>Profit/Loss</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="state : ${stats.lowRiskStates}">
+                                    <td class="fw-bold" th:text="${state.state}">WY</td>
+                                    <td class="text-danger fw-bold"
+                                        th:text="${#numbers.formatDecimal(state.margin, 1, 1) + '%'}">10.0%</td>
+                                    <td class="small text-danger" th:text="${#numbers.formatCurrency(state.profit)}">
+                                        -$200</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-            </div>
-
-            <!-- SECONDARY STATS ROW -->
-            <div class="row g-4 mb-5">
-
-                <div class="col-md-6">
-                    <!-- Status Breakdown -->
-                    <div class="card h-100 shadow-sm border-0">
-                        <div class="card-header bg-light fw-bold text-uppercase small">Status Distribution</div>
-                        <div class="card-body p-0">
-                            <table class="table table-sm table-striped mb-0">
-                                <thead>
-                                    <tr>
-                                        <th>Status</th>
-                                        <th class="text-end">Count</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr th:each="entry : ${stats.statusDistribution}">
-                                        <td th:text="${entry.key}">Status</td>
-                                        <td class="text-end">
-                                            <button class="btn btn-link p-0 fw-bold metric-filter"
-                                                th:attr="data-filter-status=${entry.key}"
-                                                th:text="${entry.value}">0</button>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- DETAILED DATA TABLE -->
-            <h5 class="fw-bold border-bottom pb-2 mb-3" id="work-orders-table">Included Work Orders</h5>
-            <div class="table-responsive">
-                <table class="table table-bordered table-striped table-hover table-sm" style="font-size: 0.7rem;">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>WO #</th>
-                            <th>Inv #</th>
-                            <th>Inv Date</th>
-                            <th>Type</th>
-                            <th>Status</th>
-                            <th>Client</th>
-                            <th>Bank</th>
-                            <th>Date Due</th>
-                            <th>Due Client</th>
-                            <th>Sent Client</th>
-
-                            <th class="text-end">Cont. Total</th>
-                            <th class="text-end">Cont. Paid</th>
-                            <th class="text-end">Cont. Disc%</th>
-
-                            <th class="text-end">Client Total</th>
-                            <th class="text-end">Client Paid</th>
-                            <th>Paid Date</th>
-                            <th class="text-end">Client Disc%</th>
-                            <th class="text-end">Disc Total</th>
-                            <th class="text-end">Write Off</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr th:each="wo : ${reportData}"
-                            th:attr="data-status=${wo.status}, data-series=${wo.series}, data-state=${wo.state}, data-client-code=${wo.client != null ? wo.client.code : ''}">
-                            <td th:text="${wo.woNumber}">WO-1</td>
-                            <td th:text="${wo.invoiceNumber}">INV-1</td>
-                            <td th:text="${wo.invoiceDate}">Jan 1</td>
-                            <td th:text="${wo.workType}">Cut</td>
-                            <td th:text="${wo.status}">Open</td>
-                            <td th:text="${wo.client != null ? wo.client.code : (wo.originalClientString)}">Client</td>
-                            <td th:text="${wo.customerBank}">Bank</td>
-
-                            <td th:text="${wo.dateDue}">Jan 1</td>
-                            <td th:text="${wo.dateDueClient}">Jan 5</td>
-                            <td th:text="${wo.sentToClientDate}">Jan 6</td>
-
-                            <td class="text-end text-danger"
-                                th:text="${wo.contractorInvoiceTotal != null ? #numbers.formatCurrency(wo.contractorInvoiceTotal) : '-'}">
-                                $50</td>
-                            <td class="text-end"
-                                th:text="${wo.contractorPaidAmount != null ? #numbers.formatCurrency(wo.contractorPaidAmount) : '-'}">
-                                $50</td>
-                            <td class="text-end"
-                                th:text="${wo.contractorDiscountPercent != null ? wo.contractorDiscountPercent + '%' : '-'}">
-                                0%</td>
-
-                            <td class="text-end text-primary"
-                                th:text="${wo.clientInvoiceTotal != null ? #numbers.formatCurrency(wo.clientInvoiceTotal) : '-'}">
-                                $100</td>
-                            <td class="text-end"
-                                th:text="${wo.clientPaidAmount != null ? #numbers.formatCurrency(wo.clientPaidAmount) : '-'}">
-                                $100</td>
-                            <td th:text="${wo.clientPaidDate}">Jan 10</td>
-                            <td class="text-end"
-                                th:text="${wo.clientDiscountPercent != null ? wo.clientDiscountPercent + '%' : '-'}">
-                                0%</td>
-                            <td class="text-end"
-                                th:text="${(wo.clientInvoiceTotal != null && wo.clientDiscountPercent != null) ? #numbers.formatCurrency(wo.clientInvoiceTotal * wo.clientDiscountPercent / 100) : '$0.00'}">
-                                $0</td>
-                            <td class="text-end text-warning"
-                                th:text="${wo.writeOffAmount != null ? #numbers.formatCurrency(wo.writeOffAmount) : '-'}">
-                                $0</td>
-                        </tr>
-                    </tbody>
-                </table>
             </div>
         </div>
 
-        <!-- PRINT BUTTON (Hidden in Print) -->
-        <div class="print-btn no-print">
-            <button onclick="window.print()" class="btn btn-primary shadow rounded-pill px-4">
-                <i class="fas fa-print me-2"></i> Print / Save PDF
-            </button>
-            <button onclick="window.history.back()" class="btn btn-secondary shadow rounded-pill px-4 ms-2">
-                Back
-            </button>
+        <!-- SECONDARY STATS ROW -->
+        <div class="row g-4 mb-5">
+
+            <div class="col-md-6">
+                <!-- Status Breakdown -->
+                <div class="card h-100 shadow-sm border-0">
+                    <div class="card-header bg-light fw-bold text-uppercase small">Status Distribution</div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm table-striped mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Status</th>
+                                    <th class="text-end">Count</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="entry : ${stats.statusDistribution}">
+                                    <td th:text="${entry.key}">Status</td>
+                                    <td class="text-end">
+                                        <button class="btn btn-link p-0 fw-bold metric-filter"
+                                            th:attr="data-filter-status=${entry.key}"
+                                            th:text="${entry.value}">0</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DETAILED DATA TABLE -->
+        <h5 class="fw-bold border-bottom pb-2 mb-3" id="work-orders-table">Included Work Orders</h5>
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped table-hover table-sm" style="font-size: 0.7rem;">
+                <thead class="table-dark">
+                    <tr>
+                        <th>WO #</th>
+                        <th>Inv #</th>
+                        <th>Inv Date</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                        <th>Client</th>
+                        <th>Bank</th>
+                        <th>Date Due</th>
+                        <th>Due Client</th>
+                        <th>Sent Client</th>
+
+                        <th class="text-end">Cont. Total</th>
+                        <th class="text-end">Cont. Paid</th>
+                        <th class="text-end">Cont. Disc%</th>
+
+                        <th class="text-end">Client Total</th>
+                        <th class="text-end">Client Paid</th>
+                        <th>Paid Date</th>
+                        <th class="text-end">Client Disc%</th>
+                        <th class="text-end">Disc Total</th>
+                        <th class="text-end">Write Off</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="wo : ${reportData}"
+                        th:attr="data-status=${wo.status}, data-series=${wo.series}, data-state=${wo.state}, data-client-code=${wo.client != null ? wo.client.code : ''}">
+                        <td th:text="${wo.woNumber}">WO-1</td>
+                        <td th:text="${wo.invoiceNumber}">INV-1</td>
+                        <td th:text="${wo.invoiceDate}">Jan 1</td>
+                        <td th:text="${wo.workType}">Cut</td>
+                        <td th:text="${wo.status}">Open</td>
+                        <td th:text="${wo.client != null ? wo.client.code : (wo.originalClientString)}">Client</td>
+                        <td th:text="${wo.customerBank}">Bank</td>
+
+                        <td th:text="${wo.dateDue}">Jan 1</td>
+                        <td th:text="${wo.dateDueClient}">Jan 5</td>
+                        <td th:text="${wo.sentToClientDate}">Jan 6</td>
+
+                        <td class="text-end text-danger"
+                            th:text="${wo.contractorInvoiceTotal != null ? #numbers.formatCurrency(wo.contractorInvoiceTotal) : '-'}">
+                            $50</td>
+                        <td class="text-end"
+                            th:text="${wo.contractorPaidAmount != null ? #numbers.formatCurrency(wo.contractorPaidAmount) : '-'}">
+                            $50</td>
+                        <td class="text-end"
+                            th:text="${wo.contractorDiscountPercent != null ? wo.contractorDiscountPercent + '%' : '-'}">
+                            0%</td>
+
+                        <td class="text-end text-primary"
+                            th:text="${wo.clientInvoiceTotal != null ? #numbers.formatCurrency(wo.clientInvoiceTotal) : '-'}">
+                            $100</td>
+                        <td class="text-end"
+                            th:text="${wo.clientPaidAmount != null ? #numbers.formatCurrency(wo.clientPaidAmount) : '-'}">
+                            $100</td>
+                        <td th:text="${wo.clientPaidDate}">Jan 10</td>
+                        <td class="text-end"
+                            th:text="${wo.clientDiscountPercent != null ? wo.clientDiscountPercent + '%' : '-'}">
+                            0%</td>
+                        <td class="text-end"
+                            th:text="${(wo.clientInvoiceTotal != null && wo.clientDiscountPercent != null) ? #numbers.formatCurrency(wo.clientInvoiceTotal * wo.clientDiscountPercent / 100) : '$0.00'}">
+                            $0</td>
+                        <td class="text-end text-warning"
+                            th:text="${wo.writeOffAmount != null ? #numbers.formatCurrency(wo.writeOffAmount) : '-'}">
+                            $0</td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
     </div>
 
-    <!-- Scroll to Top Button -->
-    <button id="scrollToTopBtn" class="btn btn-primary no-print"
-        style="display: none; position: fixed; bottom: 80px; right: 20px; z-index: 1000; border-radius: 50%; width: 50px; height: 50px;">
-        <i class="fas fa-arrow-up"></i>
-    </button>
+    <!-- PRINT BUTTON (Hidden in Print) -->
+    <div class="print-btn no-print">
+        <button onclick="window.print()" class="btn btn-primary shadow rounded-pill px-4">
+            <i class="fas fa-print me-2"></i> Print / Save PDF
+        </button>
+        <button onclick="window.history.back()" class="btn btn-secondary shadow rounded-pill px-4 ms-2">
+            Back
+        </button>
+    </div>
+</div>
 
-    <th:block th:fragment="scripts">
-        <style>
-            .metric-filter {
-                color: #0d6efd;
-                text-decoration: none;
-                cursor: pointer;
-                transition: all 0.2s ease;
-            }
+<!-- Scroll to Top Button -->
+<button id="scrollToTopBtn" class="btn btn-primary no-print"
+    style="display: none; position: fixed; bottom: 80px; right: 20px; z-index: 1000; border-radius: 50%; width: 50px; height: 50px;">
+    <i class="fas fa-arrow-up"></i>
+</button>
 
-            .metric-filter:hover {
-                text-decoration: underline;
-                color: #0a58ca;
-            }
+<th:block th:fragment="scripts">
+    <style>
+        .metric-filter {
+            color: #0d6efd;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
 
-            .metric-filter.active {
-                color: #198754;
-                text-decoration: underline;
-                font-weight: bold;
-            }
+        .metric-filter:hover {
+            text-decoration: underline;
+            color: #0a58ca;
+        }
 
-            .wo-row-hidden {
-                display: none;
-            }
-        </style>
+        .metric-filter.active {
+            color: #198754;
+            text-decoration: underline;
+            font-weight: bold;
+        }
 
-        <script>
-            document.addEventListener('DOMContentLoaded', function () {
-                const filterButtons = document.querySelectorAll('.metric-filter');
-                const tableRows = document.querySelectorAll('tbody tr[data-status]');
-                let activeFilter = null;
-                let activeFilterSeries = null;
-                let activeFilterState = null;
-                let activeFilterClient = null;
-                let activeFilterStatus = null;
+        .wo-row-hidden {
+            display: none;
+        }
+    </style>
 
-                filterButtons.forEach(button => {
-                    button.addEventListener('click', function () {
-                        const filterType = this.getAttribute('data-filter-type');
-                        const filterSeries = this.getAttribute('data-filter-series');
-                        const filterState = this.getAttribute('data-filter-state');
-                        const filterClient = this.getAttribute('data-filter-client');
-                        const filterStatus = this.getAttribute('data-filter-status');
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const filterButtons = document.querySelectorAll('.metric-filter');
+            const tableRows = document.querySelectorAll('tbody tr[data-status]');
+            let activeFilter = null;
+            let activeFilterSeries = null;
+            let activeFilterState = null;
+            let activeFilterClient = null;
+            let activeFilterStatus = null;
 
-                        // If clicking the same filter, clear it
-                        if (activeFilter === filterType && activeFilterSeries === filterSeries && activeFilterState === filterState && activeFilterClient === filterClient && activeFilterStatus === filterStatus) {
-                            clearFilter();
+            filterButtons.forEach(button => {
+                button.addEventListener('click', function () {
+                    const filterType = this.getAttribute('data-filter-type');
+                    const filterSeries = this.getAttribute('data-filter-series');
+                    const filterState = this.getAttribute('data-filter-state');
+                    const filterClient = this.getAttribute('data-filter-client');
+                    const filterStatus = this.getAttribute('data-filter-status');
+
+                    // If clicking the same filter, clear it
+                    if (activeFilter === filterType && activeFilterSeries === filterSeries && activeFilterState === filterState && activeFilterClient === filterClient && activeFilterStatus === filterStatus) {
+                        clearFilter();
+                        return;
+                    }
+
+                    // Set new filter
+                    activeFilter = filterType;
+                    activeFilterSeries = filterSeries;
+                    activeFilterState = filterState;
+                    activeFilterClient = filterClient;
+                    activeFilterStatus = filterStatus;
+
+                    // Update button states
+                    filterButtons.forEach(btn => btn.classList.remove('active'));
+                    this.classList.add('active');
+
+                    // Filter table rows
+                    tableRows.forEach(row => {
+                        const rowStatus = row.getAttribute('data-status');
+                        const rowSeries = row.getAttribute('data-series');
+                        const rowState = row.getAttribute('data-state');
+                        const rowClientCode = row.getAttribute('data-client-code');
+
+                        if (!rowStatus) {
+                            row.classList.add('wo-row-hidden');
                             return;
                         }
 
-                        // Set new filter
-                        activeFilter = filterType;
-                        activeFilterSeries = filterSeries;
-                        activeFilterState = filterState;
-                        activeFilterClient = filterClient;
-                        activeFilterStatus = filterStatus;
+                        let matchesStatus = false;
 
-                        // Update button states
-                        filterButtons.forEach(btn => btn.classList.remove('active'));
-                        this.classList.add('active');
+                        // Direct status filter (from Status Distribution)
+                        if (filterStatus) {
+                            matchesStatus = rowStatus.toLowerCase() === filterStatus.toLowerCase();
+                        } else if (filterType === 'open') {
+                            // Open means NOT (Completed, Closed, Cancelled, Invoiced)
+                            matchesStatus = !['completed', 'closed', 'cancelled', 'invoiced'].includes(rowStatus.toLowerCase());
+                        } else if (filterType === 'closed') {
+                            // Closed means Closed OR Completed
+                            matchesStatus = ['closed', 'completed'].includes(rowStatus.toLowerCase());
+                        } else if (filterType === 'invoiced') {
+                            // Invoiced means exactly Invoiced
+                            matchesStatus = rowStatus.toLowerCase() === 'invoiced';
+                        }
 
-                        // Filter table rows
-                        tableRows.forEach(row => {
-                            const rowStatus = row.getAttribute('data-status');
-                            const rowSeries = row.getAttribute('data-series');
-                            const rowState = row.getAttribute('data-state');
-                            const rowClientCode = row.getAttribute('data-client-code');
+                        // If Series filter is set, also check series match
+                        let shouldShow = matchesStatus || !filterType;
+                        if (filterSeries) {
+                            shouldShow = shouldShow && (rowSeries === filterSeries);
+                        }
+                        // If State filter is set, also check state match
+                        if (filterState) {
+                            shouldShow = shouldShow && (rowState === filterState);
+                        }
+                        // If Client filter is set, also check client code match
+                        if (filterClient) {
+                            shouldShow = shouldShow && (rowClientCode === filterClient);
+                        }
 
-                            if (!rowStatus) {
-                                row.classList.add('wo-row-hidden');
-                                return;
-                            }
+                        if (shouldShow) {
+                            row.classList.remove('wo-row-hidden');
+                        } else {
+                            row.classList.add('wo-row-hidden');
+                        }
+                    });
 
-                            let matchesStatus = false;
-
-                            // Direct status filter (from Status Distribution)
-                            if (filterStatus) {
-                                matchesStatus = rowStatus.toLowerCase() === filterStatus.toLowerCase();
-                            } else if (filterType === 'open') {
-                                // Open means NOT (Completed, Closed, Cancelled, Invoiced)
-                                matchesStatus = !['completed', 'closed', 'cancelled', 'invoiced'].includes(rowStatus.toLowerCase());
-                            } else if (filterType === 'closed') {
-                                // Closed means Closed OR Completed
-                                matchesStatus = ['closed', 'completed'].includes(rowStatus.toLowerCase());
-                            } else if (filterType === 'invoiced') {
-                                // Invoiced means exactly Invoiced
-                                matchesStatus = rowStatus.toLowerCase() === 'invoiced';
-                            }
-
-                            // If Series filter is set, also check series match
-                            let shouldShow = matchesStatus || !filterType;
-                            if (filterSeries) {
-                                shouldShow = shouldShow && (rowSeries === filterSeries);
-                            }
-                            // If State filter is set, also check state match
-                            if (filterState) {
-                                shouldShow = shouldShow && (rowState === filterState);
-                            }
-                            // If Client filter is set, also check client code match
-                            if (filterClient) {
-                                shouldShow = shouldShow && (rowClientCode === filterClient);
-                            }
-
-                            if (shouldShow) {
-                                row.classList.remove('wo-row-hidden');
-                            } else {
-                                row.classList.add('wo-row-hidden');
-                            }
+                    // Scroll to the work orders table
+                    setTimeout(() => {
+                        document.getElementById('work-orders-table').scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
                         });
-
-                        // Scroll to the work orders table
-                        setTimeout(() => {
-                            document.getElementById('work-orders-table').scrollIntoView({
-                                behavior: 'smooth',
-                                block: 'start'
-                            });
-                        }, 100);
-                    });
-                });
-
-                function clearFilter() {
-                    activeFilter = null;
-                    activeFilterSeries = null;
-                    activeFilterState = null;
-                    activeFilterClient = null;
-                    activeFilterStatus = null;
-                    filterButtons.forEach(btn => btn.classList.remove('active'));
-                    tableRows.forEach(row => row.classList.remove('wo-row-hidden'));
-                }
-
-                // Scroll to Top Button functionality
-                const scrollToTopBtn = document.getElementById('scrollToTopBtn');
-
-                window.addEventListener('scroll', function () {
-                    if (window.pageYOffset > 300) {
-                        scrollToTopBtn.style.display = 'block';
-                    } else {
-                        scrollToTopBtn.style.display = 'none';
-                    }
-                });
-
-                scrollToTopBtn.addEventListener('click', function () {
-                    window.scrollTo({
-                        top: 0,
-                        behavior: 'smooth'
-                    });
+                    }, 100);
                 });
             });
-        </script>
-    </th:block>
+
+            function clearFilter() {
+                activeFilter = null;
+                activeFilterSeries = null;
+                activeFilterState = null;
+                activeFilterClient = null;
+                activeFilterStatus = null;
+                filterButtons.forEach(btn => btn.classList.remove('active'));
+                tableRows.forEach(row => row.classList.remove('wo-row-hidden'));
+            }
+
+            // Scroll to Top Button functionality
+            const scrollToTopBtn = document.getElementById('scrollToTopBtn');
+
+            window.addEventListener('scroll', function () {
+                if (window.pageYOffset > 300) {
+                    scrollToTopBtn.style.display = 'block';
+                } else {
+                    scrollToTopBtn.style.display = 'none';
+                }
+            });
+
+            scrollToTopBtn.addEventListener('click', function () {
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
+</th:block>
 
 </html>

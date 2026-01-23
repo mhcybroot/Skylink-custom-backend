@@ -671,6 +671,60 @@ public class WorkOrderReportService {
 
                 stats.setStateSeriesBreakdown(stateSeriesStats);
 
+                // Admin Performance by User
+                Map<String, List<WorkOrder>> adminGroups = workOrders.stream()
+                                .filter(wo -> wo.getAdmin() != null && !wo.getAdmin().trim().isEmpty())
+                                .collect(Collectors.groupingBy(WorkOrder::getAdmin));
+
+                List<WorkOrderDashboardDTO.AdminPerformanceStat> adminStats = adminGroups.entrySet().stream()
+                                .map(entry -> {
+                                        String adminName = entry.getKey();
+                                        List<WorkOrder> adminWOs = entry.getValue();
+
+                                        long woCount = adminWOs.size();
+
+                                        // Total revenue
+                                        BigDecimal revenue = adminWOs.stream()
+                                                        .map(this::getEffectiveRevenue)
+                                                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                                        // Total cost
+                                        BigDecimal cost = adminWOs.stream()
+                                                        .map(wo -> wo.getContractorInvoiceTotal() != null
+                                                                        ? wo.getContractorInvoiceTotal()
+                                                                        : BigDecimal.ZERO)
+                                                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                                        // Gross margin percentage
+                                        BigDecimal profit = revenue.subtract(cost);
+                                        BigDecimal grossMargin = revenue.compareTo(BigDecimal.ZERO) > 0
+                                                        ? profit.divide(revenue, 4, java.math.RoundingMode.HALF_UP)
+                                                                        .multiply(BigDecimal.valueOf(100))
+                                                        : BigDecimal.ZERO;
+
+                                        // Unique clients
+                                        long adminUniqueClients = adminWOs.stream()
+                                                        .filter(wo -> wo.getClient() != null)
+                                                        .map(wo -> wo.getClient().getId())
+                                                        .distinct()
+                                                        .count();
+
+                                        // Unique states
+                                        long adminUniqueStates = adminWOs.stream()
+                                                        .filter(wo -> wo.getState() != null && !wo.getState().isEmpty())
+                                                        .map(WorkOrder::getState)
+                                                        .distinct()
+                                                        .count();
+
+                                        return new WorkOrderDashboardDTO.AdminPerformanceStat(
+                                                        adminName, woCount, revenue, grossMargin,
+                                                        (int) adminUniqueClients, (int) adminUniqueStates);
+                                })
+                                .sorted((a, b) -> Long.compare(b.getWorkOrderCount(), a.getWorkOrderCount()))
+                                .collect(Collectors.toList());
+
+                stats.setAdminPerformanceStats(adminStats);
+
                 return stats;
         }
 }
