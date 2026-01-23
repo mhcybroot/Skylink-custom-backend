@@ -264,25 +264,6 @@ public class WorkOrderController {
                                 .collect(Collectors.toList());
                 stats.setTopContractors(top5);
 
-                // Top Banks (NEW)
-                List<WorkOrderDashboardDTO.BankStat> topBanks = allWorkOrders.stream()
-                                .filter(w -> w.getCustomerBank() != null && !w.getCustomerBank().isEmpty())
-                                .collect(Collectors.groupingBy(WorkOrder::getCustomerBank))
-                                .entrySet().stream()
-                                .map(e -> {
-                                        String bankName = e.getKey();
-                                        Long count = e.getValue().stream().count();
-                                        BigDecimal revenue = e.getValue().stream()
-                                                        .map(WorkOrder::getClientInvoiceTotal)
-                                                        .filter(java.util.Objects::nonNull)
-                                                        .reduce(BigDecimal.ZERO, BigDecimal::add);
-                                        return new WorkOrderDashboardDTO.BankStat(bankName, count, revenue);
-                                })
-                                .sorted((a, b) -> b.getRevenue().compareTo(a.getRevenue()))
-                                .limit(5)
-                                .collect(Collectors.toList());
-                stats.setTopBanks(topBanks);
-
                 // Work Orders Over Time (Invoice Date as proxy since Recvd Date missing)
                 java.time.format.DateTimeFormatter monthYearFmt = java.time.format.DateTimeFormatter
                                 .ofPattern("MMM yyyy");

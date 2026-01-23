@@ -610,30 +610,7 @@
 
             <!-- SECONDARY STATS ROW -->
             <div class="row g-4 mb-5">
-                <div class="col-md-6">
-                    <!-- Top Banks Table -->
-                    <div class="card h-100 shadow-sm border-0">
-                        <div class="card-header bg-light fw-bold text-uppercase small">Top Revenue Sources (Banks)</div>
-                        <div class="card-body p-0">
-                            <table class="table table-sm table-striped mb-0">
-                                <thead>
-                                    <tr>
-                                        <th>Bank</th>
-                                        <th class="text-end">Orders</th>
-                                        <th class="text-end">Revenue</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr th:each="bank : ${stats.topBanks}">
-                                        <td th:text="${bank.name}">Bank</td>
-                                        <td class="text-end" th:text="${bank.count}">0</td>
-                                        <td class="text-end" th:text="${#numbers.formatCurrency(bank.revenue)}">$0</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
+
                 <div class="col-md-6">
                     <!-- Status Breakdown -->
                     <div class="card h-100 shadow-sm border-0">
@@ -666,6 +643,7 @@
                         <tr>
                             <th>WO #</th>
                             <th>Inv #</th>
+                            <th>Inv Date</th>
                             <th>Type</th>
                             <th>Status</th>
                             <th>Client</th>
@@ -690,6 +668,7 @@
                         <tr th:each="wo : ${reportData}">
                             <td th:text="${wo.woNumber}">WO-1</td>
                             <td th:text="${wo.invoiceNumber}">INV-1</td>
+                            <td th:text="${wo.invoiceDate}">Jan 1</td>
                             <td th:text="${wo.workType}">Cut</td>
                             <td th:text="${wo.status}">Open</td>
                             <td th:text="${wo.client != null ? wo.client.code : (wo.originalClientString)}">Client</td>

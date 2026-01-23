@@ -4,7 +4,7 @@ import org.springframework.stereotype.Service;
 import root.cyb.mh.attendancesystem.dto.WorkOrderDashboardDTO;
 import root.cyb.mh.attendancesystem.model.WorkOrder;
 import root.cyb.mh.attendancesystem.dto.WorkOrderDashboardDTO.ContractorStat;
-import root.cyb.mh.attendancesystem.dto.WorkOrderDashboardDTO.BankStat;
+
 import root.cyb.mh.attendancesystem.dto.WorkOrderDashboardDTO.WorkTypeStat;
 import root.cyb.mh.attendancesystem.dto.WorkOrderDashboardDTO.SeriesStat;
 
@@ -139,29 +139,6 @@ public class WorkOrderReportService {
                                 .map(e -> new ContractorStat(e.getKey(), e.getValue()))
                                 .collect(Collectors.toList());
                 stats.setTopContractors(topContractors);
-
-                // Top Banks (Revenue)
-                List<BankStat> topBanks = workOrders.stream()
-                                .collect(Collectors.groupingBy(w -> {
-                                        String bank = w.getCustomerBank();
-                                        if (bank == null || bank.trim().isEmpty()) {
-                                                return "No Bank Assigned";
-                                        }
-                                        return bank.trim();
-                                }))
-                                .entrySet().stream()
-                                .map(entry -> {
-                                        String bankName = entry.getKey();
-                                        List<WorkOrder> bankOrders = entry.getValue();
-                                        BigDecimal rev = bankOrders.stream()
-                                                        .map(this::getEffectiveRevenue)
-                                                        .reduce(BigDecimal.ZERO, BigDecimal::add);
-                                        return new BankStat(bankName, (long) bankOrders.size(), rev);
-                                })
-                                .sorted(Comparator.comparing(BankStat::getRevenue).reversed())
-                                .limit(5)
-                                .collect(Collectors.toList());
-                stats.setTopBanks(topBanks);
 
                 // Margin By Work Type
                 List<WorkTypeStat> workTypeMargins = workOrders.stream()

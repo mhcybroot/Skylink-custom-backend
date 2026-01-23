@@ -44,7 +44,6 @@ public class WorkOrderDashboardDTO {
     private List<ClientStat> topClients;
     private List<WorkTypeStat> workTypeMargins;
     private List<StateStat> stateDistribution;
-    private List<BankStat> topBanks;
 
     // Performance Scorecards
     private List<ContractorScorecard> contractorScorecards;
@@ -84,14 +83,6 @@ public class WorkOrderDashboardDTO {
     public static class ClientStat {
         private String name;
         private BigDecimal totalRevenue;
-    }
-
-    @Data
-    @AllArgsConstructor
-    public static class BankStat {
-        private String name;
-        private Long count;
-        private BigDecimal revenue;
     }
 
     @Data
