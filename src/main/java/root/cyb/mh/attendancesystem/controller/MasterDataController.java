@@ -429,24 +429,8 @@ public class MasterDataController {
         return "redirect:/master-data/clients";
     }
 
-    @PostMapping("/clients/{id}/update")
-    @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
-    public String updateClient(@PathVariable Long id, @RequestParam String code,
-            @RequestParam String name, @RequestParam(required = false) String address,
-            RedirectAttributes ps) {
-        try {
-            Client client = clientRepository.findById(id)
-                    .orElseThrow(() -> new ResourceNotFoundException("Client not found"));
-            client.setCode(code);
-            client.setName(name);
-            client.setAddress(address);
-            clientRepository.save(client);
-            ps.addFlashAttribute("successMessage", "Client updated successfully!");
-        } catch (Exception e) {
-            ps.addFlashAttribute("errorMessage", "Error: Client code must be unique.");
-        }
-        return "redirect:/master-data/clients";
-    }
+    // Endpoint removed: /clients/{id}/update - Use /clients/update with hidden ID
+    // instead
 
     @PostMapping("/payment-methods/{id}/toggle")
     @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
