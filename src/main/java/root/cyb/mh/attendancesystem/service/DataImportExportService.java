@@ -224,7 +224,8 @@ public class DataImportExportService {
         EXPORT_COLUMNS.put("priority", "Priority");
         EXPORT_COLUMNS.put("approval", "Approval Authority");
         EXPORT_COLUMNS.put("reason", "Reason");
-        EXPORT_COLUMNS.put("status", "Status");
+        EXPORT_COLUMNS.put("status", "Approval Status");
+        EXPORT_COLUMNS.put("paymentStatus", "Payment Status");
         EXPORT_COLUMNS.put("ppw", "PPW Update");
     }
 
@@ -342,6 +343,8 @@ public class DataImportExportService {
                 return p.getReason();
             case "status":
                 return p.getStatus().name();
+            case "paymentStatus":
+                return p.getPaymentStatus() != null ? p.getPaymentStatus().name() : "-";
             case "ppw":
                 return p.getPpwUpdateStatus() != null ? p.getPpwUpdateStatus().name() : "-";
             default:
@@ -374,6 +377,8 @@ public class DataImportExportService {
             case "reason":
                 return 3f;
             case "status":
+                return 2f;
+            case "paymentStatus":
                 return 2f;
             case "ppw":
                 return 2f;
