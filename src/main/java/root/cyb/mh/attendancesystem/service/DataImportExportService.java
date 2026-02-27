@@ -227,6 +227,8 @@ public class DataImportExportService {
         EXPORT_COLUMNS.put("status", "Approval Status");
         EXPORT_COLUMNS.put("paymentStatus", "Payment Status");
         EXPORT_COLUMNS.put("ppw", "PPW Update");
+        EXPORT_COLUMNS.put("refNumber", "Payment Ref #");
+        EXPORT_COLUMNS.put("internalNotes", "Internal Notes");
     }
 
     public void exportPaymentRequestsToCsv(PrintWriter writer, List<PaymentRequest> requests,
@@ -347,6 +349,10 @@ public class DataImportExportService {
                 return p.getPaymentStatus() != null ? p.getPaymentStatus().name() : "-";
             case "ppw":
                 return p.getPpwUpdateStatus() != null ? p.getPpwUpdateStatus().name() : "-";
+            case "refNumber":
+                return p.getPaymentReferenceNumber() != null ? p.getPaymentReferenceNumber() : "";
+            case "internalNotes":
+                return p.getRemarks() != null ? p.getRemarks() : "";
             default:
                 return "";
         }
@@ -382,6 +388,10 @@ public class DataImportExportService {
                 return 2f;
             case "ppw":
                 return 2f;
+            case "refNumber":
+                return 2.5f;
+            case "internalNotes":
+                return 3f;
             default:
                 return 2f;
         }
