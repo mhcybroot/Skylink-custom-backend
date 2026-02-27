@@ -303,6 +303,13 @@
                                             </a>
                                         </th>
                                         <th class="py-3 border-bottom-0">
+                                            <a th:href="@{/payment-requests(view=${param.view}, sortField='paymentStatus', sortDir=${sortField == 'paymentStatus' ? reverseSortDir : 'asc'})}"
+                                                class="text-decoration-none text-secondary fw-bold">
+                                                Payment <i class="fas"
+                                                    th:classappend="${sortField == 'paymentStatus'} ? (${sortDir == 'asc'} ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort'"></i>
+                                            </a>
+                                        </th>
+                                        <th class="py-3 border-bottom-0">
                                             <a th:href="@{/payment-requests(view=${param.view}, sortField='ppwUpdateStatus', sortDir=${sortField == 'ppwUpdateStatus' ? reverseSortDir : 'asc'})}"
                                                 class="text-decoration-none text-secondary fw-bold">
                                                 PPW <i class="fas"
@@ -349,6 +356,13 @@
                                             </span>
                                         </td>
                                         <td>
+                                            <span th:if="${req.paymentStatus != null}" th:text="${req.paymentStatus}"
+                                                th:class="${'badge rounded-1 fw-normal ' + 
+                                                (req.paymentStatus.name() == 'PAID' ? 'bg-success-subtle text-success border border-success' : 
+                                                (req.paymentStatus.name() == 'PROCESSING' ? 'bg-info-subtle text-info border border-info' : 'bg-secondary-subtle text-secondary border border-secondary'))}">
+                                            </span>
+                                        </td>
+                                        <td>
                                             <span th:if="${req.ppwUpdateStatus != null}"
                                                 th:text="${req.ppwUpdateStatus}"
                                                 th:class="${'badge rounded-1 fw-normal ' + 
@@ -374,7 +388,7 @@
                                         </td>
                                     </tr>
                                     <tr th:if="${#lists.isEmpty(requests)}">
-                                        <td colspan="11" class="text-center py-5">
+                                        <td colspan="12" class="text-center py-5">
                                             <div class="d-flex flex-column align-items-center">
                                                 <div class="bg-light rounded-circle p-3 mb-3">
                                                     <i class="fas fa-inbox fa-2x text-muted opacity-50"></i>
