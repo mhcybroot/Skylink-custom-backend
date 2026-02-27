@@ -7,6 +7,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import root.cyb.mh.attendancesystem.model.User;
 import root.cyb.mh.attendancesystem.repository.UserRepository;
+import root.cyb.mh.attendancesystem.repository.PaymentRequestRepository;
 
 @Controller
 @RequestMapping("/users")
@@ -14,6 +15,9 @@ public class UserController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private PaymentRequestRepository paymentRequestRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -38,9 +42,12 @@ public class UserController {
     }
 
     @GetMapping("/delete/{id}")
+    @org.springframework.transaction.annotation.Transactional
     public String deleteUser(@PathVariable Long id, java.security.Principal principal) {
         userRepository.findById(id).ifPresent(user -> {
             if (!user.getUsername().equals(principal.getName())) { // Prevent self-deletion
+                paymentRequestRepository.clearRequesterReferences(user);
+                paymentRequestRepository.clearApprovalAuthorityReferences(user);
                 userRepository.delete(user);
             }
         });

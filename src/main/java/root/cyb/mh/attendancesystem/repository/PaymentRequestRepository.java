@@ -730,4 +730,12 @@ public interface PaymentRequestRepository extends JpaRepository<PaymentRequest, 
 
         @org.springframework.data.jpa.repository.Query("SELECT SUM(p.amount) FROM PaymentRequest p JOIN p.contractor c WHERE (c.zipCode IS NULL OR c.zipCode = '') AND p.paymentStatus = 'PAID'")
         java.math.BigDecimal sumPaidAmountByZipUnknown();
+
+        @org.springframework.data.jpa.repository.Modifying
+        @org.springframework.data.jpa.repository.Query("UPDATE PaymentRequest p SET p.requester = null WHERE p.requester = :user")
+        void clearRequesterReferences(@org.springframework.data.repository.query.Param("user") User user);
+
+        @org.springframework.data.jpa.repository.Modifying
+        @org.springframework.data.jpa.repository.Query("UPDATE PaymentRequest p SET p.approvalAuthority = null WHERE p.approvalAuthority = :user")
+        void clearApprovalAuthorityReferences(@org.springframework.data.repository.query.Param("user") User user);
 }
