@@ -219,6 +219,7 @@ public class DataImportExportService {
         EXPORT_COLUMNS.put("amount", "Amount");
         EXPORT_COLUMNS.put("contractor", "Contractor");
         EXPORT_COLUMNS.put("method", "Method ID");
+        EXPORT_COLUMNS.put("accountDetails", "Account Details");
         EXPORT_COLUMNS.put("client", "Client Code");
         EXPORT_COLUMNS.put("priority", "Priority");
         EXPORT_COLUMNS.put("approval", "Approval Authority");
@@ -328,6 +329,8 @@ public class DataImportExportService {
                 return p.getContractor() != null ? p.getContractor().getName() : "";
             case "method":
                 return p.getPaymentMethod() != null ? p.getPaymentMethod().getMethodName() : "";
+            case "accountDetails":
+                return p.getPaymentAccountDetails() != null ? p.getPaymentAccountDetails() : "";
             case "client":
                 return p.getClient() != null ? p.getClient().getCode() : "";
             case "priority":
@@ -360,6 +363,8 @@ public class DataImportExportService {
                 return 3f;
             case "method":
                 return 2.5f;
+            case "accountDetails":
+                return 3f;
             case "client":
                 return 1.5f;
             case "priority":
