@@ -153,9 +153,9 @@ public class LeaveController {
 
             // Color coding
             String color = "#0d6efd"; // Default Blue
-            if (leave.getLeaveType().equalsIgnoreCase("SICK"))
+            if ("SICK".equalsIgnoreCase(leave.getLeaveType()))
                 color = "#dc3545"; // Red
-            else if (leave.getLeaveType().equalsIgnoreCase("CASUAL"))
+            else if ("CASUAL".equalsIgnoreCase(leave.getLeaveType()))
                 color = "#ffc107"; // Yellow/Warning
 
             jsonEvents.append("\"color\": \"").append(color).append("\"");
