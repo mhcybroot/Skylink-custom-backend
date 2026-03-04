@@ -51,6 +51,9 @@ public class SecurityConfig {
                                                 .loginPage("/login")
                                                 .successHandler(successHandler) // Use custom handler
                                                 .permitAll())
+                                .rememberMe(remember -> remember
+                                                .key("skylinkSuperSecretKey2026")
+                                                .tokenValiditySeconds(86400 * 7)) // 7 days
                                 .logout(logout -> logout
                                                 .logoutUrl("/logout")
                                                 .logoutSuccessUrl("/login?logout")
