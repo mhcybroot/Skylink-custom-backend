@@ -39,4 +39,26 @@ public class AdmsController {
     public String registry(@RequestParam String SN) {
         return "RegistryCode=QWC5251100143"; // Or whatever logic
     }
+
+    @PostMapping("/fdata")
+    public String receiveFdata(@RequestParam(required = false) String SN,
+            @RequestParam(required = false) String table,
+            @RequestBody(required = false) String body,
+            HttpServletRequest request) {
+        System.out.println("ADMS CHECK: Received fdata POST from SN: " + SN + " Table: " + table);
+        // We can pass this to the parser as well, but for now just returning "OK"
+        // clears the device queue
+        if (body != null && table != null) {
+            admsService.processCdata(SN, table, body);
+        }
+        return "OK";
+    }
+
+    // Handle command results
+    @PostMapping("/devicecmd")
+    public String receiveCmdResult(@RequestParam(required = false) String SN,
+            @RequestBody(required = false) String body) {
+        System.out.println("ADMS CHECK: Received command result from SN: " + SN + ": " + body);
+        return "OK";
+    }
 }
