@@ -47,16 +47,14 @@
             </style>
             <script>
                 (function () {
-                    const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-                    const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                    const TZ = 'Etc/GMT+5';
                     function updateEmpClock() {
                         const now = new Date();
-                        const h = String(now.getHours()).padStart(2, '0');
-                        const m = String(now.getMinutes()).padStart(2, '0');
-                        const s = String(now.getSeconds()).padStart(2, '0');
-                        document.getElementById('emp-status-clock').textContent = h + ':' + m + ':' + s;
+                        const t = new Intl.DateTimeFormat('en-US', { timeZone: TZ, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).formatToParts(now);
+                        document.getElementById('emp-status-clock').textContent =
+                            t.find(p => p.type === 'hour').value + ':' + t.find(p => p.type === 'minute').value + ':' + t.find(p => p.type === 'second').value;
                         document.getElementById('emp-status-date').textContent =
-                            DAYS[now.getDay()] + ', ' + MONTHS[now.getMonth()] + ' ' + now.getDate() + ', ' + now.getFullYear();
+                            new Intl.DateTimeFormat('en-US', { timeZone: TZ, weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).format(now) + ' • ET';
                     }
                     updateEmpClock();
                     setInterval(updateEmpClock, 1000);

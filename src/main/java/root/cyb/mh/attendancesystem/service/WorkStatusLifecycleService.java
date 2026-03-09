@@ -36,7 +36,7 @@ public class WorkStatusLifecycleService {
 
     // Run daily at 00:05 AM — expire any active statuses from YESTERDAY that were
     // never closed
-    @Scheduled(cron = "0 5 0 * * *")
+    @Scheduled(cron = "0 5 0 * * *", zone = "Etc/GMT+5")
     public void expireStaleYesterdayStatuses() {
         LocalDate yesterday = LocalDate.now().minusDays(1);
         List<EmployeeDailyWorkStatus> allYesterday = statusRepository.findAll().stream()

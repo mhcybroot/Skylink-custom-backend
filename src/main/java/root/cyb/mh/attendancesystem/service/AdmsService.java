@@ -212,6 +212,7 @@ public class AdmsService {
 
             if (employeeId != null && timeStr != null) {
                 DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                // Device is in the same UTC-5 timezone as the office — parse directly
                 LocalDateTime timestamp = LocalDateTime.parse(timeStr, formatter);
 
                 boolean isNewLog = false;
