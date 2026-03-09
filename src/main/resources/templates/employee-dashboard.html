@@ -14,6 +14,55 @@
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
 
+            <!-- Live Clock Status Bar -->
+            <div class="d-flex align-items-center justify-content-between px-3 py-2 mb-3"
+                style="background: linear-gradient(135deg, #0d1b2a, #1a3050); border-radius: 10px; color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+                <div class="d-flex align-items-center gap-3">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span
+                            style="width:10px; height:10px; background:#22c55e; border-radius:50%; display:inline-block; animation:emp-pulse-dot 1.5s infinite;"></span>
+                        <span
+                            style="font-size:0.75rem; font-weight:600; letter-spacing:0.08em; color:#86efac; text-transform:uppercase;">Online</span>
+                    </div>
+                    <div style="width:1px; height:24px; background:rgba(255,255,255,0.15);"></div>
+                    <span id="emp-status-date" style="font-size:0.8rem; color:#94a3b8; font-weight:500;"></span>
+                </div>
+                <span id="emp-status-clock"
+                    style="font-size:1.6rem; font-weight:700; letter-spacing:0.05em; font-variant-numeric:tabular-nums;"></span>
+            </div>
+            <style>
+                @keyframes emp-pulse-dot {
+                    0% {
+                        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6);
+                    }
+
+                    70% {
+                        box-shadow: 0 0 0 8px rgba(34, 197, 94, 0);
+                    }
+
+                    100% {
+                        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+                    }
+                }
+            </style>
+            <script>
+                (function () {
+                    const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                    const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                    function updateEmpClock() {
+                        const now = new Date();
+                        const h = String(now.getHours()).padStart(2, '0');
+                        const m = String(now.getMinutes()).padStart(2, '0');
+                        const s = String(now.getSeconds()).padStart(2, '0');
+                        document.getElementById('emp-status-clock').textContent = h + ':' + m + ':' + s;
+                        document.getElementById('emp-status-date').textContent =
+                            DAYS[now.getDay()] + ', ' + MONTHS[now.getMonth()] + ' ' + now.getDate() + ', ' + now.getFullYear();
+                    }
+                    updateEmpClock();
+                    setInterval(updateEmpClock, 1000);
+                })();
+            </script>
+
             <div class="card bg-primary text-white shadow-sm mb-4">
                 <div class="card-body p-4">
                     <div class="row align-items-center">
