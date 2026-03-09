@@ -8,5 +8,6 @@ public enum WorkStatus {
     ON_BREAK,
     ENDED_WORK,
     LEFT_WITHOUT_PUNCH,
-    COMPLETED_DAY
+    COMPLETED_DAY,
+    INCOMPLETE_SHIFT
 }

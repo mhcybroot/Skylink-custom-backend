@@ -62,26 +62,51 @@ public class DataInitializer {
 
             // Test Data injection
             if (appTesting) {
-                System.out.println("TESTING MODE ACTIVE: Injecting dummy Work Status records...");
+                System.out.println("TESTING MODE ACTIVE: Injecting dummy Work Status records for all statuses...");
                 try {
-                    // Just take any employee
-                    employeeRepository.findAll().stream().findFirst().ifPresent(emp -> {
-                        java.time.LocalDate today = java.time.LocalDate.now();
+                    root.cyb.mh.attendancesystem.model.WorkStatus[] statuses = root.cyb.mh.attendancesystem.model.WorkStatus
+                            .values();
+                    java.util.List<root.cyb.mh.attendancesystem.model.Employee> employees = employeeRepository
+                            .findAll();
+                    java.time.LocalDate today = java.time.LocalDate.now();
+
+                    int statusIndex = 1; // Start from 1 to skip NOT_ENTERED usually, or 0 to include it
+                    for (int i = 0; i < employees.size() && statusIndex < statuses.length; i++) {
+                        root.cyb.mh.attendancesystem.model.Employee emp = employees.get(i);
+                        root.cyb.mh.attendancesystem.model.WorkStatus currentStatusToApply = statuses[statusIndex];
+
                         root.cyb.mh.attendancesystem.model.EmployeeDailyWorkStatus dummyStatus = workStatusRepository
                                 .findByEmployeeIdAndDate(emp.getId(), today)
                                 .orElse(new root.cyb.mh.attendancesystem.model.EmployeeDailyWorkStatus(emp.getId(),
                                         today));
 
-                        // Simulate they entered office, started working 2 hours ago, and are currently
-                        // on break
-                        dummyStatus.setStatus(root.cyb.mh.attendancesystem.model.WorkStatus.ON_BREAK);
-                        dummyStatus.setWorkStartTime(java.time.LocalDateTime.now().minusHours(2));
-                        dummyStatus.setCurrentBreakStartTime(java.time.LocalDateTime.now().minusMinutes(15));
-                        dummyStatus.setTotalBreakMinutes(0); // 15 mins currently accruing
+                        dummyStatus.setStatus(currentStatusToApply);
+
+                        // Fake time depending on status
+                        if (currentStatusToApply == root.cyb.mh.attendancesystem.model.WorkStatus.WORKING) {
+                            dummyStatus.setWorkStartTime(java.time.LocalDateTime.now().minusHours(4));
+                        } else if (currentStatusToApply == root.cyb.mh.attendancesystem.model.WorkStatus.ON_BREAK) {
+                            dummyStatus.setWorkStartTime(java.time.LocalDateTime.now().minusHours(3));
+                            dummyStatus.setCurrentBreakStartTime(java.time.LocalDateTime.now().minusMinutes(25));
+                        } else if (currentStatusToApply == root.cyb.mh.attendancesystem.model.WorkStatus.ENDED_WORK ||
+                                currentStatusToApply == root.cyb.mh.attendancesystem.model.WorkStatus.LEFT_WITHOUT_PUNCH
+                                ||
+                                currentStatusToApply == root.cyb.mh.attendancesystem.model.WorkStatus.COMPLETED_DAY) {
+                            dummyStatus.setWorkStartTime(java.time.LocalDateTime.now().minusHours(9));
+                            dummyStatus.setTotalBreakMinutes(45);
+                            dummyStatus.setWorkEndTime(java.time.LocalDateTime.now().minusMinutes(15));
+                        } else if (currentStatusToApply == root.cyb.mh.attendancesystem.model.WorkStatus.INCOMPLETE_SHIFT) {
+                            dummyStatus.setWorkStartTime(java.time.LocalDateTime.now().minusHours(6).minusMinutes(15));
+                            dummyStatus.setTotalBreakMinutes(30);
+                            dummyStatus.setWorkEndTime(java.time.LocalDateTime.now().minusMinutes(10));
+                        }
 
                         workStatusRepository.save(dummyStatus);
-                        System.out.println("Injected dummy WorkStatus for Employee " + emp.getId());
-                    });
+                        System.out.println("Injected test status [" + currentStatusToApply + "] for Employee "
+                                + emp.getName() + " (" + emp.getId() + ")");
+
+                        statusIndex++;
+                    }
                 } catch (Exception e) {
                     System.out.println("Failed to inject test work status data: " + e.getMessage());
                 }

@@ -234,12 +234,20 @@ public class AdmsService {
                     } else if (dailyStatus.getStatus() == WorkStatus.ENDED_WORK) {
                         // Ensure punch is within 30 mins
                         java.time.LocalDateTime limit = dailyStatus.getWorkEndTime().plusMinutes(30);
-                        if (timestamp.isBefore(limit) || timestamp.isEqual(limit)) {
-                            dailyStatus.setStatus(WorkStatus.COMPLETED_DAY);
-                            employeeDailyWorkStatusRepository.save(dailyStatus);
+                        if (!timestamp.isAfter(limit)) {
+                            long totalMins = java.time.temporal.ChronoUnit.MINUTES
+                                    .between(dailyStatus.getWorkStartTime(), dailyStatus.getWorkEndTime());
+                            long activeMins = totalMins - dailyStatus.getTotalBreakMinutes();
+
+                            if (activeMins >= 480) { // 8 hours = 480 mins
+                                dailyStatus.setStatus(WorkStatus.COMPLETED_DAY);
+                            } else {
+                                dailyStatus.setStatus(WorkStatus.INCOMPLETE_SHIFT);
+                            }
                         } else {
-                            // Let the background job flag this as LEFT_WITHOUT_PUNCH, but record it anyway
+                            dailyStatus.setStatus(WorkStatus.LEFT_WITHOUT_PUNCH);
                         }
+                        employeeDailyWorkStatusRepository.save(dailyStatus);
                     }
                 }
             }
