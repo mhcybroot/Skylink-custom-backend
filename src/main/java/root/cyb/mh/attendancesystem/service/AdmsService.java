@@ -10,6 +10,9 @@ import root.cyb.mh.attendancesystem.repository.DeviceRepository;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Optional;
+import root.cyb.mh.attendancesystem.model.WorkStatus;
+import root.cyb.mh.attendancesystem.model.EmployeeDailyWorkStatus;
+import root.cyb.mh.attendancesystem.repository.EmployeeDailyWorkStatusRepository;
 
 @Service
 public class AdmsService {
@@ -19,6 +22,9 @@ public class AdmsService {
 
     @Autowired
     private DeviceRepository deviceRepository;
+
+    @Autowired
+    private EmployeeDailyWorkStatusRepository employeeDailyWorkStatusRepository;
 
     private String pendingCommand = null;
 
@@ -215,6 +221,26 @@ public class AdmsService {
                     log.setTimestamp(timestamp);
                     log.setDeviceId(deviceId);
                     attendanceLogRepository.save(log);
+
+                    // Update Work Status
+                    java.time.LocalDate date = timestamp.toLocalDate();
+                    EmployeeDailyWorkStatus dailyStatus = employeeDailyWorkStatusRepository
+                            .findByEmployeeIdAndDate(employeeId, date)
+                            .orElse(new EmployeeDailyWorkStatus(employeeId, date));
+
+                    if (dailyStatus.getStatus() == WorkStatus.NOT_ENTERED) {
+                        dailyStatus.setStatus(WorkStatus.ENTERED_OFFICE);
+                        employeeDailyWorkStatusRepository.save(dailyStatus);
+                    } else if (dailyStatus.getStatus() == WorkStatus.ENDED_WORK) {
+                        // Ensure punch is within 30 mins
+                        java.time.LocalDateTime limit = dailyStatus.getWorkEndTime().plusMinutes(30);
+                        if (timestamp.isBefore(limit) || timestamp.isEqual(limit)) {
+                            dailyStatus.setStatus(WorkStatus.COMPLETED_DAY);
+                            employeeDailyWorkStatusRepository.save(dailyStatus);
+                        } else {
+                            // Let the background job flag this as LEFT_WITHOUT_PUNCH, but record it anyway
+                        }
+                    }
                 }
             }
         } catch (Exception e) {

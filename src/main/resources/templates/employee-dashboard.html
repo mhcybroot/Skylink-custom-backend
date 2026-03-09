@@ -48,6 +48,53 @@
                 </div>
             </div>
 
+            <!-- Work Status Action Panel -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card shadow-sm border-0 bg-white">
+                        <div class="card-body d-flex justify-content-between align-items-center flex-wrap">
+                            <div>
+                                <h5 class="mb-1 fw-bold text-dark"><i class="fas fa-briefcase me-2 text-primary"></i>
+                                    Current Status:
+                                    <span class="text-primary" th:text="${dailyStatus.status}">LOGGED_IN</span>
+                                </h5>
+                                <p class="text-muted mb-0 small" th:if="${dailyStatus.status.name() == 'NOT_ENTERED'}">
+                                    <i class="fas fa-exclamation-triangle text-warning me-1"></i> Please punch your card
+                                    at the office machine before starting work.
+                                </p>
+                                <p class="text-muted mb-0 small" th:if="${dailyStatus.status.name() == 'ENDED_WORK'}">
+                                    <i class="fas fa-info-circle text-info me-1"></i> Shift Ended! Please don't forget
+                                    to punch out at the machine within 30 minutes.
+                                </p>
+                            </div>
+                            <div class="d-flex gap-2 mt-3 mt-md-0">
+                                <form action="/employee/work-status/start-work" method="post"
+                                    th:if="${dailyStatus.status.name() == 'LOGGED_IN' or dailyStatus.status.name() == 'ENTERED_OFFICE'}">
+                                    <button type="submit" class="btn btn-success fw-bold px-4 rounded-pill shadow-sm"><i
+                                            class="fas fa-play me-2"></i>Start Work</button>
+                                </form>
+                                <form action="/employee/work-status/start-break" method="post"
+                                    th:if="${dailyStatus.status.name() == 'WORKING'}">
+                                    <button type="submit"
+                                        class="btn btn-warning text-dark fw-bold px-4 rounded-pill shadow-sm"><i
+                                            class="fas fa-coffee me-2"></i>Take Break</button>
+                                </form>
+                                <form action="/employee/work-status/end-work" method="post"
+                                    th:if="${dailyStatus.status.name() == 'WORKING'}">
+                                    <button type="submit" class="btn btn-danger fw-bold px-4 rounded-pill shadow-sm"><i
+                                            class="fas fa-stop me-2"></i>End Work</button>
+                                </form>
+                                <form action="/employee/work-status/restart-work" method="post"
+                                    th:if="${dailyStatus.status.name() == 'ON_BREAK'}">
+                                    <button type="submit" class="btn btn-primary fw-bold px-4 rounded-pill shadow-sm"><i
+                                            class="fas fa-play-circle me-2"></i>Restart Work</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Workday Countdown Widget -->
             <div class="row mb-4" th:if="${workSchedule != null}">
                 <div class="col-12">
@@ -61,8 +108,10 @@
                             <!-- Timer Display -->
                             <!-- Timer Display -->
                             <div id="countdown-display" class="display-3 fw-bold text-dark my-2"
-                                th:data-end-time="${#temporals.format(workSchedule.endTime, 'HH:mm')}"
-                                th:data-start-time="${#temporals.format(workSchedule.startTime, 'HH:mm')}">
+                                th:data-status="${dailyStatus.status.name()}"
+                                th:data-work-start="${dailyStatus.workStartTime != null ? dailyStatus.workStartTime : ''}"
+                                th:data-break-start="${dailyStatus.currentBreakStartTime != null ? dailyStatus.currentBreakStartTime : ''}"
+                                th:data-total-break-mins="${dailyStatus.totalBreakMinutes}">
                                 --:--:--
                             </div>
 
@@ -87,69 +136,95 @@
                     const display = document.getElementById('countdown-display');
                     if (!display) return;
 
-                    const endTimeStr = display.getAttribute('data-end-time'); // HH:mm
-                    const startTimeStr = display.getAttribute('data-start-time'); // HH:mm
+                    const status = display.getAttribute('data-status');
+                    const workStartStr = display.getAttribute('data-work-start');
+                    const breakStartStr = display.getAttribute('data-break-start');
+                    const totalBreakMins = parseInt(display.getAttribute('data-total-break-mins') || "0");
 
-                    if (!endTimeStr || !startTimeStr) return;
+                    const progressBar = document.getElementById('countdown-progress');
+                    const subtext = document.getElementById('countdown-subtext');
 
                     function updateTimer() {
                         const now = new Date();
-                        const endTime = new Date();
-                        const [endH, endM] = endTimeStr.split(':');
-                        endTime.setHours(parseInt(endH), parseInt(endM), 0, 0);
 
-                        const startTime = new Date();
-                        const [startH, startM] = startTimeStr.split(':');
-                        startTime.setHours(parseInt(startH), parseInt(startM), 0, 0);
+                        // Handle formatting display helper
+                        function formatTime(diffMs) {
+                            if (diffMs < 0) return "00:00:00";
+                            const hours = Math.floor(diffMs / (1000 * 60 * 60));
+                            const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                            const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
+                            return (hours < 10 ? "0" + hours : hours) + ":" +
+                                (minutes < 10 ? "0" + minutes : minutes) + ":" +
+                                (seconds < 10 ? "0" + seconds : seconds);
+                        }
 
-                        // Calculate diff
-                        let diff = endTime - now;
-                        let totalShiftDuration = endTime - startTime;
-
-                        // If shift hasn't started yet
-                        if (now < startTime) {
-                            display.textContent = "Shift Starts Soon";
-                            document.getElementById('countdown-subtext').textContent = "Get ready to conquer the day!";
-                            document.getElementById('countdown-progress').style.width = '0%';
+                        if (status === 'NOT_ENTERED' || status === 'ENTERED_OFFICE' || status === 'LOGGED_IN') {
+                            display.textContent = "Standby";
+                            subtext.textContent = "Start work to begin your 8-hour shift countdown!";
+                            progressBar.style.width = '0%';
                             return;
                         }
 
-                        if (diff > 0) {
-                            // Counting Down
-                            const hours = Math.floor(diff / (1000 * 60 * 60));
-                            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-
-                            display.textContent =
-                                (hours < 10 ? "0" + hours : hours) + ":" +
-                                (minutes < 10 ? "0" + minutes : minutes) + ":" +
-                                (seconds < 10 ? "0" + seconds : seconds);
-
-                            document.getElementById('countdown-subtext').textContent = "Time remaining until home time!";
-                            display.classList.remove('text-danger', 'text-success');
-                            display.classList.add('text-dark');
-
-                            // Progress Bar Calculation
-                            let elapsed = now - startTime;
-                            let percent = Math.min(100, Math.max(0, (elapsed / totalShiftDuration) * 100));
-                            document.getElementById('countdown-progress').style.width = percent + '%';
-                            document.getElementById('countdown-progress').classList.remove('bg-danger');
-                            document.getElementById('countdown-progress').classList.add('bg-primary');
-
-                        } else {
-                            // Overtime or Done
+                        if (status === 'ENDED_WORK' || status === 'LEFT_WITHOUT_PUNCH' || status === 'COMPLETED_DAY') {
                             display.textContent = "Shift Ended";
-                            document.getElementById('countdown-subtext').textContent = "Great work today! Go enjoy your evening.";
-                            display.classList.remove('text-dark');
+                            subtext.textContent = "Great work today! Go enjoy your evening.";
                             display.classList.add('text-success');
+                            progressBar.style.width = '100%';
+                            progressBar.classList.add('bg-success');
+                            return;
+                        }
 
-                            document.getElementById('countdown-progress').style.width = '100%';
-                            document.getElementById('countdown-progress').classList.remove('bg-primary');
-                            document.getElementById('countdown-progress').classList.add('bg-success');
+                        if (status === 'ON_BREAK') {
+                            // Break timer counts UP since break started + previously saved breaks
+                            if (!breakStartStr) return;
+                            const breakStart = new Date(breakStartStr);
+                            let breakElapsed = now - breakStart;
+
+                            // Add previously accumulated break time
+                            let previousBreakMs = totalBreakMins * 60 * 1000;
+                            let totalBreakElapsed = breakElapsed + previousBreakMs;
+
+                            display.textContent = formatTime(totalBreakElapsed);
+                            subtext.textContent = "You are currently on break. Timer is pausing shift.";
+                            display.classList.add('text-warning');
+                            progressBar.classList.add('bg-warning');
+                            // Keep progress bar stuck where it was
+                            return;
+                        }
+
+                        if (status === 'WORKING') {
+                            if (!workStartStr) return;
+                            const workStart = new Date(workStartStr);
+
+                            // Target is 8 hours (8 * 60 * 60 * 1000 ms) of ACTIVE working time.
+                            const eightHoursMs = 8 * 60 * 60 * 1000;
+                            const breakMs = totalBreakMins * 60 * 1000;
+
+                            // Active working time so far = Elapsed wall clock time MINUS total break time
+                            let activeMs = (now - workStart) - breakMs;
+                            let remainingMs = eightHoursMs - activeMs;
+
+                            if (remainingMs > 0) {
+                                display.textContent = formatTime(remainingMs);
+                                subtext.textContent = "Time remaining until 8 hours is complete!";
+                                display.classList.add('text-primary');
+                                display.classList.remove('text-warning');
+
+                                let percent = Math.min(100, Math.max(0, (activeMs / eightHoursMs) * 100));
+                                progressBar.style.width = percent + '%';
+                                progressBar.classList.remove('bg-warning');
+                            } else {
+                                // Overtime
+                                display.textContent = "Target Reached!";
+                                subtext.textContent = "You have completed your 8 hour shift!";
+                                display.classList.add('text-success');
+                                display.classList.remove('text-primary');
+                                progressBar.style.width = '100%';
+                                progressBar.classList.add('bg-success');
+                            }
                         }
                     }
 
-                    // Run immediately and then interval
                     updateTimer();
                     setInterval(updateTimer, 1000);
                 });

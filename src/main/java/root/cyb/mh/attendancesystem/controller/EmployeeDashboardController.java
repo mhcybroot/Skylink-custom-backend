@@ -62,6 +62,9 @@ public class EmployeeDashboardController {
     private root.cyb.mh.attendancesystem.repository.AdvanceSalaryRepository advanceSalaryRepository;
 
     @Autowired
+    private root.cyb.mh.attendancesystem.repository.EmployeeDailyWorkStatusRepository employeeDailyWorkStatusRepository;
+
+    @Autowired
     private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
     @GetMapping("/employee/dashboard")
@@ -71,6 +74,12 @@ public class EmployeeDashboardController {
 
         // 1. Basic Employee Info
         model.addAttribute("employee", employee);
+
+        // Daily Work Status
+        root.cyb.mh.attendancesystem.model.EmployeeDailyWorkStatus dailyStatus = employeeDailyWorkStatusRepository
+                .findByEmployeeIdAndDate(employeeId, LocalDate.now())
+                .orElse(new root.cyb.mh.attendancesystem.model.EmployeeDailyWorkStatus(employeeId, LocalDate.now()));
+        model.addAttribute("dailyStatus", dailyStatus);
 
         // 2. Shift / Schedule Info (Today's Effective Schedule)
         WorkSchedule globalSchedule = workScheduleRepository.findAll().stream().findFirst().orElse(new WorkSchedule());
