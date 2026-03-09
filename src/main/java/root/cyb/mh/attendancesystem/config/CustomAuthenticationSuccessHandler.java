@@ -21,6 +21,9 @@ public class CustomAuthenticationSuccessHandler implements AuthenticationSuccess
     @Autowired
     private EmployeeDailyWorkStatusRepository employeeDailyWorkStatusRepository;
 
+    @Autowired
+    private root.cyb.mh.attendancesystem.repository.AttendanceLogRepository attendanceLogRepository;
+
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
             Authentication authentication) throws IOException, ServletException {
@@ -29,16 +32,29 @@ public class CustomAuthenticationSuccessHandler implements AuthenticationSuccess
         if (roles.contains("ROLE_ADMIN") || roles.contains("ROLE_HR")) {
             response.sendRedirect("/dashboard");
         } else if (roles.contains("ROLE_EMPLOYEE")) {
-            // Update WorkStatus to LOGGED_IN if it is currently ENTERED_OFFICE
             String employeeId = authentication.getName();
             java.time.LocalDate today = java.time.LocalDate.now();
             EmployeeDailyWorkStatus dailyStatus = employeeDailyWorkStatusRepository
                     .findByEmployeeIdAndDate(employeeId, today)
                     .orElse(new EmployeeDailyWorkStatus(employeeId, today));
 
+            // Upgrade to LOGGED_IN if they already passed the office gate (ENTERED_OFFICE)
+            // Or if they are NOT_ENTERED but actually have an ADMS punch today (healing
+            // missed status)
             if (dailyStatus.getStatus() == WorkStatus.ENTERED_OFFICE) {
                 dailyStatus.setStatus(WorkStatus.LOGGED_IN);
                 employeeDailyWorkStatusRepository.save(dailyStatus);
+            } else if (dailyStatus.getStatus() == WorkStatus.NOT_ENTERED) {
+                java.time.LocalDateTime startOfDay = today.atStartOfDay();
+                java.time.LocalDateTime endOfDay = today.atTime(java.time.LocalTime.MAX);
+                boolean hasPunchedToday = !attendanceLogRepository.findByTimestampBetween(startOfDay, endOfDay)
+                        .stream().filter(log -> log.getEmployeeId().equals(employeeId))
+                        .collect(java.util.stream.Collectors.toList()).isEmpty();
+
+                if (hasPunchedToday) {
+                    dailyStatus.setStatus(WorkStatus.LOGGED_IN);
+                    employeeDailyWorkStatusRepository.save(dailyStatus);
+                }
             }
 
             response.sendRedirect("/employee/dashboard");

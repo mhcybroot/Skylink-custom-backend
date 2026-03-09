@@ -214,6 +214,7 @@ public class AdmsService {
                 DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
                 LocalDateTime timestamp = LocalDateTime.parse(timeStr, formatter);
 
+                boolean isNewLog = false;
                 if (!attendanceLogRepository.existsByEmployeeIdAndTimestampAndDeviceId(employeeId, timestamp,
                         deviceId)) {
                     AttendanceLog log = new AttendanceLog();
@@ -221,34 +222,36 @@ public class AdmsService {
                     log.setTimestamp(timestamp);
                     log.setDeviceId(deviceId);
                     attendanceLogRepository.save(log);
+                    isNewLog = true;
+                }
 
-                    // Update Work Status
-                    java.time.LocalDate date = timestamp.toLocalDate();
-                    EmployeeDailyWorkStatus dailyStatus = employeeDailyWorkStatusRepository
-                            .findByEmployeeIdAndDate(employeeId, date)
-                            .orElse(new EmployeeDailyWorkStatus(employeeId, date));
+                // Update Work Status - Executed even if log exists to heal previous constraint
+                // failures
+                java.time.LocalDate date = timestamp.toLocalDate();
+                EmployeeDailyWorkStatus dailyStatus = employeeDailyWorkStatusRepository
+                        .findByEmployeeIdAndDate(employeeId, date)
+                        .orElse(new EmployeeDailyWorkStatus(employeeId, date));
 
-                    if (dailyStatus.getStatus() == WorkStatus.NOT_ENTERED) {
-                        dailyStatus.setStatus(WorkStatus.ENTERED_OFFICE);
-                        employeeDailyWorkStatusRepository.save(dailyStatus);
-                    } else if (dailyStatus.getStatus() == WorkStatus.ENDED_WORK) {
-                        // Ensure punch is within 30 mins
-                        java.time.LocalDateTime limit = dailyStatus.getWorkEndTime().plusMinutes(30);
-                        if (!timestamp.isAfter(limit)) {
-                            long totalMins = java.time.temporal.ChronoUnit.MINUTES
-                                    .between(dailyStatus.getWorkStartTime(), dailyStatus.getWorkEndTime());
-                            long activeMins = totalMins - dailyStatus.getTotalBreakMinutes();
+                if (dailyStatus.getStatus() == WorkStatus.NOT_ENTERED) {
+                    dailyStatus.setStatus(WorkStatus.ENTERED_OFFICE);
+                    employeeDailyWorkStatusRepository.save(dailyStatus);
+                } else if (dailyStatus.getStatus() == WorkStatus.ENDED_WORK && isNewLog) {
+                    // Ensure punch is within 30 mins
+                    java.time.LocalDateTime limit = dailyStatus.getWorkEndTime().plusMinutes(30);
+                    if (!timestamp.isAfter(limit)) {
+                        long totalMins = java.time.temporal.ChronoUnit.MINUTES
+                                .between(dailyStatus.getWorkStartTime(), dailyStatus.getWorkEndTime());
+                        long activeMins = totalMins - dailyStatus.getTotalBreakMinutes();
 
-                            if (activeMins >= 480) { // 8 hours = 480 mins
-                                dailyStatus.setStatus(WorkStatus.COMPLETED_DAY);
-                            } else {
-                                dailyStatus.setStatus(WorkStatus.INCOMPLETE_SHIFT);
-                            }
+                        if (activeMins >= 480) { // 8 hours = 480 mins
+                            dailyStatus.setStatus(WorkStatus.COMPLETED_DAY);
                         } else {
-                            dailyStatus.setStatus(WorkStatus.LEFT_WITHOUT_PUNCH);
+                            dailyStatus.setStatus(WorkStatus.INCOMPLETE_SHIFT);
                         }
-                        employeeDailyWorkStatusRepository.save(dailyStatus);
+                    } else {
+                        dailyStatus.setStatus(WorkStatus.LEFT_WITHOUT_PUNCH);
                     }
+                    employeeDailyWorkStatusRepository.save(dailyStatus);
                 }
             }
         } catch (Exception e) {
