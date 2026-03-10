@@ -308,6 +308,9 @@ public class ReportService {
         List<root.cyb.mh.attendancesystem.model.LeaveRequest> allLeaves = leaveRequestRepository
                 .findByStatusOrderByCreatedAtDesc(root.cyb.mh.attendancesystem.model.LeaveRequest.Status.APPROVED);
 
+        List<root.cyb.mh.attendancesystem.model.EmployeeDailyWorkStatus> weekStatuses = employeeDailyWorkStatusRepository
+                .findByDateBetween(startOfWeek, endOfWeek);
+
         List<root.cyb.mh.attendancesystem.dto.WeeklyAttendanceDto> report = new ArrayList<>();
 
         for (Employee emp : employees) {
@@ -316,6 +319,7 @@ public class ReportService {
             dto.setEmployeeName(emp.getName());
             dto.setDepartmentName(emp.getDepartment() != null ? emp.getDepartment().getName() : "Unassigned");
             dto.setDailyStatus(new java.util.LinkedHashMap<>());
+            dto.setWorkDetails(new java.util.LinkedHashMap<>());
 
             int present = 0, absent = 0, late = 0, early = 0, leave = 0;
 
@@ -406,6 +410,74 @@ public class ReportService {
                     }
                 }
                 dto.getDailyStatus().put(date, status);
+
+                // --- Integrate Live Work Status for the specific date ---
+                root.cyb.mh.attendancesystem.model.EmployeeDailyWorkStatus empStatus = weekStatuses.stream()
+                        .filter(s -> s.getEmployeeId().equals(emp.getId()) && s.getDate().equals(date))
+                        .findFirst().orElse(null);
+
+                root.cyb.mh.attendancesystem.dto.WeeklyAttendanceDto.DailyWorkDetail workDetail = new root.cyb.mh.attendancesystem.dto.WeeklyAttendanceDto.DailyWorkDetail();
+
+                if (empStatus != null) {
+                    workDetail.setCurrentWorkStatus(empStatus.getStatus().name());
+                    switch (empStatus.getStatus()) {
+                        case WORKING:
+                        case ENTERED_OFFICE:
+                        case LOGGED_IN:
+                            workDetail.setCurrentWorkStatusColor("primary");
+                            break;
+                        case ON_BREAK:
+                            workDetail.setCurrentWorkStatusColor("warning");
+                            break;
+                        case ENDED_WORK:
+                        case COMPLETED_DAY:
+                            workDetail.setCurrentWorkStatusColor("success");
+                            break;
+                        case LEFT_WITHOUT_PUNCH:
+                        case INCOMPLETE_SHIFT:
+                            workDetail.setCurrentWorkStatusColor("danger");
+                            break;
+                        default:
+                            workDetail.setCurrentWorkStatusColor("secondary");
+                    }
+
+                    int totalBreakSecs = empStatus.getTotalBreakSeconds();
+                    workDetail.setTotalBreakDuration(
+                            String.format("%02dh %02dm", totalBreakSecs / 3600, (totalBreakSecs % 3600) / 60));
+
+                    if (empStatus.getWorkStartTime() != null) {
+                        java.time.LocalDateTime endTime = empStatus.getWorkEndTime() != null
+                                ? empStatus.getWorkEndTime()
+                                : java.time.LocalDateTime.now();
+                        long activeMs = java.time.Duration.between(empStatus.getWorkStartTime(), endTime).toMillis()
+                                - (totalBreakSecs * 1000L);
+
+                        if (empStatus.getStatus() == root.cyb.mh.attendancesystem.model.WorkStatus.ON_BREAK
+                                && empStatus.getCurrentBreakStartTime() != null) {
+                            activeMs -= java.time.Duration
+                                    .between(empStatus.getCurrentBreakStartTime(), java.time.LocalDateTime.now())
+                                    .toMillis();
+                        }
+
+                        long activeMins = Math.max(0, activeMs / (60 * 1000L));
+                        workDetail
+                                .setActiveWorkDuration(String.format("%02dh %02dm", activeMins / 60, activeMins % 60));
+                    } else {
+                        workDetail.setActiveWorkDuration("00h 00m");
+                    }
+                } else {
+                    if ("PRESENT".equals(status) || "LATE".equals(status)
+                            || "EARLY".equals(status) || "LATE_EARLY".equals(status)) {
+                        workDetail.setCurrentWorkStatus("ENTERED_OFFICE");
+                        workDetail.setCurrentWorkStatusColor("primary");
+                    } else {
+                        workDetail.setCurrentWorkStatus("-");
+                        workDetail.setCurrentWorkStatusColor("secondary");
+                    }
+                    workDetail.setActiveWorkDuration("00h 00m");
+                    workDetail.setTotalBreakDuration("00h 00m");
+                }
+                dto.getWorkDetails().put(date, workDetail);
             }
             dto.setPresentCount(present);
             dto.setAbsentCount(absent);

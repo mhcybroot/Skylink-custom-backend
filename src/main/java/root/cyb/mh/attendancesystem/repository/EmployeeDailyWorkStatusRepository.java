@@ -15,4 +15,6 @@ public interface EmployeeDailyWorkStatusRepository extends JpaRepository<Employe
     List<EmployeeDailyWorkStatus> findByStatus(root.cyb.mh.attendancesystem.model.WorkStatus status);
 
     List<EmployeeDailyWorkStatus> findByDate(LocalDate date);
+
+    List<EmployeeDailyWorkStatus> findByDateBetween(LocalDate startDate, LocalDate endDate);
 }

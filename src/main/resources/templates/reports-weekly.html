@@ -220,6 +220,12 @@
                                             <span th:if="${row.dailyStatus.get(date) == 'LATE_EARLY'}">⚠️🏃</span>
                                             <span th:if="${row.dailyStatus.get(date) == 'WEEKEND'}">🏖️</span>
                                             <span th:if="${row.dailyStatus.get(date) == 'LEAVE'}">🏥</span>
+
+                                            <!-- Live Work Time Integration -->
+                                            <div th:if="${row.workDetails.get(date) != null}" class="mt-1" style="font-size: 0.70rem; line-height: 1.2;">
+                                                <div class="text-primary fw-bold" th:if="${row.workDetails.get(date).activeWorkDuration != '00h 00m'}" th:text="${row.workDetails.get(date).activeWorkDuration}"></div>
+                                                <div class="text-warning mt-1" th:if="${row.workDetails.get(date).totalBreakDuration != '00h 00m'}" th:text="'☕ ' + ${row.workDetails.get(date).totalBreakDuration}"></div>
+                                            </div>
                                         </td>
 
                                         <td class="small">

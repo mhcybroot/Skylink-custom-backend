@@ -13,6 +13,17 @@ public class WeeklyAttendanceDto {
     // Map of Date -> Status (e.g., "PRESENT", "ABSENT", "WEEKEND")
     private Map<LocalDate, String> dailyStatus;
 
+    // Map of Date -> Detailed Work Duration
+    private Map<LocalDate, DailyWorkDetail> workDetails = new java.util.LinkedHashMap<>();
+
+    @Data
+    public static class DailyWorkDetail {
+        private String currentWorkStatus;
+        private String currentWorkStatusColor;
+        private String activeWorkDuration;
+        private String totalBreakDuration;
+    }
+
     // Summary
     private int presentCount;
     private int absentCount;
