@@ -144,43 +144,46 @@
                     <div class="card-body">
                         <div class="table-responsive">
                             <table class="table table-hover">
-                                <thead class="table-dark">
+                                <thead class="table-light">
                                     <tr>
                                         <th>
-                                            <a class="text-white text-decoration-none"
+                                            <a class="text-dark text-decoration-none"
                                                 th:href="@{/reports(date=${date}, departmentId=${selectedDept}, sortField='name', sortDir=${sortField == 'name' ? reverseSortDir : sortDir})}">
                                                 Name <span th:if="${sortField == 'name'}"
                                                     th:text="${sortDir == 'asc' ? '▲' : '▼'}"></span>
                                             </a>
                                         </th>
                                         <th>
-                                            <a class="text-white text-decoration-none"
+                                            <a class="text-dark text-decoration-none"
                                                 th:href="@{/reports(date=${date}, departmentId=${selectedDept}, sortField='department', sortDir=${sortField == 'department' ? reverseSortDir : sortDir})}">
                                                 Department <span th:if="${sortField == 'department'}"
                                                     th:text="${sortDir == 'asc' ? '▲' : '▼'}"></span>
                                             </a>
                                         </th>
                                         <th>
-                                            <a class="text-white text-decoration-none"
+                                            <a class="text-dark text-decoration-none"
                                                 th:href="@{/reports(date=${date}, departmentId=${selectedDept}, sortField='inTime', sortDir=${sortField == 'inTime' ? reverseSortDir : sortDir})}">
                                                 In Time <span th:if="${sortField == 'inTime'}"
                                                     th:text="${sortDir == 'asc' ? '▲' : '▼'}"></span>
                                             </a>
                                         </th>
                                         <th>
-                                            <a class="text-white text-decoration-none"
+                                            <a class="text-dark text-decoration-none"
                                                 th:href="@{/reports(date=${date}, departmentId=${selectedDept}, sortField='outTime', sortDir=${sortField == 'outTime' ? reverseSortDir : sortDir})}">
                                                 Out Time <span th:if="${sortField == 'outTime'}"
                                                     th:text="${sortDir == 'asc' ? '▲' : '▼'}"></span>
                                             </a>
                                         </th>
                                         <th>
-                                            <a class="text-white text-decoration-none"
+                                            <a class="text-dark text-decoration-none"
                                                 th:href="@{/reports(date=${date}, departmentId=${selectedDept}, sortField='status', sortDir=${sortField == 'status' ? reverseSortDir : sortDir})}">
-                                                Status <span th:if="${sortField == 'status'}"
+                                                Daily Status <span th:if="${sortField == 'status'}"
                                                     th:text="${sortDir == 'asc' ? '▲' : '▼'}"></span>
                                             </a>
                                         </th>
+                                        <th class="text-dark text-decoration-none">Activity Status</th>
+                                        <th class="text-dark text-decoration-none">Active Work</th>
+                                        <th class="text-dark text-decoration-none">Break Time</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -197,9 +200,18 @@
                                             <span class="badge" th:classappend="'bg-' + ${row.statusColor}"
                                                 th:text="${row.status}">PRESENT</span>
                                         </td>
+                                        <td>
+                                            <span class="badge" th:if="${row.currentWorkStatus != '-'}"
+                                                th:classappend="'bg-' + ${row.currentWorkStatusColor}"
+                                                th:text="${row.currentWorkStatus}">WORKING</span>
+                                            <span th:if="${row.currentWorkStatus == '-'}">-</span>
+                                        </td>
+                                        <td class="fw-bold text-primary" th:text="${row.activeWorkDuration}">00h 00m
+                                        </td>
+                                        <td class="text-muted" th:text="${row.totalBreakDuration}">00h 00m</td>
                                     </tr>
                                     <tr th:if="${#lists.isEmpty(report)}">
-                                        <td colspan="5" class="text-center">No data found for this date.</td>
+                                        <td colspan="8" class="text-center">No data found for this date.</td>
                                     </tr>
                                 </tbody>
                             </table>

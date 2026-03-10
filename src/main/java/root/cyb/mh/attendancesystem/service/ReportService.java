@@ -41,6 +41,9 @@ public class ReportService {
     @Autowired
     private ShiftService shiftService;
 
+    @Autowired
+    private root.cyb.mh.attendancesystem.repository.EmployeeDailyWorkStatusRepository employeeDailyWorkStatusRepository;
+
     public Page<DailyAttendanceDto> getDailyReport(LocalDate date, List<Long> departmentIds, String statusFilter,
             Pageable pageable) {
 
@@ -116,6 +119,12 @@ public class ReportService {
                 .stream()
                 .filter(l -> !date.isBefore(l.getStartDate()) && !date.isAfter(l.getEndDate()))
                 .collect(Collectors.toList());
+
+        List<root.cyb.mh.attendancesystem.model.EmployeeDailyWorkStatus> statuses = employeeDailyWorkStatusRepository
+                .findByDate(date);
+        java.util.Map<String, root.cyb.mh.attendancesystem.model.EmployeeDailyWorkStatus> statusMap = statuses.stream()
+                .collect(Collectors.toMap(root.cyb.mh.attendancesystem.model.EmployeeDailyWorkStatus::getEmployeeId,
+                        s -> s));
 
         for (Employee emp : employees) {
             DailyAttendanceDto dto = new DailyAttendanceDto();
@@ -194,6 +203,61 @@ public class ReportService {
                     dto.setStatusColor("success");
                 }
             }
+
+            // --- Integrate Live Work Status ---
+            root.cyb.mh.attendancesystem.model.EmployeeDailyWorkStatus empStatus = statusMap.get(emp.getId());
+            if (empStatus != null) {
+                dto.setCurrentWorkStatus(empStatus.getStatus().name());
+                switch (empStatus.getStatus()) {
+                    case WORKING:
+                    case ENTERED_OFFICE:
+                    case LOGGED_IN:
+                        dto.setCurrentWorkStatusColor("primary");
+                        break;
+                    case ON_BREAK:
+                        dto.setCurrentWorkStatusColor("warning");
+                        break;
+                    case ENDED_WORK:
+                    case COMPLETED_DAY:
+                        dto.setCurrentWorkStatusColor("success");
+                        break;
+                    case LEFT_WITHOUT_PUNCH:
+                    case INCOMPLETE_SHIFT:
+                        dto.setCurrentWorkStatusColor("danger");
+                        break;
+                    default:
+                        dto.setCurrentWorkStatusColor("secondary");
+                }
+
+                int totalBreakMins = empStatus.getTotalBreakMinutes();
+                dto.setTotalBreakDuration(String.format("%02dh %02dm", totalBreakMins / 60, totalBreakMins % 60));
+
+                if (empStatus.getWorkStartTime() != null) {
+                    java.time.LocalDateTime endTime = empStatus.getWorkEndTime() != null ? empStatus.getWorkEndTime()
+                            : java.time.LocalDateTime.now();
+                    long activeMs = java.time.Duration.between(empStatus.getWorkStartTime(), endTime).toMillis()
+                            - (totalBreakMins * 60 * 1000L);
+
+                    // If currently on break, subtract the current break elapsed time too
+                    if (empStatus.getStatus() == root.cyb.mh.attendancesystem.model.WorkStatus.ON_BREAK
+                            && empStatus.getCurrentBreakStartTime() != null) {
+                        activeMs -= java.time.Duration
+                                .between(empStatus.getCurrentBreakStartTime(), java.time.LocalDateTime.now())
+                                .toMillis();
+                    }
+
+                    long activeMins = Math.max(0, activeMs / (60 * 1000L));
+                    dto.setActiveWorkDuration(String.format("%02dh %02dm", activeMins / 60, activeMins % 60));
+                } else {
+                    dto.setActiveWorkDuration("00h 00m");
+                }
+            } else {
+                dto.setCurrentWorkStatus("-");
+                dto.setCurrentWorkStatusColor("secondary");
+                dto.setActiveWorkDuration("00h 00m");
+                dto.setTotalBreakDuration("00h 00m");
+            }
+
             report.add(dto);
         }
         return report;

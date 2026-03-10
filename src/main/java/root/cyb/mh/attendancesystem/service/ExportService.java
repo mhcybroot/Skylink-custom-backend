@@ -29,7 +29,8 @@ public class ExportService {
             Sheet sheet = workbook.createSheet("Daily Report");
 
             Row headerRow = sheet.createRow(0);
-            String[] columns = { "Employee ID", "Name", "Department", "In Time", "Out Time", "Status" };
+            String[] columns = { "Employee ID", "Name", "Department", "In Time", "Out Time", "Status",
+                    "Activity Status", "Active Work", "Break Time" };
             for (int i = 0; i < columns.length; i++) {
                 Cell cell = headerRow.createCell(i);
                 cell.setCellValue(columns[i]);
@@ -49,6 +50,9 @@ public class ExportService {
                 row.createCell(3).setCellValue(dto.getInTime() != null ? dto.getInTime().toString() : "-");
                 row.createCell(4).setCellValue(dto.getOutTime() != null ? dto.getOutTime().toString() : "-");
                 row.createCell(5).setCellValue(dto.getStatus());
+                row.createCell(6).setCellValue(dto.getCurrentWorkStatus() != null ? dto.getCurrentWorkStatus() : "-");
+                row.createCell(7).setCellValue(dto.getActiveWorkDuration() != null ? dto.getActiveWorkDuration() : "-");
+                row.createCell(8).setCellValue(dto.getTotalBreakDuration() != null ? dto.getTotalBreakDuration() : "-");
             }
 
             for (int i = 0; i < columns.length; i++) {
@@ -64,7 +68,8 @@ public class ExportService {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream();
                 PrintWriter writer = new PrintWriter(out)) {
             CSVFormat format = CSVFormat.DEFAULT.builder()
-                    .setHeader("Employee ID", "Name", "Department", "In Time", "Out Time", "Status")
+                    .setHeader("Employee ID", "Name", "Department", "In Time", "Out Time", "Status", "Activity Status",
+                            "Active Work", "Break Time")
                     .build();
 
             try (CSVPrinter printer = new CSVPrinter(writer, format)) {
@@ -75,7 +80,10 @@ public class ExportService {
                             dto.getDepartmentName(),
                             dto.getInTime() != null ? dto.getInTime().toString() : "-",
                             dto.getOutTime() != null ? dto.getOutTime().toString() : "-",
-                            dto.getStatus());
+                            dto.getStatus(),
+                            dto.getCurrentWorkStatus() != null ? dto.getCurrentWorkStatus() : "-",
+                            dto.getActiveWorkDuration() != null ? dto.getActiveWorkDuration() : "-",
+                            dto.getTotalBreakDuration() != null ? dto.getTotalBreakDuration() : "-");
                 }
             }
             return out.toByteArray();

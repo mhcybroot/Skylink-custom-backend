@@ -40,11 +40,12 @@ public class PdfExportService {
 
             addHeader(document, "Daily Attendance Report", "Date: " + date, departmentName);
 
-            PdfPTable table = new PdfPTable(6); // Emp, Name, Dept, In, Out, Status
+            PdfPTable table = new PdfPTable(9); // Emp, Name, Dept, In, Out, Status, Activity, Active Work, Break
             table.setWidthPercentage(100);
-            table.setWidths(new float[] { 2, 4, 3, 2, 2, 3 });
+            table.setWidths(new float[] { 1.5f, 3.5f, 2.5f, 1.5f, 1.5f, 2f, 2.5f, 2f, 2f });
 
-            addTableHeader(table, "ID", "Name", "Department", "In Time", "Out Time", "Status");
+            addTableHeader(table, "ID", "Name", "Department", "In Time", "Out Time", "Status", "Activity",
+                    "Active Work", "Break Time");
 
             for (DailyAttendanceDto dto : report) {
                 addCell(table, dto.getEmployeeId());
@@ -53,6 +54,9 @@ public class PdfExportService {
                 addCell(table, dto.getInTime() != null ? dto.getInTime().toString() : "-");
                 addCell(table, dto.getOutTime() != null ? dto.getOutTime().toString() : "-");
                 addCell(table, dto.getStatus());
+                addCell(table, dto.getCurrentWorkStatus() != null ? dto.getCurrentWorkStatus() : "-");
+                addCell(table, dto.getActiveWorkDuration() != null ? dto.getActiveWorkDuration() : "-");
+                addCell(table, dto.getTotalBreakDuration() != null ? dto.getTotalBreakDuration() : "-");
             }
 
             document.add(table);
