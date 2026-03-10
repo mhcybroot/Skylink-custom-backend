@@ -1117,15 +1117,18 @@
                 const depts = {};
                 data.forEach(e => {
                     const dept = e.department || 'No Dept';
-                    if (!depts[dept]) depts[dept] = { present: 0, total: 0 };
-                    depts[dept].present++;
+                    if (!depts[dept]) depts[dept] = { working: 0, total: 0 };
                     depts[dept].total++;
+                    if (e.status === 'WORKING' || e.status === 'ENTERED_OFFICE') {
+                        depts[dept].working++;
+                    }
                 });
                 inner.innerHTML = Object.entries(depts).map(([name, info]) => {
-                    const pct = Math.round((info.present / info.total) * 100);
+                    const pct = info.total > 0 ? Math.round((info.working / info.total) * 100) : 0;
                     const r = 28, circ = 2 * Math.PI * r;
                     const offset = circ - (pct / 100) * circ;
                     const color = pct >= 80 ? '#22c55e' : pct >= 50 ? '#f59e0b' : '#ef4444';
+                    const label = `${info.working}/${info.total} working`;
                     return `<div class="d-flex flex-column align-items-center">
                         <svg width="70" height="70" style="transform:rotate(-90deg)">
                             <circle cx="35" cy="35" r="${r}" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="6"/>
@@ -1136,7 +1139,7 @@
                                 style="fill:white; font-size:13px; font-weight:bold; transform:rotate(90deg); transform-origin: 35px 35px;">${pct}%</text>
                         </svg>
                         <div class="tv-dept-ring-label">${name}</div>
-                        <div style="font-size:0.7rem; opacity:0.6; color:white;">${info.present} active</div>
+                        <div style="font-size:0.7rem; opacity:0.6; color:white;">${label}</div>
                     </div>`;
                 }).join('');
             }
