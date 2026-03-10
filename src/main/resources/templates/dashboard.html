@@ -551,33 +551,110 @@
                         white-space: nowrap;
                     }
 
-                    /* TV Full Screen Mode Styles */
+                    /* TV Full Screen Mode Styles - Premium "Command Center" Aesthetic */
+
+                    @keyframes tv-bg-pan {
+                        0% {
+                            background-position: 0% 50%;
+                        }
+
+                        50% {
+                            background-position: 100% 50%;
+                        }
+
+                        100% {
+                            background-position: 0% 50%;
+                        }
+                    }
+
+                    @keyframes tv-glow-pulse {
+                        0% {
+                            box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+                        }
+
+                        50% {
+                            box-shadow: 0 0 25px rgba(255, 255, 255, 0.4);
+                        }
+
+                        100% {
+                            box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+                        }
+                    }
+
+                    @keyframes tv-glass-shine {
+                        0% {
+                            transform: translateX(-150%) skewX(-15deg);
+                        }
+
+                        20% {
+                            transform: translateX(150%) skewX(-15deg);
+                        }
+
+                        100% {
+                            transform: translateX(150%) skewX(-15deg);
+                        }
+                    }
+
                     .tv-mode-active {
-                        background-color: #f8f9fa !important;
+                        background: linear-gradient(135deg, #0f172a, #16223b, #0a0f1c) !important;
+                        background-size: 200% 200% !important;
+                        animation: tv-bg-pan 15s ease infinite !important;
                         padding: 40px !important;
                         height: 100vh !important;
                         overflow-y: auto !important;
+                        color: #ffffff !important;
+                        font-family: 'Inter', -apple-system, sans-serif !important;
+                    }
+
+                    .tv-mode-active * {
+                        border-color: rgba(255, 255, 255, 0.1) !important;
                     }
 
                     .tv-mode-active #liveOpsHeader {
                         margin-bottom: 40px !important;
                         padding-bottom: 20px !important;
+                        border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
                     }
 
                     .tv-mode-active #liveOpsTitle {
                         font-size: 3rem !important;
+                        color: #ffffff !important;
+                        text-shadow: 0 0 15px rgba(255, 255, 255, 0.2) !important;
                     }
 
                     .tv-mode-active #liveOpsSubtitle {
                         font-size: 1.5rem !important;
+                        color: rgba(255, 255, 255, 0.6) !important;
                     }
 
                     .tv-mode-active #fullScreenBtn i {
                         font-size: 1.5rem !important;
+                        color: white !important;
                     }
 
                     .tv-mode-active .live-op-card {
-                        border-width: 2px !important;
+                        background: rgba(255, 255, 255, 0.03) !important;
+                        backdrop-filter: blur(12px) !important;
+                        -webkit-backdrop-filter: blur(12px) !important;
+                        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+                        border-top: 1px solid rgba(255, 255, 255, 0.15) !important;
+                        border-left-width: 5px !important;
+                        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3) !important;
+                        position: relative !important;
+                        overflow: hidden !important;
+                    }
+
+                    /* Shimmer sweep animation over the cards */
+                    .tv-mode-active .live-op-card::after {
+                        content: '';
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+                        animation: tv-glass-shine 8s infinite ease-in-out;
+                        pointer-events: none;
                     }
 
                     .tv-mode-active .live-op-card .tv-avatar-wrapper {
@@ -769,8 +846,8 @@
 
             function getStatusBadge(status) {
                 switch (status) {
-                    case 'WORKING': return '<span class="badge bg-success shadow-sm px-3 py-2"><i class="fas fa-briefcase me-1"></i> Working</span>';
-                    case 'ON_BREAK': return '<span class="badge bg-warning text-dark shadow-sm px-3 py-2"><i class="fas fa-coffee me-1"></i> On Break</span>';
+                    case 'WORKING': return '<span class="badge bg-success shadow-sm px-3 py-2 tv-glow-badge" style="transition: all 0.3s ease;"><i class="fas fa-briefcase me-1"></i> Working</span>';
+                    case 'ON_BREAK': return '<span class="badge bg-warning text-dark shadow-sm px-3 py-2 tv-glow-badge-warning" style="transition: all 0.3s ease;"><i class="fas fa-coffee me-1"></i> On Break</span>';
                     case 'LOGGED_IN': return '<span class="badge" style="background-color: #e0e0e0; color: #333; padding: 0.5rem 1rem;"><i class="fas fa-sign-in-alt me-1"></i> Logged In</span>';
                     case 'ENTERED_OFFICE': return '<span class="badge bg-primary shadow-sm px-3 py-2"><i class="fas fa-door-open me-1"></i> In Office</span>';
                     case 'ENDED_WORK': return '<span class="badge" style="background-color: #f8d7da; color: #842029; padding: 0.5rem 1rem;"><i class="fas fa-flag-checkered me-1"></i> Shift Ended</span>';
@@ -894,6 +971,45 @@
             };
 
             let autoScrollInterval = null;
+            let clockInterval = null;
+
+            function startDigitalClock() {
+                const titleEl = document.getElementById('liveOpsTitle');
+                const subEl = document.getElementById('liveOpsSubtitle');
+
+                if (!titleEl || !subEl) return;
+
+                // Save original text
+                if (!titleEl.dataset.original) {
+                    titleEl.dataset.original = titleEl.innerHTML;
+                    subEl.dataset.original = subEl.innerHTML;
+                }
+
+                subEl.innerHTML = '<span class="text-success fw-bold"><i class="fas fa-satellite-dish pulse-icon me-1"></i> SYSTEM HEALTH: OPTIMAL</span>';
+
+                clockInterval = setInterval(() => {
+                    const now = new Date();
+                    const timeString = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    titleEl.innerHTML = `<i class="fas fa-terminal text-success me-2 opacity-50"></i> SERVER TIME: <span class="text-white" style="font-variant-numeric: tabular-nums; letter-spacing: 2px;">${timeString}</span>`;
+                }, 1000);
+
+                // Trigger once immediately
+                const now = new Date();
+                titleEl.innerHTML = `<i class="fas fa-terminal text-success me-2 opacity-50"></i> SERVER TIME: <span class="text-white" style="font-variant-numeric: tabular-nums; letter-spacing: 2px;">${now.toLocaleTimeString('en-US', { hour12: false })}</span>`;
+            }
+
+            function stopDigitalClock() {
+                if (clockInterval) {
+                    clearInterval(clockInterval);
+                    clockInterval = null;
+                }
+                const titleEl = document.getElementById('liveOpsTitle');
+                const subEl = document.getElementById('liveOpsSubtitle');
+                if (titleEl && titleEl.dataset.original) {
+                    titleEl.innerHTML = titleEl.dataset.original;
+                    subEl.innerHTML = subEl.dataset.original;
+                }
+            }
 
             function startAutoScroll() {
                 const container = document.getElementById('liveOpsContainer');
@@ -937,6 +1053,7 @@
                         btnIcon.classList.remove('fa-expand');
                         btnIcon.classList.add('fa-compress');
                     }
+                    startDigitalClock();
                     // Start the smooth scroll panning
                     setTimeout(() => startAutoScroll(), 1000); // Wait 1s for layout shift to settle
                 } else {
@@ -945,6 +1062,7 @@
                         btnIcon.classList.remove('fa-compress');
                         btnIcon.classList.add('fa-expand');
                     }
+                    stopDigitalClock();
                     // Immediately halt the scroll sequence
                     stopAutoScroll();
                     container.scrollTop = 0; // Reset position
