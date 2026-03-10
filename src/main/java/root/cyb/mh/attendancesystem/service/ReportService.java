@@ -253,8 +253,14 @@ public class ReportService {
                     dto.setActiveWorkDuration("00h 00m");
                 }
             } else {
-                dto.setCurrentWorkStatus("-");
-                dto.setCurrentWorkStatusColor("secondary");
+                if ("PRESENT".equals(dto.getStatus()) || "LATE ENTRY".equals(dto.getStatus())
+                        || "EARLY LEAVE".equals(dto.getStatus()) || "LATE & EARLY LEAVE".equals(dto.getStatus())) {
+                    dto.setCurrentWorkStatus("ENTERED_OFFICE");
+                    dto.setCurrentWorkStatusColor("primary");
+                } else {
+                    dto.setCurrentWorkStatus("-");
+                    dto.setCurrentWorkStatusColor("secondary");
+                }
                 dto.setActiveWorkDuration("00h 00m");
                 dto.setTotalBreakDuration("00h 00m");
             }

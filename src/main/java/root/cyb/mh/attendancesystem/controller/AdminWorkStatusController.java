@@ -28,6 +28,9 @@ public class AdminWorkStatusController {
     private EmployeeDailyWorkStatusRepository workStatusRepository;
 
     @Autowired
+    private root.cyb.mh.attendancesystem.repository.AttendanceLogRepository attendanceLogRepository;
+
+    @Autowired
     private EmployeeRepository employeeRepository;
 
     @GetMapping("/realtime")
@@ -39,6 +42,13 @@ public class AdminWorkStatusController {
                 // Only todays records
                 .filter(s -> s.getDate().equals(today))
                 .collect(Collectors.toMap(EmployeeDailyWorkStatus::getEmployeeId, s -> s));
+
+        List<root.cyb.mh.attendancesystem.model.AttendanceLog> todayLogs = attendanceLogRepository.findAll().stream()
+                .filter(log -> log.getTimestamp().toLocalDate().equals(today))
+                .collect(Collectors.toList());
+        java.util.Set<String> employeesWithLogsToday = todayLogs.stream()
+                .map(root.cyb.mh.attendancesystem.model.AttendanceLog::getEmployeeId)
+                .collect(Collectors.toSet());
 
         return allEmployees.stream()
                 .filter(emp -> !emp.isGuest())
@@ -82,7 +92,11 @@ public class AdminWorkStatusController {
                         }
 
                     } else {
-                        dto.setStatus("NOT_ENTERED");
+                        if (employeesWithLogsToday.contains(emp.getId())) {
+                            dto.setStatus("ENTERED_OFFICE");
+                        } else {
+                            dto.setStatus("NOT_ENTERED");
+                        }
                         dto.setWorkDurationSecs(0);
                         dto.setBreakDurationSecs(0);
                     }
