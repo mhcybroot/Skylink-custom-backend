@@ -111,22 +111,10 @@ public class DataInitializer {
                     System.out.println("Failed to inject test work status data: " + e.getMessage());
                 }
             } else {
-                // Clean up any stale test data if app.testing is false (removes ALL entries for
-                // today)
-                try {
-                    java.time.LocalDate today = java.time.LocalDate.now();
-                    java.util.List<root.cyb.mh.attendancesystem.model.EmployeeDailyWorkStatus> staleTodayRecords = workStatusRepository
-                            .findAll().stream()
-                            .filter(s -> s.getDate().equals(today))
-                            .collect(java.util.stream.Collectors.toList());
-                    if (!staleTodayRecords.isEmpty()) {
-                        workStatusRepository.deleteAll(staleTodayRecords);
-                        System.out.println("Cleaned up " + staleTodayRecords.size()
-                                + " stale today WorkStatus records (app.testing=false).");
-                    }
-                } catch (Exception e) {
-                    System.out.println("Cleanup Error: " + e.getMessage());
-                }
+                // Testing is false, so we are in production.
+                // We should intentionally do nothing here to preserve today's active work
+                // records
+                // across application restarts.
             }
         };
     }
