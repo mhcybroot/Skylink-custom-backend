@@ -613,8 +613,9 @@
 
                     /* 4 items per row configuration for TV view */
                     .tv-mode-active #live-ops-grid>div {
-                        flex: 0 0 25% !important;
-                        max-width: 25% !important;
+                        flex: 0 0 calc(25% - 1rem) !important;
+                        max-width: calc(25% - 1rem) !important;
+                        margin: 0.5rem !important;
                     }
                 </style>
 
