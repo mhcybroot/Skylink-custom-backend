@@ -1068,14 +1068,18 @@
             }
 
             // Feature 4: Update KPI Bar
-            // Helper: parse Spring LocalDateTime which comes as [year,month,day,hour,min,sec] array or ISO string
+            // Helper: parse Spring LocalDateTime array [year,month,day,hour,min,sec] into {h, m} WITHOUT timezone conversion
+            // For Avg Clock-In we only need the raw hour/minute values
             function parseSpringDateTime(val) {
                 if (!val) return null;
                 if (Array.isArray(val)) {
-                    // [year, month, day, hour, minute, second, nano?]
-                    return new Date(val[0], val[1] - 1, val[2], val[3] || 0, val[4] || 0, val[5] || 0);
+                    // Return raw hours/minutes from the server's wall clock — no timezone conversion
+                    return { h: val[3] || 0, m: val[4] || 0 };
                 }
-                return new Date(val);
+                // ISO string fallback — parse and extract local hours
+                const d = new Date(val);
+                if (isNaN(d)) return null;
+                return { h: d.getHours(), m: d.getMinutes() };
             }
 
             function updateKpiBar(data) {
@@ -1087,11 +1091,11 @@
                 // Only sum employees who have actually started work
                 const totalSecs = active.reduce((sum, e) => sum + (e.workDurationSecs || 0), 0);
                 const totalHrs = (totalSecs / 3600).toFixed(1);
-                // Avg clock-in from workStartTime — parse Spring array format
+                // Avg clock-in: extract raw h/m from Spring array — no timezone needed
                 const startTimes = active
                     .map(e => parseSpringDateTime(e.workStartTime))
-                    .filter(t => t !== null && !isNaN(t))
-                    .map(t => t.getHours() * 60 + t.getMinutes());
+                    .filter(t => t !== null)
+                    .map(t => t.h * 60 + t.m);
                 let avgIn = '--';
                 if (startTimes.length > 0) {
                     const avgMins = Math.round(startTimes.reduce((a, b) => a + b, 0) / startTimes.length);
@@ -1312,15 +1316,24 @@
 
                 subEl.innerHTML = '<span class="text-success fw-bold"><i class="fas fa-satellite-dish pulse-icon me-1"></i> SYSTEM HEALTH: OPTIMAL</span>';
 
-                clockInterval = setInterval(() => {
-                    const now = new Date();
-                    const timeString = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
-                    titleEl.innerHTML = `<i class="fas fa-terminal text-success me-2 opacity-50"></i> SERVER TIME: <span class="text-white" style="font-variant-numeric: tabular-nums; letter-spacing: 2px;">${timeString}</span>`;
-                }, 1000);
+                function fetchAndDisplayTime() {
+                    fetch('/api/time')
+                        .then(r => r.json())
+                        .then(data => {
+                            if (titleEl) {
+                                titleEl.innerHTML = `<i class="fas fa-terminal text-success me-2 opacity-50"></i> SERVER TIME: <span class="text-white" style="font-variant-numeric: tabular-nums; letter-spacing: 2px;">${data.time}</span>`;
+                            }
+                        })
+                        .catch(() => {
+                            // Fallback to browser time if fetch fails
+                            const t = new Date().toLocaleTimeString('en-US', { hour12: false });
+                            if (titleEl) titleEl.innerHTML = `<i class="fas fa-terminal text-success me-2 opacity-50"></i> SERVER TIME: <span class="text-white" style="font-variant-numeric: tabular-nums; letter-spacing: 2px;">${t}</span>`;
+                        });
+                }
 
-                // Trigger once immediately
-                const now = new Date();
-                titleEl.innerHTML = `<i class="fas fa-terminal text-success me-2 opacity-50"></i> SERVER TIME: <span class="text-white" style="font-variant-numeric: tabular-nums; letter-spacing: 2px;">${now.toLocaleTimeString('en-US', { hour12: false })}</span>`;
+                // Fetch immediately then every second
+                fetchAndDisplayTime();
+                clockInterval = setInterval(fetchAndDisplayTime, 1000);
             }
 
             function stopDigitalClock() {
