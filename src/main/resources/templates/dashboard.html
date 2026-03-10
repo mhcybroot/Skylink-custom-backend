@@ -892,6 +892,40 @@
                 }
             };
 
+            let autoScrollInterval = null;
+
+            function startAutoScroll() {
+                const container = document.getElementById('liveOpsContainer');
+                if (!container) return;
+
+                // Stop any existing interval just in case
+                stopAutoScroll();
+
+                let scrollStep = 1;
+                autoScrollInterval = setInterval(() => {
+                    // Check if we've reached the bottom
+                    if (container.scrollTop + container.clientHeight >= container.scrollHeight - 2) {
+                        // Pause at the bottom briefly, then snap to top
+                        clearInterval(autoScrollInterval);
+                        setTimeout(() => {
+                            container.scrollTop = 0;
+                            // Restart the scroll loop
+                            startAutoScroll();
+                        }, 3000); // 3-second pause at the bottom
+                    } else {
+                        // Keep slowly panning down
+                        container.scrollTop += scrollStep;
+                    }
+                }, 50); // 50ms provides a smooth 20fps glide
+            }
+
+            function stopAutoScroll() {
+                if (autoScrollInterval) {
+                    clearInterval(autoScrollInterval);
+                    autoScrollInterval = null;
+                }
+            }
+
             document.addEventListener('fullscreenchange', (event) => {
                 const container = document.getElementById('liveOpsContainer');
                 const btnIcon = document.querySelector('#fullScreenBtn i');
@@ -902,12 +936,17 @@
                         btnIcon.classList.remove('fa-expand');
                         btnIcon.classList.add('fa-compress');
                     }
+                    // Start the smooth scroll panning
+                    setTimeout(() => startAutoScroll(), 1000); // Wait 1s for layout shift to settle
                 } else {
                     container.classList.remove('tv-mode-active');
                     if (btnIcon) {
                         btnIcon.classList.remove('fa-compress');
                         btnIcon.classList.add('fa-expand');
                     }
+                    // Immediately halt the scroll sequence
+                    stopAutoScroll();
+                    container.scrollTop = 0; // Reset position
                 }
             });
         });
