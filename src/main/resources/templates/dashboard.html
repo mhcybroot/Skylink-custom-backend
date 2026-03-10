@@ -704,11 +704,14 @@
                 }
             }
 
-            function formatMinsToHHMM(totalMins) {
-                if (totalMins <= 0) return "00<span style='font-size:0.7em; color:gray;'>h</span> 00<span style='font-size:0.7em; color:gray;'>m</span>";
-                const h = Math.floor(totalMins / 60);
-                const m = totalMins % 60;
-                return (h < 10 ? '0' + h : h) + "<span style='font-size:0.7em; color:gray;'>h</span> " + (m < 10 ? '0' + m : m) + "<span style='font-size:0.7em; color:gray;'>m</span>";
+            function formatSecsToHHMMSS(totalSecs) {
+                if (totalSecs <= 0) return "00<span style='font-size:0.7em; color:gray;'>h</span> 00<span style='font-size:0.7em; color:gray;'>m</span> 00<span style='font-size:0.7em; color:gray;'>s</span>";
+                const h = Math.floor(totalSecs / 3600);
+                const m = Math.floor((totalSecs % 3600) / 60);
+                const s = totalSecs % 60;
+                return (h < 10 ? '0' + h : h) + "<span style='font-size:0.7em; color:gray;'>h</span> " +
+                    (m < 10 ? '0' + m : m) + "<span style='font-size:0.7em; color:gray;'>m</span> " +
+                    (s < 10 ? '0' + s : s) + "<span style='font-size:0.7em; color:gray;'>s</span>";
             }
 
             function loadLiveOperations() {
@@ -768,14 +771,14 @@
                                                 <div class="text-uppercase text-muted fw-bold mb-1" style="font-size: 0.65rem; letter-spacing: 0.5px;">Active Work</div>
                                                 <div class="time-pill text-success fs-5">
                                                     <i class="fas fa-clock me-1 text-success opacity-50"></i>
-                                                    ${formatMinsToHHMM(emp.workDurationMins)}
+                                                    ${formatSecsToHHMMSS(emp.workDurationSecs)}
                                                 </div>
                                             </div>
                                             <div class="text-center">
                                                 <div class="text-uppercase text-muted fw-bold mb-1" style="font-size: 0.65rem; letter-spacing: 0.5px;">Break Time</div>
                                                 <div class="time-pill text-warning text-dark fs-5">
                                                     <i class="fas fa-mug-hot me-1 text-warning opacity-75 text-dark"></i>
-                                                    ${formatMinsToHHMM(emp.breakDurationMins)}
+                                                    ${formatSecsToHHMMSS(emp.breakDurationSecs)}
                                                 </div>
                                             </div>
                                         </div>

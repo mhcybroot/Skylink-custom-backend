@@ -158,7 +158,7 @@
                                 th:data-status="${dailyStatus.status.name()}"
                                 th:data-work-start="${dailyStatus.workStartTime != null ? dailyStatus.workStartTime : ''}"
                                 th:data-break-start="${dailyStatus.currentBreakStartTime != null ? dailyStatus.currentBreakStartTime : ''}"
-                                th:data-total-break-mins="${dailyStatus.totalBreakMinutes}">
+                                th:data-total-break-secs="${dailyStatus.totalBreakSeconds}">
                                 --:--:--
                             </div>
 
@@ -186,7 +186,7 @@
                     const status = display.getAttribute('data-status');
                     const workStartStr = display.getAttribute('data-work-start');
                     const breakStartStr = display.getAttribute('data-break-start');
-                    const totalBreakMins = parseInt(display.getAttribute('data-total-break-mins') || "0");
+                    const totalBreakSecs = parseInt(display.getAttribute('data-total-break-secs') || "0");
 
                     const progressBar = document.getElementById('countdown-progress');
                     const subtext = document.getElementById('countdown-subtext');
@@ -229,7 +229,7 @@
                             let breakElapsed = now - breakStart;
 
                             // Add previously accumulated break time
-                            let previousBreakMs = totalBreakMins * 60 * 1000;
+                            let previousBreakMs = totalBreakSecs * 1000;
                             let totalBreakElapsed = breakElapsed + previousBreakMs;
 
                             display.textContent = formatTime(totalBreakElapsed);
@@ -247,7 +247,7 @@
 
                             // Target is 8 hours (8 * 60 * 60 * 1000 ms) of ACTIVE working time.
                             const eightHoursMs = 8 * 60 * 60 * 1000;
-                            const breakMs = totalBreakMins * 60 * 1000;
+                            const breakMs = totalBreakSecs * 1000;
 
                             // Active working time so far = Elapsed wall clock time MINUS total break time
                             let activeMs = (now - workStart) - breakMs;

@@ -61,11 +61,12 @@ public class AdminWorkStatusController {
                         LocalDateTime now = LocalDateTime.now();
 
                         // Accumulate current break if they are presently on break
-                        int liveTotalBreak = status.getTotalBreakMinutes();
+                        int liveTotalBreakSecs = status.getTotalBreakSeconds();
                         if (status.getStatus() == WorkStatus.ON_BREAK && status.getCurrentBreakStartTime() != null) {
-                            liveTotalBreak += (int) ChronoUnit.MINUTES.between(status.getCurrentBreakStartTime(), now);
+                            liveTotalBreakSecs += (int) ChronoUnit.SECONDS.between(status.getCurrentBreakStartTime(),
+                                    now);
                         }
-                        dto.setBreakDurationMins(liveTotalBreak);
+                        dto.setBreakDurationSecs(liveTotalBreakSecs);
 
                         // Accumulate work time
                         if (status.getWorkStartTime() != null) {
@@ -73,17 +74,17 @@ public class AdminWorkStatusController {
                             if (status.getWorkEndTime() != null) {
                                 endPoint = status.getWorkEndTime();
                             }
-                            int totalLiveMins = (int) ChronoUnit.MINUTES.between(status.getWorkStartTime(), endPoint);
-                            int actualWorkMins = Math.max(0, totalLiveMins - liveTotalBreak);
-                            dto.setWorkDurationMins(actualWorkMins);
+                            int totalLiveSecs = (int) ChronoUnit.SECONDS.between(status.getWorkStartTime(), endPoint);
+                            int actualWorkSecs = Math.max(0, totalLiveSecs - liveTotalBreakSecs);
+                            dto.setWorkDurationSecs(actualWorkSecs);
                         } else {
-                            dto.setWorkDurationMins(0);
+                            dto.setWorkDurationSecs(0);
                         }
 
                     } else {
                         dto.setStatus("NOT_ENTERED");
-                        dto.setWorkDurationMins(0);
-                        dto.setBreakDurationMins(0);
+                        dto.setWorkDurationSecs(0);
+                        dto.setBreakDurationSecs(0);
                     }
 
                     return dto;
@@ -99,8 +100,10 @@ public class AdminWorkStatusController {
 
         if (status != null && (status.getStatus() == WorkStatus.WORKING || status.getStatus() == WorkStatus.ON_BREAK)) {
             if (status.getStatus() == WorkStatus.ON_BREAK && status.getCurrentBreakStartTime() != null) {
-                long breakMins = ChronoUnit.MINUTES.between(status.getCurrentBreakStartTime(), LocalDateTime.now());
-                status.setTotalBreakMinutes(status.getTotalBreakMinutes() + (int) breakMins);
+                long breakSecs = ChronoUnit.SECONDS.between(status.getCurrentBreakStartTime(), LocalDateTime.now());
+                int newTotalSecs = status.getTotalBreakSeconds() + (int) breakSecs;
+                status.setTotalBreakSeconds(newTotalSecs);
+                status.setTotalBreakMinutes(newTotalSecs / 60);
                 status.setCurrentBreakStartTime(null);
             }
             status.setStatus(WorkStatus.ENDED_WORK);
@@ -119,8 +122,8 @@ public class AdminWorkStatusController {
         private String department;
         private String photoUrl;
         private String status;
-        private int workDurationMins;
-        private int breakDurationMins;
+        private int workDurationSecs;
+        private int breakDurationSecs;
 
         // Getters and Setters
         public String getEmployeeId() {
@@ -163,20 +166,20 @@ public class AdminWorkStatusController {
             this.status = status;
         }
 
-        public int getWorkDurationMins() {
-            return workDurationMins;
+        public int getWorkDurationSecs() {
+            return workDurationSecs;
         }
 
-        public void setWorkDurationMins(int workDurationMins) {
-            this.workDurationMins = workDurationMins;
+        public void setWorkDurationSecs(int workDurationSecs) {
+            this.workDurationSecs = workDurationSecs;
         }
 
-        public int getBreakDurationMins() {
-            return breakDurationMins;
+        public int getBreakDurationSecs() {
+            return breakDurationSecs;
         }
 
-        public void setBreakDurationMins(int breakDurationMins) {
-            this.breakDurationMins = breakDurationMins;
+        public void setBreakDurationSecs(int breakDurationSecs) {
+            this.breakDurationSecs = breakDurationSecs;
         }
     }
 }

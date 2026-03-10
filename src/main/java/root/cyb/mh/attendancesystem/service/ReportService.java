@@ -229,14 +229,15 @@ public class ReportService {
                         dto.setCurrentWorkStatusColor("secondary");
                 }
 
-                int totalBreakMins = empStatus.getTotalBreakMinutes();
-                dto.setTotalBreakDuration(String.format("%02dh %02dm", totalBreakMins / 60, totalBreakMins % 60));
+                int totalBreakSecs = empStatus.getTotalBreakSeconds();
+                dto.setTotalBreakDuration(
+                        String.format("%02dh %02dm", totalBreakSecs / 3600, (totalBreakSecs % 3600) / 60));
 
                 if (empStatus.getWorkStartTime() != null) {
                     java.time.LocalDateTime endTime = empStatus.getWorkEndTime() != null ? empStatus.getWorkEndTime()
                             : java.time.LocalDateTime.now();
                     long activeMs = java.time.Duration.between(empStatus.getWorkStartTime(), endTime).toMillis()
-                            - (totalBreakMins * 60 * 1000L);
+                            - (totalBreakSecs * 1000L);
 
                     // If currently on break, subtract the current break elapsed time too
                     if (empStatus.getStatus() == root.cyb.mh.attendancesystem.model.WorkStatus.ON_BREAK

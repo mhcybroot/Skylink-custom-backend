@@ -27,6 +27,16 @@ public class EmployeeDailyWorkStatus {
 
     private int totalBreakMinutes = 0;
 
+    @Column(columnDefinition = "integer default 0")
+    private int totalBreakSeconds = 0;
+
+    public int getTotalBreakSeconds() {
+        if (this.totalBreakSeconds == 0 && this.totalBreakMinutes > 0) {
+            return this.totalBreakMinutes * 60; // Fallback for existing migrated records
+        }
+        return this.totalBreakSeconds;
+    }
+
     public EmployeeDailyWorkStatus(String employeeId, LocalDate date) {
         this.employeeId = employeeId;
         this.date = date;

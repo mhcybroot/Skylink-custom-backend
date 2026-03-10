@@ -67,8 +67,10 @@ public class WorkStatusController {
         EmployeeDailyWorkStatus status = statusRepository.findByEmployeeIdAndDate(employeeId, today).orElse(null);
 
         if (status != null && status.getStatus() == WorkStatus.ON_BREAK) {
-            long breakMins = ChronoUnit.MINUTES.between(status.getCurrentBreakStartTime(), LocalDateTime.now());
-            status.setTotalBreakMinutes(status.getTotalBreakMinutes() + (int) breakMins);
+            long breakSecs = ChronoUnit.SECONDS.between(status.getCurrentBreakStartTime(), LocalDateTime.now());
+            int newTotalSecs = status.getTotalBreakSeconds() + (int) breakSecs;
+            status.setTotalBreakSeconds(newTotalSecs);
+            status.setTotalBreakMinutes(newTotalSecs / 60);
             status.setCurrentBreakStartTime(null);
             status.setStatus(WorkStatus.WORKING);
             statusRepository.save(status);
@@ -89,8 +91,10 @@ public class WorkStatusController {
         if (status != null && (status.getStatus() == WorkStatus.WORKING || status.getStatus() == WorkStatus.ON_BREAK)) {
             // If they were on break while ending work, silently add the break time
             if (status.getStatus() == WorkStatus.ON_BREAK && status.getCurrentBreakStartTime() != null) {
-                long breakMins = ChronoUnit.MINUTES.between(status.getCurrentBreakStartTime(), LocalDateTime.now());
-                status.setTotalBreakMinutes(status.getTotalBreakMinutes() + (int) breakMins);
+                long breakSecs = ChronoUnit.SECONDS.between(status.getCurrentBreakStartTime(), LocalDateTime.now());
+                int newTotalSecs = status.getTotalBreakSeconds() + (int) breakSecs;
+                status.setTotalBreakSeconds(newTotalSecs);
+                status.setTotalBreakMinutes(newTotalSecs / 60);
                 status.setCurrentBreakStartTime(null);
             }
             status.setStatus(WorkStatus.ENDED_WORK);
