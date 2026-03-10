@@ -119,6 +119,8 @@
                                                 <th>Out Time</th>
                                                 <th>Late By</th>
                                                 <th>Early By</th>
+                                                <th>Active Work</th>
+                                                <th>Break Time</th>
                                                 <th>Status</th>
                                             </tr>
                                         </thead>
@@ -140,6 +142,10 @@
                                                         class="text-info fw-bold"></span>
                                                     <span th:if="${day.earlyLeaveDurationMinutes == 0}">-</span>
                                                 </td>
+                                                <td><span class="fw-bold text-dark"
+                                                        th:text="${day.activeWorkDuration}"></span></td>
+                                                <td><span class="text-warning"
+                                                        th:text="'☕ ' + ${day.totalBreakDuration}"></span></td>
                                                 <td>
                                                     <span class="badge" th:classappend="${'bg-' + day.statusColor}"
                                                         th:text="${day.status}">PRESENT</span>
@@ -148,7 +154,7 @@
                                         </tbody>
                                         <tfoot class="table-group-divider">
                                             <tr>
-                                                <td colspan="7">
+                                                <td colspan="9">
                                                     <div class="d-flex justify-content-around fw-bold small">
                                                         <span class="text-success">Present: <span
                                                                 th:text="${monthReport.totalPresent}">20</span></span>
@@ -160,6 +166,12 @@
                                                                 th:text="${monthReport.paidLeavesCount}">0</span></span>
                                                         <span class="text-danger">Unpaid Lv: <span
                                                                 th:text="${monthReport.unpaidLeavesCount}">0</span></span>
+                                                        <span
+                                                            class="text-dark border-start ps-3 border-2 border-dark">Active
+                                                            Work: <span
+                                                                th:text="${monthReport.totalActiveDuration}"></span></span>
+                                                        <span class="text-warning">Break Time: <span
+                                                                th:text="${monthReport.totalBreakDuration}"></span></span>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -184,6 +196,8 @@
                                         <th>Out Time</th>
                                         <th>Late By</th>
                                         <th>Early By</th>
+                                        <th>Active Work</th>
+                                        <th>Break Time</th>
                                         <th>Status</th>
                                     </tr>
                                 </thead>
@@ -205,6 +219,10 @@
                                                 class="text-info fw-bold"></span>
                                             <span th:if="${day.earlyLeaveDurationMinutes == 0}">-</span>
                                         </td>
+                                        <td><span class="fw-bold text-dark" th:text="${day.activeWorkDuration}"></span>
+                                        </td>
+                                        <td><span class="text-warning"
+                                                th:text="'☕ ' + ${day.totalBreakDuration}"></span></td>
                                         <td>
                                             <span class="badge" th:classappend="${'bg-' + day.statusColor}"
                                                 th:text="${day.status}">PRESENT</span>
@@ -213,7 +231,7 @@
                                 </tbody>
                                 <tfoot class="table-group-divider">
                                     <tr>
-                                        <td colspan="7">
+                                        <td colspan="9">
                                             <div class="d-flex justify-content-around fw-bold">
                                                 <span class="text-success">Total Present: <span
                                                         th:text="${report.totalPresent}">20</span></span>
@@ -223,6 +241,10 @@
                                                         th:text="${report.totalLates}">3</span></span>
                                                 <span class="text-info">Total Early Leaves: <span
                                                         th:text="${report.totalEarlyLeaves}">1</span></span>
+                                                <span class="text-dark border-start ps-3 border-2 border-dark">Active
+                                                    Work: <span th:text="${report.totalActiveDuration}"></span></span>
+                                                <span class="text-warning">Break Time: <span
+                                                        th:text="${report.totalBreakDuration}"></span></span>
                                             </div>
                                         </td>
                                     </tr>

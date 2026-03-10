@@ -691,6 +691,10 @@ public class ReportService {
             List<AttendanceLog> monthLogs = attendanceLogRepository.findByTimestampBetween(
                     startOfMonth.atStartOfDay(), endOfMonth.atTime(LocalTime.MAX));
 
+            // Fetch Work Statuses for THIS month strictly to accumulate work hours
+            List<root.cyb.mh.attendancesystem.model.EmployeeDailyWorkStatus> monthStatuses = employeeDailyWorkStatusRepository
+                    .findByDateBetween(startOfMonth, endOfMonth);
+
             for (Employee emp : allFilteredEmployees) {
                 root.cyb.mh.attendancesystem.dto.MonthlySummaryDto dto = new root.cyb.mh.attendancesystem.dto.MonthlySummaryDto();
                 dto.setEmployeeId(emp.getId());
@@ -701,6 +705,8 @@ public class ReportService {
 
                 int present = 0, absent = 0, late = 0, early = 0, leave = 0;
                 int paidLeave = 0, unpaidLeave = 0;
+                long totalMonthActiveMs = 0;
+                long totalMonthBreakSecs = 0;
 
                 // Quota Calc for this month context
                 int effectiveQuota = emp.getEffectiveQuota(defaultQuota);
@@ -751,11 +757,44 @@ public class ReportService {
                             if (outTime.isBefore(earlyThreshold))
                                 early++;
                         }
-                    } else {
                         if (!isWeekend && !isPublicHoliday)
                             absent++;
                     }
+
+                    // --- Accumulate Precise Work/Break Times for this specific Date ---
+                    root.cyb.mh.attendancesystem.model.EmployeeDailyWorkStatus empStatus = monthStatuses.stream()
+                            .filter(s -> s.getEmployeeId().equals(emp.getId()) && s.getDate().equals(date))
+                            .findFirst().orElse(null);
+
+                    if (empStatus != null) {
+                        int breakSecs = empStatus.getTotalBreakSeconds();
+                        totalMonthBreakSecs += breakSecs;
+
+                        if (empStatus.getWorkStartTime() != null) {
+                            java.time.LocalDateTime endTime = empStatus.getWorkEndTime() != null
+                                    ? empStatus.getWorkEndTime()
+                                    : java.time.LocalDateTime.now();
+
+                            long activeMs = java.time.Duration.between(empStatus.getWorkStartTime(), endTime).toMillis()
+                                    - (breakSecs * 1000L);
+
+                            if (empStatus.getStatus() == root.cyb.mh.attendancesystem.model.WorkStatus.ON_BREAK
+                                    && empStatus.getCurrentBreakStartTime() != null) {
+                                activeMs -= java.time.Duration
+                                        .between(empStatus.getCurrentBreakStartTime(), java.time.LocalDateTime.now())
+                                        .toMillis();
+                            }
+                            totalMonthActiveMs += Math.max(0, activeMs);
+                        }
+                    }
                 }
+
+                // Format the accumulated monthly totals into strings
+                long totalActiveMins = totalMonthActiveMs / (60 * 1000L);
+                dto.setTotalActiveDuration(String.format("%02dh %02dm", totalActiveMins / 60, totalActiveMins % 60));
+                dto.setTotalBreakDuration(
+                        String.format("%02dh %02dm", totalMonthBreakSecs / 3600, (totalMonthBreakSecs % 3600) / 60));
+
                 dto.setPresentCount(present);
                 dto.setAbsentCount(absent);
                 dto.setLateCount(late);
@@ -814,6 +853,13 @@ public class ReportService {
         List<root.cyb.mh.attendancesystem.dto.EmployeeWeeklyDetailDto.DailyDetail> details = new ArrayList<>();
         int present = 0, absent = 0, late = 0, early = 0, leaves = 0;
         int paidLeaves = 0, unpaidLeaves = 0;
+
+        long totalMonthActiveMs = 0;
+        long totalMonthBreakSecs = 0;
+
+        // Fetch Work Statuses for THIS month strictly to accumulate work hours
+        List<root.cyb.mh.attendancesystem.model.EmployeeDailyWorkStatus> monthStatuses = employeeDailyWorkStatusRepository
+                .findByDateBetween(startOfMonth, endOfMonth);
 
         // Calculate Remaining Quota
         int effectiveQuota = emp.getEffectiveQuota(defaultQuota);
@@ -914,10 +960,53 @@ public class ReportService {
                 }
             }
 
+            // --- Integrate Live Work Status for the specific date ---
+            root.cyb.mh.attendancesystem.model.EmployeeDailyWorkStatus empStatus = monthStatuses.stream()
+                    .filter(s -> s.getEmployeeId().equals(emp.getId()) && s.getDate().equals(date))
+                    .findFirst().orElse(null);
+
+            if (empStatus != null) {
+                int totalBreakSecs = empStatus.getTotalBreakSeconds();
+                daily.setTotalBreakDuration(
+                        String.format("%02dh %02dm", totalBreakSecs / 3600, (totalBreakSecs % 3600) / 60));
+
+                totalMonthBreakSecs += totalBreakSecs;
+
+                if (empStatus.getWorkStartTime() != null) {
+                    java.time.LocalDateTime endTime = empStatus.getWorkEndTime() != null
+                            ? empStatus.getWorkEndTime()
+                            : java.time.LocalDateTime.now();
+                    long activeMs = java.time.Duration.between(empStatus.getWorkStartTime(), endTime).toMillis()
+                            - (totalBreakSecs * 1000L);
+
+                    if (empStatus.getStatus() == root.cyb.mh.attendancesystem.model.WorkStatus.ON_BREAK
+                            && empStatus.getCurrentBreakStartTime() != null) {
+                        activeMs -= java.time.Duration
+                                .between(empStatus.getCurrentBreakStartTime(), java.time.LocalDateTime.now())
+                                .toMillis();
+                    }
+
+                    long activeMins = Math.max(0, activeMs / (60 * 1000L));
+                    daily.setActiveWorkDuration(String.format("%02dh %02dm", activeMins / 60, activeMins % 60));
+
+                    totalMonthActiveMs += Math.max(0, activeMs);
+                } else {
+                    daily.setActiveWorkDuration("00h 00m");
+                }
+            } else {
+                daily.setActiveWorkDuration("00h 00m");
+                daily.setTotalBreakDuration("00h 00m");
+            }
+
             daily.setStatus(status);
             daily.setStatusColor(color);
             details.add(daily);
         }
+
+        long totalActiveMins = totalMonthActiveMs / (60 * 1000L);
+        dto.setTotalActiveDuration(String.format("%02dh %02dm", totalActiveMins / 60, totalActiveMins % 60));
+        dto.setTotalBreakDuration(
+                String.format("%02dh %02dm", totalMonthBreakSecs / 3600, (totalMonthBreakSecs % 3600) / 60));
 
         dto.setDailyDetails(details);
         dto.setTotalPresent(present);

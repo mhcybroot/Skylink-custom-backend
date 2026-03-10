@@ -22,6 +22,9 @@ public class EmployeeMonthlyDetailDto {
                                  // is better. Let's use same name style.
     private int unpaidLeavesCount;
 
+    private String totalActiveDuration = "00h 00m";
+    private String totalBreakDuration = "00h 00m";
+
     // Getters and Setters
     public String getEmployeeName() {
         return employeeName;
@@ -126,5 +129,21 @@ public class EmployeeMonthlyDetailDto {
 
     public void setUnpaidLeavesCount(int unpaidLeavesCount) {
         this.unpaidLeavesCount = unpaidLeavesCount;
+    }
+
+    public String getTotalActiveDuration() {
+        return totalActiveDuration;
+    }
+
+    public void setTotalActiveDuration(String totalActiveDuration) {
+        this.totalActiveDuration = totalActiveDuration;
+    }
+
+    public String getTotalBreakDuration() {
+        return totalBreakDuration;
+    }
+
+    public void setTotalBreakDuration(String totalBreakDuration) {
+        this.totalBreakDuration = totalBreakDuration;
     }
 }

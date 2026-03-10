@@ -168,18 +168,17 @@ public class PdfExportService {
                     "Period: " + monthNames + " " + year,
                     departmentName);
 
-            // Updated width for 11 columns (Added Period)
-            // ID, Name, Dept, Period, Pres, Abs, Late, Early, Total LV, Paid LV, Unpaid LV
-            PdfPTable table = new PdfPTable(11);
+            // Updated width for 13 columns (Added Period, Active, Break)
+            PdfPTable table = new PdfPTable(13);
             table.setWidthPercentage(100);
 
             // Adjust widths:
             // ID(1.5), Name(3), Dept(2), Period(1.5), P(1), A(1), L(1), E(1), TL(1), PL(1),
-            // UL(1) -> Sum ~15
-            table.setWidths(new float[] { 1.5f, 3f, 2f, 1.5f, 1f, 1f, 1f, 1f, 1f, 1f, 1f });
+            // UL(1), AW(1.5), BT(1.5)
+            table.setWidths(new float[] { 1.5f, 3f, 2f, 1.5f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1.5f, 1.5f });
 
             addTableHeader(table, "ID", "Name", "Dept", "Period", "Pres", "Abs", "Late", "Early", "Total LV", "Paid LV",
-                    "Unpaid LV");
+                    "Unpaid LV", "Active Work", "Break Time");
 
             for (MonthlySummaryDto dto : report) {
                 addCell(table, dto.getEmployeeId());
@@ -198,6 +197,8 @@ public class PdfExportService {
                 addCell(table, String.valueOf(dto.getLeaveCount()));
                 addCell(table, String.valueOf(dto.getPaidLeaveCount()));
                 addCell(table, String.valueOf(dto.getUnpaidLeaveCount()));
+                addCell(table, dto.getTotalActiveDuration());
+                addCell(table, dto.getTotalBreakDuration());
             }
 
             document.add(table);

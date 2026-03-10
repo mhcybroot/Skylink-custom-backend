@@ -227,7 +227,7 @@ public class ExportService {
             Row headerRow = sheet.createRow(0);
             String[] columns = { "ID", "Name", "Department", "Period", "Present", "Absent", "Late", "Early",
                     "Total Leave",
-                    "Paid Leave", "Unpaid Leave" };
+                    "Paid Leave", "Unpaid Leave", "Active Work", "Break Time" };
 
             CellStyle boldStyle = workbook.createCellStyle();
             Font font = workbook.createFont();
@@ -258,6 +258,8 @@ public class ExportService {
                 row.createCell(col++).setCellValue(dto.getLeaveCount());
                 row.createCell(col++).setCellValue(dto.getPaidLeaveCount());
                 row.createCell(col++).setCellValue(dto.getUnpaidLeaveCount());
+                row.createCell(col++).setCellValue(dto.getTotalActiveDuration());
+                row.createCell(col++).setCellValue(dto.getTotalBreakDuration());
             }
 
             for (int i = 0; i < columns.length; i++)
@@ -274,7 +276,7 @@ public class ExportService {
             CSVFormat format = CSVFormat.DEFAULT.builder()
                     .setHeader("ID", "Name", "Department", "Period", "Present", "Absent", "Late", "Early",
                             "Total Leave",
-                            "Paid Leave", "Unpaid Leave")
+                            "Paid Leave", "Unpaid Leave", "Active Work", "Break Time")
                     .build();
 
             try (CSVPrinter printer = new CSVPrinter(writer, format)) {
@@ -291,7 +293,9 @@ public class ExportService {
                             dto.getEarlyLeaveCount(),
                             dto.getLeaveCount(),
                             dto.getPaidLeaveCount(),
-                            dto.getUnpaidLeaveCount());
+                            dto.getUnpaidLeaveCount(),
+                            dto.getTotalActiveDuration(),
+                            dto.getTotalBreakDuration());
                 }
             }
             return out.toByteArray();

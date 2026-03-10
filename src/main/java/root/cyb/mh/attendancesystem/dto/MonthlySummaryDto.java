@@ -13,6 +13,9 @@ public class MonthlySummaryDto {
     private int paidLeaveCount;
     private int unpaidLeaveCount;
 
+    private String totalActiveDuration = "00h 00m";
+    private String totalBreakDuration = "00h 00m";
+
     public String getEmployeeId() {
         return employeeId;
     }
@@ -91,6 +94,22 @@ public class MonthlySummaryDto {
 
     public void setUnpaidLeaveCount(int unpaidLeaveCount) {
         this.unpaidLeaveCount = unpaidLeaveCount;
+    }
+
+    public String getTotalActiveDuration() {
+        return totalActiveDuration;
+    }
+
+    public void setTotalActiveDuration(String totalActiveDuration) {
+        this.totalActiveDuration = totalActiveDuration;
+    }
+
+    public String getTotalBreakDuration() {
+        return totalBreakDuration;
+    }
+
+    public void setTotalBreakDuration(String totalBreakDuration) {
+        this.totalBreakDuration = totalBreakDuration;
     }
 
     private int month;

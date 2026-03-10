@@ -187,6 +187,8 @@
                                                     th:text="${sortDir == 'asc' ? '▲' : '▼'}"></span>
                                             </a>
                                         </th>
+                                        <th class="text-center">Active Work</th>
+                                        <th class="text-center">Break Time</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -208,9 +210,15 @@
                                         <td class="text-center text-info fw-bold" th:text="${row.earlyLeaveCount}">0
                                         </td>
                                         <td class="text-center text-primary fw-bold" th:text="${row.leaveCount}">0</td>
+
+                                        <!-- Monthly Work Time Integration -->
+                                        <td class="text-center text-dark fw-bold" th:text="${row.totalActiveDuration}">
+                                            154h 00m</td>
+                                        <td class="text-center text-warning" th:text="'☕ ' + ${row.totalBreakDuration}">
+                                            10h 30m</td>
                                     </tr>
                                     <tr th:if="${#lists.isEmpty(report)}">
-                                        <td colspan="7" class="text-center p-4">No data found for this month.</td>
+                                        <td colspan="9" class="text-center p-4">No data found for this month.</td>
                                     </tr>
                                 </tbody>
                             </table>

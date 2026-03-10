@@ -115,6 +115,8 @@ public class EmployeeWeeklyDetailDto {
         private LocalTime outTime;
         private long lateDurationMinutes;
         private long earlyLeaveDurationMinutes;
+        private String activeWorkDuration = "00h 00m";
+        private String totalBreakDuration = "00h 00m";
 
         public LocalDate getDate() {
             return date;
@@ -178,6 +180,22 @@ public class EmployeeWeeklyDetailDto {
 
         public void setEarlyLeaveDurationMinutes(long earlyLeaveDurationMinutes) {
             this.earlyLeaveDurationMinutes = earlyLeaveDurationMinutes;
+        }
+
+        public String getActiveWorkDuration() {
+            return activeWorkDuration;
+        }
+
+        public void setActiveWorkDuration(String activeWorkDuration) {
+            this.activeWorkDuration = activeWorkDuration;
+        }
+
+        public String getTotalBreakDuration() {
+            return totalBreakDuration;
+        }
+
+        public void setTotalBreakDuration(String totalBreakDuration) {
+            this.totalBreakDuration = totalBreakDuration;
         }
     }
 }
