@@ -1119,7 +1119,7 @@
                     const dept = e.department || 'No Dept';
                     if (!depts[dept]) depts[dept] = { working: 0, total: 0 };
                     depts[dept].total++;
-                    if (e.status === 'WORKING' || e.status === 'ENTERED_OFFICE') {
+                    if (e.status === 'WORKING') {
                         depts[dept].working++;
                     }
                 });
