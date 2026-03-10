@@ -473,8 +473,19 @@
 
             <!-- Real-time Operations Monitoring -->
             <div class="mb-4 mt-5" id="liveOpsContainer"
-                style="background-color: transparent; border-radius: 12px; transition: padding 0.3s ease;">
-                <div class="d-flex justify-content-between align-items-end border-bottom pb-2 mb-3" id="liveOpsHeader">
+                style="background-color: transparent; border-radius: 12px; transition: padding 0.3s ease; position: relative;">
+
+                <!-- Particle Canvas (TV Mode Only) -->
+                <canvas id="tvParticleCanvas"
+                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: none; z-index: 0;"></canvas>
+
+                <!-- Live Toast Alert (TV Mode Only) -->
+                <div id="tv-toast"
+                    style="display:none; position: fixed; top: 30px; right: 30px; z-index: 9999; min-width: 350px;">
+                </div>
+
+                <div class="d-flex justify-content-between align-items-end border-bottom pb-2 mb-3" id="liveOpsHeader"
+                    style="position: relative; z-index: 1;">
                     <div>
                         <h4 class="mb-0 text-dark fw-bold" id="liveOpsTitle">
                             <i class="fas fa-satellite-dish text-primary me-2 pulse-icon"></i> Live Operations
@@ -482,7 +493,10 @@
                         <p class="text-muted small mb-0 mt-1" id="liveOpsSubtitle">Real-time status of all employees
                             currently on shift.</p>
                     </div>
-                    <div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span id="tv-active-counter" style="display:none;"
+                            class="badge bg-success rounded-pill px-3 py-2 fw-bold" style="font-size: 1rem;"><i
+                                class="fas fa-users me-1"></i> <span id="tv-active-count">0</span> ACTIVE</span>
                         <span class="badge bg-success shadow-sm rounded-pill px-3 py-2 me-2"><i
                                 class="fas fa-circle text-white me-2 pulse-dot" style="font-size: 8px;"></i> LIVE</span>
                         <button id="fullScreenBtn" class="btn btn-sm btn-outline-secondary rounded-pill shadow-sm"
@@ -490,6 +504,50 @@
                             <i class="fas fa-expand"></i>
                         </button>
                     </div>
+                </div>
+
+                <!-- TV KPI Stats Bar (TV Mode Only) -->
+                <div id="tv-kpi-bar" style="display:none; position: relative; z-index: 1;" class="mb-3">
+                    <div class="d-flex justify-content-around text-center py-3 px-4 rounded-3"
+                        style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
+                        <div>
+                            <div class="fw-bold fs-3" id="kpi-present">--</div>
+                            <div class="text-uppercase" style="font-size:0.75rem; opacity:0.7; letter-spacing:1px;">👥
+                                Present</div>
+                        </div>
+                        <div style="border-left: 1px solid rgba(255,255,255,0.15);"></div>
+                        <div>
+                            <div class="fw-bold fs-3" id="kpi-break">--</div>
+                            <div class="text-uppercase" style="font-size:0.75rem; opacity:0.7; letter-spacing:1px;">☕ On
+                                Break</div>
+                        </div>
+                        <div style="border-left: 1px solid rgba(255,255,255,0.15);"></div>
+                        <div>
+                            <div class="fw-bold fs-3" id="kpi-hours">--</div>
+                            <div class="text-uppercase" style="font-size:0.75rem; opacity:0.7; letter-spacing:1px;">⏱
+                                Total Hours</div>
+                        </div>
+                        <div style="border-left: 1px solid rgba(255,255,255,0.15);"></div>
+                        <div>
+                            <div class="fw-bold fs-3" id="kpi-avg-in">--</div>
+                            <div class="text-uppercase" style="font-size:0.75rem; opacity:0.7; letter-spacing:1px;">🕘
+                                Avg Clock-In</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Department Productivity Rings (TV Mode Only) -->
+                <div id="tv-dept-rings" style="display:none; position: relative; z-index: 1;" class="mb-3">
+                    <div id="tv-dept-rings-inner" class="d-flex justify-content-center flex-wrap gap-4 py-3">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Shift Heatmap (TV Mode Only) -->
+                <div id="tv-heatmap" style="display:none; position: relative; z-index: 1;" class="mb-3">
+                    <div class="text-uppercase mb-1" style="font-size:0.7rem; letter-spacing:1px; opacity:0.6;">⏰ Peak
+                        Activity Hours</div>
+                    <div id="tv-heatmap-inner" class="d-flex rounded-2 overflow-hidden" style="height: 28px;"></div>
                 </div>
 
                 <style>
@@ -700,6 +758,83 @@
                         max-width: calc(25% - 1rem) !important;
                         margin: 0.5rem !important;
                     }
+
+                    /* Feature 6: Top Performer Spotlight Card */
+                    @keyframes golden-glow {
+                        0% {
+                            box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+                        }
+
+                        50% {
+                            box-shadow: 0 0 40px rgba(255, 215, 0, 0.9), 0 0 15px rgba(255, 165, 0, 0.6);
+                        }
+
+                        100% {
+                            box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+                        }
+                    }
+
+                    .tv-top-performer {
+                        border-left-color: gold !important;
+                        border-top: 2px solid gold !important;
+                        animation: golden-glow 2.5s infinite ease-in-out !important;
+                    }
+
+                    /* Feature 3: Toast Alert */
+                    @keyframes tv-toast-in {
+                        0% {
+                            transform: translateX(120%);
+                            opacity: 0;
+                        }
+
+                        100% {
+                            transform: translateX(0);
+                            opacity: 1;
+                        }
+                    }
+
+                    @keyframes tv-toast-out {
+                        0% {
+                            transform: translateX(0);
+                            opacity: 1;
+                        }
+
+                        100% {
+                            transform: translateX(120%);
+                            opacity: 0;
+                        }
+                    }
+
+                    .tv-toast-card {
+                        background: rgba(30, 50, 80, 0.95);
+                        border: 1px solid rgba(255, 255, 255, 0.15);
+                        border-left: 4px solid #22c55e;
+                        border-radius: 12px;
+                        color: white;
+                        padding: 14px 18px;
+                        margin-bottom: 10px;
+                        animation: tv-toast-in 0.4s ease forwards;
+                        backdrop-filter: blur(10px);
+                        font-size: 0.95rem;
+                    }
+
+                    .tv-toast-card.fading {
+                        animation: tv-toast-out 0.5s ease forwards;
+                    }
+
+                    /* Feature 4: KPI Bar TV Scaling */
+                    .tv-mode-active #tv-kpi-bar .fw-bold.fs-3 {
+                        font-size: 2.5rem !important;
+                        color: #ffffff !important;
+                    }
+
+                    /* Feature 7: Department Rings */
+                    .tv-dept-ring-label {
+                        font-size: 0.85rem;
+                        color: rgba(255, 255, 255, 0.8);
+                        margin-top: 6px;
+                        text-align: center;
+                    }
                 </style>
 
                 <div class="row g-3" id="live-ops-grid">
@@ -874,6 +1009,138 @@
                     (s < 10 ? '0' + s : s) + "<span style='font-size:0.7em; color:gray;'>s</span>";
             }
 
+            // Feature 3: Track previous state for toast alerts
+            const previousStatusMap = new Map();
+
+            // Feature 2: Particle canvas engine
+            let particleInterval = null;
+            let particles = [];
+
+            function startParticles() {
+                const canvas = document.getElementById('tvParticleCanvas');
+                if (!canvas) return;
+                canvas.style.display = 'block';
+                const ctx = canvas.getContext('2d');
+                canvas.width = canvas.offsetWidth;
+                canvas.height = canvas.offsetHeight;
+                particles = Array.from({ length: 60 }, () => ({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    r: Math.random() * 2 + 0.5,
+                    speed: Math.random() * 0.4 + 0.1,
+                    opacity: Math.random() * 0.4 + 0.1
+                }));
+                function drawFrame() {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    particles.forEach(p => {
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                        ctx.fillStyle = `rgba(255,255,255,${p.opacity})`;
+                        ctx.fill();
+                        p.y -= p.speed;
+                        if (p.y < 0) { p.y = canvas.height; p.x = Math.random() * canvas.width; }
+                    });
+                }
+                particleInterval = setInterval(drawFrame, 40);
+            }
+
+            function stopParticles() {
+                if (particleInterval) { clearInterval(particleInterval); particleInterval = null; }
+                const canvas = document.getElementById('tvParticleCanvas');
+                if (canvas) { canvas.style.display = 'none'; const ctx = canvas.getContext('2d'); ctx.clearRect(0, 0, canvas.width, canvas.height); }
+            }
+
+            // Feature 3: Toast notification
+            function showTvToast(message, icon = 'fa-user-clock', color = '#22c55e') {
+                if (!document.fullscreenElement) return;
+                const toastContainer = document.getElementById('tv-toast');
+                if (!toastContainer) return;
+                toastContainer.style.display = 'block';
+                const card = document.createElement('div');
+                card.className = 'tv-toast-card';
+                card.style.borderLeftColor = color;
+                card.innerHTML = `<i class="fas ${icon} me-2" style="color:${color};"></i> ${message}`;
+                toastContainer.appendChild(card);
+                setTimeout(() => {
+                    card.classList.add('fading');
+                    setTimeout(() => card.remove(), 500);
+                }, 4000);
+            }
+
+            // Feature 4: Update KPI Bar
+            function updateKpiBar(data) {
+                if (!document.fullscreenElement) return;
+                const present = data.length;
+                const onBreak = data.filter(e => e.status === 'ON_BREAK').length;
+                const totalSecs = data.reduce((sum, e) => sum + (e.workDurationSecs || 0), 0);
+                const totalHrs = (totalSecs / 3600).toFixed(1);
+                // Avg clock-in from workStartTime
+                const startTimes = data.filter(e => e.workStartTime).map(e => {
+                    const t = new Date(e.workStartTime);
+                    return t.getHours() * 60 + t.getMinutes();
+                });
+                let avgIn = '--';
+                if (startTimes.length > 0) {
+                    const avgMins = Math.round(startTimes.reduce((a, b) => a + b, 0) / startTimes.length);
+                    avgIn = String(Math.floor(avgMins / 60)).padStart(2, '0') + ':' + String(avgMins % 60).padStart(2, '0');
+                }
+                const el = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
+                el('kpi-present', present);
+                el('kpi-break', onBreak);
+                el('kpi-hours', totalHrs + 'h');
+                el('kpi-avg-in', avgIn);
+            }
+
+            // Feature 5: Heatmap
+            function updateHeatmap(data) {
+                if (!document.fullscreenElement) return;
+                const inner = document.getElementById('tv-heatmap-inner');
+                if (!inner) return;
+                const counts = new Array(24).fill(0);
+                data.filter(e => e.workStartTime).forEach(e => {
+                    const h = new Date(e.workStartTime).getHours();
+                    if (h >= 0 && h < 24) counts[h]++;
+                });
+                const max = Math.max(...counts, 1);
+                inner.innerHTML = counts.map((c, h) => {
+                    const intensity = Math.round((c / max) * 255);
+                    const bg = c === 0 ? 'rgba(255,255,255,0.05)' : `rgba(34, 197, 94, ${(c / max).toFixed(2)})`;
+                    return `<div title="${h}:00 — ${c} employees" style="flex:1; background:${bg}; position:relative;">${c > 0 ? `<span style="position:absolute;bottom:2px;left:50%;transform:translateX(-50%);font-size:8px;color:rgba(255,255,255,0.7);">${h}</span>` : ''}</div>`;
+                }).join('');
+            }
+
+            // Feature 7: Dept Rings
+            function updateDeptRings(data) {
+                if (!document.fullscreenElement) return;
+                const inner = document.getElementById('tv-dept-rings-inner');
+                if (!inner) return;
+                const depts = {};
+                data.forEach(e => {
+                    const dept = e.department || 'No Dept';
+                    if (!depts[dept]) depts[dept] = { present: 0, total: 0 };
+                    depts[dept].present++;
+                    depts[dept].total++;
+                });
+                inner.innerHTML = Object.entries(depts).map(([name, info]) => {
+                    const pct = Math.round((info.present / info.total) * 100);
+                    const r = 28, circ = 2 * Math.PI * r;
+                    const offset = circ - (pct / 100) * circ;
+                    const color = pct >= 80 ? '#22c55e' : pct >= 50 ? '#f59e0b' : '#ef4444';
+                    return `<div class="d-flex flex-column align-items-center">
+                        <svg width="70" height="70" style="transform:rotate(-90deg)">
+                            <circle cx="35" cy="35" r="${r}" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="6"/>
+                            <circle cx="35" cy="35" r="${r}" fill="none" stroke="${color}" stroke-width="6"
+                                stroke-dasharray="${circ}" stroke-dashoffset="${offset}" stroke-linecap="round"
+                                style="transition: stroke-dashoffset 0.8s ease;"/>
+                            <text x="35" y="35" text-anchor="middle" dominant-baseline="middle"
+                                style="fill:white; font-size:13px; font-weight:bold; transform:rotate(90deg); transform-origin: 35px 35px;">${pct}%</text>
+                        </svg>
+                        <div class="tv-dept-ring-label">${name}</div>
+                        <div style="font-size:0.7rem; opacity:0.6; color:white;">${info.present} active</div>
+                    </div>`;
+                }).join('');
+            }
+
             function loadLiveOperations() {
                 if (!liveOpsBody) return;
                 fetch('/api/admin/work-status/realtime')
@@ -885,7 +1152,36 @@
                             return;
                         }
 
-                        data.forEach(emp => {
+                        // Feature 1: Update active counter
+                        const counter = document.getElementById('tv-active-count');
+                        if (counter) counter.textContent = data.length;
+
+                        // Feature 3: Fire toasts for status changes
+                        if (document.fullscreenElement) {
+                            data.forEach(emp => {
+                                const prev = previousStatusMap.get(emp.employeeId);
+                                if (prev !== undefined && prev !== emp.status) {
+                                    const statusLabels = { WORKING: 'started working', ON_BREAK: 'went on break', ENDED_WORK: 'ended their shift', ENTERED_OFFICE: 'entered the office' };
+                                    const label = statusLabels[emp.status] || emp.status;
+                                    const icon = emp.status === 'ON_BREAK' ? 'fa-coffee' : emp.status === 'ENDED_WORK' ? 'fa-flag-checkered' : 'fa-user-clock';
+                                    const color = emp.status === 'ON_BREAK' ? '#f59e0b' : emp.status === 'ENDED_WORK' ? '#ef4444' : '#22c55e';
+                                    showTvToast(`<strong>${emp.name}</strong> ${label}`, icon, color);
+                                }
+                                previousStatusMap.set(emp.employeeId, emp.status);
+                            });
+                        } else {
+                            data.forEach(emp => previousStatusMap.set(emp.employeeId, emp.status));
+                        }
+
+                        // Feature 6: Sort by top performer first
+                        const sorted = [...data].sort((a, b) => (b.workDurationSecs || 0) - (a.workDurationSecs || 0));
+
+                        // Feature 4, 5, 7: Update command center widgets
+                        updateKpiBar(data);
+                        updateHeatmap(data);
+                        updateDeptRings(data);
+
+                        sorted.forEach((emp, index) => {
                             const gridCol = document.createElement('div');
                             gridCol.className = "col-12 col-md-6 col-xl-4";
 
@@ -900,6 +1196,11 @@
                             if (emp.status === 'WORKING') borderColor = '#198754';
                             if (emp.status === 'ON_BREAK') borderColor = '#ffc107';
 
+                            // Feature 6: Top performer badge
+                            const isTopPerformer = index === 0 && (emp.workDurationSecs || 0) > 0;
+                            const topBadge = isTopPerformer ? `<span class="badge ms-1" style="background:gold; color:#333; font-size:0.65rem;">⭐ Top Performer</span>` : '';
+                            const topClass = isTopPerformer ? 'tv-top-performer' : '';
+
                             if (emp.status === 'WORKING' || emp.status === 'ON_BREAK') {
                                 actionHtml = `
                                     <div class="border-top px-4 py-2 bg-light d-flex justify-content-end">
@@ -911,13 +1212,13 @@
                             }
 
                             gridCol.innerHTML = `
-                                <div class="card live-op-card h-100 bg-white" style="border-left: 4px solid ${borderColor};">
+                                <div class="card live-op-card h-100 bg-white ${topClass}" style="border-left: 4px solid ${borderColor};">
                                     <div class="card-body p-4">
                                         <div class="d-flex justify-content-between align-items-start mb-3">
                                             <div class="d-flex align-items-center">
                                                 ${photoHtml}
                                                 <div class="ms-3">
-                                                    <h6 class="mb-0 fw-bold text-dark tv-emp-name">${emp.name}</h6>
+                                                    <h6 class="mb-0 fw-bold text-dark tv-emp-name">${emp.name}${topBadge}</h6>
                                                     <div class="text-muted small tv-emp-dept">${emp.department || 'No Dept'} &bull; <span class="text-secondary opacity-75">${emp.employeeId}</span></div>
                                                 </div>
                                             </div>
@@ -1049,6 +1350,8 @@
                 }
             }
 
+            const tvWidgets = ['tv-kpi-bar', 'tv-dept-rings', 'tv-heatmap', 'tv-active-counter'];
+
             document.addEventListener('fullscreenchange', (event) => {
                 const container = document.getElementById('liveOpsContainer');
                 const btnIcon = document.querySelector('#fullScreenBtn i');
@@ -1059,19 +1362,30 @@
                         btnIcon.classList.remove('fa-expand');
                         btnIcon.classList.add('fa-compress');
                     }
+                    // Show all TV-only widgets
+                    tvWidgets.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'block'; });
+                    // Show toast container
+                    const toast = document.getElementById('tv-toast');
+                    if (toast) toast.style.display = 'block';
                     startDigitalClock();
-                    // Start the smooth scroll panning
-                    setTimeout(() => startAutoScroll(), 1000); // Wait 1s for layout shift to settle
+                    startParticles();
+                    // Refresh data immediately to populate widgets
+                    loadLiveOperations();
+                    setTimeout(() => startAutoScroll(), 1000);
                 } else {
                     container.classList.remove('tv-mode-active');
                     if (btnIcon) {
                         btnIcon.classList.remove('fa-compress');
                         btnIcon.classList.add('fa-expand');
                     }
+                    // Hide all TV-only widgets
+                    tvWidgets.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+                    const toast = document.getElementById('tv-toast');
+                    if (toast) { toast.style.display = 'none'; toast.innerHTML = ''; }
                     stopDigitalClock();
-                    // Immediately halt the scroll sequence
+                    stopParticles();
                     stopAutoScroll();
-                    container.scrollTop = 0; // Reset position
+                    container.scrollTop = 0;
                 }
             });
         });
