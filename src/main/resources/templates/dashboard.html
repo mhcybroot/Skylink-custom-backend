@@ -472,15 +472,24 @@
             </div>
 
             <!-- Real-time Operations Monitoring -->
-            <div class="mb-4 mt-5">
-                <div class="d-flex justify-content-between align-items-end border-bottom pb-2 mb-3">
+            <div class="mb-4 mt-5" id="liveOpsContainer"
+                style="background-color: transparent; border-radius: 12px; transition: padding 0.3s ease;">
+                <div class="d-flex justify-content-between align-items-end border-bottom pb-2 mb-3" id="liveOpsHeader">
                     <div>
-                        <h4 class="mb-0 text-dark fw-bold"><i
-                                class="fas fa-satellite-dish text-primary me-2 pulse-icon"></i> Live Operations</h4>
-                        <p class="text-muted small mb-0 mt-1">Real-time status of all employees currently on shift.</p>
+                        <h4 class="mb-0 text-dark fw-bold" id="liveOpsTitle">
+                            <i class="fas fa-satellite-dish text-primary me-2 pulse-icon"></i> Live Operations
+                        </h4>
+                        <p class="text-muted small mb-0 mt-1" id="liveOpsSubtitle">Real-time status of all employees
+                            currently on shift.</p>
                     </div>
-                    <span class="badge bg-success shadow-sm rounded-pill px-3 py-2"><i
-                            class="fas fa-circle text-white me-2 pulse-dot" style="font-size: 8px;"></i> LIVE</span>
+                    <div>
+                        <span class="badge bg-success shadow-sm rounded-pill px-3 py-2 me-2"><i
+                                class="fas fa-circle text-white me-2 pulse-dot" style="font-size: 8px;"></i> LIVE</span>
+                        <button id="fullScreenBtn" class="btn btn-sm btn-outline-secondary rounded-pill shadow-sm"
+                            onclick="toggleFullScreen()" title="TV Full Screen Mode">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <style>
@@ -539,6 +548,67 @@
                         font-family: monospace;
                         font-weight: 600;
                         font-size: 0.85rem;
+                        white-space: nowrap;
+                    }
+
+                    /* TV Full Screen Mode Styles */
+                    .tv-mode-active {
+                        background-color: #f8f9fa !important;
+                        padding: 40px !important;
+                        height: 100vh !important;
+                        overflow-y: auto !important;
+                    }
+
+                    .tv-mode-active #liveOpsHeader {
+                        margin-bottom: 40px !important;
+                        padding-bottom: 20px !important;
+                    }
+
+                    .tv-mode-active #liveOpsTitle {
+                        font-size: 3rem !important;
+                    }
+
+                    .tv-mode-active #liveOpsSubtitle {
+                        font-size: 1.5rem !important;
+                    }
+
+                    .tv-mode-active #fullScreenBtn i {
+                        font-size: 1.5rem !important;
+                    }
+
+                    .tv-mode-active .live-op-card {
+                        border-width: 2px !important;
+                    }
+
+                    .tv-mode-active .live-op-card .tv-avatar-wrapper {
+                        width: 90px !important;
+                        height: 90px !important;
+                    }
+
+                    .tv-mode-active .live-op-card .tv-avatar-icon {
+                        font-size: 3rem !important;
+                    }
+
+                    .tv-mode-active .live-op-card .tv-emp-name {
+                        font-size: 1.8rem !important;
+                    }
+
+                    .tv-mode-active .live-op-card .tv-emp-dept {
+                        font-size: 1.2rem !important;
+                    }
+
+                    .tv-mode-active .live-op-card .tv-status-badge {
+                        font-size: 1.1rem !important;
+                        padding: 8px 16px !important;
+                    }
+
+                    .tv-mode-active .live-op-card .time-pill {
+                        font-size: 1.4rem !important;
+                        padding: 8px 15px !important;
+                    }
+
+                    .tv-mode-active .live-op-card .tv-time-label {
+                        font-size: 1rem !important;
                     }
                 </style>
 
@@ -731,8 +801,8 @@
 
                             // Photo
                             const photoHtml = emp.photoUrl
-                                ? `<img src="${emp.photoUrl}" class="rounded-circle shadow-sm" style="width: 48px; height: 48px; object-fit: cover; border: 2px solid white;">`
-                                : `<div class="rounded-circle bg-secondary text-white shadow-sm d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; border: 2px solid white;"><i class="fas fa-user"></i></div>`;
+                                ? `<img src="${emp.photoUrl}" class="rounded-circle shadow-sm tv-avatar-icon" style="width: 48px; height: 48px; object-fit: cover; border: 2px solid white;">`
+                                : `<div class="rounded-circle bg-secondary text-white shadow-sm d-flex align-items-center justify-content-center tv-avatar-wrapper tv-avatar-icon" style="width: 48px; height: 48px; border: 2px solid white;"><i class="fas fa-user"></i></div>`;
 
                             // Action Button
                             let actionHtml = '';
@@ -757,26 +827,26 @@
                                             <div class="d-flex align-items-center">
                                                 ${photoHtml}
                                                 <div class="ms-3">
-                                                    <h6 class="mb-0 fw-bold text-dark">${emp.name}</h6>
-                                                    <div class="text-muted small">${emp.department || 'No Dept'} &bull; <span class="text-secondary opacity-75">${emp.employeeId}</span></div>
+                                                    <h6 class="mb-0 fw-bold text-dark tv-emp-name">${emp.name}</h6>
+                                                    <div class="text-muted small tv-emp-dept">${emp.department || 'No Dept'} &bull; <span class="text-secondary opacity-75">${emp.employeeId}</span></div>
                                                 </div>
                                             </div>
-                                            <div>
+                                            <div class="tv-status-badge">
                                                 ${getStatusBadge(emp.status)}
                                             </div>
                                         </div>
                                         
                                         <div class="d-flex justify-content-between mt-4">
                                             <div class="text-center">
-                                                <div class="text-uppercase text-muted fw-bold mb-1" style="font-size: 0.65rem; letter-spacing: 0.5px;">Active Work</div>
-                                                <div class="time-pill text-success fs-5">
+                                                <div class="text-uppercase text-muted fw-bold mb-1 tv-time-label" style="font-size: 0.65rem; letter-spacing: 0.5px;">Active Work</div>
+                                                <div class="time-pill text-success fs-5 tv-time-pill">
                                                     <i class="fas fa-clock me-1 text-success opacity-50"></i>
                                                     ${formatSecsToHHMMSS(emp.workDurationSecs)}
                                                 </div>
                                             </div>
                                             <div class="text-center">
-                                                <div class="text-uppercase text-muted fw-bold mb-1" style="font-size: 0.65rem; letter-spacing: 0.5px;">Break Time</div>
-                                                <div class="time-pill text-warning text-dark fs-5">
+                                                <div class="text-uppercase text-muted fw-bold mb-1 tv-time-label" style="font-size: 0.65rem; letter-spacing: 0.5px;">Break Time</div>
+                                                <div class="time-pill text-warning text-dark fs-5 tv-time-pill">
                                                     <i class="fas fa-mug-hot me-1 text-warning opacity-75 text-dark"></i>
                                                     ${formatSecsToHHMMSS(emp.breakDurationSecs)}
                                                 </div>
@@ -804,6 +874,36 @@
             // Fetch immediately and poll every 10 seconds
             loadLiveOperations();
             setInterval(loadLiveOperations, 10000);
+
+            window.toggleFullScreen = function () {
+                const container = document.getElementById('liveOpsContainer');
+                if (!document.fullscreenElement) {
+                    container.requestFullscreen().catch(err => {
+                        alert(`Error attempting to enable fullscreen mode: ${err.message} (${err.name})`);
+                    });
+                } else {
+                    document.exitFullscreen();
+                }
+            };
+
+            document.addEventListener('fullscreenchange', (event) => {
+                const container = document.getElementById('liveOpsContainer');
+                const btnIcon = document.querySelector('#fullScreenBtn i');
+
+                if (document.fullscreenElement) {
+                    container.classList.add('tv-mode-active');
+                    if (btnIcon) {
+                        btnIcon.classList.remove('fa-expand');
+                        btnIcon.classList.add('fa-compress');
+                    }
+                } else {
+                    container.classList.remove('tv-mode-active');
+                    if (btnIcon) {
+                        btnIcon.classList.remove('fa-compress');
+                        btnIcon.classList.add('fa-expand');
+                    }
+                }
+            });
         });
     </script>
 </body>
