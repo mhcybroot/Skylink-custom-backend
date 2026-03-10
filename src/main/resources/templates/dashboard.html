@@ -1068,17 +1068,30 @@
             }
 
             // Feature 4: Update KPI Bar
+            // Helper: parse Spring LocalDateTime which comes as [year,month,day,hour,min,sec] array or ISO string
+            function parseSpringDateTime(val) {
+                if (!val) return null;
+                if (Array.isArray(val)) {
+                    // [year, month, day, hour, minute, second, nano?]
+                    return new Date(val[0], val[1] - 1, val[2], val[3] || 0, val[4] || 0, val[5] || 0);
+                }
+                return new Date(val);
+            }
+
             function updateKpiBar(data) {
                 if (!document.fullscreenElement) return;
-                const present = data.length;
-                const onBreak = data.filter(e => e.status === 'ON_BREAK').length;
-                const totalSecs = data.reduce((sum, e) => sum + (e.workDurationSecs || 0), 0);
+                // Only count employees who actually have punch-in data (status != NOT_ENTERED/OFFLINE)
+                const active = data.filter(e => e.status !== 'NOT_ENTERED' && e.status !== 'OFFLINE');
+                const present = active.length;
+                const onBreak = active.filter(e => e.status === 'ON_BREAK').length;
+                // Only sum employees who have actually started work
+                const totalSecs = active.reduce((sum, e) => sum + (e.workDurationSecs || 0), 0);
                 const totalHrs = (totalSecs / 3600).toFixed(1);
-                // Avg clock-in from workStartTime
-                const startTimes = data.filter(e => e.workStartTime).map(e => {
-                    const t = new Date(e.workStartTime);
-                    return t.getHours() * 60 + t.getMinutes();
-                });
+                // Avg clock-in from workStartTime — parse Spring array format
+                const startTimes = active
+                    .map(e => parseSpringDateTime(e.workStartTime))
+                    .filter(t => t !== null && !isNaN(t))
+                    .map(t => t.getHours() * 60 + t.getMinutes());
                 let avgIn = '--';
                 if (startTimes.length > 0) {
                     const avgMins = Math.round(startTimes.reduce((a, b) => a + b, 0) / startTimes.length);
@@ -1098,12 +1111,14 @@
                 if (!inner) return;
                 const counts = new Array(24).fill(0);
                 data.filter(e => e.workStartTime).forEach(e => {
-                    const h = new Date(e.workStartTime).getHours();
-                    if (h >= 0 && h < 24) counts[h]++;
+                    const t = parseSpringDateTime(e.workStartTime);
+                    if (t && !isNaN(t)) {
+                        const h = t.getHours();
+                        if (h >= 0 && h < 24) counts[h]++;
+                    }
                 });
                 const max = Math.max(...counts, 1);
                 inner.innerHTML = counts.map((c, h) => {
-                    const intensity = Math.round((c / max) * 255);
                     const bg = c === 0 ? 'rgba(255,255,255,0.05)' : `rgba(34, 197, 94, ${(c / max).toFixed(2)})`;
                     return `<div title="${h}:00 — ${c} employees" style="flex:1; background:${bg}; position:relative;">${c > 0 ? `<span style="position:absolute;bottom:2px;left:50%;transform:translateX(-50%);font-size:8px;color:rgba(255,255,255,0.7);">${h}</span>` : ''}</div>`;
                 }).join('');

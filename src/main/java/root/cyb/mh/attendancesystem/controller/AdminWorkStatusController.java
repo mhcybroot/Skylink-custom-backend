@@ -87,6 +87,7 @@ public class AdminWorkStatusController {
                             int totalLiveSecs = (int) ChronoUnit.SECONDS.between(status.getWorkStartTime(), endPoint);
                             int actualWorkSecs = Math.max(0, totalLiveSecs - liveTotalBreakSecs);
                             dto.setWorkDurationSecs(actualWorkSecs);
+                            dto.setWorkStartTime(status.getWorkStartTime());
                         } else {
                             dto.setWorkDurationSecs(0);
                         }
@@ -138,6 +139,7 @@ public class AdminWorkStatusController {
         private String status;
         private int workDurationSecs;
         private int breakDurationSecs;
+        private java.time.LocalDateTime workStartTime;
 
         // Getters and Setters
         public String getEmployeeId() {
@@ -194,6 +196,14 @@ public class AdminWorkStatusController {
 
         public void setBreakDurationSecs(int breakDurationSecs) {
             this.breakDurationSecs = breakDurationSecs;
+        }
+
+        public java.time.LocalDateTime getWorkStartTime() {
+            return workStartTime;
+        }
+
+        public void setWorkStartTime(java.time.LocalDateTime workStartTime) {
+            this.workStartTime = workStartTime;
         }
     }
 }
