@@ -144,6 +144,9 @@
                                                 th:data-quota="${emp.annualLeaveQuota}"
                                                 th:data-salary="${emp.monthlySalary}" th:data-is-guest="${emp.isGuest}"
                                                 th:data-allowance="${emp.fixedAllowance}"
+                                                th:data-bank-name="${emp.bankName}"
+                                                th:data-account-number="${emp.accountNumber}"
+                                                th:data-username="${emp.username}"
                                                 th:data-designation="${emp.designation}"
                                                 th:data-reports-to-id="${emp.reportsTo != null ? emp.reportsTo.id : ''}"
                                                 th:data-reports-to-assistant-id="${emp.reportsToAssistant != null ? emp.reportsToAssistant.id : ''}"
@@ -175,9 +178,7 @@
                     </div>
 
                     <!-- Pagination -->
-                    <div
-                        th:replace="fragments/pagination :: pagination(page=${page}, baseUrl='/employees?' + (keyword != null and !#strings.isEmpty(keyword) ? 'keyword=' + keyword + '&' : ''))">
-                    </div>
+                    <div th:replace="~{fragments/pagination :: pagination(page=${page}, baseUrl='/employees')}"></div>
                 </div>
 
                 <!-- Add/Edit Employee Modal -->
