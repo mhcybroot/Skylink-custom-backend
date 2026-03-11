@@ -30,6 +30,24 @@
                     </div>
                 </div>
 
+                <!-- Search Bar -->
+                <form class="mb-3" th:action="@{/employees}" method="get">
+                    <div class="input-group shadow-sm">
+                        <span class="input-group-text bg-dark text-white border-dark"><i
+                                class="fas fa-search"></i></span>
+                        <input type="text" class="form-control form-control-lg" name="keyword" id="employeeSearchInput"
+                            placeholder="Search by name, email, role, department, designation, ID..."
+                            th:value="${keyword}" autocomplete="off">
+                        <button class="btn btn-dark px-4" type="submit">Search</button>
+                        <a th:if="${keyword != null and !#strings.isEmpty(keyword)}" th:href="@{/employees}"
+                            class="btn btn-outline-secondary" title="Clear search"><i class="fas fa-times"></i></a>
+                    </div>
+                    <small th:if="${keyword != null and !#strings.isEmpty(keyword)}" class="text-muted mt-1 d-block">
+                        Showing results for <strong th:text="'\'' + ${keyword} + '\''"></strong>
+                        &mdash; <span th:text="${page.totalElements}">0</span> employee(s) found
+                    </small>
+                </form>
+
                 <div class="card shadow-sm">
                     <div class="card-body">
                         <div class="table-responsive">
@@ -40,7 +58,7 @@
                                         <th>Photo</th>
                                         <th>
                                             <a class="text-white text-decoration-none"
-                                                th:href="@{/employees(sortField='id', sortDir=${sortField == 'id' ? reverseSortDir : sortDir})}">
+                                                th:href="@{/employees(sortField='id', sortDir=${sortField == 'id' ? reverseSortDir : sortDir}, keyword=${keyword})}">
                                                 ID (Device ID)
                                                 <span th:if="${sortField == 'id'}"
                                                     th:text="${sortDir == 'asc' ? '▲' : '▼'}"></span>
@@ -48,7 +66,7 @@
                                         </th>
                                         <th>
                                             <a class="text-white text-decoration-none"
-                                                th:href="@{/employees(sortField='name', sortDir=${sortField == 'name' ? reverseSortDir : sortDir})}">
+                                                th:href="@{/employees(sortField='name', sortDir=${sortField == 'name' ? reverseSortDir : sortDir}, keyword=${keyword})}">
                                                 Name
                                                 <span th:if="${sortField == 'name'}"
                                                     th:text="${sortDir == 'asc' ? '▲' : '▼'}"></span>
@@ -56,7 +74,7 @@
                                         </th>
                                         <th>
                                             <a class="text-white text-decoration-none"
-                                                th:href="@{/employees(sortField='department', sortDir=${sortField == 'department' ? reverseSortDir : sortDir})}">
+                                                th:href="@{/employees(sortField='department', sortDir=${sortField == 'department' ? reverseSortDir : sortDir}, keyword=${keyword})}">
                                                 Department
                                                 <span th:if="${sortField == 'department'}"
                                                     th:text="${sortDir == 'asc' ? '▲' : '▼'}"></span>
@@ -64,7 +82,7 @@
                                         </th>
                                         <th>
                                             <a class="text-white text-decoration-none"
-                                                th:href="@{/employees(sortField='role', sortDir=${sortField == 'role' ? reverseSortDir : sortDir})}">
+                                                th:href="@{/employees(sortField='role', sortDir=${sortField == 'role' ? reverseSortDir : sortDir}, keyword=${keyword})}">
                                                 Role
                                                 <span th:if="${sortField == 'role'}"
                                                     th:text="${sortDir == 'asc' ? '▲' : '▼'}"></span>
@@ -72,7 +90,7 @@
                                         </th>
                                         <th>
                                             <a class="text-white text-decoration-none"
-                                                th:href="@{/employees(sortField='email', sortDir=${sortField == 'email' ? reverseSortDir : sortDir})}">
+                                                th:href="@{/employees(sortField='email', sortDir=${sortField == 'email' ? reverseSortDir : sortDir}, keyword=${keyword})}">
                                                 Email
                                                 <span th:if="${sortField == 'email'}"
                                                     th:text="${sortDir == 'asc' ? '▲' : '▼'}"></span>
@@ -142,9 +160,14 @@
                                         </td>
                                     </tr>
                                     <tr th:if="${#lists.isEmpty(employees)}">
-                                        <td colspan="6" class="text-center">No employees found. Add one to link names to
-                                            attendance
-                                            logs.</td>
+                                        <td colspan="8" class="text-center text-muted py-4">
+                                            <i class="fas fa-search me-2 opacity-50"></i>
+                                            <span th:if="${keyword != null and !#strings.isEmpty(keyword)}">No employees
+                                                found matching <strong
+                                                    th:text="'\'' + ${keyword} + '\''"></strong>.</span>
+                                            <span th:unless="${keyword != null and !#strings.isEmpty(keyword)}">No
+                                                employees found. Add one to link names to attendance logs.</span>
+                                        </td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -152,7 +175,9 @@
                     </div>
 
                     <!-- Pagination -->
-                    <div th:replace="fragments/pagination :: pagination(page=${page}, baseUrl='/employees')"></div>
+                    <div
+                        th:replace="fragments/pagination :: pagination(page=${page}, baseUrl='/employees?' + (keyword != null and !#strings.isEmpty(keyword) ? 'keyword=' + keyword + '&' : ''))">
+                    </div>
                 </div>
 
                 <!-- Add/Edit Employee Modal -->

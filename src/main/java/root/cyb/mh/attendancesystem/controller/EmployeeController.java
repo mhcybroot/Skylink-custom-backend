@@ -34,13 +34,20 @@ public class EmployeeController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortField,
-            @RequestParam(defaultValue = "asc") String sortDir) {
+            @RequestParam(defaultValue = "asc") String sortDir,
+            @RequestParam(required = false) String keyword) {
 
         Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortField).ascending()
                 : Sort.by(sortField).descending();
 
         Pageable pageable = PageRequest.of(page, size, sort);
-        Page<Employee> employeePage = employeeRepository.findAll(pageable);
+        Page<Employee> employeePage;
+
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            employeePage = employeeRepository.searchEmployees(keyword.trim(), pageable);
+        } else {
+            employeePage = employeeRepository.findAll(pageable);
+        }
 
         model.addAttribute("employees", employeePage.getContent());
         model.addAttribute("allEmployees", employeeRepository.findAll()); // For Dropdown
@@ -51,6 +58,7 @@ public class EmployeeController {
         model.addAttribute("sortField", sortField);
         model.addAttribute("sortDir", sortDir);
         model.addAttribute("reverseSortDir", sortDir.equals("asc") ? "desc" : "asc");
+        model.addAttribute("keyword", keyword);
 
         return "employees";
     }
