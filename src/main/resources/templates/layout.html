@@ -20,6 +20,11 @@
         /* Essential Layout Overrides Only - Global styles moved to modern-theme.css */
 
         /* Layout Structure */
+        :root {
+            --sidebar-width: 17rem;
+            --sidebar-mini-width: 4.5rem;
+        }
+
         #wrapper {
             overflow-x: hidden;
             background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
@@ -29,34 +34,36 @@
 
         #sidebar-wrapper {
             min-height: 100vh;
-            margin-left: -15rem;
-            transition: margin 0.25s ease-out;
-        }
-
-        #sidebar-wrapper .list-group {
-            width: 15rem;
+            width: var(--sidebar-width);
+            transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), margin-left 0.3s ease;
+            position: relative;
+            z-index: 1040;
+            flex-shrink: 0;
         }
 
         #page-content-wrapper {
-            min-width: 100vw;
+            flex-grow: 1;
+            min-width: 0;
+            /* Important for flex child to allow inner scroll */
+            transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
 
-        body.sb-sidenav-toggled #sidebar-wrapper {
-            margin-left: 0;
-        }
-
-        @media (min-width: 768px) {
+        /* Mobile Default: Hidden off-screen */
+        @media (max-width: 767.98px) {
             #sidebar-wrapper {
-                margin-left: 0;
-            }
-
-            #page-content-wrapper {
-                min-width: 0;
-                width: 100%;
+                position: fixed;
+                margin-left: calc(var(--sidebar-width) * -1);
             }
 
             body.sb-sidenav-toggled #sidebar-wrapper {
-                margin-left: -15rem;
+                margin-left: 0;
+            }
+        }
+
+        /* Desktop Default: Full width, toggles to mini-width */
+        @media (min-width: 768px) {
+            body.sb-sidenav-toggled #sidebar-wrapper {
+                width: var(--sidebar-mini-width);
             }
         }
     </style>
