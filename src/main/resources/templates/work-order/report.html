@@ -194,160 +194,6 @@
             </div>
         </div>
 
-        <!-- ADMIN PERFORMANCE BY USER TABLE -->
-        <h5 class="fw-bold text-uppercase border-bottom pb-2 mb-3">Admin Performance</h5>
-        <div class="card shadow-sm border-0 mb-5">
-            <div class="card-body p-0">
-                <table class="table table-hover table-striped mb-0" id="adminPerformanceTable">
-                    <thead class="table-dark">
-                        <tr>
-                            <th class="sortable" data-sort="name" style="cursor: pointer;">
-                                Admin Name <i class="fas fa-sort"></i>
-                            </th>
-                            <th class="text-end sortable" data-sort="count" style="cursor: pointer;">
-                                Number of WOs <i class="fas fa-sort"></i>
-                            </th>
-                            <th class="text-end sortable" data-sort="value" style="cursor: pointer;">
-                                Value <i class="fas fa-sort"></i>
-                            </th>
-                            <th class="text-end sortable" data-sort="margin" style="cursor: pointer;">
-                                Gross Margin % <i class="fas fa-sort"></i>
-                            </th>
-                            <th class="text-end sortable" data-sort="clients" style="cursor: pointer;">
-                                Client Count <i class="fas fa-sort"></i>
-                            </th>
-                            <th class="text-end sortable" data-sort="states" style="cursor: pointer;">
-                                State Count <i class="fas fa-sort"></i>
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr th:each="admin : ${stats.adminPerformanceStats}">
-                            <td class="fw-bold" th:text="${admin.adminName}">Admin Name</td>
-                            <td class="text-end">
-                                <button class="btn btn-link p-0 fw-bold metric-filter"
-                                    th:attr="data-filter-admin=${admin.adminName}"
-                                    th:text="${admin.workOrderCount}">0</button>
-                            </td>
-                            <td class="text-end text-success fw-bold"
-                                th:text="${#numbers.formatCurrency(admin.totalRevenue)}">$0</td>
-                            <td class="text-end fw-bold" th:classappend="${admin.grossMargin >= 40 ? 'text-success' : 
-                                                (admin.grossMargin >= 30 ? 'text-warning' : 'text-danger')}"
-                                th:text="${#numbers.formatDecimal(admin.grossMargin, 1, 2) + '%'}">0%</td>
-                            <td class="text-end" th:text="${admin.uniqueClientCount}">0</td>
-                            <td class="text-end" th:text="${admin.uniqueStateCount}">0</td>
-                        </tr>
-                    </tbody>
-                    <tfoot class="table-light fw-bold">
-                        <tr>
-                            <td>TOTAL</td>
-                            <td class="text-end" th:text="${stats.totalWorkOrders}">0</td>
-                            <td class="text-end text-success" th:text="${#numbers.formatCurrency(stats.totalRevenue)}">
-                                $0</td>
-                            <td class="text-end"
-                                th:text="${#numbers.formatDecimal(stats.globalGrossMarginPercent, 1, 2) + '%'}">0%</td>
-                            <td class="text-end" th:text="${stats.uniqueClientCount}">0</td>
-                            <td class="text-end" th:text="${stats.uniqueStateCount}">0</td>
-                        </tr>
-                    </tfoot>
-                </table>
-            </div>
-        </div>
-
-        <!-- WORK TYPE PERFORMANCE TABLE -->
-        <h5 class="fw-bold text-uppercase border-bottom pb-2 mb-3">Work Type Performance</h5>
-        <div class="card shadow-sm border-0 mb-5">
-            <div class="card-body p-0">
-                <table class="table table-hover table-striped mb-0" id="workTypePerformanceTable">
-                    <thead class="table-dark">
-                        <tr>
-                            <th class="sortable" data-sort="type" style="cursor: pointer;">
-                                Work Type <i class="fas fa-sort"></i>
-                            </th>
-                            <th class="text-end sortable" data-sort="count" style="cursor: pointer;">
-                                Work Orders <i class="fas fa-sort"></i>
-                            </th>
-                            <th class="text-end sortable" data-sort="revenue" style="cursor: pointer;">
-                                Revenue <i class="fas fa-sort"></i>
-                            </th>
-                            <th class="text-end sortable" data-sort="cost" style="cursor: pointer;">
-                                Cost <i class="fas fa-sort"></i>
-                            </th>
-                            <th class="text-end sortable" data-sort="profit" style="cursor: pointer;">
-                                Profit <i class="fas fa-sort"></i>
-                            </th>
-                            <th class="text-end sortable" data-sort="margin" style="cursor: pointer;">
-                                Margin % <i class="fas fa-sort"></i>
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr th:each="type : ${stats.workTypePerformanceStats}">
-                            <td class="fw-bold" th:text="${type.workType}">Type</td>
-                            <td class="text-end">
-                                <button class="btn btn-link p-0 fw-bold metric-filter"
-                                    th:attr="data-filter-work-type=${type.workType}"
-                                    th:text="${type.workOrderCount}">0</button>
-                            </td>
-                            <td class="text-end text-success fw-bold"
-                                th:text="${#numbers.formatCurrency(type.totalRevenue)}">$0</td>
-                            <td class="text-end text-danger" th:text="${#numbers.formatCurrency(type.totalCost)}">$0
-                            </td>
-                            <td class="text-end fw-bold"
-                                th:classappend="${type.profit >= 0 ? 'text-success' : 'text-danger'}"
-                                th:text="${#numbers.formatCurrency(type.profit)}">$0</td>
-                            <td class="text-end fw-bold" th:classappend="${type.marginPercent >= 40 ? 'text-success' : 
-                                                (type.marginPercent >= 30 ? 'text-warning' : 'text-danger')}"
-                                th:text="${#numbers.formatDecimal(type.marginPercent, 1, 2) + '%'}">0%</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- CONTRACTOR SCORECARD TABLE -->
-        <h5 class="fw-bold text-uppercase border-bottom pb-2 mb-3">Contractor Scorecard</h5>
-        <div class="card shadow-sm border-0 mb-5">
-            <div class="card-body p-0">
-                <table class="table table-hover table-striped mb-0" id="contractorScorecardTable">
-                    <thead class="table-dark">
-                        <tr>
-                            <th class="sortable" data-sort="contractor" style="cursor: pointer;">
-                                Contractor <i class="fas fa-sort"></i>
-                            </th>
-                            <th class="text-end sortable" data-sort="volume" style="cursor: pointer;">
-                                Volume <i class="fas fa-sort"></i>
-                            </th>
-                            <th class="text-end sortable" data-sort="avgCost" style="cursor: pointer;">
-                                Avg Cost <i class="fas fa-sort"></i>
-                            </th>
-                            <th class="text-end sortable" data-sort="totalCost" style="cursor: pointer;">
-                                Total Cost <i class="fas fa-sort"></i>
-                            </th>
-                            <th class="text-end sortable" data-sort="totalRevenue" style="cursor: pointer;">
-                                Total Revenue <i class="fas fa-sort"></i>
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr th:each="stat : ${stats.contractorScorecardStats}">
-                            <td class="fw-bold" th:text="${stat.contractorName}">Contractor</td>
-                            <td class="text-end">
-                                <button class="btn btn-link p-0 fw-bold metric-filter"
-                                    th:attr="data-filter-contractor=${stat.contractorName}"
-                                    th:text="${stat.volume}">0</button>
-                            </td>
-                            <td class="text-end" th:text="${#numbers.formatCurrency(stat.avgCost)}">$0</td>
-                            <td class="text-end text-danger" th:text="${#numbers.formatCurrency(stat.totalCost)}">$0
-                            </td>
-                            <td class="text-end text-success fw-bold"
-                                th:text="${#numbers.formatCurrency(stat.totalRevenue)}">$0</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
         <!-- LLC PERFORMANCE PANEL -->
         <h5 class="fw-bold text-uppercase border-bottom pb-2 mb-3">LLC Performance</h5>
         <div class="card shadow-sm border-0 mb-5">
@@ -610,6 +456,160 @@
                         </table>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- ADMIN PERFORMANCE BY USER TABLE -->
+        <h5 class="fw-bold text-uppercase border-bottom pb-2 mb-3">Admin Performance</h5>
+        <div class="card shadow-sm border-0 mb-5">
+            <div class="card-body p-0">
+                <table class="table table-hover table-striped mb-0" id="adminPerformanceTable">
+                    <thead class="table-dark">
+                        <tr>
+                            <th class="sortable" data-sort="name" style="cursor: pointer;">
+                                Admin Name <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="text-end sortable" data-sort="count" style="cursor: pointer;">
+                                Number of WOs <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="text-end sortable" data-sort="value" style="cursor: pointer;">
+                                Value <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="text-end sortable" data-sort="margin" style="cursor: pointer;">
+                                Gross Margin % <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="text-end sortable" data-sort="clients" style="cursor: pointer;">
+                                Client Count <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="text-end sortable" data-sort="states" style="cursor: pointer;">
+                                State Count <i class="fas fa-sort"></i>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="admin : ${stats.adminPerformanceStats}">
+                            <td class="fw-bold" th:text="${admin.adminName}">Admin Name</td>
+                            <td class="text-end">
+                                <button class="btn btn-link p-0 fw-bold metric-filter"
+                                    th:attr="data-filter-admin=${admin.adminName}"
+                                    th:text="${admin.workOrderCount}">0</button>
+                            </td>
+                            <td class="text-end text-success fw-bold"
+                                th:text="${#numbers.formatCurrency(admin.totalRevenue)}">$0</td>
+                            <td class="text-end fw-bold" th:classappend="${admin.grossMargin >= 40 ? 'text-success' : 
+                                                (admin.grossMargin >= 30 ? 'text-warning' : 'text-danger')}"
+                                th:text="${#numbers.formatDecimal(admin.grossMargin, 1, 2) + '%'}">0%</td>
+                            <td class="text-end" th:text="${admin.uniqueClientCount}">0</td>
+                            <td class="text-end" th:text="${admin.uniqueStateCount}">0</td>
+                        </tr>
+                    </tbody>
+                    <tfoot class="table-light fw-bold">
+                        <tr>
+                            <td>TOTAL</td>
+                            <td class="text-end" th:text="${stats.totalWorkOrders}">0</td>
+                            <td class="text-end text-success" th:text="${#numbers.formatCurrency(stats.totalRevenue)}">
+                                $0</td>
+                            <td class="text-end"
+                                th:text="${#numbers.formatDecimal(stats.globalGrossMarginPercent, 1, 2) + '%'}">0%</td>
+                            <td class="text-end" th:text="${stats.uniqueClientCount}">0</td>
+                            <td class="text-end" th:text="${stats.uniqueStateCount}">0</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <!-- WORK TYPE PERFORMANCE TABLE -->
+        <h5 class="fw-bold text-uppercase border-bottom pb-2 mb-3">Work Type Performance</h5>
+        <div class="card shadow-sm border-0 mb-5">
+            <div class="card-body p-0">
+                <table class="table table-hover table-striped mb-0" id="workTypePerformanceTable">
+                    <thead class="table-dark">
+                        <tr>
+                            <th class="sortable" data-sort="type" style="cursor: pointer;">
+                                Work Type <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="text-end sortable" data-sort="count" style="cursor: pointer;">
+                                Work Orders <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="text-end sortable" data-sort="revenue" style="cursor: pointer;">
+                                Revenue <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="text-end sortable" data-sort="cost" style="cursor: pointer;">
+                                Cost <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="text-end sortable" data-sort="profit" style="cursor: pointer;">
+                                Profit <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="text-end sortable" data-sort="margin" style="cursor: pointer;">
+                                Margin % <i class="fas fa-sort"></i>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="type : ${stats.workTypePerformanceStats}">
+                            <td class="fw-bold" th:text="${type.workType}">Type</td>
+                            <td class="text-end">
+                                <button class="btn btn-link p-0 fw-bold metric-filter"
+                                    th:attr="data-filter-work-type=${type.workType}"
+                                    th:text="${type.workOrderCount}">0</button>
+                            </td>
+                            <td class="text-end text-success fw-bold"
+                                th:text="${#numbers.formatCurrency(type.totalRevenue)}">$0</td>
+                            <td class="text-end text-danger" th:text="${#numbers.formatCurrency(type.totalCost)}">$0
+                            </td>
+                            <td class="text-end fw-bold"
+                                th:classappend="${type.profit >= 0 ? 'text-success' : 'text-danger'}"
+                                th:text="${#numbers.formatCurrency(type.profit)}">$0</td>
+                            <td class="text-end fw-bold" th:classappend="${type.marginPercent >= 40 ? 'text-success' : 
+                                                (type.marginPercent >= 30 ? 'text-warning' : 'text-danger')}"
+                                th:text="${#numbers.formatDecimal(type.marginPercent, 1, 2) + '%'}">0%</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- CONTRACTOR SCORECARD TABLE -->
+        <h5 class="fw-bold text-uppercase border-bottom pb-2 mb-3">Contractor Scorecard</h5>
+        <div class="card shadow-sm border-0 mb-5">
+            <div class="card-body p-0">
+                <table class="table table-hover table-striped mb-0" id="contractorScorecardTable">
+                    <thead class="table-dark">
+                        <tr>
+                            <th class="sortable" data-sort="contractor" style="cursor: pointer;">
+                                Contractor <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="text-end sortable" data-sort="volume" style="cursor: pointer;">
+                                Volume <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="text-end sortable" data-sort="avgCost" style="cursor: pointer;">
+                                Avg Cost <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="text-end sortable" data-sort="totalCost" style="cursor: pointer;">
+                                Total Cost <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="text-end sortable" data-sort="totalRevenue" style="cursor: pointer;">
+                                Total Revenue <i class="fas fa-sort"></i>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="stat : ${stats.contractorScorecardStats}">
+                            <td class="fw-bold" th:text="${stat.contractorName}">Contractor</td>
+                            <td class="text-end">
+                                <button class="btn btn-link p-0 fw-bold metric-filter"
+                                    th:attr="data-filter-contractor=${stat.contractorName}"
+                                    th:text="${stat.volume}">0</button>
+                            </td>
+                            <td class="text-end" th:text="${#numbers.formatCurrency(stat.avgCost)}">$0</td>
+                            <td class="text-end text-danger" th:text="${#numbers.formatCurrency(stat.totalCost)}">$0
+                            </td>
+                            <td class="text-end text-success fw-bold"
+                                th:text="${#numbers.formatCurrency(stat.totalRevenue)}">$0</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
 
