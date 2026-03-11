@@ -24,6 +24,9 @@ public class EmployeeController {
     private DepartmentRepository departmentRepository;
 
     @Autowired
+    private root.cyb.mh.attendancesystem.repository.SharedResourceRepository sharedResourceRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @GetMapping
@@ -148,6 +151,54 @@ public class EmployeeController {
             }
         }
         return "redirect:/employees";
+    }
+
+    // --- Employee Resources Management (Admin) ---
+
+    @GetMapping("/{empId}/resources")
+    public String manageEmployeeResources(@PathVariable("empId") String empId, Model model) {
+        Employee employee = employeeRepository.findById(empId).orElse(null);
+        if (employee == null) {
+            return "redirect:/employees";
+        }
+
+        java.util.List<root.cyb.mh.attendancesystem.model.SharedResource> resources = sharedResourceRepository
+                .findByEmployeeId(empId);
+
+        model.addAttribute("employee", employee);
+        model.addAttribute("resources", resources);
+        model.addAttribute("newResource", new root.cyb.mh.attendancesystem.model.SharedResource());
+
+        return "employee-resources";
+    }
+
+    @PostMapping("/{empId}/resources")
+    public String saveEmployeeResource(@PathVariable("empId") String empId,
+            @ModelAttribute root.cyb.mh.attendancesystem.model.SharedResource resource) {
+        Employee employee = employeeRepository.findById(empId).orElse(null);
+        if (employee != null) {
+            if (resource.getId() != null) {
+                root.cyb.mh.attendancesystem.model.SharedResource existing = sharedResourceRepository
+                        .findById(resource.getId()).orElse(null);
+                if (existing != null) {
+                    existing.setResourceName(resource.getResourceName());
+                    existing.setResourceLink(resource.getResourceLink());
+                    existing.setLoginId(resource.getLoginId());
+                    existing.setPassword(resource.getPassword());
+                    sharedResourceRepository.save(existing);
+                }
+            } else {
+                resource.setEmployee(employee);
+                sharedResourceRepository.save(resource);
+            }
+        }
+        return "redirect:/employees/" + empId + "/resources";
+    }
+
+    @GetMapping("/{empId}/resources/delete/{resourceId}")
+    public String deleteEmployeeResource(@PathVariable String empId, @PathVariable Long resourceId) {
+        sharedResourceRepository.deleteById(resourceId);
+        return "redirect:/employees/" + empId + "/resources";
     }
 
 }

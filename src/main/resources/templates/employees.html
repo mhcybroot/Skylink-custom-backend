@@ -132,6 +132,10 @@
                                                 th:data-joining-date="${emp.joiningDate}" onclick="editEmployee(this)">
                                                 Edit
                                             </button>
+                                            <a th:href="@{/employees/{id}/resources(id=${emp.id})}"
+                                                class="btn btn-info btn-sm text-white shadow-sm fw-bold">
+                                                <i class="fas fa-lock me-1"></i>Resources
+                                            </a>
                                             <a th:href="@{/employees/delete/{id}(id=${emp.id})}"
                                                 class="btn btn-danger btn-sm"
                                                 onclick="return confirm('Delete this employee?')">Delete</a>

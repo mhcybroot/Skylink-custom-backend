@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <title>Employee Resources - Skylink</title>
+</head>
+
+<body>
+    <div th:replace="~{layout :: layout(~{::section}, ~{::script}, 'employees')}">
+        <section>
+            <div class="container-fluid">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2>Manage Resources for: <span th:text="${employee.name}" class="text-primary"></span></h2>
+                    <a th:href="@{/employees}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-2"></i> Back to Employees
+                    </a>
+                </div>
+
+                <div class="row">
+                    <!-- Add Resource Form -->
+                    <div class="col-md-4 mb-4">
+                        <div class="card shadow-sm border-0">
+                            <div class="card-header bg-dark text-white">
+                                <h5 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Add New Resource</h5>
+                            </div>
+                            <div class="card-body bg-light">
+                                <form th:action="@{/employees/{empId}/resources(empId=${employee.id})}" method="post">
+                                    <input type="hidden" name="id" id="resourceId">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold text-dark">Resource System Name *</label>
+                                        <input type="text" class="form-control" name="resourceName" required
+                                            placeholder="e.g. PPW Portal, External HR Tool">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold text-dark">Login URL / Link</label>
+                                        <input type="url" class="form-control" name="resourceLink"
+                                            placeholder="https://...">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold text-dark">User ID / Email</label>
+                                        <input type="text" class="form-control" name="loginId"
+                                            placeholder="User credential for the system">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold text-dark">Password / Secret</label>
+                                        <input type="password" class="form-control" name="password"
+                                            placeholder="The shared password">
+                                    </div>
+                                    <div class="d-grid mt-4">
+                                        <button type="submit" class="btn btn-primary fw-bold shadow-sm">Share
+                                            Resource</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Shared Resources Data Table -->
+                    <div class="col-md-8 mb-4">
+                        <div class="card shadow-sm border-0">
+                            <div class="card-header bg-white border-bottom">
+                                <h5 class="mb-0 text-dark fw-bold"><i class="fas fa-list me-2 text-primary"></i>Actively
+                                    Shared Resources</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover table-striped align-middle">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>System Name</th>
+                                                <th>Link</th>
+                                                <th>User ID</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr th:each="resource : ${resources}">
+                                                <td class="fw-bold text-dark" th:text="${resource.resourceName}"></td>
+                                                <td>
+                                                    <a th:if="${resource.resourceLink != null and !resource.resourceLink.isEmpty()}"
+                                                        th:href="${resource.resourceLink}" target="_blank"
+                                                        class="btn btn-sm btn-outline-primary shadow-sm rounded-pill">
+                                                        <i class="fas fa-external-link-alt me-1"></i> Open Portal
+                                                    </a>
+                                                    <span
+                                                        th:unless="${resource.resourceLink != null and !resource.resourceLink.isEmpty()}"
+                                                        class="text-muted fst-italic">No Link</span>
+                                                </td>
+                                                <td th:text="${resource.loginId}"></td>
+                                                <td>
+                                                    <button type="button"
+                                                        class="btn btn-sm btn-warning shadow-sm rounded-pill mb-1"
+                                                        th:data-id="${resource.id}"
+                                                        th:data-name="${resource.resourceName}"
+                                                        th:data-link="${resource.resourceLink}"
+                                                        th:data-login="${resource.loginId}"
+                                                        th:data-password="${resource.password}"
+                                                        onclick="editResource(this)">
+                                                        <i class="fas fa-edit me-1"></i>Edit
+                                                    </button>
+                                                    <a th:href="@{/employees/{empId}/resources/delete/{resId}(empId=${employee.id}, resId=${resource.id})}"
+                                                        class="btn btn-sm btn-danger shadow-sm rounded-pill"
+                                                        onclick="return confirm('Are you sure you want to stop sharing this resource?')">
+                                                        <i class="fas fa-trash-alt me-1"></i>Delete
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                            <tr th:if="${#lists.isEmpty(resources)}">
+                                                <td colspan="4" class="text-center text-muted py-4">
+                                                    <i class="fas fa-folder-open mb-2 fa-2x"></i><br>
+                                                    No resources shared with this employee yet.
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <script>
+            function editResource(btn) {
+                document.getElementById('resourceId').value = btn.getAttribute('data-id');
+                document.querySelector('input[name="resourceName"]').value = btn.getAttribute('data-name');
+                document.querySelector('input[name="resourceLink"]').value = btn.getAttribute('data-link');
+                document.querySelector('input[name="loginId"]').value = btn.getAttribute('data-login');
+                document.querySelector('input[name="password"]').value = btn.getAttribute('data-password');
+                document.querySelector('.card-header h5').innerHTML = '<i class="fas fa-edit me-2"></i>Edit Resource';
+                document.querySelector('button[type="submit"]').innerText = 'Update Resource';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        </script>
+    </div>
+</body>
+
+</html>

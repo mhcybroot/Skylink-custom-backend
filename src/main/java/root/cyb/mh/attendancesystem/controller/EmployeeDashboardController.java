@@ -65,6 +65,9 @@ public class EmployeeDashboardController {
     private root.cyb.mh.attendancesystem.repository.EmployeeDailyWorkStatusRepository employeeDailyWorkStatusRepository;
 
     @Autowired
+    private root.cyb.mh.attendancesystem.repository.SharedResourceRepository sharedResourceRepository;
+
+    @Autowired
     private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
     @GetMapping("/employee/dashboard")
@@ -237,6 +240,11 @@ public class EmployeeDashboardController {
 
         MonthlySummaryDto streakTop = punctualityStars.isEmpty() ? null : punctualityStars.get(0);
         model.addAttribute("streakEmployee", streakTop);
+
+        // 5. Shared Resources
+        java.util.List<root.cyb.mh.attendancesystem.model.SharedResource> sharedResources = sharedResourceRepository
+                .findByEmployeeId(employeeId);
+        model.addAttribute("sharedResources", sharedResources);
 
         return "employee-dashboard";
     }
