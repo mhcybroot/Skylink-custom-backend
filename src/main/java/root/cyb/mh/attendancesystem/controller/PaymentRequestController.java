@@ -332,7 +332,12 @@ public class PaymentRequestController {
 
     @PostMapping("/{id}/review")
     public String reviewRequest(@PathVariable Long id,
-            @ModelAttribute PaymentRequest formData,
+            @RequestParam(value = "status", required = false) root.cyb.mh.attendancesystem.model.enums.RequestStatus status,
+            @RequestParam(value = "paymentStatus", required = false) root.cyb.mh.attendancesystem.model.enums.PaymentStatus paymentStatus,
+            @RequestParam(value = "checkStatus", required = false) String checkStatus,
+            @RequestParam(value = "ppwUpdateStatus", required = false) root.cyb.mh.attendancesystem.model.enums.PPWStatus ppwUpdateStatus,
+            @RequestParam(value = "paymentReferenceNumber", required = false) String paymentReferenceNumber,
+            @RequestParam(value = "remarks", required = false) String remarks,
             @RequestParam(value = "proofFile", required = false) org.springframework.web.multipart.MultipartFile proofFile,
             @AuthenticationPrincipal UserDetails userDetails) {
         Optional<PaymentRequest> requestOpt = paymentRequestService.getRequestById(id);
@@ -386,12 +391,12 @@ public class PaymentRequestController {
                 // 1. Lock if PAID
                 if (isPaid) {
                     // Prevent changing major fields
-                    boolean statusChanged = formData.getStatus() != null
-                            && formData.getStatus() != existingRequest.getStatus();
-                    boolean payStatusChanged = formData.getPaymentStatus() != null
-                            && formData.getPaymentStatus() != existingRequest.getPaymentStatus();
-                    boolean refNoChanged = formData.getPaymentReferenceNumber() != null &&
-                            !formData.getPaymentReferenceNumber().equals(existingRequest.getPaymentReferenceNumber());
+                    boolean statusChanged = status != null
+                            && status != existingRequest.getStatus();
+                    boolean payStatusChanged = paymentStatus != null
+                            && paymentStatus != existingRequest.getPaymentStatus();
+                    boolean refNoChanged = paymentReferenceNumber != null &&
+                            !paymentReferenceNumber.equals(existingRequest.getPaymentReferenceNumber());
 
                     if (statusChanged || payStatusChanged || refNoChanged) {
                         return "redirect:/payment-requests/" + id + "?error=LockedStatusPaid";
@@ -399,12 +404,12 @@ public class PaymentRequestController {
                 }
 
                 // 2. Limit to updates (Internal / Status fields)
-                boolean statusChanged = formData.getStatus() != null
-                        && formData.getStatus() != existingRequest.getStatus();
-                boolean payStatusChanged = formData.getPaymentStatus() != null
-                        && formData.getPaymentStatus() != existingRequest.getPaymentStatus();
-                boolean ppwChanged = formData.getPpwUpdateStatus() != null
-                        && formData.getPpwUpdateStatus() != existingRequest.getPpwUpdateStatus();
+                boolean statusChanged = status != null
+                        && status != existingRequest.getStatus();
+                boolean payStatusChanged = paymentStatus != null
+                        && paymentStatus != existingRequest.getPaymentStatus();
+                boolean ppwChanged = ppwUpdateStatus != null
+                        && ppwUpdateStatus != existingRequest.getPpwUpdateStatus();
 
                 if (statusChanged || payStatusChanged || ppwChanged) {
                     String limitStr = systemSettingService.getValue("PAYMENT_REVIEW_UPDATE_LIMIT", "3");
@@ -421,18 +426,18 @@ public class PaymentRequestController {
             // --- END RESTRICTION LOGIC ---
 
             // Update fields allowed for editing during review
-            if (formData.getCheckStatus() != null)
-                existingRequest.setCheckStatus(formData.getCheckStatus());
-            if (formData.getPaymentStatus() != null)
-                existingRequest.setPaymentStatus(formData.getPaymentStatus());
-            if (formData.getPpwUpdateStatus() != null)
-                existingRequest.setPpwUpdateStatus(formData.getPpwUpdateStatus());
-            if (formData.getRemarks() != null)
-                existingRequest.setRemarks(formData.getRemarks());
-            if (formData.getStatus() != null)
-                existingRequest.setStatus(formData.getStatus());
-            if (formData.getPaymentReferenceNumber() != null)
-                existingRequest.setPaymentReferenceNumber(formData.getPaymentReferenceNumber());
+            if (checkStatus != null)
+                existingRequest.setCheckStatus(checkStatus);
+            if (paymentStatus != null)
+                existingRequest.setPaymentStatus(paymentStatus);
+            if (ppwUpdateStatus != null)
+                existingRequest.setPpwUpdateStatus(ppwUpdateStatus);
+            if (remarks != null)
+                existingRequest.setRemarks(remarks);
+            if (status != null)
+                existingRequest.setStatus(status);
+            if (paymentReferenceNumber != null)
+                existingRequest.setPaymentReferenceNumber(paymentReferenceNumber);
 
             if (approverUser != null) {
                 existingRequest.setApprovalAuthority(approverUser);
@@ -597,6 +602,48 @@ public class PaymentRequestController {
             }
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage", "Error sending email: " + e.getMessage());
+        }
+        return "redirect:/payment-requests/" + id;
+    }
+
+    @PostMapping("/{id}/employee-note")
+    public String addEmployeeNote(@PathVariable Long id, @RequestParam("employeeNote") String note,
+            RedirectAttributes redirectAttributes, @AuthenticationPrincipal UserDetails userDetails) {
+        Optional<PaymentRequest> requestOpt = paymentRequestService.getRequestById(id);
+        if (requestOpt.isPresent()) {
+            PaymentRequest request = requestOpt.get();
+
+            // Check if requester is current user
+            boolean isRequester = false;
+            Optional<root.cyb.mh.attendancesystem.model.Employee> currentEmpOpt = employeeRepository
+                    .findById(userDetails.getUsername());
+            if (currentEmpOpt.isPresent() && request.getEmployeeRequester() != null
+                    && request.getEmployeeRequester().getId().equals(currentEmpOpt.get().getId())) {
+                isRequester = true;
+            }
+            if (!isRequester && request.getRequester() != null
+                    && request.getRequester().getUsername().equals(userDetails.getUsername())) {
+                isRequester = true;
+            }
+
+            if (!isRequester) {
+                redirectAttributes.addFlashAttribute("errorMessage",
+                        "Access Denied: Only the requester can add a note.");
+                return "redirect:/payment-requests/" + id;
+            }
+
+            if (request.getStatus() != RequestStatus.PENDING) {
+                redirectAttributes.addFlashAttribute("errorMessage",
+                        "Error: Notes can only be added to PENDING requests.");
+                return "redirect:/payment-requests/" + id;
+            }
+
+            request.setEmployeeNote(note);
+            paymentRequestService.updateRequest(request);
+
+            redirectAttributes.addFlashAttribute("successMessage", "Note to Admin successfully saved.");
+        } else {
+            redirectAttributes.addFlashAttribute("errorMessage", "Request not found.");
         }
         return "redirect:/payment-requests/" + id;
     }

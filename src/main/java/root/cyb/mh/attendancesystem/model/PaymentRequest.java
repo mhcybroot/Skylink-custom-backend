@@ -101,6 +101,9 @@ public class PaymentRequest {
 
     private Integer reviewUpdateCount = 0;
 
+    @Column(columnDefinition = "TEXT")
+    private String employeeNote;
+
     private java.time.LocalDateTime lastEmailSentAt;
     private String lastEmailSentTo;
 
