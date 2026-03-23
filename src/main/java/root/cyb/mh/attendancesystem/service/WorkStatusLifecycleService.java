@@ -38,9 +38,9 @@ public class WorkStatusLifecycleService {
     // never closed
     @Scheduled(cron = "0 5 0 * * *", zone = "Etc/GMT+5")
     public void expireStaleYesterdayStatuses() {
-        LocalDate yesterday = LocalDate.now().minusDays(1);
-        List<EmployeeDailyWorkStatus> allYesterday = statusRepository.findAll().stream()
-                .filter(s -> s.getDate().equals(yesterday))
+        LocalDate today = LocalDate.now();
+        List<EmployeeDailyWorkStatus> staleStatuses = statusRepository.findAll().stream()
+                .filter(s -> s.getDate().isBefore(today))
                 .filter(s -> s.getStatus() == WorkStatus.WORKING
                         || s.getStatus() == WorkStatus.ON_BREAK
                         || s.getStatus() == WorkStatus.ENTERED_OFFICE
@@ -48,11 +48,12 @@ public class WorkStatusLifecycleService {
                         || s.getStatus() == WorkStatus.ENDED_WORK)
                 .collect(java.util.stream.Collectors.toList());
 
-        for (EmployeeDailyWorkStatus status : allYesterday) {
+        for (EmployeeDailyWorkStatus status : staleStatuses) {
+            LocalDate statusDate = status.getDate();
             if (status.getStatus() == WorkStatus.ON_BREAK && status.getCurrentBreakStartTime() != null) {
                 long breakMins = java.time.temporal.ChronoUnit.MINUTES
                         .between(status.getCurrentBreakStartTime(),
-                                LocalDateTime.of(yesterday, java.time.LocalTime.of(23, 59)));
+                                LocalDateTime.of(statusDate, java.time.LocalTime.of(23, 59)));
                 status.setTotalBreakMinutes(status.getTotalBreakMinutes() + (int) breakMins);
                 status.setCurrentBreakStartTime(null);
             }
@@ -65,9 +66,12 @@ public class WorkStatusLifecycleService {
                 status.setStatus(activeMins >= 480 ? WorkStatus.COMPLETED_DAY : WorkStatus.INCOMPLETE_SHIFT);
             } else {
                 status.setStatus(WorkStatus.LEFT_WITHOUT_PUNCH);
+                if (status.getWorkEndTime() == null && status.getWorkStartTime() != null) {
+                    status.setWorkEndTime(statusDate.atTime(23, 59, 59));
+                }
             }
             statusRepository.save(status);
-            System.out.println("Nightly reset: Expired stale status for Employee " + status.getEmployeeId());
+            System.out.println("Nightly reset: Expired stale status for Employee " + status.getEmployeeId() + " on " + statusDate);
         }
     }
 }
