@@ -30,4 +30,5 @@ public class WeeklyAttendanceDto {
     private int lateCount;
     private int earlyLeaveCount;
     private int leaveCount;
+    private int totalMissedPunches;
 }

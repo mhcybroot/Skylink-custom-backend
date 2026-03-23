@@ -37,7 +37,8 @@
                                 Summary: Present: <span th:text="${rangeReport.totalPresent}"></span>,
                                 Absent: <span th:text="${rangeReport.totalAbsent}"></span>,
                                 Paid Lv: <span th:text="${rangeReport.totalPaidLeaves}"></span>,
-                                Unpaid Lv: <span th:text="${rangeReport.totalUnpaidLeaves}"></span>
+                                Unpaid Lv: <span th:text="${rangeReport.totalUnpaidLeaves}"></span>,
+                                Missed Punches: <span class="text-danger fw-bold" th:text="${rangeReport.totalMissedPunches}"></span>
                             </div>
                         </div>
 
@@ -160,6 +161,8 @@
                                                                 th:text="${monthReport.totalPresent}">20</span></span>
                                                         <span class="text-danger">Absent: <span
                                                                 th:text="${monthReport.totalAbsent}">2</span></span>
+                                                        <span class="text-danger">Missed Punches: <span
+                                                                th:text="${monthReport.totalMissedPunches}">0</span></span>
                                                         <span class="text-warning">Lates: <span
                                                                 th:text="${monthReport.totalLates}">3</span></span>
                                                         <span class="text-primary">Paid Lv: <span
@@ -237,6 +240,8 @@
                                                         th:text="${report.totalPresent}">20</span></span>
                                                 <span class="text-danger">Total Absent: <span
                                                         th:text="${report.totalAbsent}">2</span></span>
+                                                <span class="text-danger">Missed Punches: <span
+                                                        th:text="${report.totalMissedPunches}">0</span></span>
                                                 <span class="text-warning">Total Lates: <span
                                                         th:text="${report.totalLates}">3</span></span>
                                                 <span class="text-info">Total Early Leaves: <span

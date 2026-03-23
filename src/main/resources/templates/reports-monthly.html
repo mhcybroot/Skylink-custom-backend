@@ -206,6 +206,7 @@
 
                                         <td class="text-center table-success" th:text="${row.presentCount}">25</td>
                                         <td class="text-center table-danger" th:text="${row.absentCount}">0</td>
+                                        <td class="text-center text-danger fw-bold" th:text="${row.totalMissedPunches}">0</td>
                                         <td class="text-center text-warning fw-bold" th:text="${row.lateCount}">1</td>
                                         <td class="text-center text-info fw-bold" th:text="${row.earlyLeaveCount}">0
                                         </td>
@@ -218,7 +219,7 @@
                                             10h 30m</td>
                                     </tr>
                                     <tr th:if="${#lists.isEmpty(report)}">
-                                        <td colspan="9" class="text-center p-4">No data found for this month.</td>
+                                        <td colspan="10" class="text-center p-4">No data found for this month.</td>
                                     </tr>
                                 </tbody>
                             </table>

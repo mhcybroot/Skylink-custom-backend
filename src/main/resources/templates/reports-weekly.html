@@ -196,6 +196,7 @@
                                                     th:href="@{/reports/weekly(date=${startOfWeek}, departmentId=${selectedDept}, sortField='absent', sortDir=${sortField == 'absent' ? reverseSortDir : sortDir})}">A</a>
                                                 <a class="text-white text-decoration-none" title="Sort by Late"
                                                     th:href="@{/reports/weekly(date=${startOfWeek}, departmentId=${selectedDept}, sortField='late', sortDir=${sortField == 'late' ? reverseSortDir : sortDir})}">L</a>
+                                                <span class="text-white" title="Missed Punches">MP</span>
                                             </div>
                                         </th>
                                     </tr>
@@ -239,6 +240,8 @@
                                                     th:text="${row.earlyLeaveCount}">1</span></div>
                                             <div th:if="${row.leaveCount > 0}" class="text-primary">LV: <span
                                                     th:text="${row.leaveCount}">1</span></div>
+                                            <div th:if="${row.totalMissedPunches > 0}" class="text-danger fw-bold">MP: <span
+                                                    th:text="${row.totalMissedPunches}">0</span></div>
                                         </td>
                                     </tr>
                                     <tr th:if="${#lists.isEmpty(report)}">

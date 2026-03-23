@@ -12,6 +12,7 @@ public class MonthlySummaryDto {
     private int leaveCount;
     private int paidLeaveCount;
     private int unpaidLeaveCount;
+    private int totalMissedPunches;
 
     private String totalActiveDuration = "00h 00m";
     private String totalBreakDuration = "00h 00m";
@@ -94,6 +95,14 @@ public class MonthlySummaryDto {
 
     public void setUnpaidLeaveCount(int unpaidLeaveCount) {
         this.unpaidLeaveCount = unpaidLeaveCount;
+    }
+
+    public int getTotalMissedPunches() {
+        return totalMissedPunches;
+    }
+
+    public void setTotalMissedPunches(int totalMissedPunches) {
+        this.totalMissedPunches = totalMissedPunches;
     }
 
     public String getTotalActiveDuration() {

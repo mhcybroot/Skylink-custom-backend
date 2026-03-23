@@ -234,30 +234,32 @@ public class ReportService {
                         String.format("%02dh %02dm", totalBreakSecs / 3600, (totalBreakSecs % 3600) / 60));
 
                 if (empStatus.getWorkStartTime() != null) {
-                    java.time.LocalDateTime endTime = empStatus.getWorkEndTime();
-                    if (endTime == null) {
-                        if (empStatus.getDate().isBefore(java.time.LocalDate.now())) {
-                            endTime = empStatus.getDate().atTime(23, 59, 59);
-                        } else {
+                    boolean isMissedPunch = empStatus.getStatus() == root.cyb.mh.attendancesystem.model.WorkStatus.LEFT_WITHOUT_PUNCH ||
+                            (empStatus.getWorkEndTime() == null && empStatus.getDate().isBefore(java.time.LocalDate.now()));
+
+                    if (isMissedPunch) {
+                        dto.setActiveWorkDuration("Missed");
+                        dto.setCurrentWorkStatus("LEFT_WITHOUT_PUNCH");
+                        dto.setCurrentWorkStatusColor("danger");
+                    } else {
+                        java.time.LocalDateTime endTime = empStatus.getWorkEndTime();
+                        if (endTime == null) {
                             endTime = java.time.LocalDateTime.now();
                         }
-                    }
-                    long activeMs = java.time.Duration.between(empStatus.getWorkStartTime(), endTime).toMillis()
-                            - (totalBreakSecs * 1000L);
+                        long activeMs = java.time.Duration.between(empStatus.getWorkStartTime(), endTime).toMillis()
+                                - (totalBreakSecs * 1000L);
 
-                    // If currently on break, subtract the current break elapsed time too
-                    if (empStatus.getStatus() == root.cyb.mh.attendancesystem.model.WorkStatus.ON_BREAK
-                            && empStatus.getCurrentBreakStartTime() != null) {
-                        java.time.LocalDateTime breakEndTime = empStatus.getDate().isBefore(java.time.LocalDate.now())
-                                ? empStatus.getDate().atTime(23, 59, 59)
-                                : java.time.LocalDateTime.now();
-                        activeMs -= java.time.Duration
-                                .between(empStatus.getCurrentBreakStartTime(), breakEndTime)
-                                .toMillis();
-                    }
+                        if (empStatus.getStatus() == root.cyb.mh.attendancesystem.model.WorkStatus.ON_BREAK
+                                && empStatus.getCurrentBreakStartTime() != null) {
+                            java.time.LocalDateTime breakEndTime = java.time.LocalDateTime.now();
+                            activeMs -= java.time.Duration
+                                    .between(empStatus.getCurrentBreakStartTime(), breakEndTime)
+                                    .toMillis();
+                        }
 
-                    long activeMins = Math.max(0, activeMs / (60 * 1000L));
-                    dto.setActiveWorkDuration(String.format("%02dh %02dm", activeMins / 60, activeMins % 60));
+                        long activeMins = Math.max(0, activeMs / (60 * 1000L));
+                        dto.setActiveWorkDuration(String.format("%02dh %02dm", activeMins / 60, activeMins % 60));
+                    }
                 } else {
                     dto.setActiveWorkDuration("00h 00m");
                 }
@@ -455,30 +457,32 @@ public class ReportService {
                             String.format("%02dh %02dm", totalBreakSecs / 3600, (totalBreakSecs % 3600) / 60));
 
                     if (empStatus.getWorkStartTime() != null) {
-                        java.time.LocalDateTime endTime = empStatus.getWorkEndTime();
-                        if (endTime == null) {
-                            if (empStatus.getDate().isBefore(java.time.LocalDate.now())) {
-                                endTime = empStatus.getDate().atTime(23, 59, 59);
-                            } else {
+                        boolean isMissedPunch = empStatus.getStatus() == root.cyb.mh.attendancesystem.model.WorkStatus.LEFT_WITHOUT_PUNCH ||
+                                (empStatus.getWorkEndTime() == null && empStatus.getDate().isBefore(java.time.LocalDate.now()));
+
+                        if (isMissedPunch) {
+                            workDetail.setActiveWorkDuration("Missed");
+                            workDetail.setCurrentWorkStatus("LEFT_WITHOUT_PUNCH");
+                            workDetail.setCurrentWorkStatusColor("danger");
+                        } else {
+                            java.time.LocalDateTime endTime = empStatus.getWorkEndTime();
+                            if (endTime == null) {
                                 endTime = java.time.LocalDateTime.now();
                             }
-                        }
-                        long activeMs = java.time.Duration.between(empStatus.getWorkStartTime(), endTime).toMillis()
-                                - (totalBreakSecs * 1000L);
+                            long activeMs = java.time.Duration.between(empStatus.getWorkStartTime(), endTime).toMillis()
+                                    - (totalBreakSecs * 1000L);
 
-                        if (empStatus.getStatus() == root.cyb.mh.attendancesystem.model.WorkStatus.ON_BREAK
-                                && empStatus.getCurrentBreakStartTime() != null) {
-                            java.time.LocalDateTime breakEndTime = empStatus.getDate().isBefore(java.time.LocalDate.now())
-                                    ? empStatus.getDate().atTime(23, 59, 59)
-                                    : java.time.LocalDateTime.now();
-                            activeMs -= java.time.Duration
-                                    .between(empStatus.getCurrentBreakStartTime(), breakEndTime)
-                                    .toMillis();
-                        }
+                            if (empStatus.getStatus() == root.cyb.mh.attendancesystem.model.WorkStatus.ON_BREAK
+                                    && empStatus.getCurrentBreakStartTime() != null) {
+                                java.time.LocalDateTime breakEndTime = java.time.LocalDateTime.now();
+                                activeMs -= java.time.Duration
+                                        .between(empStatus.getCurrentBreakStartTime(), breakEndTime)
+                                        .toMillis();
+                            }
 
-                        long activeMins = Math.max(0, activeMs / (60 * 1000L));
-                        workDetail
-                                .setActiveWorkDuration(String.format("%02dh %02dm", activeMins / 60, activeMins % 60));
+                            long activeMins = Math.max(0, activeMs / (60 * 1000L));
+                            workDetail.setActiveWorkDuration(String.format("%02dh %02dm", activeMins / 60, activeMins % 60));
+                        }
                     } else {
                         workDetail.setActiveWorkDuration("00h 00m");
                     }
@@ -721,7 +725,7 @@ public class ReportService {
                 dto.setYear(year); // Set Year
 
                 int present = 0, absent = 0, late = 0, early = 0, leave = 0;
-                int paidLeave = 0, unpaidLeave = 0;
+                int paidLeave = 0, unpaidLeave = 0, missedPunches = 0;
                 long totalMonthActiveMs = 0;
                 long totalMonthBreakSecs = 0;
 
@@ -788,28 +792,29 @@ public class ReportService {
                         totalMonthBreakSecs += breakSecs;
 
                         if (empStatus.getWorkStartTime() != null) {
-                            java.time.LocalDateTime endTime = empStatus.getWorkEndTime();
-                            if (endTime == null) {
-                                if (empStatus.getDate().isBefore(java.time.LocalDate.now())) {
-                                    endTime = empStatus.getDate().atTime(23, 59, 59);
-                                } else {
+                            boolean isMissedPunch = empStatus.getStatus() == root.cyb.mh.attendancesystem.model.WorkStatus.LEFT_WITHOUT_PUNCH ||
+                                    (empStatus.getWorkEndTime() == null && empStatus.getDate().isBefore(java.time.LocalDate.now()));
+
+                            if (isMissedPunch) {
+                                missedPunches++;
+                            } else {
+                                java.time.LocalDateTime endTime = empStatus.getWorkEndTime();
+                                if (endTime == null) {
                                     endTime = java.time.LocalDateTime.now();
                                 }
-                            }
 
-                            long activeMs = java.time.Duration.between(empStatus.getWorkStartTime(), endTime).toMillis()
-                                    - (breakSecs * 1000L);
+                                long activeMs = java.time.Duration.between(empStatus.getWorkStartTime(), endTime).toMillis()
+                                        - (breakSecs * 1000L);
 
-                            if (empStatus.getStatus() == root.cyb.mh.attendancesystem.model.WorkStatus.ON_BREAK
-                                    && empStatus.getCurrentBreakStartTime() != null) {
-                                java.time.LocalDateTime breakEndTime = empStatus.getDate().isBefore(java.time.LocalDate.now())
-                                        ? empStatus.getDate().atTime(23, 59, 59)
-                                        : java.time.LocalDateTime.now();
-                                activeMs -= java.time.Duration
-                                        .between(empStatus.getCurrentBreakStartTime(), breakEndTime)
-                                        .toMillis();
+                                if (empStatus.getStatus() == root.cyb.mh.attendancesystem.model.WorkStatus.ON_BREAK
+                                        && empStatus.getCurrentBreakStartTime() != null) {
+                                    java.time.LocalDateTime breakEndTime = java.time.LocalDateTime.now();
+                                    activeMs -= java.time.Duration
+                                            .between(empStatus.getCurrentBreakStartTime(), breakEndTime)
+                                            .toMillis();
+                                }
+                                totalMonthActiveMs += Math.max(0, activeMs);
                             }
-                            totalMonthActiveMs += Math.max(0, activeMs);
                         }
                     }
                 }
@@ -827,6 +832,7 @@ public class ReportService {
                 dto.setLeaveCount(leave);
                 dto.setPaidLeaveCount(paidLeave);
                 dto.setUnpaidLeaveCount(unpaidLeave);
+                dto.setTotalMissedPunches(missedPunches);
                 fullReport.add(dto);
             }
         }
@@ -877,7 +883,7 @@ public class ReportService {
 
         List<root.cyb.mh.attendancesystem.dto.EmployeeWeeklyDetailDto.DailyDetail> details = new ArrayList<>();
         int present = 0, absent = 0, late = 0, early = 0, leaves = 0;
-        int paidLeaves = 0, unpaidLeaves = 0;
+        int paidLeaves = 0, unpaidLeaves = 0, missedPunches = 0;
 
         long totalMonthActiveMs = 0;
         long totalMonthBreakSecs = 0;
@@ -998,23 +1004,33 @@ public class ReportService {
                 totalMonthBreakSecs += totalBreakSecs;
 
                 if (empStatus.getWorkStartTime() != null) {
-                    java.time.LocalDateTime endTime = empStatus.getWorkEndTime() != null
-                            ? empStatus.getWorkEndTime()
-                            : java.time.LocalDateTime.now();
-                    long activeMs = java.time.Duration.between(empStatus.getWorkStartTime(), endTime).toMillis()
-                            - (totalBreakSecs * 1000L);
+                    boolean isMissedPunch = empStatus.getStatus() == root.cyb.mh.attendancesystem.model.WorkStatus.LEFT_WITHOUT_PUNCH ||
+                            (empStatus.getWorkEndTime() == null && empStatus.getDate().isBefore(java.time.LocalDate.now()));
 
-                    if (empStatus.getStatus() == root.cyb.mh.attendancesystem.model.WorkStatus.ON_BREAK
-                            && empStatus.getCurrentBreakStartTime() != null) {
-                        activeMs -= java.time.Duration
-                                .between(empStatus.getCurrentBreakStartTime(), java.time.LocalDateTime.now())
-                                .toMillis();
+                    if (isMissedPunch) {
+                        daily.setActiveWorkDuration("Missed");
+                        daily.setStatus("LEFT W/O PUNCH");
+                        daily.setStatusColor("danger");
+                        missedPunches++;
+                    } else {
+                        java.time.LocalDateTime endTime = empStatus.getWorkEndTime() != null
+                                ? empStatus.getWorkEndTime()
+                                : java.time.LocalDateTime.now();
+                        long activeMs = java.time.Duration.between(empStatus.getWorkStartTime(), endTime).toMillis()
+                                - (totalBreakSecs * 1000L);
+
+                        if (empStatus.getStatus() == root.cyb.mh.attendancesystem.model.WorkStatus.ON_BREAK
+                                && empStatus.getCurrentBreakStartTime() != null) {
+                            activeMs -= java.time.Duration
+                                    .between(empStatus.getCurrentBreakStartTime(), java.time.LocalDateTime.now())
+                                    .toMillis();
+                        }
+
+                        long activeMins = Math.max(0, activeMs / (60 * 1000L));
+                        daily.setActiveWorkDuration(String.format("%02dh %02dm", activeMins / 60, activeMins % 60));
+
+                        totalMonthActiveMs += Math.max(0, activeMs);
                     }
-
-                    long activeMins = Math.max(0, activeMs / (60 * 1000L));
-                    daily.setActiveWorkDuration(String.format("%02dh %02dm", activeMins / 60, activeMins % 60));
-
-                    totalMonthActiveMs += Math.max(0, activeMs);
                 } else {
                     daily.setActiveWorkDuration("00h 00m");
                 }
@@ -1041,6 +1057,7 @@ public class ReportService {
         dto.setTotalLeaves(leaves);
         dto.setPaidLeavesCount(paidLeaves);
         dto.setUnpaidLeavesCount(unpaidLeaves);
+        dto.setTotalMissedPunches(missedPunches);
 
         return dto;
     }
@@ -1140,6 +1157,7 @@ public class ReportService {
                 rangeDto.setTotalLeaves(rangeDto.getTotalLeaves() + monthDto.getTotalLeaves());
                 rangeDto.setTotalPaidLeaves(rangeDto.getTotalPaidLeaves() + monthDto.getPaidLeavesCount());
                 rangeDto.setTotalUnpaidLeaves(rangeDto.getTotalUnpaidLeaves() + monthDto.getUnpaidLeavesCount());
+                rangeDto.setTotalMissedPunches(rangeDto.getTotalMissedPunches() + monthDto.getTotalMissedPunches());
             }
 
             current = current.plusMonths(1);

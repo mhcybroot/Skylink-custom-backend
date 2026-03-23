@@ -22,6 +22,7 @@ public class EmployeeRangeReportDto {
     private int totalLeaves;
     private int totalPaidLeaves;
     private int totalUnpaidLeaves;
+    private int totalMissedPunches;
 
     // Monthly Breakdown
     private List<EmployeeMonthlyDetailDto> monthlyReports = new ArrayList<>();

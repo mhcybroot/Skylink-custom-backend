@@ -21,6 +21,7 @@ public class EmployeeMonthlyDetailDto {
     private int paidLeavesCount; // Renamed to slightly distinct from monthly summary if needed, but consistent
                                  // is better. Let's use same name style.
     private int unpaidLeavesCount;
+    private int totalMissedPunches;
 
     private String totalActiveDuration = "00h 00m";
     private String totalBreakDuration = "00h 00m";
@@ -129,6 +130,14 @@ public class EmployeeMonthlyDetailDto {
 
     public void setUnpaidLeavesCount(int unpaidLeavesCount) {
         this.unpaidLeavesCount = unpaidLeavesCount;
+    }
+
+    public int getTotalMissedPunches() {
+        return totalMissedPunches;
+    }
+
+    public void setTotalMissedPunches(int totalMissedPunches) {
+        this.totalMissedPunches = totalMissedPunches;
     }
 
     public String getTotalActiveDuration() {
