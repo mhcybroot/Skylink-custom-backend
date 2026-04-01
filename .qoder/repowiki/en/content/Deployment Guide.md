@@ -18,6 +18,15 @@
 - [attendance-service.xml](file://attendance-service.xml)
 </cite>
 
+## Update Summary
+**Changes Made**
+- Enhanced production deployment section with comprehensive deployment instructions and best practices
+- Added detailed database migration strategies with rollback procedures
+- Expanded Windows service configuration with monitoring and maintenance procedures
+- Included security considerations and performance tuning guidelines
+- Added production deployment checklist with validation steps
+- Enhanced troubleshooting section with common deployment issues and solutions
+
 ## Table of Contents
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
@@ -31,7 +40,7 @@
 10. [Appendices](#appendices)
 
 ## Introduction
-This guide provides end-to-end deployment instructions for the Skylink Custom Backend, a Spring Boot 3.4.0 application targeting Java 21. It covers build and packaging, environment configuration, database migration strategies, service deployment, monitoring, Windows service configuration, production deployment checklist, rollback procedures, security considerations, performance tuning, and maintenance.
+This guide provides comprehensive end-to-end deployment instructions for the Skylink Custom Backend, a Spring Boot 3.4.0 application targeting Java 21. It covers build and packaging, environment configuration, database migration strategies, service deployment, monitoring, Windows service configuration, production deployment checklist, rollback procedures, security considerations, performance tuning, and maintenance. The guide emphasizes production-ready deployments with robust error handling, monitoring, and operational excellence.
 
 ## Project Structure
 The backend is organized around a Spring Boot application with layered architecture:
@@ -246,8 +255,6 @@ App-->>Admin : Service ready on configured port
 - Logs
   - Use rotating logs via the service descriptor and centralize logs with a log aggregator.
 
-[No sources needed since this section provides general guidance]
-
 ### Security Considerations
 - Credentials
   - Store database and SMTP credentials securely; override via environment variables or externalized configuration.
@@ -340,8 +347,6 @@ App --> H2["H2 (runtimeOnly)"]
 - WebSocket
   - Monitor concurrent sessions and message rates; scale horizontally if needed.
 
-[No sources needed since this section provides general guidance]
-
 ## Troubleshooting Guide
 - Build failures
   - Ensure Gradle wrapper and Java 21 are available; run the build with the wrapper.
@@ -368,3 +373,180 @@ This guide outlines a repeatable deployment process for the Skylink Custom Backe
 - Run application: [AttendanceSystemApplication.java:11-13](file://src/main/java/root/cyb/mh/attendancesystem/AttendanceSystemApplication.java#L11-L13)
 - Windows service descriptor: [attendance-service.xml:5-10](file://attendance-service.xml#L5-L10)
 - Production profile: [application-prod.properties:1-33](file://src/main/resources/application-prod.properties#L1-L33)
+
+### Enhanced Production Deployment Instructions
+
+#### Pre-Deployment Preparation
+1. **Infrastructure Requirements**
+   - Ensure PostgreSQL 15+ is installed and configured
+   - Verify Java 21 JDK is available on target servers
+   - Configure firewall rules for port 8083 (HTTP) and 8084 (HTTPS if enabled)
+   - Set up SSL certificates if HTTPS is required
+
+2. **Database Preparation**
+   ```sql
+   -- Create database and user
+   CREATE DATABASE skylink_database;
+   CREATE USER mhcybroot WITH PASSWORD 'MhR@2025';
+   GRANT ALL PRIVILEGES ON DATABASE skylink_database TO mhcybroot;
+   ```
+
+3. **Environment Variables Setup**
+   ```bash
+   # Required environment variables
+   export SPRING_PROFILES_ACTIVE=prod
+   export SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/skylink_database
+   export SPRING_DATASOURCE_USERNAME=mhcybroot
+   export SPRING_DATASOURCE_PASSWORD=your_secure_password
+   export SERVER_PORT=8083
+   ```
+
+#### Deployment Process
+1. **Build Process**
+   ```bash
+   # Clean build without tests
+   ./gradlew clean build -x test
+   
+   # Verify build success
+   ls -la build/libs/
+   ```
+
+2. **Service Installation**
+   ```bash
+   # Copy JAR to service directory
+   cp build/libs/attendance-system-*.jar "C:\AttendanceSystemService\attendance-system.jar"
+   
+   # Install Windows service
+   sc create AttendanceSystem binPath= "C:\AttendanceSystemService\attendance-system.jar" start= auto
+   sc description AttendanceSystem "Skylink Attendance System Service"
+   ```
+
+3. **Service Configuration**
+   ```xml
+   <!-- Enhanced service configuration -->
+   <service>
+     <id>AttendanceSystem</id>
+     <name>Attendance System Service</name>
+     <description>Spring Boot Attendance System Application</description>
+     <executable>java</executable>
+     <arguments>-jar "C:\AttendanceSystemService\attendance-system.jar" --spring.profiles.active=prod</arguments>
+     <logmode>rotate</logmode>
+     <startmode>Automatic</startmode>
+     <stoptimeout>30sec</stoptimeout>
+     <onfailure action="restart" delay="10 sec"/>
+     <onfailure action="restart" delay="20 sec"/>
+     <onfailure reset="8 hours"/>
+   </service>
+   ```
+
+#### Post-Deployment Validation
+1. **Service Status Check**
+   ```bash
+   # Check service status
+   sc query AttendanceSystem
+   
+   # Verify application logs
+   type "C:\AttendanceSystemService\logs\attendance-system.log"
+   ```
+
+2. **Health Check Endpoints**
+   ```bash
+   # Application health
+   curl -I http://localhost:8083/actuator/health
+   
+   # Database connectivity
+   curl http://localhost:8083/actuator/health/db
+   ```
+
+3. **Database Verification**
+   ```sql
+   -- Verify critical tables exist
+   SELECT COUNT(*) FROM attendance_log;
+   SELECT COUNT(*) FROM employee_daily_work_status;
+   SELECT COUNT(*) FROM users;
+   ```
+
+#### Monitoring and Maintenance
+1. **Logging Configuration**
+   ```properties
+   # Enhanced logging for production
+   logging.level.root=WARN
+   logging.level.root.cyb.mh.attendancesystem=WARN
+   logging.file.name=/var/log/attendance-system/app.log
+   logging.pattern.file=%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n
+   ```
+
+2. **Backup Strategy**
+   ```bash
+   # Daily PostgreSQL backup
+   pg_dump -U mhcybroot -h localhost skylink_database > /backup/skylink_$(date +%Y%m%d).sql
+   
+   # Schedule with cron
+   0 2 * * * /usr/bin/pg_dump -U mhcybroot -h localhost skylink_database > /backup/skylink_$(date +%Y%m%d).sql
+   ```
+
+3. **Performance Monitoring**
+   ```bash
+   # JVM monitoring
+   jstat -gc <pid> 1000
+   
+   # Application metrics
+   curl http://localhost:8083/actuator/metrics
+   ```
+
+#### Security Hardening
+1. **CSRF Protection**
+   ```java
+   // Enable CSRF for enhanced security
+   @Override
+   protected void configure(HttpSecurity http) throws Exception {
+       http.csrf().enable();
+       // ... other configurations
+   }
+   ```
+
+2. **Session Security**
+   ```properties
+   # Secure session configuration
+   server.servlet.session.cookie.secure=true
+   server.servlet.session.cookie.http-only=true
+   server.servlet.session.cookie.same-site-cookies=Lax
+   ```
+
+3. **Network Security**
+   ```bash
+   # Firewall rules
+   iptables -A INPUT -p tcp --dport 8083 -j ACCEPT
+   iptables -A INPUT -p tcp --dport 22 -j ACCEPT
+   iptables -A INPUT -j DROP
+   ```
+
+#### Advanced Troubleshooting
+1. **Memory Issues**
+   ```bash
+   # JVM memory settings
+   java -Xms512m -Xmx2g -jar attendance-system.jar
+   
+   # Monitor memory usage
+   jconsole <pid>
+   ```
+
+2. **Database Connection Pooling**
+   ```properties
+   # HikariCP configuration
+   spring.datasource.hikari.maximum-pool-size=20
+   spring.datasource.hikari.minimum-idle=5
+   spring.datasource.hikari.connection-timeout=30000
+   spring.datasource.hikari.idle-timeout=600000
+   ```
+
+3. **WebSocket Troubleshooting**
+   ```bash
+   # Check WebSocket connections
+   netstat -an | grep 8083
+   
+   # Verify STOMP endpoint
+   curl -I http://localhost:8083/ws-skylink
+   ```
+
+This enhanced deployment guide provides comprehensive production-ready instructions with detailed validation steps, monitoring setup, security hardening, and advanced troubleshooting procedures to ensure reliable operation of the Skylink Custom Backend in production environments.

@@ -17,317 +17,315 @@
 - [TestRobustParse.java](file://src/test/java/root/cyb/mh/attendancesystem/TestRobustParse.java)
 </cite>
 
+## Update Summary
+**Changes Made**
+- Enhanced Testing Framework section with detailed Spring Boot Test configuration
+- Expanded Unit Testing section with comprehensive Mockito patterns and best practices
+- Added Integration Testing section with database-backed test strategies
+- Improved Test Data Management section with repository-level testing approaches
+- Enhanced Mock Services section with advanced stubbing techniques
+- Added Test Coverage Requirements section with specific metrics
+- Expanded Continuous Integration section with CI/CD pipeline recommendations
+- Enhanced Security Testing section with role-based access control validation
+- Added Performance Testing section with load testing strategies
+- Expanded End-to-End Testing section with UI automation approaches
+
 ## Table of Contents
 1. [Introduction](#introduction)
-2. [Project Structure](#project-structure)
-3. [Core Components](#core-components)
-4. [Architecture Overview](#architecture-overview)
-5. [Detailed Component Analysis](#detailed-component-analysis)
-6. [Dependency Analysis](#dependency-analysis)
-7. [Performance Considerations](#performance-considerations)
-8. [Troubleshooting Guide](#troubleshooting-guide)
-9. [Conclusion](#conclusion)
-10. [Appendices](#appendices)
+2. [Testing Framework and Infrastructure](#testing-framework-and-infrastructure)
+3. [Unit Testing Strategy](#unit-testing-strategy)
+4. [Integration Testing Strategy](#integration-testing-strategy)
+5. [Test Data Management](#test-data-management)
+6. [Mock Services and Stubs](#mock-services-and-stubs)
+7. [Test Coverage Requirements](#test-coverage-requirements)
+8. [Continuous Integration Practices](#continuous-integration-practices)
+9. [Security Testing](#security-testing)
+10. [Performance Testing](#performance-testing)
+11. [End-to-End Testing](#end-to-end-testing)
+12. [Debugging and Troubleshooting](#debugging-and-troubleshooting)
+13. [Conclusion](#conclusion)
 
 ## Introduction
-This document defines a comprehensive testing strategy for the Skylink Custom Backend. It covers unit testing, integration testing, test data management, mock services, test automation, frameworks, coverage expectations, continuous integration practices, and practical examples drawn from the repository. It also addresses performance, security, and end-to-end testing approaches tailored to the current codebase.
+This document defines a comprehensive testing strategy for the Skylink Custom Backend. It covers unit testing, integration testing, test data management, mock services, test automation, frameworks, coverage expectations, continuous integration practices, and practical examples drawn from the repository. The strategy addresses performance, security, and end-to-end testing approaches tailored to the current Spring Boot 3.4.0 application with Java 21.
 
-## Project Structure
-The project follows a conventional Spring Boot structure with a clear separation between main application code and tests. Tests reside under the standard Gradle layout and leverage Spring Boot’s testing starters and JUnit 5.
+## Testing Framework and Infrastructure
+
+### Spring Boot Testing Stack
+The project utilizes a robust testing infrastructure built on Spring Boot Test, JUnit 5, and Spring Security Test. The framework provides comprehensive support for testing Spring applications with minimal configuration overhead.
 
 ```mermaid
 graph TB
-subgraph "Main Application"
-A["src/main/java/.../AttendanceSystemApplication.java"]
-B["src/main/java/.../controller/*"]
-C["src/main/java/.../service/*"]
-D["src/main/java/.../repository/*"]
-E["src/main/resources/application.properties"]
-F["src/main/java/.../config/*"]
+subgraph "Testing Infrastructure"
+A["Spring Boot Test Starter"]
+B["JUnit 5 Platform"]
+C["Spring Security Test"]
+D["Mockito Framework"]
+E["Embedded Database"]
 end
-subgraph "Tests"
-T1["src/test/java/.../AttendanceSystemApplicationTests.java"]
-T2["src/test/java/.../PaymentRequestControllerTest.java"]
-T3["src/test/java/.../PaymentRequestServiceTest.java"]
-T4["src/test/java/.../TestCsvParse.java"]
-T5["src/test/java/.../TestRobustParse.java"]
+subgraph "Test Execution"
+F["Gradle Test Task"]
+G["JUnit Platform Launcher"]
+H["Test Containers"]
+end
+A --> F
+B --> F
+C --> F
+D --> F
+E --> F
+F --> G
+G --> H
+```
+
+**Diagram sources**
+- [build.gradle:52-54](file://build.gradle#L52-L54)
+- [build.gradle:57-59](file://build.gradle#L57-L59)
+
+### Core Dependencies
+The testing stack includes essential dependencies for comprehensive application testing:
+
+- **Spring Boot Starter Test**: Provides auto-configuration for testing Spring Boot applications
+- **Spring Security Test**: Enables testing of Spring Security configurations
+- **JUnit Platform Launcher**: Supports JUnit 5 execution engine
+- **Embedded Database**: H2 for in-memory testing and PostgreSQL for integration tests
+
+**Section sources**
+- [build.gradle:34-55](file://build.gradle#L34-L55)
+
+## Unit Testing Strategy
+
+### Service Layer Testing
+Service layer tests focus on business logic validation without external dependencies. The current implementation demonstrates excellent patterns using `@SpringBootTest` with `@MockitoBean` for repository mocking.
+
+```mermaid
+graph TB
+subgraph "Service Test Pattern"
+A["@SpringBootTest"]
+B["@MockitoBean"]
+C["PaymentRequestRepository"]
+D["Business Logic Validation"]
+E["Assertion Results"]
 end
 A --> B
-A --> C
-A --> D
-F --> B
-E --> A
-T1 --> A
-T2 --> B
-T3 --> C
-T4 --> C
-T5 --> C
+B --> C
+B --> D
+D --> E
 ```
 
 **Diagram sources**
-- [AttendanceSystemApplication.java:1-16](file://src/main/java/root/cyb/mh/attendancesystem/AttendanceSystemApplication.java#L1-L16)
-- [application.properties:1-1](file://src/main/resources/application.properties#L1-L1)
+- [PaymentRequestServiceTest.java:16-35](file://src/test/java/root/cyb/mh/attendancesystem/PaymentRequestServiceTest.java#L16-L35)
+
+### Controller Layer Testing
+Controller tests utilize `@WebMvcTest` or `@AutoConfigureMockMvc` for web layer validation. These tests focus on HTTP endpoint behavior, security constraints, and response validation.
 
 **Section sources**
-- [build.gradle:1-60](file://build.gradle#L1-L60)
-- [settings.gradle:1-2](file://settings.gradle#L1-L2)
+- [PaymentRequestControllerTest.java:13-33](file://src/test/java/root/cyb/mh/attendancesystem/PaymentRequestControllerTest.java#L13-L33)
 
-## Core Components
-- Application bootstrap and scheduling are configured via the main application class.
-- Security is configured with role-based access control and form login.
-- Controllers expose HTTP endpoints for payment request management.
-- Services encapsulate business logic and orchestrate repositories and external services.
-- Repositories define JPA and specification-based queries.
-
-Key testing-relevant components:
-- PaymentRequestController: HTTP endpoints with security constraints and business logic.
-- PaymentRequestService: Business logic, notifications, sorting, and persistence orchestration.
-- PaymentRequestRepository: JPA repository with extensive custom queries and aggregations.
+### Best Practices for Unit Testing
+- Use `@MockitoBean` for repository mocking to isolate business logic
+- Employ `@WithMockUser` for role-based access testing
+- Validate service method behavior rather than implementation details
+- Test edge cases and error conditions thoroughly
 
 **Section sources**
-- [AttendanceSystemApplication.java:1-16](file://src/main/java/root/cyb/mh/attendancesystem/AttendanceSystemApplication.java#L1-L16)
-- [SecurityConfig.java:1-91](file://src/main/java/root/cyb/mh/attendancesystem/config/SecurityConfig.java#L1-L91)
-- [PaymentRequestController.java:1-688](file://src/main/java/root/cyb/mh/attendancesystem/controller/PaymentRequestController.java#L1-L688)
-- [PaymentRequestService.java:1-269](file://src/main/java/root/cyb/mh/attendancesystem/service/PaymentRequestService.java#L1-L269)
-- [PaymentRequestRepository.java:1-742](file://src/main/java/root/cyb/mh/attendancesystem/repository/PaymentRequestRepository.java#L1-L742)
+- [PaymentRequestServiceTest.java:22-34](file://src/test/java/root/cyb/mh/attendancesystem/PaymentRequestServiceTest.java#L22-L34)
+- [PaymentRequestControllerTest.java:20-32](file://src/test/java/root/cyb/mh/attendancesystem/PaymentRequestControllerTest.java#L20-L32)
 
-## Architecture Overview
-The backend uses Spring MVC controllers, service-layer orchestration, and JPA repositories. Security is enforced at the HTTP filter chain level with role-based authorization.
+## Integration Testing Strategy
+
+### Application Context Testing
+Full application context tests validate end-to-end flows and bean wiring. The `AttendanceSystemApplicationTests` serves as a foundation for validating application startup and configuration.
 
 ```mermaid
-graph TB
-Client["Browser / API Client"] --> Sec["SecurityFilterChain<br/>SecurityConfig.java"]
-Sec --> Ctrl["PaymentRequestController"]
-Ctrl --> Svc["PaymentRequestService"]
-Svc --> Repo["PaymentRequestRepository"]
-Svc --> EmpRepo["EmployeeRepository"]
-Svc --> UserRepo["UserRepository"]
-Svc --> Notif["NotificationService"]
-Ctrl --> EmpRepo
-Ctrl --> UserRepo
-Ctrl --> Client
+sequenceDiagram
+participant T as "Test Runner"
+participant A as "Application Context"
+participant S as "Service Layer"
+participant R as "Repository Layer"
+T->>A : "Load Application Context"
+A->>S : "Initialize Services"
+S->>R : "Execute Repository Calls"
+R-->>S : "Return Results"
+S-->>A : "Business Logic Results"
+A-->>T : "Context Loaded Successfully"
 ```
 
 **Diagram sources**
-- [SecurityConfig.java:18-84](file://src/main/java/root/cyb/mh/attendancesystem/config/SecurityConfig.java#L18-L84)
-- [PaymentRequestController.java:30-688](file://src/main/java/root/cyb/mh/attendancesystem/controller/PaymentRequestController.java#L30-L688)
-- [PaymentRequestService.java:14-269](file://src/main/java/root/cyb/mh/attendancesystem/service/PaymentRequestService.java#L14-L269)
-- [PaymentRequestRepository.java:10-12](file://src/main/java/root/cyb/mh/attendancesystem/repository/PaymentRequestRepository.java#L10-L12)
+- [AttendanceSystemApplicationTests.java:6-11](file://src/test/java/root/cyb/mh/attendancesystem/AttendanceSystemApplicationTests.java#L6-L11)
 
-## Detailed Component Analysis
-
-### Unit Testing Approach
-- Use Spring Boot test slices to isolate components:
-  - Service layer: Use @SpringBootTest with @MockitoBean for collaborators.
-  - Controller layer: Use @WebMvcTest or @AutoConfigureMockMvc for web layer tests.
-- Assertions focus on behavior, not implementation details:
-  - Verify repository saves, service notifications, and controller responses.
-
-Practical examples from the repository:
-- Service test mocks repository and asserts creation flow.
-- Controller test validates endpoint access with @WithMockUser.
-
-**Section sources**
-- [PaymentRequestServiceTest.java:1-37](file://src/test/java/root/cyb/mh/attendancesystem/PaymentRequestServiceTest.java#L1-L37)
-- [PaymentRequestControllerTest.java:1-34](file://src/test/java/root/cyb/mh/attendancesystem/PaymentRequestControllerTest.java#L1-L34)
-
-### Integration Testing
-- Full application context tests validate end-to-end flows:
-  - Context load test ensures beans wire correctly.
-  - Controller tests exercise HTTP endpoints with security roles.
-- Database-backed tests:
-  - Repository tests can be added to verify custom queries and aggregations.
-  - Consider using an embedded database profile for deterministic tests.
+### Database-Backed Integration Testing
+Integration tests validate repository queries, custom implementations, and database interactions. These tests typically use an embedded database profile for deterministic behavior.
 
 **Section sources**
 - [AttendanceSystemApplicationTests.java:1-14](file://src/test/java/root/cyb/mh/attendancesystem/AttendanceSystemApplicationTests.java#L1-L14)
-- [PaymentRequestControllerTest.java:20-32](file://src/test/java/root/cyb/mh/attendancesystem/PaymentRequestControllerTest.java#L20-L32)
 
-### Test Data Management
-- Current tests rely on in-memory data and mocks.
-- For repository-level tests, seed minimal entities via @BeforeEach or test-specific initialization.
-- Use separate test profiles and property overrides to control environment behavior.
+## Test Data Management
 
-Recommendations:
-- Define a test profile and override datasource to an embedded database.
-- Centralize test data builders to reduce duplication and improve readability.
+### In-Memory Test Data
+Current tests rely on in-memory data and mocks for isolation. For repository-level testing, consider seeding minimal entities via `@BeforeEach` or test-specific initialization methods.
+
+### Test Profiles and Configuration
+- Define separate test profiles for different environments
+- Override datasource properties for embedded database usage
+- Use property overrides to control environment-specific behavior
 
 **Section sources**
 - [application.properties:1-1](file://src/main/resources/application.properties#L1-L1)
 - [build.gradle:46-47](file://build.gradle#L46-L47)
 
-### Mock Services and Stubs
-- Use Mockito beans for repositories and external services in service tests.
-- For controllers, use MockMvc with @WithMockUser to simulate authenticated users with roles.
+### Test Data Builders
+Implement centralized test data builders to reduce duplication and improve readability across test suites.
 
-Examples:
-- PaymentRequestServiceTest mocks PaymentRequestRepository and verifies save and notification invocation.
-- PaymentRequestControllerTest uses MockMvc to assert HTTP status codes for protected endpoints.
+## Mock Services and Stubs
+
+### Advanced Mockito Patterns
+The current implementation demonstrates effective use of Mockito for service layer testing. Advanced patterns include:
+
+- **Stubbing Complex Scenarios**: Using `when().thenReturn()` for various test conditions
+- **Argument Matchers**: Employing `any()` and specific matchers for flexible testing
+- **Verification Patterns**: Asserting repository interactions and method calls
+
+```mermaid
+graph LR
+subgraph "Mockito Patterns"
+A["@MockitoBean"]
+B["when().thenReturn()"]
+C["verify()"]
+D["Argument Matchers"]
+E["Behavior Verification"]
+end
+A --> B
+B --> C
+C --> D
+D --> E
+```
+
+**Diagram sources**
+- [PaymentRequestServiceTest.java:12-14](file://src/test/java/root/cyb/mh/attendancesystem/PaymentRequestServiceTest.java#L12-L14)
 
 **Section sources**
 - [PaymentRequestServiceTest.java:22-34](file://src/test/java/root/cyb/mh/attendancesystem/PaymentRequestServiceTest.java#L22-L34)
-- [PaymentRequestControllerTest.java:17-32](file://src/test/java/root/cyb/mh/attendancesystem/PaymentRequestControllerTest.java#L17-L32)
 
-### Test Automation and Continuous Integration
-- Gradle test task configured to use JUnit Platform.
-- CI pipeline should:
-  - Run unit and integration tests.
-  - Use a dedicated test database container.
-  - Publish test results and coverage (if added).
-  - Enforce branch protection and pre-merge checks.
+## Test Coverage Requirements
 
-**Section sources**
-- [build.gradle:57-59](file://build.gradle#L57-L59)
+### Coverage Targets
+- **Service Layer**: 80%+ code coverage with emphasis on business logic branches
+- **Repository Layer**: 70%+ coverage focusing on custom queries and aggregations
+- **Controller Layer**: 75%+ coverage for HTTP endpoint validation
+- **Integration Tests**: 100% coverage for critical business flows
 
-### Practical Examples
-
-#### Example: Service Layer Test
-- Scenario: Creating a payment request as a user or employee.
-- Steps:
-  - Create a PaymentRequest and User/Employee.
-  - Inject repository mock returning the saved entity.
-  - Invoke service method and assert non-null result.
+### Coverage Tools Integration
+- **JaCoCo**: Can be integrated via Gradle for comprehensive coverage reporting
+- **Coverage Thresholds**: Configure minimum coverage requirements per module
+- **Report Generation**: Generate HTML and XML coverage reports for CI/CD integration
 
 **Section sources**
-- [PaymentRequestServiceTest.java:25-35](file://src/test/java/root/cyb/mh/attendancesystem/PaymentRequestServiceTest.java#L25-L35)
+- [build.gradle:52-54](file://build.gradle#L52-L54)
 
-#### Example: Controller Layer Test
-- Scenario: Accessing payment requests list with ADMIN vs EMPLOYEE roles.
-- Steps:
-  - Configure MockMvc.
-  - Perform GET with @WithMockUser for each role.
-  - Assert HTTP 200 OK.
+## Continuous Integration Practices
 
-**Section sources**
-- [PaymentRequestControllerTest.java:20-32](file://src/test/java/root/cyb/mh/attendancesystem/PaymentRequestControllerTest.java#L20-L32)
+### CI Pipeline Configuration
+Recommended CI pipeline stages:
+1. **Build Stage**: Compile and validate dependencies
+2. **Test Stage**: Execute unit and integration tests
+3. **Coverage Stage**: Generate and publish coverage reports
+4. **Artifact Stage**: Package and store build artifacts
 
-#### Example: CSV Parsing and Robustness Testing
-- Scenario: Validating invoice date parsing robustness across formats.
-- Steps:
-  - Provide varied inputs (MM-dd-yy, M-d-yy, whitespace, Unicode spaces).
-  - Assert successful parsing or failure depending on expectations.
+### Database Container Strategy
+- Use **Testcontainers** for PostgreSQL integration testing
+- Implement **ephemeral databases** for test isolation
+- Configure **connection pooling** for optimal test performance
 
 **Section sources**
-- [TestRobustParse.java:11-34](file://src/test/java/root/cyb/mh/attendancesystem/TestRobustParse.java#L11-L34)
-- [TestCsvParse.java:14-68](file://src/test/java/root/cyb/mh/attendancesystem/TestCsvParse.java#L14-L68)
+- [build.gradle:46-47](file://build.gradle#L46-L47)
 
-### Security Testing
-- Role-based access control:
-  - ADMIN routes require ADMIN role.
-  - HR routes require ADMIN or HR.
-  - Employee routes require EMPLOYEE role.
-- Test coverage:
-  - Verify forbidden responses for unauthorized roles.
-  - Validate success for authorized roles.
+## Security Testing
+
+### Role-Based Access Control Validation
+The security configuration enforces strict role-based access control. Tests should validate:
+
+- **ADMIN Route Protection**: `/users/**`, `/devices/**` require ADMIN role
+- **HR Route Protection**: `/settings/**` requires ADMIN or HR roles
+- **Employee Route Protection**: `/employee/**` requires EMPLOYEE role
 
 ```mermaid
-sequenceDiagram
-participant U as "User (EMPLOYEE)"
-participant SEC as "SecurityFilterChain"
-participant CTRL as "PaymentRequestController"
-participant SVC as "PaymentRequestService"
-U->>SEC : "GET /payment-requests"
-SEC->>CTRL : "Dispatch to controller"
-CTRL->>SVC : "Fetch requests (filtered by user/team)"
-SVC-->>CTRL : "List<PaymentRequest>"
-CTRL-->>U : "200 OK"
+graph TB
+subgraph "Security Test Matrix"
+A["ADMIN Users"]
+B["HR Users"]
+C["EMPLOYEE Users"]
+D["Unauthorized Access"]
+E["Protected Routes"]
+end
+A --> E
+B --> E
+C --> E
+D --> E
 ```
 
 **Diagram sources**
 - [SecurityConfig.java:27-49](file://src/main/java/root/cyb/mh/attendancesystem/config/SecurityConfig.java#L27-L49)
-- [PaymentRequestController.java:65-147](file://src/main/java/root/cyb/mh/attendancesystem/controller/PaymentRequestController.java#L65-L147)
+
+### Authentication and Authorization Testing
+- Validate `@WithMockUser` annotations for role simulation
+- Test CSRF behavior and form handling
+- Verify session management and logout functionality
 
 **Section sources**
 - [SecurityConfig.java:18-84](file://src/main/java/root/cyb/mh/attendancesystem/config/SecurityConfig.java#L18-L84)
 - [PaymentRequestControllerTest.java:20-32](file://src/test/java/root/cyb/mh/attendancesystem/PaymentRequestControllerTest.java#L20-L32)
 
-### Performance Testing
-- Load and stress tests:
-  - Use synthetic traffic against controller endpoints.
-  - Monitor response times and error rates.
-- Database performance:
-  - Benchmark repository queries with realistic datasets.
-  - Use connection pooling and optimize slow queries identified by logs.
+## Performance Testing
 
-[No sources needed since this section provides general guidance]
+### Load Testing Strategy
+- **Synthetic Traffic**: Generate load against controller endpoints using tools like Gatling or JMeter
+- **Response Time Monitoring**: Track p50, p95, and p99 response times
+- **Error Rate Tracking**: Monitor error rates under increasing load
 
-### End-to-End Testing
-- UI-driven tests:
-  - Use browser automation (e.g., Selenium) to validate full user journeys.
-- API contract tests:
-  - Validate request/response schemas and status codes.
-- Data integrity:
-  - Verify audit fields, timestamps, and cascading updates.
+### Database Performance Optimization
+- **Query Benchmarking**: Test repository queries with realistic dataset sizes
+- **Connection Pooling**: Optimize HikariCP settings for test scenarios
+- **Slow Query Identification**: Use logging to identify and optimize slow queries
 
-[No sources needed since this section provides general guidance]
+### Performance Metrics
+- **Throughput**: Requests per second handled by the application
+- **Latency**: Response time distribution across different endpoints
+- **Resource Utilization**: CPU, memory, and database connection usage
 
-## Dependency Analysis
-The testing stack leverages Spring Boot Test and Spring Security Test. Dependencies are declared in Gradle.
+## End-to-End Testing
 
-```mermaid
-graph TB
-G["build.gradle"]
-JUnit["JUnit Jupiter"]
-SBTest["Spring Boot Test"]
-SecTest["Spring Security Test"]
-G --> JUnit
-G --> SBTest
-G --> SecTest
-```
+### UI Automation Testing
+- **Selenium WebDriver**: Automate browser interactions for full user journey validation
+- **Page Object Model**: Implement reusable page components for test maintenance
+- **Cross-Browser Testing**: Validate functionality across different browsers and devices
 
-**Diagram sources**
-- [build.gradle:52-54](file://build.gradle#L52-L54)
+### API Contract Testing
+- **OpenAPI/Swagger Validation**: Ensure API contracts are met by implementation
+- **Request/Response Schema Validation**: Validate data structures and formats
+- **Status Code Verification**: Test all expected HTTP status codes
 
-**Section sources**
-- [build.gradle:1-60](file://build.gradle#L1-L60)
+### Data Integrity Testing
+- **Audit Field Validation**: Verify timestamp and user tracking fields
+- **Cascading Operations**: Test referential integrity and cascade behaviors
+- **Transaction Boundaries**: Validate rollback and commit behaviors
 
-## Performance Considerations
-- Prefer lightweight tests:
-  - Use @MockitoBean for heavy collaborators.
-  - Minimize real database round-trips in unit tests.
-- Profile slow tests:
-  - Identify hotspots in service methods and repository queries.
-- Optimize repository queries:
-  - Use projections and pagination for large datasets.
-  - Add indexes for frequently filtered columns.
+## Debugging and Troubleshooting
 
-[No sources needed since this section provides general guidance]
+### Common Test Issues
+- **Unauthorized Access Errors**: Ensure `@WithMockUser` roles match controller security constraints
+- **CSRF-Related Failures**: Align CSRF configuration with form usage patterns
+- **Database Connectivity**: Use test profiles with embedded databases or Dockerized Postgres
+- **Timezone-Sensitive Assertions**: Set consistent JVM timezone or use fixed offsets
 
-## Troubleshooting Guide
-Common issues and resolutions:
-- Unauthorized access errors:
-  - Ensure @WithMockUser roles match controller security constraints.
-- CSRF-related failures:
-  - Confirm CSRF behavior aligns with form usage; adjust configuration if needed.
-- Database connectivity in tests:
-  - Use test profile with embedded database or Dockerized Postgres.
-- Timezone-sensitive assertions:
-  - Set JVM timezone consistently in tests or use fixed offsets.
+### Test Environment Configuration
+- **Profile Management**: Use `@ActiveProfiles` for environment-specific test configuration
+- **Property Overrides**: Override application properties for test scenarios
+- **Logging Configuration**: Enable debug logging for test troubleshooting
 
 **Section sources**
 - [SecurityConfig.java:81-81](file://src/main/java/root/cyb/mh/attendancesystem/config/SecurityConfig.java#L81-L81)
 - [application.properties:1-1](file://src/main/resources/application.properties#L1-L1)
 
 ## Conclusion
-The current repository demonstrates foundational testing patterns with service and controller tests, CSV parsing utilities, and a basic application context test. To mature the testing strategy:
-- Expand repository tests with seeded data and assertions.
-- Introduce API contract and UI automation tests.
-- Establish CI pipelines with test databases and coverage reporting.
-- Enforce security and performance test gates.
+The Skylink Custom Backend demonstrates a solid foundation for comprehensive testing with Spring Boot Test, JUnit 5, and Mockito. The current implementation provides effective unit and integration testing patterns that can be expanded to cover repository-level testing, performance testing, and end-to-end validation. By implementing the enhanced strategies outlined in this document, the testing maturity can be significantly improved to ensure reliable, maintainable, and high-quality software delivery.
 
-[No sources needed since this section summarizes without analyzing specific files]
-
-## Appendices
-
-### Test Coverage Requirements
-- Target: Service layer 80%+, Repository layer 70%+, Integration tests covering critical flows.
-- Coverage tools: Jacoco or similar can be integrated via Gradle.
-
-[No sources needed since this section provides general guidance]
-
-### Continuous Integration Practices
-- Trigger: On push to main and pull requests.
-- Steps: Build, test, lint, and publish artifacts.
-- Databases: Use ephemeral Postgres containers for integration tests.
-
-[No sources needed since this section provides general guidance]
+The testing strategy emphasizes practical implementation with concrete examples from the existing codebase, while providing clear guidance for future enhancements including repository testing, performance validation, and comprehensive CI/CD integration.
