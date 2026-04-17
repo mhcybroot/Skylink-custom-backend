@@ -28,15 +28,14 @@ public class SecurityConfig {
                                                 .requestMatchers("/users/**", "/devices/**")
                                                 .hasRole("ADMIN")
                                                 .requestMatchers("/settings/**").hasAnyRole("ADMIN", "HR")
-                                                .requestMatchers("/employees/add", "/employees/edit/**",
-                                                                "/employees/delete/**")
+                                                .requestMatchers("/employees/**")
                                                 .hasAnyRole("ADMIN", "HR")
                                                 .requestMatchers("/admin/shifts/**").hasAnyRole("ADMIN", "HR")
                                                 .requestMatchers("/master-data/contractors/**", "/master-data/api/**")
                                                 .hasAnyRole("ADMIN", "HR", "EMPLOYEE")
                                                 .requestMatchers("/master-data/**", "/admin/work-orders/**")
                                                 .hasRole("ADMIN")
-                                                .requestMatchers("/departments/add", "/departments/delete/**")
+                                                .requestMatchers("/departments/**")
                                                 .hasRole("ADMIN")
                                                 // Employee Area
                                                 .requestMatchers("/employee/**").hasRole("EMPLOYEE")

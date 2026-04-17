@@ -37,7 +37,16 @@ public class DashboardController {
         @Autowired
         private ReportService reportService;
 
-        @GetMapping({ "/", "/dashboard" })
+        @GetMapping("/")
+        public String root(org.springframework.security.core.Authentication authentication) {
+                if (authentication != null && authentication.getAuthorities().stream()
+                                .anyMatch(a -> a.getAuthority().equals("ROLE_EMPLOYEE"))) {
+                        return "redirect:/employee/dashboard";
+                }
+                return "redirect:/dashboard";
+        }
+
+        @GetMapping("/dashboard")
         public String dashboard(Model model) {
                 LocalDate today = LocalDate.now();
 
