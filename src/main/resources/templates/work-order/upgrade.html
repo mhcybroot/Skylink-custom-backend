@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <title th:text="${companyName} + ' | Work Orders Upgrade'">Work Orders Upgrade</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link href="/css/work-order-upgrade.css" rel="stylesheet">
+</head>
+
+<body class="upgrade-page">
+    <div class="upgrade-shell">
+        <div class="upgrade-orb orb-one"></div>
+        <div class="upgrade-orb orb-two"></div>
+        <div class="upgrade-grid"></div>
+
+        <main class="upgrade-main">
+            <section class="upgrade-card">
+                <div class="upgrade-badge">
+                    <i class="fas fa-screwdriver-wrench"></i>
+                    Work Orders
+                </div>
+
+                <div class="upgrade-icon-wrap">
+                    <div class="upgrade-icon-ring"></div>
+                    <div class="upgrade-icon">
+                        <i class="fas fa-arrow-up-right-dots"></i>
+                    </div>
+                </div>
+
+                <h1 th:text="${upgradeTitle}">We are working to upgrade</h1>
+                <p class="upgrade-message" th:text="${upgradeMessage}">
+                    The work-order workspace is temporarily unavailable while we roll out a better experience.
+                </p>
+                <p class="upgrade-note" th:text="${upgradeNote}">
+                    Please check back soon. Your other admin tools are still available.
+                </p>
+
+                <div class="upgrade-actions">
+                    <a href="/dashboard" class="btn btn-upgrade-primary">
+                        <i class="fas fa-gauge-high me-2"></i>
+                        Back to Dashboard
+                    </a>
+                </div>
+            </section>
+        </main>
+    </div>
+</body>
+
+</html>

@@ -1,6 +1,7 @@
 package root.cyb.mh.attendancesystem.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,6 +33,9 @@ public class WorkOrderController {
         @Autowired
         private root.cyb.mh.attendancesystem.service.WorkOrderReportService workOrderReportService;
 
+        @Value("${app.restrict:false}")
+        private boolean workOrdersRestricted;
+
         @GetMapping("/report")
         public String generateReport(
                         @RequestParam(required = false) String status,
@@ -44,6 +48,10 @@ public class WorkOrderController {
                         @RequestParam(required = false) String client,
                         @RequestParam(required = false) String contractor,
                         Model model) {
+                String restrictedView = getRestrictedView(model);
+                if (restrictedView != null) {
+                        return restrictedView;
+                }
 
                 // 1. Build Specification (Reuse the existing powerful specification)
                 Specification<WorkOrder> spec = WorkOrderSpecifications.withFilters(status, clientInvoicePaid,
@@ -84,6 +92,10 @@ public class WorkOrderController {
                         @RequestParam(defaultValue = "0") int page,
                         @RequestParam(defaultValue = "20") int size,
                         Model model) {
+                String restrictedView = getRestrictedView(model);
+                if (restrictedView != null) {
+                        return restrictedView;
+                }
 
                 // Build Specification
                 Specification<WorkOrder> spec = WorkOrderSpecifications.withFilters(status, clientInvoicePaid,
@@ -151,6 +163,11 @@ public class WorkOrderController {
                         @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate startDate,
                         @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate endDate,
                         Model model) {
+                String restrictedView = getRestrictedView(model);
+                if (restrictedView != null) {
+                        return restrictedView;
+                }
+
                 WorkOrderDashboardDTO stats = new WorkOrderDashboardDTO();
 
                 // Fetch all work orders (filtered by date if provided)
@@ -474,5 +491,17 @@ public class WorkOrderController {
                 model.addAttribute("startDate", startDate);
                 model.addAttribute("endDate", endDate);
                 return "work-order/dashboard";
+        }
+
+        private String getRestrictedView(Model model) {
+                if (!workOrdersRestricted) {
+                        return null;
+                }
+
+                model.addAttribute("upgradeTitle", "We are working to upgrade");
+                model.addAttribute("upgradeMessage",
+                                "The work-order workspace is temporarily unavailable while we roll out a better experience.");
+                model.addAttribute("upgradeNote", "Please check back soon. Your other admin tools are still available.");
+                return "work-order/upgrade";
         }
 }
