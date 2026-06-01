@@ -778,6 +778,7 @@ public class ReportService {
                             if (outTime.isBefore(earlyThreshold))
                                 early++;
                         }
+                    } else {
                         if (!isWeekend && !isPublicHoliday)
                             absent++;
                     }
