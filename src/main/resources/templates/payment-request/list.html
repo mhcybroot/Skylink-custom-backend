@@ -262,7 +262,12 @@
                                 <thead class="bg-light">
                                     <tr class="text-uppercase small text-muted font-monospace"
                                         style="font-size: 0.75rem;">
-                                        <th class="ps-4 py-3 border-bottom-0">
+                                        <th class="ps-4 py-3 border-bottom-0" style="width: 40px;" sec:authorize="hasAnyRole('ADMIN', 'HR')">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="selectAllRequests">
+                                            </div>
+                                        </th>
+                                        <th th:class="${#authorization.expression('hasAnyRole(''ADMIN'', ''HR'')')} ? 'py-3 border-bottom-0' : 'ps-4 py-3 border-bottom-0'">
                                             <a th:href="@{/payment-requests(view=${param.view}, sortField='id', sortDir=${sortField == 'id' ? reverseSortDir : 'asc'})}"
                                                 class="text-decoration-none text-secondary fw-bold">
                                                 ID <i class="fas"
@@ -338,7 +343,12 @@
                                 </thead>
                                 <tbody>
                                     <tr th:each="req : ${requests}" class="border-bottom">
-                                        <td class="ps-4">
+                                        <td class="ps-4" sec:authorize="hasAnyRole('ADMIN', 'HR')">
+                                            <div class="form-check">
+                                                <input class="form-check-input request-checkbox" type="checkbox" th:value="${req.id}">
+                                            </div>
+                                        </td>
+                                        <td th:class="${#authorization.expression('hasAnyRole(''ADMIN'', ''HR'')')} ? '' : 'ps-4'">
                                             <span class="font-monospace fw-bold text-dark small"
                                                 th:text="${'#' + req.id}"></span>
                                         </td>
@@ -420,10 +430,181 @@
                         </div>
                     </div>
                 </div>
+                
+                <!-- Bulk Actions Toolbar (Sticky Bottom) -->
+                <div id="bulkActionsToolbar" class="card bg-white border border-primary border-2 rounded-1 shadow-lg position-fixed bottom-0 translate-middle-x start-50 mb-4 d-none" 
+                     style="z-index: 1030; width: 90%; max-width: 1050px; animation-duration: 0.2s;" sec:authorize="hasAnyRole('ADMIN', 'HR')">
+                    <div class="card-body py-3 px-4">
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                            <div class="d-flex align-items-center">
+                                <span class="badge bg-primary rounded-circle me-2 d-flex align-items-center justify-content-center" 
+                                      id="selectedCountBadge" style="width: 24px; height: 24px;">0</span>
+                                <h6 class="mb-0 fw-bold text-dark small text-uppercase">Requests Selected</h6>
+                            </div>
+                            
+                            <div class="d-flex flex-wrap align-items-center gap-3">
+                                <!-- Approval Status -->
+                                <div class="d-flex align-items-center gap-2">
+                                    <label class="small fw-bold text-muted text-nowrap">Approval:</label>
+                                    <select id="bulkApprovalStatus" class="form-select form-select-sm" style="width: 130px;">
+                                        <option value="">-- No Change --</option>
+                                        <option th:each="s : ${requestStatuses}" th:value="${s}" th:text="${s}"></option>
+                                    </select>
+                                </div>
+                                
+                                <!-- Payment Status -->
+                                <div class="d-flex align-items-center gap-2">
+                                    <label class="small fw-bold text-muted text-nowrap">Payment:</label>
+                                    <select id="bulkPaymentStatus" class="form-select form-select-sm" style="width: 140px;">
+                                        <option value="">-- No Change --</option>
+                                        <option th:each="ps : ${paymentStatuses}" th:value="${ps}" th:text="${ps}"></option>
+                                    </select>
+                                </div>
+                                
+                                <!-- PPW Status -->
+                                <div class="d-flex align-items-center gap-2">
+                                    <label class="small fw-bold text-muted text-nowrap">PPW:</label>
+                                    <select id="bulkPpwStatus" class="form-select form-select-sm" style="width: 130px;">
+                                        <option value="">-- No Change --</option>
+                                        <option th:each="ppw : ${ppwStatuses}" th:value="${ppw}" th:text="${ppw}"></option>
+                                    </select>
+                                </div>
+
+                                 <!-- Internal Notes -->
+                                <div class="d-flex align-items-center gap-2">
+                                    <label class="small fw-bold text-muted text-nowrap">Notes:</label>
+                                    <input type="text" id="bulkRemarks" class="form-control form-control-sm" placeholder="Internal notes..." style="width: 150px;">
+                                </div>
+
+                                <!-- Payment Ref # -->
+                                <div class="d-flex align-items-center gap-2">
+                                    <label class="small fw-bold text-muted text-nowrap">Ref #:</label>
+                                    <input type="text" id="bulkPaymentReferenceNumber" class="form-control form-control-sm" placeholder="Payment Ref#..." style="width: 140px;">
+                                </div>
+
+                                <!-- Attach Proof -->
+                                <div class="d-flex align-items-center gap-2">
+                                    <label class="small fw-bold text-muted text-nowrap">Proof:</label>
+                                    <input type="file" id="bulkProofFile" class="form-control form-control-sm" style="width: 180px;">
+                                </div>
+                                
+                                <button type="button" id="applyBulkActionBtn" class="btn btn-sm btn-primary px-3 rounded-1 shadow-sm">
+                                    Apply
+                                </button>
+                                <button type="button" id="cancelBulkSelection" class="btn btn-sm btn-outline-secondary rounded-1">
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
         <script>
-            // Page specific scripts if needed
+            document.addEventListener('DOMContentLoaded', function () {
+                const selectAllBox = document.getElementById('selectAllRequests');
+                const checkboxes = document.querySelectorAll('.request-checkbox');
+                const toolbar = document.getElementById('bulkActionsToolbar');
+                const selectedCountBadge = document.getElementById('selectedCountBadge');
+                const cancelBtn = document.getElementById('cancelBulkSelection');
+                const applyBtn = document.getElementById('applyBulkActionBtn');
+
+                if (!selectAllBox || checkboxes.length === 0) return;
+
+                function updateToolbar() {
+                    const checkedBoxes = document.querySelectorAll('.request-checkbox:checked');
+                    const count = checkedBoxes.length;
+                    if (count > 0) {
+                        selectedCountBadge.textContent = count;
+                        toolbar.classList.remove('d-none');
+                    } else {
+                        toolbar.classList.add('d-none');
+                    }
+                    selectAllBox.checked = (count === checkboxes.length);
+                }
+
+                selectAllBox.addEventListener('change', function () {
+                    const isChecked = this.checked;
+                    checkboxes.forEach(cb => {
+                        cb.checked = isChecked;
+                    });
+                    updateToolbar();
+                });
+
+                checkboxes.forEach(cb => {
+                    cb.addEventListener('change', updateToolbar);
+                });
+
+                cancelBtn.addEventListener('click', function () {
+                    checkboxes.forEach(cb => cb.checked = false);
+                    selectAllBox.checked = false;
+                    document.getElementById('bulkApprovalStatus').value = '';
+                    document.getElementById('bulkPaymentStatus').value = '';
+                    document.getElementById('bulkPpwStatus').value = '';
+                    document.getElementById('bulkRemarks').value = '';
+                    document.getElementById('bulkPaymentReferenceNumber').value = '';
+                    document.getElementById('bulkProofFile').value = '';
+                    updateToolbar();
+                });
+
+                applyBtn.addEventListener('click', function () {
+                    const checkedBoxes = document.querySelectorAll('.request-checkbox:checked');
+                    const ids = Array.from(checkedBoxes).map(cb => cb.value);
+
+                    const status = document.getElementById('bulkApprovalStatus').value;
+                    const paymentStatus = document.getElementById('bulkPaymentStatus').value;
+                    const ppwUpdateStatus = document.getElementById('bulkPpwStatus').value;
+                    const remarks = document.getElementById('bulkRemarks').value.trim();
+                    const paymentReferenceNumber = document.getElementById('bulkPaymentReferenceNumber').value.trim();
+                    const proofFileInput = document.getElementById('bulkProofFile');
+                    const proofFile = proofFileInput && proofFileInput.files.length > 0 ? proofFileInput.files[0] : null;
+
+                    if (!status && !paymentStatus && !ppwUpdateStatus && !remarks && !paymentReferenceNumber && !proofFile) {
+                        alert('Please select at least one field or attach a file to update.');
+                        return;
+                    }
+
+                    if (!confirm(`Are you sure you want to update ${ids.length} selected request(s)?`)) {
+                        return;
+                    }
+
+                    const csrfTokenMeta = document.querySelector('meta[name="_csrf"]');
+                    const csrfHeaderMeta = document.querySelector('meta[name="_csrf_header"]');
+                    const csrfToken = csrfTokenMeta ? csrfTokenMeta.content : '';
+                    const csrfHeader = csrfHeaderMeta ? csrfHeaderMeta.content : '';
+
+                    const formData = new FormData();
+                    ids.forEach(id => formData.append('ids', id));
+                    if (status) formData.append('status', status);
+                    if (paymentStatus) formData.append('paymentStatus', paymentStatus);
+                    if (ppwUpdateStatus) formData.append('ppwUpdateStatus', ppwUpdateStatus);
+                    if (remarks) formData.append('remarks', remarks);
+                    if (paymentReferenceNumber) formData.append('paymentReferenceNumber', paymentReferenceNumber);
+                    if (proofFile) formData.append('proofFile', proofFile);
+
+                    const headers = {};
+                    if (csrfHeader && csrfToken) {
+                        headers[csrfHeader] = csrfToken;
+                    }
+
+                    fetch('/payment-requests/bulk-update', {
+                        method: 'POST',
+                        headers: headers,
+                        body: formData
+                    })
+                    .then(res => {
+                        if (res.ok) {
+                            location.reload();
+                        } else {
+                            res.text().then(text => alert('Failed to apply bulk actions: ' + text));
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Error applying bulk actions:', err);
+                        alert('An error occurred while performing the bulk update.');
+                    });
+                });
+            });
         </script>
     </div>
 </body>

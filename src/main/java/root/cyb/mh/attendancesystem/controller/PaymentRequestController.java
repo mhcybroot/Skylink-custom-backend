@@ -702,4 +702,94 @@ public class PaymentRequestController {
         boolean exists = paymentRequestRepository.existsByWorkOrderNumberIgnoreCase(workOrderNumber.trim());
         return java.util.Map.of("exists", exists);
     }
+
+    @PostMapping("/bulk-update")
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
+    @ResponseBody
+    public org.springframework.http.ResponseEntity<?> bulkUpdate(
+            @RequestParam("ids") List<Long> ids,
+            @RequestParam(value = "status", required = false) RequestStatus status,
+            @RequestParam(value = "paymentStatus", required = false) PaymentStatus paymentStatus,
+            @RequestParam(value = "ppwUpdateStatus", required = false) PPWStatus ppwUpdateStatus,
+            @RequestParam(value = "remarks", required = false) String remarks,
+            @RequestParam(value = "paymentReferenceNumber", required = false) String paymentReferenceNumber,
+            @RequestParam(value = "proofFile", required = false) org.springframework.web.multipart.MultipartFile proofFile,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        
+        String savedProofPath = null;
+        if (proofFile != null && !proofFile.isEmpty()) {
+            try {
+                String baseDir = System.getProperty("user.dir");
+                String uploadDir = baseDir + java.io.File.separator + "uploads" + java.io.File.separator + "proofs"
+                        + java.io.File.separator;
+
+                java.io.File directory = new java.io.File(uploadDir);
+                if (!directory.exists()) {
+                    directory.mkdirs();
+                }
+
+                String fileName = System.currentTimeMillis() + "_" + proofFile.getOriginalFilename();
+                java.io.File destFile = new java.io.File(uploadDir + fileName);
+                proofFile.transferTo(destFile);
+                savedProofPath = destFile.getAbsolutePath();
+            } catch (java.io.IOException e) {
+                e.printStackTrace();
+                return org.springframework.http.ResponseEntity.status(500).body("Error saving file: " + e.getMessage());
+            }
+        }
+
+        List<PaymentRequest> requests = paymentRequestRepository.findAllById(ids);
+        
+        for (PaymentRequest req : requests) {
+            java.util.List<String> changes = new java.util.ArrayList<>();
+            
+            if (status != null) {
+                if (req.getStatus() != status) {
+                    changes.add("Status");
+                    req.setStatus(status);
+                }
+            }
+            if (paymentStatus != null) {
+                if (req.getPaymentStatus() != paymentStatus) {
+                    changes.add("Payment Status");
+                    req.setPaymentStatus(paymentStatus);
+                }
+            }
+            if (ppwUpdateStatus != null) {
+                if (req.getPpwUpdateStatus() != ppwUpdateStatus) {
+                    changes.add("PPW Status");
+                    req.setPpwUpdateStatus(ppwUpdateStatus);
+                }
+            }
+            if (remarks != null && !remarks.trim().isEmpty()) {
+                if (!remarks.equals(req.getRemarks())) {
+                    changes.add("Remarks");
+                    req.setRemarks(remarks);
+                }
+            }
+            if (paymentReferenceNumber != null && !paymentReferenceNumber.trim().isEmpty()) {
+                if (!paymentReferenceNumber.equals(req.getPaymentReferenceNumber())) {
+                    changes.add("Ref Number");
+                    req.setPaymentReferenceNumber(paymentReferenceNumber);
+                }
+            }
+            if (savedProofPath != null) {
+                changes.add("Proof File");
+                req.setPaymentProofPath(savedProofPath);
+            }
+            
+            if (!changes.isEmpty()) {
+                boolean isAdminOrHr = userDetails.getAuthorities().stream()
+                        .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_HR"));
+                if (isAdminOrHr) {
+                    userRepository.findByUsername(userDetails.getUsername()).ifPresent(req::setApprovalAuthority);
+                }
+                
+                paymentRequestService.updateRequest(req);
+                paymentRequestService.notifyRequesterUpdate(req, changes);
+            }
+        }
+        
+        return org.springframework.http.ResponseEntity.ok(java.util.Map.of("message", "Bulk update completed successfully."));
+    }
 }

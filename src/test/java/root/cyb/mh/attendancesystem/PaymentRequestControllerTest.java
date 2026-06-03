@@ -80,4 +80,82 @@ public class PaymentRequestControllerTest {
             paymentRequestRepository.delete(request);
         }
     }
+
+    @Test
+    @WithMockUser(username = "admin", roles = { "ADMIN" })
+    public void testBulkUpdate() throws Exception {
+        root.cyb.mh.attendancesystem.model.PaymentRequest r1 = new root.cyb.mh.attendancesystem.model.PaymentRequest();
+        r1.setWorkOrderNumber("WO-BULK-1");
+        r1.setAmount(new java.math.BigDecimal("100.00"));
+        r1.setRequestDate(java.time.LocalDate.now());
+        r1.setPriority(root.cyb.mh.attendancesystem.model.enums.PaymentPriority.REGULAR);
+        r1 = paymentRequestRepository.save(r1);
+
+        root.cyb.mh.attendancesystem.model.PaymentRequest r2 = new root.cyb.mh.attendancesystem.model.PaymentRequest();
+        r2.setWorkOrderNumber("WO-BULK-2");
+        r2.setAmount(new java.math.BigDecimal("150.00"));
+        r2.setRequestDate(java.time.LocalDate.now());
+        r2.setPriority(root.cyb.mh.attendancesystem.model.enums.PaymentPriority.REGULAR);
+        r2 = paymentRequestRepository.save(r2);
+
+        org.springframework.mock.web.MockMultipartFile mockFile = new org.springframework.mock.web.MockMultipartFile(
+                "proofFile",
+                "bulk_receipt.pdf",
+                "application/pdf",
+                "fake receipt content".getBytes()
+        );
+
+        String r1ProofPath = null;
+        String r2ProofPath = null;
+
+        try {
+            mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart("/payment-requests/bulk-update")
+                            .file(mockFile)
+                            .param("ids", r1.getId().toString())
+                            .param("ids", r2.getId().toString())
+                            .param("status", "APPROVED")
+                            .param("paymentStatus", "PAID")
+                            .param("ppwUpdateStatus", "UPDATED")
+                            .param("remarks", "Updated in bulk")
+                            .param("paymentReferenceNumber", "REF-BULK-12345")
+                            .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()))
+                    .andExpect(status().isOk());
+
+            root.cyb.mh.attendancesystem.model.PaymentRequest r1Updated = paymentRequestRepository.findById(r1.getId()).get();
+            root.cyb.mh.attendancesystem.model.PaymentRequest r2Updated = paymentRequestRepository.findById(r2.getId()).get();
+
+            r1ProofPath = r1Updated.getPaymentProofPath();
+            r2ProofPath = r2Updated.getPaymentProofPath();
+
+            org.junit.jupiter.api.Assertions.assertEquals(root.cyb.mh.attendancesystem.model.enums.RequestStatus.APPROVED, r1Updated.getStatus());
+            org.junit.jupiter.api.Assertions.assertEquals(root.cyb.mh.attendancesystem.model.enums.PaymentStatus.PAID, r1Updated.getPaymentStatus());
+            org.junit.jupiter.api.Assertions.assertEquals(root.cyb.mh.attendancesystem.model.enums.PPWStatus.UPDATED, r1Updated.getPpwUpdateStatus());
+            org.junit.jupiter.api.Assertions.assertEquals("Updated in bulk", r1Updated.getRemarks());
+            org.junit.jupiter.api.Assertions.assertEquals("REF-BULK-12345", r1Updated.getPaymentReferenceNumber());
+            org.junit.jupiter.api.Assertions.assertNotNull(r1ProofPath);
+            org.junit.jupiter.api.Assertions.assertTrue(r1ProofPath.endsWith("bulk_receipt.pdf"));
+
+            org.junit.jupiter.api.Assertions.assertEquals(root.cyb.mh.attendancesystem.model.enums.RequestStatus.APPROVED, r2Updated.getStatus());
+            org.junit.jupiter.api.Assertions.assertEquals(root.cyb.mh.attendancesystem.model.enums.PaymentStatus.PAID, r2Updated.getPaymentStatus());
+            org.junit.jupiter.api.Assertions.assertEquals(root.cyb.mh.attendancesystem.model.enums.PPWStatus.UPDATED, r2Updated.getPpwUpdateStatus());
+            org.junit.jupiter.api.Assertions.assertEquals("Updated in bulk", r2Updated.getRemarks());
+            org.junit.jupiter.api.Assertions.assertEquals("REF-BULK-12345", r2Updated.getPaymentReferenceNumber());
+            org.junit.jupiter.api.Assertions.assertNotNull(r2ProofPath);
+            org.junit.jupiter.api.Assertions.assertTrue(r2ProofPath.endsWith("bulk_receipt.pdf"));
+
+        } finally {
+            paymentRequestRepository.delete(r1);
+            paymentRequestRepository.delete(r2);
+            if (r1ProofPath != null) {
+                try {
+                    new java.io.File(r1ProofPath).delete();
+                } catch (Exception e) {}
+            }
+            if (r2ProofPath != null && !r2ProofPath.equals(r1ProofPath)) {
+                try {
+                    new java.io.File(r2ProofPath).delete();
+                } catch (Exception e) {}
+            }
+        }
+    }
 }
