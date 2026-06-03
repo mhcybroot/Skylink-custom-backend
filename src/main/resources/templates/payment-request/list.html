@@ -8,6 +8,17 @@
 <body>
     <div th:replace="~{layout :: layout(~{::section}, ~{::script}, 'payment-requests')}">
         <section class="bg-light min-vh-100">
+            <style>
+                #bulkActionsToolbar {
+                    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+                }
+                .summary-card-stat {
+                    transition: all 0.2s ease;
+                }
+                .summary-card-stat:hover {
+                    transform: translateY(-1px);
+                }
+            </style>
             <div class="container-fluid px-4 md-px-5 py-4">
                 <!-- Header -->
                 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -345,7 +356,15 @@
                                     <tr th:each="req : ${requests}" class="border-bottom">
                                         <td class="ps-4" sec:authorize="hasAnyRole('ADMIN', 'HR')">
                                             <div class="form-check">
-                                                <input class="form-check-input request-checkbox" type="checkbox" th:value="${req.id}">
+                                                <input class="form-check-input request-checkbox" type="checkbox" th:value="${req.id}"
+                                                       th:data-amount="${req.amount}"
+                                                       th:data-contractor="${req.contractorName}"
+                                                       th:data-priority="${req.priority}"
+                                                       th:data-company="${req.company != null ? req.company.name : 'Unknown'}"
+                                                       th:data-requester="${req.requester != null ? req.requester.username : (req.employeeRequester != null ? req.employeeRequester.name : 'Unknown')}"
+                                                       th:data-paymethod="${req.paymentMethod != null ? req.paymentMethod.methodName : (req.paymentMethodId != null ? req.paymentMethodId : 'Unknown')}"
+                                                       th:data-clientcode="${req.client != null ? req.client.code : (req.clientCode != null ? req.clientCode : 'Unknown')}"
+                                                       th:data-date="${req.requestDate}">
                                             </div>
                                         </td>
                                         <td th:class="${#authorization.expression('hasAnyRole(''ADMIN'', ''HR'')')} ? '' : 'ps-4'">
@@ -434,6 +453,12 @@
                 <!-- Bulk Actions Toolbar (Sticky Bottom) -->
                 <div id="bulkActionsToolbar" class="card bg-white border border-primary border-2 rounded-1 shadow-lg position-fixed bottom-0 translate-middle-x start-50 mb-4 d-none" 
                      style="z-index: 1030; width: 90%; max-width: 1050px; animation-duration: 0.2s;" sec:authorize="hasAnyRole('ADMIN', 'HR')">
+                    
+                    <!-- Selection Report Card Summary -->
+                    <div class="card-header bg-light border-bottom py-2 px-4" id="selectionSummaryCard">
+                        <!-- Populated dynamically via JS -->
+                    </div>
+
                     <div class="card-body py-3 px-4">
                         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
                             <div class="d-flex align-items-center">
@@ -514,9 +539,168 @@
                 function updateToolbar() {
                     const checkedBoxes = document.querySelectorAll('.request-checkbox:checked');
                     const count = checkedBoxes.length;
+                    
                     if (count > 0) {
                         selectedCountBadge.textContent = count;
                         toolbar.classList.remove('d-none');
+                        
+                        // Compute report card summary stats
+                        let totalSum = 0;
+                        const contractorsSet = new Set();
+                        const prioritiesMap = {};
+                        const companiesSet = new Set();
+                        const requestersSet = new Set();
+                        const payMethodsSet = new Set();
+                        const clientsSet = new Set();
+                        let minDate = '';
+                        let maxDate = '';
+                        
+                        checkedBoxes.forEach(cb => {
+                            const amount = parseFloat(cb.getAttribute('data-amount') || '0');
+                            const contractor = cb.getAttribute('data-contractor') || 'Unknown';
+                            const priority = cb.getAttribute('data-priority') || 'REGULAR';
+                            const company = cb.getAttribute('data-company') || 'Unknown';
+                            const requester = cb.getAttribute('data-requester') || 'Unknown';
+                            const payMethod = cb.getAttribute('data-paymethod') || 'Unknown';
+                            const clientCode = cb.getAttribute('data-clientcode') || 'Unknown';
+                            const date = cb.getAttribute('data-date') || 'Unknown';
+                            
+                            totalSum += amount;
+                            contractorsSet.add(contractor);
+                            prioritiesMap[priority] = (prioritiesMap[priority] || 0) + 1;
+                            companiesSet.add(company);
+                            requestersSet.add(requester);
+                            payMethodsSet.add(payMethod);
+                            clientsSet.add(clientCode);
+                            
+                            if (date && date !== 'Unknown') {
+                                if (!minDate || date < minDate) minDate = date;
+                                if (!maxDate || date > maxDate) maxDate = date;
+                            }
+                        });
+                        
+                        // Build Contractor list string
+                        const contractorsArray = Array.from(contractorsSet);
+                        const contractorsText = contractorsArray.join(', ');
+                        const uniqueContractorsCount = contractorsArray.length;
+                        
+                        // Build Company list string
+                        const companiesArray = Array.from(companiesSet);
+                        const companiesText = companiesArray.join(', ');
+                        const uniqueCompaniesCount = companiesArray.length;
+
+                        // Build Requester list string
+                        const requestersArray = Array.from(requestersSet);
+                        const requestersText = requestersArray.join(', ');
+                        const uniqueRequestersCount = requestersArray.length;
+
+                        // Build Pay Method list string
+                        const payMethodsArray = Array.from(payMethodsSet);
+                        const payMethodsText = payMethodsArray.join(', ');
+                        const uniquePayMethodsCount = payMethodsArray.length;
+
+                        // Build Client Code list string
+                        const clientsArray = Array.from(clientsSet);
+                        const clientsText = clientsArray.join(', ');
+                        const uniqueClientsCount = clientsArray.length;
+
+                        // Date range text
+                        let dateRangeText = 'None';
+                        if (minDate && maxDate) {
+                            dateRangeText = (minDate === maxDate) ? minDate : `${minDate} to ${maxDate}`;
+                        }
+                        
+                        // Build Priorities badges
+                        let prioritiesHTML = '';
+                        Object.keys(prioritiesMap).forEach(prio => {
+                            const badgeClass = prio === 'URGENT' ? 'bg-danger-subtle text-danger border border-danger' : 
+                                               (prio === 'HOLD' ? 'bg-secondary-subtle text-secondary border border-secondary' : 'bg-success-subtle text-success border border-success');
+                            prioritiesHTML += `<span class="badge ${badgeClass} fw-normal rounded-1 ms-1">${prioritiesMap[prio]} ${prio}</span>`;
+                        });
+                        
+                        // Build Report Card Markup
+                        const reportCardHTML = `
+                            <div class="d-flex flex-column gap-2 w-100" style="font-size: 0.85rem;">
+                                <!-- Row 1: Key Financials & Priorities -->
+                                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                                    <!-- Left Section: Stats Grid -->
+                                    <div class="d-flex flex-wrap align-items-center gap-4">
+                                        <!-- Total Count -->
+                                        <div class="d-flex align-items-center summary-card-stat">
+                                            <span class="fs-5 me-2 text-primary"><i class="fas fa-clipboard-list"></i></span>
+                                            <div>
+                                                <div class="text-uppercase font-monospace text-muted small" style="font-size: 0.62rem; letter-spacing: 0.5px; line-height: 1;">Total Count</div>
+                                                <div class="fw-bold text-dark" style="font-size: 0.82rem;">${count} selected</div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Total Amount -->
+                                        <div class="d-flex align-items-center border-start ps-4 summary-card-stat">
+                                            <span class="fs-5 me-2 text-success"><i class="fas fa-file-invoice-dollar"></i></span>
+                                            <div>
+                                                <div class="text-uppercase font-monospace text-muted small" style="font-size: 0.62rem; letter-spacing: 0.5px; line-height: 1;">Total Cost</div>
+                                                <div class="fw-bold text-success" style="font-size: 0.82rem;">$${totalSum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Unique Contractors -->
+                                        <div class="d-flex align-items-center border-start ps-4 summary-card-stat">
+                                            <span class="fs-5 me-2 text-secondary"><i class="fas fa-users"></i></span>
+                                            <div>
+                                                <div class="text-uppercase font-monospace text-muted small" style="font-size: 0.62rem; letter-spacing: 0.5px; line-height: 1;">Contractors (${uniqueContractorsCount})</div>
+                                                <div class="fw-medium text-dark text-truncate" style="max-width: 180px; font-size: 0.82rem;" title="${contractorsText}">${contractorsText || 'None'}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Right Section: Priority Breakdown -->
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="text-uppercase font-monospace text-muted small" style="font-size: 0.62rem; letter-spacing: 0.5px;">Priority:</span>
+                                        <div class="d-flex gap-1 flex-wrap align-items-center">
+                                            ${prioritiesHTML || '<span class="text-muted small">None</span>'}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Divider -->
+                                <div class="border-top my-1 opacity-25"></div>
+
+                                <!-- Row 2: Metadata Summaries -->
+                                <div class="d-flex flex-wrap align-items-center gap-3 text-muted" style="font-size: 0.76rem;">
+                                    <!-- Companies -->
+                                    <div class="d-flex align-items-center summary-card-stat" title="${companiesText}">
+                                        <i class="fas fa-building text-info me-1"></i>
+                                        <span>Companies: <strong>${uniqueCompaniesCount}</strong> <span class="text-dark">(${companiesText})</span></span>
+                                    </div>
+                                    
+                                    <!-- Requesters -->
+                                    <div class="d-flex align-items-center summary-card-stat border-start ps-3" title="${requestersText}">
+                                        <i class="fas fa-user-tie text-warning me-1"></i>
+                                        <span>Requesters: <strong>${uniqueRequestersCount}</strong> <span class="text-dark">(${requestersText})</span></span>
+                                    </div>
+
+                                    <!-- Pay Methods -->
+                                    <div class="d-flex align-items-center summary-card-stat border-start ps-3" title="${payMethodsText}">
+                                        <i class="fas fa-credit-card text-success me-1"></i>
+                                        <span>Pay Methods: <strong>${uniquePayMethodsCount}</strong> <span class="text-dark">(${payMethodsText})</span></span>
+                                    </div>
+
+                                    <!-- Clients -->
+                                    <div class="d-flex align-items-center summary-card-stat border-start ps-3" title="${clientsText}">
+                                        <i class="fas fa-folder text-primary me-1"></i>
+                                        <span>Clients: <strong>${uniqueClientsCount}</strong> <span class="text-dark">(${clientsText})</span></span>
+                                    </div>
+
+                                    <!-- Dates -->
+                                    <div class="d-flex align-items-center summary-card-stat border-start ps-3">
+                                        <i class="fas fa-calendar-alt text-danger me-1"></i>
+                                        <span>Dates: <strong class="text-dark">${dateRangeText}</strong></span>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        document.getElementById('selectionSummaryCard').innerHTML = reportCardHTML;
                     } else {
                         toolbar.classList.add('d-none');
                     }
