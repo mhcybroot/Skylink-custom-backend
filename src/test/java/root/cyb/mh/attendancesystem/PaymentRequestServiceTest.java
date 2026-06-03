@@ -22,6 +22,9 @@ public class PaymentRequestServiceTest {
     @MockitoBean
     private PaymentRequestRepository paymentRequestRepository;
 
+    @MockitoBean
+    private root.cyb.mh.attendancesystem.repository.PaymentRequestActivityRepository paymentRequestActivityRepository;
+
     @Test
     public void testCreateRequest() {
         PaymentRequest request = new PaymentRequest();

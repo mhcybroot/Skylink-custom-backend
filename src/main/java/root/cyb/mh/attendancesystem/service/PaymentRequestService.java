@@ -26,10 +26,28 @@ public class PaymentRequestService {
     @Autowired
     private root.cyb.mh.attendancesystem.repository.UserRepository userRepository;
 
+    @Autowired
+    private root.cyb.mh.attendancesystem.repository.PaymentRequestActivityRepository paymentRequestActivityRepository;
+
+    public void logActivity(PaymentRequest request, String username, String actionType, String details) {
+        root.cyb.mh.attendancesystem.model.PaymentRequestActivity activity = new root.cyb.mh.attendancesystem.model.PaymentRequestActivity();
+        activity.setPaymentRequest(request);
+        activity.setUsername(username);
+        activity.setActionType(actionType);
+        activity.setDetails(details);
+        activity.setTimestamp(java.time.LocalDateTime.now());
+        paymentRequestActivityRepository.save(activity);
+    }
+
+    public List<root.cyb.mh.attendancesystem.model.PaymentRequestActivity> getActivitiesForRequest(Long requestId) {
+        return paymentRequestActivityRepository.findByPaymentRequestIdOrderByTimestampDesc(requestId);
+    }
+
     public PaymentRequest createRequest(PaymentRequest paymentRequest, User requester) {
         paymentRequest.setRequester(requester);
         PaymentRequest saved = saveRequest(paymentRequest);
         notifyAdminsNewRequest(saved);
+        logActivity(saved, requester.getUsername(), "CREATED", "Request submitted with amount $" + saved.getAmount());
         return saved;
     }
 
@@ -38,6 +56,7 @@ public class PaymentRequestService {
         paymentRequest.setEmployeeRequester(employeeRequester);
         PaymentRequest saved = saveRequest(paymentRequest);
         notifyAdminsNewRequest(saved);
+        logActivity(saved, employeeRequester.getName(), "CREATED", "Request submitted with amount $" + saved.getAmount());
         return saved;
     }
 
@@ -212,6 +231,7 @@ public class PaymentRequestService {
     }
 
     public void deleteRequest(Long id) {
+        paymentRequestActivityRepository.deleteAll(paymentRequestActivityRepository.findByPaymentRequestIdOrderByTimestampDesc(id));
         paymentRequestRepository.deleteById(id);
     }
 

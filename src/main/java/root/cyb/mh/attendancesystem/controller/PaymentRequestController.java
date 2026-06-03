@@ -300,6 +300,9 @@ public class PaymentRequestController {
         if (requestOpt.isPresent()) {
             PaymentRequest request = requestOpt.get();
 
+            // Log viewed activity
+            paymentRequestService.logActivity(request, userDetails.getUsername(), "VIEWED", "Request viewed by " + userDetails.getUsername());
+
             // Check if Admin/HR
             boolean isAdminOrHr = userDetails.getAuthorities().stream()
                     .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_HR"));
@@ -338,6 +341,7 @@ public class PaymentRequestController {
             model.addAttribute("requestStatuses", RequestStatus.values());
             model.addAttribute("ppwStatuses", PPWStatus.values());
             model.addAttribute("canReview", canReview);
+            model.addAttribute("activities", paymentRequestService.getActivitiesForRequest(id));
             return "payment-request/view";
         } else {
             return "redirect:/payment-requests";
@@ -365,6 +369,7 @@ public class PaymentRequestController {
             String oldRemarks = existingRequest.getRemarks();
             String oldReference = existingRequest.getPaymentReferenceNumber();
             root.cyb.mh.attendancesystem.model.enums.PPWStatus oldPpw = existingRequest.getPpwUpdateStatus();
+            String oldProofPath = existingRequest.getPaymentProofPath();
 
             boolean isAdminOrHr = userDetails.getAuthorities().stream()
                     .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_HR"));
@@ -510,18 +515,39 @@ public class PaymentRequestController {
 
             // Notify Requester if ANY field changed
             java.util.List<String> changes = new java.util.ArrayList<>();
-            if (existingRequest.getStatus() != oldStatus)
+            java.util.List<String> diffDetails = new java.util.ArrayList<>();
+            if (existingRequest.getStatus() != oldStatus) {
                 changes.add("Status");
-            if (existingRequest.getPaymentStatus() != oldPaymentStatus)
+                diffDetails.add("Status: " + oldStatus + " -> " + existingRequest.getStatus());
+            }
+            if (existingRequest.getPaymentStatus() != oldPaymentStatus) {
                 changes.add("Payment Status");
-            if (!java.util.Objects.equals(existingRequest.getCheckStatus(), oldCheckStatus))
+                diffDetails.add("Payment Status: " + oldPaymentStatus + " -> " + existingRequest.getPaymentStatus());
+            }
+            if (!java.util.Objects.equals(existingRequest.getCheckStatus(), oldCheckStatus)) {
                 changes.add("Check Status");
-            if (!java.util.Objects.equals(existingRequest.getRemarks(), oldRemarks))
+                diffDetails.add("Check Status: '" + oldCheckStatus + "' -> '" + existingRequest.getCheckStatus() + "'");
+            }
+            if (!java.util.Objects.equals(existingRequest.getRemarks(), oldRemarks)) {
                 changes.add("Remarks");
-            if (!java.util.Objects.equals(existingRequest.getPaymentReferenceNumber(), oldReference))
+                diffDetails.add("Remarks: '" + oldRemarks + "' -> '" + existingRequest.getRemarks() + "'");
+            }
+            if (!java.util.Objects.equals(existingRequest.getPaymentReferenceNumber(), oldReference)) {
                 changes.add("Ref Number");
-            if (existingRequest.getPpwUpdateStatus() != oldPpw)
+                diffDetails.add("Ref Number: '" + oldReference + "' -> '" + existingRequest.getPaymentReferenceNumber() + "'");
+            }
+            if (existingRequest.getPpwUpdateStatus() != oldPpw) {
                 changes.add("PPW Status");
+                diffDetails.add("PPW Status: " + oldPpw + " -> " + existingRequest.getPpwUpdateStatus());
+            }
+            if (!java.util.Objects.equals(existingRequest.getPaymentProofPath(), oldProofPath)) {
+                diffDetails.add("Proof File: updated");
+            }
+
+            if (!diffDetails.isEmpty()) {
+                String detailsStr = "Updated: " + String.join(", ", diffDetails);
+                paymentRequestService.logActivity(existingRequest, userDetails.getUsername(), "UPDATED", detailsStr);
+            }
 
             if (!changes.isEmpty()) {
                 paymentRequestService.notifyRequesterUpdate(existingRequest, changes);
@@ -537,8 +563,7 @@ public class PaymentRequestController {
         if (requestOpt.isPresent()) {
             PaymentRequest request = requestOpt.get();
             if (request.getStatus() == root.cyb.mh.attendancesystem.model.enums.RequestStatus.REJECTED) {
-                paymentRequestRepository.delete(request); // Using repository directly since service might not have
-                                                          // delete
+                paymentRequestService.deleteRequest(id);
                 redirectAttributes.addFlashAttribute("successMessage", "Payment request deleted successfully.");
                 return "redirect:/payment-requests";
             } else {
@@ -654,6 +679,7 @@ public class PaymentRequestController {
 
             request.setEmployeeNote(note);
             paymentRequestService.updateRequest(request);
+            paymentRequestService.logActivity(request, userDetails.getUsername(), "NOTE_ADDED", "Note added: " + note);
 
             redirectAttributes.addFlashAttribute("successMessage", "Note to Admin successfully saved.");
         } else {
@@ -745,39 +771,46 @@ public class PaymentRequestController {
         
         for (PaymentRequest req : requests) {
             java.util.List<String> changes = new java.util.ArrayList<>();
+            java.util.List<String> diffDetails = new java.util.ArrayList<>();
             
             if (status != null) {
                 if (req.getStatus() != status) {
                     changes.add("Status");
+                    diffDetails.add("Status: " + req.getStatus() + " -> " + status);
                     req.setStatus(status);
                 }
             }
             if (paymentStatus != null) {
                 if (req.getPaymentStatus() != paymentStatus) {
                     changes.add("Payment Status");
+                    diffDetails.add("Payment Status: " + req.getPaymentStatus() + " -> " + paymentStatus);
                     req.setPaymentStatus(paymentStatus);
                 }
             }
             if (ppwUpdateStatus != null) {
                 if (req.getPpwUpdateStatus() != ppwUpdateStatus) {
                     changes.add("PPW Status");
+                    diffDetails.add("PPW Status: " + req.getPpwUpdateStatus() + " -> " + ppwUpdateStatus);
                     req.setPpwUpdateStatus(ppwUpdateStatus);
                 }
             }
             if (remarks != null && !remarks.trim().isEmpty()) {
                 if (!remarks.equals(req.getRemarks())) {
                     changes.add("Remarks");
+                    diffDetails.add("Remarks: '" + req.getRemarks() + "' -> '" + remarks + "'");
                     req.setRemarks(remarks);
                 }
             }
             if (paymentReferenceNumber != null && !paymentReferenceNumber.trim().isEmpty()) {
                 if (!paymentReferenceNumber.equals(req.getPaymentReferenceNumber())) {
                     changes.add("Ref Number");
+                    diffDetails.add("Ref Number: '" + req.getPaymentReferenceNumber() + "' -> '" + paymentReferenceNumber + "'");
                     req.setPaymentReferenceNumber(paymentReferenceNumber);
                 }
             }
             if (savedProofPath != null) {
                 changes.add("Proof File");
+                diffDetails.add("Proof File: updated");
                 req.setPaymentProofPath(savedProofPath);
             }
             
@@ -790,6 +823,9 @@ public class PaymentRequestController {
                 
                 paymentRequestService.updateRequest(req);
                 paymentRequestService.notifyRequesterUpdate(req, changes);
+                
+                String detailsStr = "Bulk updated: " + String.join(", ", diffDetails);
+                paymentRequestService.logActivity(req, userDetails.getUsername(), "UPDATED", detailsStr);
             }
         }
         

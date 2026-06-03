@@ -94,11 +94,19 @@ public class PaymentRequestControllerTest {
         request.setPriority(root.cyb.mh.attendancesystem.model.enums.PaymentPriority.REGULAR);
         paymentRequestRepository.save(request);
 
-        root.cyb.mh.attendancesystem.model.User dummyUser = new root.cyb.mh.attendancesystem.model.User();
-        dummyUser.setUsername("employee");
-        dummyUser.setPassword("password");
-        dummyUser.setRole("EMPLOYEE");
-        dummyUser = userRepository.save(dummyUser);
+        root.cyb.mh.attendancesystem.model.User dummyUser;
+        boolean createdDummyUser = false;
+        java.util.Optional<root.cyb.mh.attendancesystem.model.User> existing = userRepository.findByUsername("employee");
+        if (existing.isPresent()) {
+            dummyUser = existing.get();
+        } else {
+            dummyUser = new root.cyb.mh.attendancesystem.model.User();
+            dummyUser.setUsername("employee");
+            dummyUser.setPassword("password");
+            dummyUser.setRole("EMPLOYEE");
+            dummyUser = userRepository.save(dummyUser);
+            createdDummyUser = true;
+        }
 
         root.cyb.mh.attendancesystem.model.PaymentRequest createdRequest = null;
 
@@ -127,9 +135,14 @@ public class PaymentRequestControllerTest {
         } finally {
             paymentRequestRepository.delete(request);
             if (createdRequest != null) {
+                paymentRequestActivityRepository.deleteAll(
+                    paymentRequestActivityRepository.findByPaymentRequestIdOrderByTimestampDesc(createdRequest.getId())
+                );
                 paymentRequestRepository.delete(createdRequest);
             }
-            userRepository.delete(dummyUser);
+            if (createdDummyUser) {
+                userRepository.delete(dummyUser);
+            }
         }
     }
 
@@ -196,6 +209,16 @@ public class PaymentRequestControllerTest {
             org.junit.jupiter.api.Assertions.assertTrue(r2ProofPath.endsWith("bulk_receipt.pdf"));
 
         } finally {
+            if (r1.getId() != null) {
+                paymentRequestActivityRepository.deleteAll(
+                    paymentRequestActivityRepository.findByPaymentRequestIdOrderByTimestampDesc(r1.getId())
+                );
+            }
+            if (r2.getId() != null) {
+                paymentRequestActivityRepository.deleteAll(
+                    paymentRequestActivityRepository.findByPaymentRequestIdOrderByTimestampDesc(r2.getId())
+                );
+            }
             paymentRequestRepository.delete(r1);
             paymentRequestRepository.delete(r2);
             if (r1ProofPath != null) {
@@ -207,6 +230,96 @@ public class PaymentRequestControllerTest {
                 try {
                     new java.io.File(r2ProofPath).delete();
                 } catch (Exception e) {}
+            }
+        }
+    }
+
+    @Autowired
+    private root.cyb.mh.attendancesystem.repository.PaymentRequestActivityRepository paymentRequestActivityRepository;
+
+    @Test
+    @WithMockUser(username = "admin", roles = { "ADMIN" })
+    public void testRequestLifecycleLogging() throws Exception {
+        // 1. Create a dummy admin user in database
+        root.cyb.mh.attendancesystem.model.User adminUser;
+        boolean createdAdminUser = false;
+        java.util.Optional<root.cyb.mh.attendancesystem.model.User> existingAdmin = userRepository.findByUsername("admin");
+        if (existingAdmin.isPresent()) {
+            adminUser = existingAdmin.get();
+        } else {
+            adminUser = new root.cyb.mh.attendancesystem.model.User();
+            adminUser.setUsername("admin");
+            adminUser.setPassword("password");
+            adminUser.setRole("ADMIN");
+            adminUser = userRepository.save(adminUser);
+            createdAdminUser = true;
+        }
+
+        root.cyb.mh.attendancesystem.model.PaymentRequest createdRequest = null;
+
+        try {
+            // 2. Submit a new request (logs CREATED)
+            mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/payment-requests")
+                            .param("workOrderNumber", "WO-LIFECYCLE-123")
+                            .param("amount", "150.00")
+                            .param("priority", "REGULAR")
+                            .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()))
+                    .andExpect(status().is3xxRedirection());
+
+            // Retrieve the created request
+            java.util.List<root.cyb.mh.attendancesystem.model.PaymentRequest> requests = paymentRequestRepository.findAll();
+            for (root.cyb.mh.attendancesystem.model.PaymentRequest r : requests) {
+                if ("WO-LIFECYCLE-123".equals(r.getWorkOrderNumber())) {
+                    createdRequest = r;
+                    break;
+                }
+            }
+
+            org.junit.jupiter.api.Assertions.assertNotNull(createdRequest);
+
+            // 3. View the request (logs VIEWED)
+            mockMvc.perform(get("/payment-requests/" + createdRequest.getId()))
+                    .andExpect(status().isOk());
+
+            // 4. Update the request status (logs UPDATED)
+            mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/payment-requests/" + createdRequest.getId() + "/review")
+                            .param("status", "APPROVED")
+                            .param("paymentStatus", "PAID")
+                            .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()))
+                    .andExpect(status().is3xxRedirection());
+
+            // 5. Query activities and verify
+            java.util.List<root.cyb.mh.attendancesystem.model.PaymentRequestActivity> activities = 
+                    paymentRequestActivityRepository.findByPaymentRequestIdOrderByTimestampDesc(createdRequest.getId());
+
+            // We expect 3 activities (UPDATED, VIEWED, CREATED) in descending order of timestamp
+            org.junit.jupiter.api.Assertions.assertEquals(3, activities.size());
+
+            root.cyb.mh.attendancesystem.model.PaymentRequestActivity updatedAct = activities.get(0);
+            root.cyb.mh.attendancesystem.model.PaymentRequestActivity viewedAct = activities.get(1);
+            root.cyb.mh.attendancesystem.model.PaymentRequestActivity createdAct = activities.get(2);
+
+            org.junit.jupiter.api.Assertions.assertEquals("UPDATED", updatedAct.getActionType());
+            org.junit.jupiter.api.Assertions.assertEquals("admin", updatedAct.getUsername());
+            org.junit.jupiter.api.Assertions.assertTrue(updatedAct.getDetails().contains("Status: PENDING -> APPROVED"));
+
+            org.junit.jupiter.api.Assertions.assertEquals("VIEWED", viewedAct.getActionType());
+            org.junit.jupiter.api.Assertions.assertEquals("admin", viewedAct.getUsername());
+
+            org.junit.jupiter.api.Assertions.assertEquals("CREATED", createdAct.getActionType());
+            org.junit.jupiter.api.Assertions.assertEquals("admin", createdAct.getUsername());
+            org.junit.jupiter.api.Assertions.assertTrue(createdAct.getDetails().contains("submitted with amount"));
+
+        } finally {
+            if (createdRequest != null) {
+                // Delete activities first because of foreign key constraint
+                paymentRequestActivityRepository.deleteAll(
+                    paymentRequestActivityRepository.findByPaymentRequestIdOrderByTimestampDesc(createdRequest.getId())
+                );
+                paymentRequestRepository.delete(createdRequest);
+            }
+            if (createdAdminUser) {
+                userRepository.delete(adminUser);
             }
         }
     }
