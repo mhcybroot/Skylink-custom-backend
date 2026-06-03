@@ -295,10 +295,25 @@ public class PaymentRequestController {
     }
 
     @GetMapping("/{id}")
-    public String viewRequest(@PathVariable Long id, Model model, @AuthenticationPrincipal UserDetails userDetails) {
+    public String viewRequest(@PathVariable Long id, 
+            Model model, 
+            @AuthenticationPrincipal UserDetails userDetails,
+            jakarta.servlet.http.HttpServletRequest httpServletRequest,
+            jakarta.servlet.http.HttpSession httpSession) {
         Optional<PaymentRequest> requestOpt = paymentRequestService.getRequestById(id);
         if (requestOpt.isPresent()) {
             PaymentRequest request = requestOpt.get();
+
+            // Track Referer for "Back" button
+            String referer = httpServletRequest.getHeader("Referer");
+            if (referer != null && (referer.endsWith("/payment-requests") || referer.contains("/payment-requests?"))) {
+                httpSession.setAttribute("backUrl_" + id, referer);
+            }
+            String backUrl = (String) httpSession.getAttribute("backUrl_" + id);
+            if (backUrl == null) {
+                backUrl = "/payment-requests";
+            }
+            model.addAttribute("backUrl", backUrl);
 
             // Log viewed activity
             paymentRequestService.logActivity(request, userDetails.getUsername(), "VIEWED", "Request viewed by " + userDetails.getUsername());
