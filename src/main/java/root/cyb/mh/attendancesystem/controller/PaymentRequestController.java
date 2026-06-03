@@ -17,6 +17,9 @@ import root.cyb.mh.attendancesystem.service.PaymentRequestService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import root.cyb.mh.attendancesystem.repository.PaymentRequestRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Optional;
@@ -81,6 +84,9 @@ public class PaymentRequestController {
             @RequestParam(required = false) PaymentStatus paymentStatus,
             @RequestParam(required = false) PPWStatus ppwUpdateStatus,
 
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+
             Model model,
             @AuthenticationPrincipal UserDetails userDetails) {
 
@@ -109,9 +115,19 @@ public class PaymentRequestController {
         // Sorting
         Sort sort = Sort.by(sortDir.equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC, sortField);
 
-        List<PaymentRequest> requests = paymentRequestRepository.findAll(spec, sort);
+        // Pagination
+        int pageSize = Math.max(1, Math.min(size, 1000));
+        Pageable pageable = PageRequest.of(page, pageSize, sort);
 
-        model.addAttribute("requests", requests);
+        Page<PaymentRequest> requestsPage = paymentRequestRepository.findAll(spec, pageable);
+
+        model.addAttribute("requests", requestsPage.getContent());
+        model.addAttribute("currentPage", page);
+        model.addAttribute("totalPages", requestsPage.getTotalPages());
+        model.addAttribute("totalItems", requestsPage.getTotalElements());
+        long endItemIndex = Math.min((long) (page + 1) * pageSize, requestsPage.getTotalElements());
+        model.addAttribute("endItemIndex", endItemIndex);
+        model.addAttribute("size", pageSize);
         model.addAttribute("pageTitle", title);
 
         // Sorting params

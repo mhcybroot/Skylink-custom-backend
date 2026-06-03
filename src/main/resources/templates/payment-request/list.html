@@ -448,6 +448,50 @@
                             </table>
                         </div>
                     </div>
+                    
+                    <!-- Pagination Footer -->
+                    <div class="card-footer bg-white border-top py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div class="small text-muted" th:if="${totalItems > 0}">
+                            Showing <span th:text="${(currentPage * size) + 1}">1</span> to 
+                            <span th:text="${endItemIndex}">20</span> of 
+                            <span th:text="${totalItems}">100</span> requests
+                        </div>
+                        <div class="small text-muted" th:if="${totalItems == 0}">
+                            Showing 0 to 0 of 0 requests
+                        </div>
+                        
+                        <!-- Size selector -->
+                        <div class="d-flex align-items-center gap-2">
+                            <label class="small text-muted mb-0">Items per page:</label>
+                            <select id="pageSizeSelector" class="form-select form-select-sm" style="width: 85px;" onchange="changePageSize(this.value)">
+                                <option value="10" th:selected="${size == 10}">10</option>
+                                <option value="20" th:selected="${size == 20}">20</option>
+                                <option value="50" th:selected="${size == 50}">50</option>
+                                <option value="100" th:selected="${size == 100}">100</option>
+                                <option value="500" th:selected="${size == 500}">500</option>
+                                <option value="1000" th:selected="${size == 1000}">1000</option>
+                            </select>
+                        </div>
+
+                        <!-- Pagination navigation -->
+                        <nav aria-label="Page navigation" th:if="${totalPages > 1}">
+                            <ul class="pagination pagination-sm mb-0">
+                                <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
+                                    <a class="page-link" th:href="@{/payment-requests(page=${currentPage - 1}, size=${size}, view=${param.view}, sortField=${sortField}, sortDir=${sortDir}, startDate=${startDate}, endDate=${endDate}, contractorId=${contractorId}, clientId=${clientId}, paymentMethodId=${paymentMethodId}, workOrderNumber=${workOrderNumber}, requesterName=${requesterName}, priority=${priority}, status=${status}, paymentStatus=${paymentStatus}, ppwUpdateStatus=${ppwUpdateStatus})}" aria-label="Previous">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </a>
+                                </li>
+                                <li class="page-item" th:each="pageNum : ${#numbers.sequence(0, totalPages - 1)}" th:classappend="${pageNum == currentPage} ? 'active'">
+                                    <a class="page-link" th:href="@{/payment-requests(page=${pageNum}, size=${size}, view=${param.view}, sortField=${sortField}, sortDir=${sortDir}, startDate=${startDate}, endDate=${endDate}, contractorId=${contractorId}, clientId=${clientId}, paymentMethodId=${paymentMethodId}, workOrderNumber=${workOrderNumber}, requesterName=${requesterName}, priority=${priority}, status=${status}, paymentStatus=${paymentStatus}, ppwUpdateStatus=${ppwUpdateStatus})}" th:text="${pageNum + 1}">1</a>
+                                </li>
+                                <li class="page-item" th:classappend="${currentPage == totalPages - 1} ? 'disabled'">
+                                    <a class="page-link" th:href="@{/payment-requests(page=${currentPage + 1}, size=${size}, view=${param.view}, sortField=${sortField}, sortDir=${sortDir}, startDate=${startDate}, endDate=${endDate}, contractorId=${contractorId}, clientId=${clientId}, paymentMethodId=${paymentMethodId}, workOrderNumber=${workOrderNumber}, requesterName=${requesterName}, priority=${priority}, status=${status}, paymentStatus=${paymentStatus}, ppwUpdateStatus=${ppwUpdateStatus})}" aria-label="Next">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
                 </div>
                 
                 <!-- Bulk Actions Toolbar (Sticky Bottom) -->
@@ -789,6 +833,13 @@
                     });
                 });
             });
+            
+            function changePageSize(size) {
+                const urlParams = new URLSearchParams(window.location.search);
+                urlParams.set('size', size);
+                urlParams.set('page', '0');
+                window.location.search = urlParams.toString();
+            }
         </script>
     </div>
 </body>
