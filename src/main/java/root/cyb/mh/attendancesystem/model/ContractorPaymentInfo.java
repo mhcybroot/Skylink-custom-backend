@@ -2,6 +2,8 @@ package root.cyb.mh.attendancesystem.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.ToString;
+import lombok.EqualsAndHashCode;
 
 @Entity
 @Data
@@ -14,6 +16,8 @@ public class ContractorPaymentInfo {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "contractor_id", nullable = false)
     @com.fasterxml.jackson.annotation.JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private Contractor contractor;
 
     @ManyToOne(fetch = FetchType.EAGER)

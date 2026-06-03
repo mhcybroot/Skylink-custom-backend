@@ -259,7 +259,18 @@ public class PaymentRequestController {
 
     @PostMapping
     public String submitRequest(@ModelAttribute PaymentRequest paymentRequest,
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @AuthenticationPrincipal UserDetails userDetails,
+            Model model) {
+        if (paymentRequest.getWorkOrderNumber() != null && 
+                paymentRequestRepository.existsByWorkOrderNumberIgnoreCase(paymentRequest.getWorkOrderNumber().trim())) {
+            model.addAttribute("errorMessage", "Work Order Number '" + paymentRequest.getWorkOrderNumber() + "' already exists.");
+            model.addAttribute("priorities", PaymentPriority.values());
+            model.addAttribute("activeContractors", contractorRepository.findByActiveTrue());
+            model.addAttribute("activeClients", clientRepository.findByActiveTrue());
+            model.addAttribute("activePaymentMethods", paymentMethodRepository.findByActiveTrue());
+            model.addAttribute("activeCompanies", companyRepository.findByActiveTrue());
+            return "payment-request/form";
+        }
         String username = userDetails.getUsername();
 
         // 1. Try User
@@ -683,5 +694,12 @@ public class PaymentRequestController {
             }
         }
         return org.springframework.http.ResponseEntity.notFound().build();
+    }
+
+    @GetMapping("/api/check-work-order")
+    @ResponseBody
+    public java.util.Map<String, Boolean> checkWorkOrderNumber(@RequestParam String workOrderNumber) {
+        boolean exists = paymentRequestRepository.existsByWorkOrderNumberIgnoreCase(workOrderNumber.trim());
+        return java.util.Map.of("exists", exists);
     }
 }

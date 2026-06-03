@@ -24,6 +24,11 @@
 
                     <div class="card border-0 shadow-lg fade-in-up" style="animation-delay: 0.1s;">
                         <div class="card-body p-4 p-md-5">
+                            <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show border-0 mb-4 shadow-sm" role="alert">
+                                <i class="fas fa-exclamation-circle me-2"></i>
+                                <span th:text="${errorMessage}"></span>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
                             <form th:action="@{/payment-requests}" th:object="${paymentRequest}" method="post">
 
                                 <div class="row g-4">
@@ -49,6 +54,9 @@
                                                     class="fas fa-hashtag text-secondary"></i></span>
                                             <input type="text" class="form-control bg-light border-0"
                                                 th:field="*{workOrderNumber}" placeholder="e.g. WO-2023-001" required>
+                                        </div>
+                                        <div id="workOrderWarning" class="text-danger small mt-1 d-none">
+                                            <i class="fas fa-exclamation-triangle me-1"></i> Warning: This Work Order Number already exists.
                                         </div>
                                     </div>
                                     <div class="col-md-6 position-relative">
@@ -276,6 +284,41 @@
                     }
                 }
             });
+
+            // Check Work Order Number Duplication
+            const workOrderInput = document.getElementById('workOrderNumber');
+            const workOrderWarning = document.getElementById('workOrderWarning');
+            let lastCheckedValue = '';
+
+            if (workOrderInput && workOrderWarning) {
+                workOrderInput.addEventListener('blur', function () {
+                    const value = this.value.trim();
+                    if (!value || value === lastCheckedValue) return;
+
+                    fetch(`/payment-requests/api/check-work-order?workOrderNumber=${encodeURIComponent(value)}`)
+                        .then(res => res.json())
+                        .then(data => {
+                            lastCheckedValue = value;
+                            if (data.exists) {
+                                workOrderInput.classList.add('is-invalid');
+                                workOrderWarning.classList.remove('d-none');
+                                alert(`Warning: Work Order Number "${value}" already exists in the system. Please verify if this is a duplicate request.`);
+                            } else {
+                                workOrderInput.classList.remove('is-invalid');
+                                workOrderWarning.classList.add('d-none');
+                            }
+                        })
+                        .catch(err => console.error('Error checking Work Order Number:', err));
+                });
+
+                // Clear error style while typing a new value
+                workOrderInput.addEventListener('input', function () {
+                    if (this.value.trim() !== lastCheckedValue) {
+                        workOrderInput.classList.remove('is-invalid');
+                        workOrderWarning.classList.add('d-none');
+                    }
+                });
+            }
         </script>
     </div>
 </body>

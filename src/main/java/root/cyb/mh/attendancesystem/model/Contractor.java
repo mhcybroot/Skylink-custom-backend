@@ -2,6 +2,8 @@ package root.cyb.mh.attendancesystem.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.ToString;
+import lombok.EqualsAndHashCode;
 
 @Entity
 @Data
@@ -28,6 +30,8 @@ public class Contractor {
     private String accountDetails;
 
     @OneToMany(mappedBy = "contractor", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private java.util.List<ContractorPaymentInfo> paymentInfos = new java.util.ArrayList<>();
 
     @Column(updatable = false)

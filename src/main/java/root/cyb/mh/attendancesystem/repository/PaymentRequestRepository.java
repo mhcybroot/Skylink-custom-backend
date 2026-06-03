@@ -10,6 +10,8 @@ import java.util.List;
 @Repository
 public interface PaymentRequestRepository extends JpaRepository<PaymentRequest, Long>,
                 org.springframework.data.jpa.repository.JpaSpecificationExecutor<PaymentRequest> {
+        boolean existsByWorkOrderNumberIgnoreCase(String workOrderNumber);
+
         List<PaymentRequest> findByRequester(User requester);
 
         List<PaymentRequest> findByContractorIdOrderByRequestDateDesc(Long contractorId);
