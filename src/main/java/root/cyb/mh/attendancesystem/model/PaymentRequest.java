@@ -110,6 +110,9 @@ public class PaymentRequest {
     @Column(nullable = true)
     private String paymentProofPath;
 
+    private Boolean isPartialPayment;
+    private String duplicateReason;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private RequestStatus status = RequestStatus.PENDING;

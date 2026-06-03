@@ -59,6 +59,30 @@
                                             <i class="fas fa-exclamation-triangle me-1"></i> Warning: This Work Order Number already exists.
                                         </div>
                                     </div>
+
+                                    <div class="col-md-6 duplicate-question" id="partialPaymentField" th:classappend="${showDuplicateQuestions} ? '' : 'd-none'">
+                                        <label class="form-label fw-bold text-secondary text-uppercase small">Is Partial Payment?</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-light border-0"><i
+                                                    class="fas fa-percent text-secondary"></i></span>
+                                            <select class="form-select bg-light border-0" th:field="*{isPartialPayment}" id="isPartialPayment" th:required="${showDuplicateQuestions}">
+                                                <option value="">-- Select Option --</option>
+                                                <option th:value="true">Yes</option>
+                                                <option th:value="false">No</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-6 duplicate-question" id="duplicateReasonField" th:classappend="${showDuplicateQuestions} ? '' : 'd-none'">
+                                        <label class="form-label fw-bold text-secondary text-uppercase small">Reason to Duplicate Request</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-light border-0"><i
+                                                    class="fas fa-comment-dots text-secondary"></i></span>
+                                            <input type="text" class="form-control bg-light border-0" th:field="*{duplicateReason}" id="duplicateReason"
+                                                placeholder="e.g. Second installment of payment" th:required="${showDuplicateQuestions}">
+                                        </div>
+                                    </div>
+
                                     <div class="col-md-6 position-relative">
                                         <label class="form-label fw-bold text-secondary text-uppercase small">Contractor
                                             Name</label>
@@ -299,14 +323,33 @@
                         .then(res => res.json())
                         .then(data => {
                             lastCheckedValue = value;
-                            if (data.exists) {
-                                workOrderInput.classList.add('is-invalid');
-                                workOrderWarning.classList.remove('d-none');
-                                alert(`Warning: Work Order Number "${value}" already exists in the system. Please verify if this is a duplicate request.`);
-                            } else {
-                                workOrderInput.classList.remove('is-invalid');
-                                workOrderWarning.classList.add('d-none');
-                            }
+                             const partialPaymentField = document.getElementById('partialPaymentField');
+                             const duplicateReasonField = document.getElementById('duplicateReasonField');
+                             const isPartialPayment = document.getElementById('isPartialPayment');
+                             const duplicateReason = document.getElementById('duplicateReason');
+
+                             if (data.exists) {
+                                 workOrderInput.classList.add('is-invalid');
+                                 workOrderWarning.classList.remove('d-none');
+                                 if (partialPaymentField) partialPaymentField.classList.remove('d-none');
+                                 if (duplicateReasonField) duplicateReasonField.classList.remove('d-none');
+                                 if (isPartialPayment) isPartialPayment.required = true;
+                                 if (duplicateReason) duplicateReason.required = true;
+                                 alert(`Warning: Work Order Number "${value}" already exists in the system. Please confirm if this is a partial payment and enter a reason for duplicate request.`);
+                             } else {
+                                 workOrderInput.classList.remove('is-invalid');
+                                 workOrderWarning.classList.add('d-none');
+                                 if (partialPaymentField) partialPaymentField.classList.add('d-none');
+                                 if (duplicateReasonField) duplicateReasonField.classList.add('d-none');
+                                 if (isPartialPayment) {
+                                     isPartialPayment.required = false;
+                                     isPartialPayment.value = '';
+                                 }
+                                 if (duplicateReason) {
+                                     duplicateReason.required = false;
+                                     duplicateReason.value = '';
+                                 }
+                             }
                         })
                         .catch(err => console.error('Error checking Work Order Number:', err));
                 });

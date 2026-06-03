@@ -27,6 +27,9 @@ public class PaymentRequestControllerTest {
     @Autowired
     private root.cyb.mh.attendancesystem.repository.PaymentRequestRepository paymentRequestRepository;
 
+    @Autowired
+    private root.cyb.mh.attendancesystem.repository.UserRepository userRepository;
+
     @Test
     @WithMockUser(username = "employee", roles = { "EMPLOYEE" })
     public void testNewRequestForm() throws Exception {
@@ -78,6 +81,55 @@ public class PaymentRequestControllerTest {
                     .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.model().attribute("errorMessage", org.hamcrest.Matchers.containsString("already exists")));
         } finally {
             paymentRequestRepository.delete(request);
+        }
+    }
+
+    @Test
+    @WithMockUser(username = "employee", roles = { "EMPLOYEE" })
+    public void testSubmitDuplicateWorkOrderNumberWithExplanation() throws Exception {
+        root.cyb.mh.attendancesystem.model.PaymentRequest request = new root.cyb.mh.attendancesystem.model.PaymentRequest();
+        request.setWorkOrderNumber("WO-DUPE-456");
+        request.setAmount(new java.math.BigDecimal("100.00"));
+        request.setRequestDate(java.time.LocalDate.now());
+        request.setPriority(root.cyb.mh.attendancesystem.model.enums.PaymentPriority.REGULAR);
+        paymentRequestRepository.save(request);
+
+        root.cyb.mh.attendancesystem.model.User dummyUser = new root.cyb.mh.attendancesystem.model.User();
+        dummyUser.setUsername("employee");
+        dummyUser.setPassword("password");
+        dummyUser.setRole("EMPLOYEE");
+        dummyUser = userRepository.save(dummyUser);
+
+        root.cyb.mh.attendancesystem.model.PaymentRequest createdRequest = null;
+
+        try {
+            mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/payment-requests")
+                            .param("workOrderNumber", "WO-DUPE-456")
+                            .param("amount", "200.00")
+                            .param("priority", "REGULAR")
+                            .param("isPartialPayment", "true")
+                            .param("duplicateReason", "Installment 2")
+                            .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()))
+                    .andExpect(status().is3xxRedirection());
+
+            java.util.List<root.cyb.mh.attendancesystem.model.PaymentRequest> requests = paymentRequestRepository.findAll();
+            for (root.cyb.mh.attendancesystem.model.PaymentRequest r : requests) {
+                if ("WO-DUPE-456".equals(r.getWorkOrderNumber()) && !r.getId().equals(request.getId())) {
+                    createdRequest = r;
+                    break;
+                }
+            }
+
+            org.junit.jupiter.api.Assertions.assertNotNull(createdRequest);
+            org.junit.jupiter.api.Assertions.assertEquals(Boolean.TRUE, createdRequest.getIsPartialPayment());
+            org.junit.jupiter.api.Assertions.assertEquals("Installment 2", createdRequest.getDuplicateReason());
+
+        } finally {
+            paymentRequestRepository.delete(request);
+            if (createdRequest != null) {
+                paymentRequestRepository.delete(createdRequest);
+            }
+            userRepository.delete(dummyUser);
         }
     }
 

@@ -263,13 +263,16 @@ public class PaymentRequestController {
             Model model) {
         if (paymentRequest.getWorkOrderNumber() != null && 
                 paymentRequestRepository.existsByWorkOrderNumberIgnoreCase(paymentRequest.getWorkOrderNumber().trim())) {
-            model.addAttribute("errorMessage", "Work Order Number '" + paymentRequest.getWorkOrderNumber() + "' already exists.");
-            model.addAttribute("priorities", PaymentPriority.values());
-            model.addAttribute("activeContractors", contractorRepository.findByActiveTrue());
-            model.addAttribute("activeClients", clientRepository.findByActiveTrue());
-            model.addAttribute("activePaymentMethods", paymentMethodRepository.findByActiveTrue());
-            model.addAttribute("activeCompanies", companyRepository.findByActiveTrue());
-            return "payment-request/form";
+            if (paymentRequest.getIsPartialPayment() == null || paymentRequest.getDuplicateReason() == null || paymentRequest.getDuplicateReason().trim().isEmpty()) {
+                model.addAttribute("errorMessage", "Work Order Number '" + paymentRequest.getWorkOrderNumber() + "' already exists. Please indicate if this is a partial payment and explain why.");
+                model.addAttribute("showDuplicateQuestions", true);
+                model.addAttribute("priorities", PaymentPriority.values());
+                model.addAttribute("activeContractors", contractorRepository.findByActiveTrue());
+                model.addAttribute("activeClients", clientRepository.findByActiveTrue());
+                model.addAttribute("activePaymentMethods", paymentMethodRepository.findByActiveTrue());
+                model.addAttribute("activeCompanies", companyRepository.findByActiveTrue());
+                return "payment-request/form";
+            }
         }
         String username = userDetails.getUsername();
 
