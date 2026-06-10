@@ -356,14 +356,6 @@ public class PaymentRequestController {
 
             boolean canReview = isAdminOrHr || isSupervisor;
 
-            // Auto-update Check Status Logic
-            if (canReview && (request.getCheckStatus() == null || request.getCheckStatus().isEmpty())) {
-                String checkedBy = "Checked by " + userDetails.getUsername() + " on " + java.time.LocalDateTime.now()
-                        .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
-                request.setCheckStatus(checkedBy);
-                paymentRequestService.updateRequest(request);
-            }
-
             String limitStr = systemSettingService.getValue("PAYMENT_REVIEW_UPDATE_LIMIT", "3");
             model.addAttribute("reviewUpdateLimit", Integer.parseInt(limitStr));
 
