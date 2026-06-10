@@ -83,7 +83,7 @@ public class PaymentRequest {
     private String checkStatus;
 
     @Enumerated(EnumType.STRING)
-    private PaymentStatus paymentStatus;
+    private PaymentStatus paymentStatus = PaymentStatus.UNPAID;
 
     @ManyToOne
     @JoinColumn(name = "approval_authority_id")

@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import root.cyb.mh.attendancesystem.model.PaymentRequest;
 import root.cyb.mh.attendancesystem.model.User;
 import root.cyb.mh.attendancesystem.model.enums.RequestStatus;
+import root.cyb.mh.attendancesystem.model.enums.PaymentStatus;
 import root.cyb.mh.attendancesystem.repository.PaymentRequestRepository;
 
 import java.time.LocalDate;
@@ -63,6 +64,9 @@ public class PaymentRequestService {
     private PaymentRequest saveRequest(PaymentRequest paymentRequest) {
         paymentRequest.setRequestDate(LocalDate.now());
         paymentRequest.setStatus(RequestStatus.PENDING);
+        if (paymentRequest.getPaymentStatus() == null) {
+            paymentRequest.setPaymentStatus(PaymentStatus.UNPAID);
+        }
 
         // Backfill deprecated fields for DB compatibility
         if (paymentRequest.getContractor() != null) {

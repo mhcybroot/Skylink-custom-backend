@@ -10,6 +10,7 @@ import root.cyb.mh.attendancesystem.repository.PaymentRequestRepository;
 import root.cyb.mh.attendancesystem.service.PaymentRequestService;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -31,9 +32,10 @@ public class PaymentRequestServiceTest {
         User user = new User();
         user.setId(1L);
 
-        when(paymentRequestRepository.save(any(PaymentRequest.class))).thenReturn(request);
+        when(paymentRequestRepository.save(any(PaymentRequest.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         PaymentRequest created = paymentRequestService.createRequest(request, user);
         assertNotNull(created);
+        assertEquals(root.cyb.mh.attendancesystem.model.enums.PaymentStatus.UNPAID, created.getPaymentStatus());
     }
 }

@@ -306,10 +306,8 @@
                                             class="form-select form-select-sm rounded-1 border-secondary"
                                             th:disabled="${!isAdmin and (isPaid or isLimitReached)}"
                                             th:with="isPaid=${paymentRequest.paymentStatus != null and paymentRequest.paymentStatus.name() == 'PAID'}, isLimitReached=${paymentRequest.reviewUpdateCount >= reviewUpdateLimit}, isAdmin=${#authorization.expression('hasRole(''ADMIN'')')}">
-                                            <option value="" th:selected="${paymentRequest.paymentStatus == null}">--
-                                                Select --</option>
                                             <option th:each="Ps : ${paymentStatuses}" th:value="${Ps}" th:text="${Ps}"
-                                                th:selected="${Ps == paymentRequest.paymentStatus}"></option>
+                                                th:selected="${paymentRequest.paymentStatus != null ? Ps == paymentRequest.paymentStatus : Ps.name() == 'UNPAID'}"></option>
                                         </select>
                                     </div>
                                     <div class="row g-2 mb-3">
@@ -388,7 +386,7 @@
                                 <div class="d-flex justify-content-between mb-2">
                                     <span class="text-muted small">Processing</span>
                                     <span class="fw-bold"
-                                        th:text="${paymentRequest.paymentStatus != null ? paymentRequest.paymentStatus : 'Pending'}"></span>
+                                        th:text="${paymentRequest.paymentStatus != null ? paymentRequest.paymentStatus : 'UNPAID'}"></span>
                                 </div>
                                 <div class="d-flex justify-content-between mb-2">
                                     <span class="text-muted small">Ref #</span>
