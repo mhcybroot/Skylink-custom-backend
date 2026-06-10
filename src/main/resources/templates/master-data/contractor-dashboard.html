@@ -200,7 +200,8 @@
                                             </td>
                                             <td>
                                                 <span class="badge rounded-1 fw-normal border"
-                                                    th:classappend="${req.paymentStatus != null && req.paymentStatus.name() == 'PAID'} ? 'bg-success-subtle text-success border-success' : 'bg-secondary-subtle text-secondary border-secondary'"
+                                                    th:classappend="${req.paymentStatus != null && req.paymentStatus.name() == 'PAID'} ? 'bg-success-subtle text-success border-success' : 
+                                                                   (req.paymentStatus != null && req.paymentStatus.name() == 'ISSUE' ? 'bg-warning-subtle text-warning-emphasis border-warning' : 'bg-secondary-subtle text-secondary border-secondary')"
                                                     th:text="${req.paymentStatus}">UNPAID</span>
                                             </td>
                                         </tr>

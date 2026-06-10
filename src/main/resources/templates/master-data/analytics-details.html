@@ -123,7 +123,8 @@
                                     </td>
                                     <td class="text-center">
                                         <span class="badge rounded-1 fw-normal"
-                                            th:classappend="${p.paymentStatus != null && p.paymentStatus.name() == 'PAID' ? 'bg-info-subtle text-info' : 'bg-light text-muted border'}"
+                                            th:classappend="${p.paymentStatus != null && p.paymentStatus.name() == 'PAID' ? 'bg-info-subtle text-info' : 
+                                                            (p.paymentStatus != null && p.paymentStatus.name() == 'ISSUE' ? 'bg-warning-subtle text-dark border border-warning' : 'bg-light text-muted border')}"
                                             th:text="${p.paymentStatus != null ? p.paymentStatus : 'UNPAID'}">PAID</span>
                                     </td>
                                     <td class="text-end pe-4 fw-bold text-dark"

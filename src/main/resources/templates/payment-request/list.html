@@ -465,7 +465,9 @@
                                             <span th:if="${req.paymentStatus != null}" th:text="${req.paymentStatus}"
                                                 th:class="${'badge rounded-1 fw-normal ' + 
                                                 (req.paymentStatus.name() == 'PAID' ? 'bg-success-subtle text-success border border-success' : 
-                                                (req.paymentStatus.name() == 'PROCESSING' ? 'bg-info-subtle text-info border border-info' : 'bg-secondary-subtle text-secondary border border-secondary'))}">
+                                                (req.paymentStatus.name() == 'PROCESSING' ? 'bg-info-subtle text-info border border-info' : 
+                                                (req.paymentStatus.name() == 'ISSUE' ? 'bg-warning-subtle text-warning-emphasis border border-warning' : 
+                                                'bg-secondary-subtle text-secondary border border-secondary')))}">
                                             </span>
                                         </td>
                                         <td>
