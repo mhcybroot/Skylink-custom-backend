@@ -74,15 +74,15 @@ public class PaymentRequestController {
             // Filters
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
-            @RequestParam(required = false) Long contractorId,
-            @RequestParam(required = false) Long clientId,
-            @RequestParam(required = false) Long paymentMethodId,
+            @RequestParam(required = false) List<Long> contractorId,
+            @RequestParam(required = false) List<Long> clientId,
+            @RequestParam(required = false) List<Long> paymentMethodId,
             @RequestParam(required = false) String workOrderNumber,
             @RequestParam(required = false) String requesterName,
-            @RequestParam(required = false) PaymentPriority priority,
-            @RequestParam(required = false) RequestStatus status,
-            @RequestParam(required = false) PaymentStatus paymentStatus,
-            @RequestParam(required = false) PPWStatus ppwUpdateStatus,
+            @RequestParam(required = false) List<PaymentPriority> priority,
+            @RequestParam(required = false) List<RequestStatus> status,
+            @RequestParam(required = false) List<PaymentStatus> paymentStatus,
+            @RequestParam(required = false) List<PPWStatus> ppwUpdateStatus,
 
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -173,15 +173,15 @@ public class PaymentRequestController {
             // Filters
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
-            @RequestParam(required = false) Long contractorId,
-            @RequestParam(required = false) Long clientId,
-            @RequestParam(required = false) Long paymentMethodId,
+            @RequestParam(required = false) List<Long> contractorId,
+            @RequestParam(required = false) List<Long> clientId,
+            @RequestParam(required = false) List<Long> paymentMethodId,
             @RequestParam(required = false) String workOrderNumber,
             @RequestParam(required = false) String requesterName,
-            @RequestParam(required = false) PaymentPriority priority,
-            @RequestParam(required = false) RequestStatus status,
-            @RequestParam(required = false) PaymentStatus paymentStatus,
-            @RequestParam(required = false) PPWStatus ppwUpdateStatus,
+            @RequestParam(required = false) List<PaymentPriority> priority,
+            @RequestParam(required = false) List<RequestStatus> status,
+            @RequestParam(required = false) List<PaymentStatus> paymentStatus,
+            @RequestParam(required = false) List<PPWStatus> ppwUpdateStatus,
 
             jakarta.servlet.http.HttpServletResponse response,
             @AuthenticationPrincipal UserDetails userDetails) throws java.io.IOException {
@@ -211,10 +211,10 @@ public class PaymentRequestController {
 
     private Specification<PaymentRequest> createSpecification(
             LocalDate startDate, LocalDate endDate,
-            Long contractorId, Long clientId, Long paymentMethodId,
+            List<Long> contractorId, List<Long> clientId, List<Long> paymentMethodId,
             String workOrderNumber, String requesterName,
-            PaymentPriority priority, RequestStatus status,
-            PaymentStatus paymentStatus, PPWStatus ppwUpdateStatus,
+            List<PaymentPriority> priority, List<RequestStatus> status,
+            List<PaymentStatus> paymentStatus, List<PPWStatus> ppwUpdateStatus,
             String view, UserDetails userDetails, boolean isAdminOrHr) {
 
         Specification<PaymentRequest> spec = PaymentRequestSpecification.getFilterSpec(

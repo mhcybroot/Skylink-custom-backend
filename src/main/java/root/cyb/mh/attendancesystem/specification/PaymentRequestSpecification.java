@@ -16,12 +16,31 @@ public class PaymentRequestSpecification {
     public static Specification<PaymentRequest> getFilterSpec(
             LocalDate startDate, LocalDate endDate,
             Long contractorId, Long clientId, Long paymentMethodId,
+            String workOrderNumber, String requesterName,
+            PaymentPriority priority, RequestStatus status,
+            PaymentStatus paymentStatus, PPWStatus ppwUpdateStatus) {
+        return getFilterSpec(
+                startDate, endDate,
+                contractorId != null ? List.of(contractorId) : null,
+                clientId != null ? List.of(clientId) : null,
+                paymentMethodId != null ? List.of(paymentMethodId) : null,
+                workOrderNumber, requesterName,
+                priority != null ? List.of(priority) : null,
+                status != null ? List.of(status) : null,
+                paymentStatus != null ? List.of(paymentStatus) : null,
+                ppwUpdateStatus != null ? List.of(ppwUpdateStatus) : null
+        );
+    }
+
+    public static Specification<PaymentRequest> getFilterSpec(
+            LocalDate startDate, LocalDate endDate,
+            List<Long> contractorIds, List<Long> clientIds, List<Long> paymentMethodIds,
             String workOrderNumber,
             String requesterName,
-            PaymentPriority priority,
-            RequestStatus status,
-            PaymentStatus paymentStatus,
-            PPWStatus ppwUpdateStatus) {
+            List<PaymentPriority> priorities,
+            List<RequestStatus> statuses,
+            List<PaymentStatus> paymentStatuses,
+            List<PPWStatus> ppwUpdateStatuses) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
@@ -33,18 +52,18 @@ public class PaymentRequestSpecification {
             }
 
             // Contractor
-            if (contractorId != null) {
-                predicates.add(cb.equal(root.get("contractor").get("id"), contractorId));
+            if (contractorIds != null && !contractorIds.isEmpty()) {
+                predicates.add(root.get("contractor").get("id").in(contractorIds));
             }
 
             // Client
-            if (clientId != null) {
-                predicates.add(cb.equal(root.get("client").get("id"), clientId));
+            if (clientIds != null && !clientIds.isEmpty()) {
+                predicates.add(root.get("client").get("id").in(clientIds));
             }
 
             // Payment Method
-            if (paymentMethodId != null) {
-                predicates.add(cb.equal(root.get("paymentMethod").get("id"), paymentMethodId));
+            if (paymentMethodIds != null && !paymentMethodIds.isEmpty()) {
+                predicates.add(root.get("paymentMethod").get("id").in(paymentMethodIds));
             }
 
             // Work Order
@@ -54,23 +73,23 @@ public class PaymentRequestSpecification {
             }
 
             // Priority
-            if (priority != null) {
-                predicates.add(cb.equal(root.get("priority"), priority));
+            if (priorities != null && !priorities.isEmpty()) {
+                predicates.add(root.get("priority").in(priorities));
             }
 
             // Status
-            if (status != null) {
-                predicates.add(cb.equal(root.get("status"), status));
+            if (statuses != null && !statuses.isEmpty()) {
+                predicates.add(root.get("status").in(statuses));
             }
 
             // Payment Status
-            if (paymentStatus != null) {
-                predicates.add(cb.equal(root.get("paymentStatus"), paymentStatus));
+            if (paymentStatuses != null && !paymentStatuses.isEmpty()) {
+                predicates.add(root.get("paymentStatus").in(paymentStatuses));
             }
 
             // PPW Status
-            if (ppwUpdateStatus != null) {
-                predicates.add(cb.equal(root.get("ppwUpdateStatus"), ppwUpdateStatus));
+            if (ppwUpdateStatuses != null && !ppwUpdateStatuses.isEmpty()) {
+                predicates.add(root.get("ppwUpdateStatus").in(ppwUpdateStatuses));
             }
 
             // Requester (Name or Username)
