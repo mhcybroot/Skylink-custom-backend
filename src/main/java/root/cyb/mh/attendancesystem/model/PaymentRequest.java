@@ -94,7 +94,7 @@ public class PaymentRequest {
     private root.cyb.mh.attendancesystem.model.Employee approvalEmployee;
 
     @Enumerated(EnumType.STRING)
-    private PPWStatus ppwUpdateStatus;
+    private PPWStatus ppwUpdateStatus = PPWStatus.NOT_UPDATED;
 
     @Column(columnDefinition = "TEXT")
     private String remarks;

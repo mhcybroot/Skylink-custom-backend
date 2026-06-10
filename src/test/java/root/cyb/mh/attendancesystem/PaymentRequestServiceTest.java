@@ -37,5 +37,6 @@ public class PaymentRequestServiceTest {
         PaymentRequest created = paymentRequestService.createRequest(request, user);
         assertNotNull(created);
         assertEquals(root.cyb.mh.attendancesystem.model.enums.PaymentStatus.UNPAID, created.getPaymentStatus());
+        assertEquals(root.cyb.mh.attendancesystem.model.enums.PPWStatus.NOT_UPDATED, created.getPpwUpdateStatus());
     }
 }

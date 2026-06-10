@@ -6,6 +6,7 @@ import root.cyb.mh.attendancesystem.model.PaymentRequest;
 import root.cyb.mh.attendancesystem.model.User;
 import root.cyb.mh.attendancesystem.model.enums.RequestStatus;
 import root.cyb.mh.attendancesystem.model.enums.PaymentStatus;
+import root.cyb.mh.attendancesystem.model.enums.PPWStatus;
 import root.cyb.mh.attendancesystem.repository.PaymentRequestRepository;
 
 import java.time.LocalDate;
@@ -66,6 +67,9 @@ public class PaymentRequestService {
         paymentRequest.setStatus(RequestStatus.PENDING);
         if (paymentRequest.getPaymentStatus() == null) {
             paymentRequest.setPaymentStatus(PaymentStatus.UNPAID);
+        }
+        if (paymentRequest.getPpwUpdateStatus() == null) {
+            paymentRequest.setPpwUpdateStatus(PPWStatus.NOT_UPDATED);
         }
 
         // Backfill deprecated fields for DB compatibility

@@ -317,11 +317,9 @@
                                             class="form-select form-select-sm rounded-1 border-secondary"
                                             th:disabled="${!isAdmin and isLimitReached}"
                                             th:with="isLimitReached=${paymentRequest.reviewUpdateCount >= reviewUpdateLimit}, isAdmin=${#authorization.expression('hasRole(''ADMIN'')')}">
-                                            <option value=""
-                                                th:selected="${paymentRequest.ppwUpdateStatus == null}">-</option>
                                             <option th:each="ppw : ${ppwStatuses}" th:value="${ppw}"
                                                 th:text="${ppw}"
-                                                th:selected="${ppw == paymentRequest.ppwUpdateStatus}"></option>
+                                                th:selected="${paymentRequest.ppwUpdateStatus != null ? ppw == paymentRequest.ppwUpdateStatus : ppw.name() == 'NOT_UPDATED'}"></option>
                                         </select>
                                     </div>
                                     <div class="mb-3">
