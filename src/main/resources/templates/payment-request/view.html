@@ -41,6 +41,70 @@
                     background-color: hsl(38, 90%, 42%) !important;
                     color: #fff !important;
                 }
+
+                /* Interactive change logs styles */
+                .change-item {
+                    display: flex;
+                    align-items: center;
+                    flex-wrap: wrap;
+                    gap: 0.5rem;
+                    padding: 0.35rem 0.5rem;
+                    border-radius: 4px;
+                    background: #f8f9fa;
+                    border: 1px solid #e9ecef;
+                    margin-bottom: 0.35rem;
+                    transition: all 0.15s ease-in-out;
+                }
+                .change-item:hover {
+                    background: #f1f3f5;
+                    border-color: #dee2e6;
+                    transform: translateY(-1px);
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+                }
+                .change-field {
+                    font-size: 0.72rem;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    color: #555e66;
+                    letter-spacing: 0.5px;
+                    min-width: 120px;
+                }
+                .change-val-arrow {
+                    color: #adb5bd;
+                    font-size: 0.8rem;
+                }
+                .change-note-box {
+                    background: #fffdf5;
+                    border-left: 3px solid #ffc107;
+                    padding: 0.5rem 0.75rem;
+                    border-radius: 0 4px 4px 0;
+                    font-size: 0.85rem;
+                    color: #495057;
+                    position: relative;
+                    border-top: 1px solid #fff3cd;
+                    border-right: 1px solid #fff3cd;
+                    border-bottom: 1px solid #fff3cd;
+                }
+                .change-info-box {
+                    background: #f8f9fa;
+                    border: 1px solid #e9ecef;
+                    padding: 0.5rem 0.75rem;
+                    border-radius: 4px;
+                    font-size: 0.85rem;
+                    color: #495057;
+                }
+                .expand-toggle {
+                    font-size: 0.7rem;
+                    font-weight: 600;
+                    color: #0d6efd;
+                    cursor: pointer;
+                    text-decoration: none;
+                    margin-left: 0.5rem;
+                    user-select: none;
+                }
+                .expand-toggle:hover {
+                    text-decoration: underline;
+                }
             </style>
             <!-- Corporate Header -->
             <div class="bg-white border-bottom py-3 shadow-sm">
@@ -235,7 +299,9 @@
                                                 <span class="badge bg-light text-secondary border fw-normal py-1" th:text="${act.actionType}">Action</span>
                                                 <small class="text-muted ms-auto font-monospace" th:text="${#temporals.format(act.timestamp, 'yyyy-MM-dd HH:mm:ss')}">Time</small>
                                             </div>
-                                            <div class="text-muted small font-monospace bg-light border p-2 rounded-1 text-break" style="line-height: 1.4;" th:text="${act.details}">Details</div>
+                                            <div class="activity-details-container" th:data-details="${act.details}" th:data-action-type="${act.actionType}">
+                                                <div class="text-muted small font-monospace bg-light border p-2 rounded-1 text-break" style="line-height: 1.4;" th:text="${act.details}">Details</div>
+                                            </div>
                                         </div>
                                     </div>
                                     <div th:if="${#lists.isEmpty(activities)}" class="text-center py-4 text-muted">
@@ -483,7 +549,211 @@
                         btnSendEmail.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Sending...';
                     });
                 }
+
+                // Render interactive activities
+                renderInteractiveActivities();
             });
+
+            function renderInteractiveActivities() {
+                document.querySelectorAll('.activity-details-container').forEach(container => {
+                    const actionType = container.getAttribute('data-action-type');
+                    const details = container.getAttribute('data-details');
+                    if (!details) return;
+
+                    let html = '';
+
+                    if (actionType === 'UPDATED') {
+                        const changes = parseUpdatedDetails(details);
+                        if (changes.length > 0) {
+                            html = '<div class="d-flex flex-column gap-1 w-100">';
+                            changes.forEach(c => {
+                                if (c.type === 'change') {
+                                    let fieldLabel = c.field;
+                                    let oldClass = 'badge bg-light text-muted border text-decoration-line-through';
+                                    let newClass = 'badge bg-secondary-subtle text-secondary border';
+                                    
+                                    // Customize badges based on status values
+                                    if (c.field === 'Payment Status') {
+                                        newClass = getPaymentStatusClass(c.to);
+                                        oldClass = getPaymentStatusClass(c.from) + ' text-decoration-line-through opacity-75';
+                                    } else if (c.field === 'Status') {
+                                        newClass = getApprovalStatusClass(c.to);
+                                        oldClass = getApprovalStatusClass(c.from) + ' text-decoration-line-through opacity-75';
+                                    } else if (c.field === 'PPW Status') {
+                                        newClass = getPpwStatusClass(c.to);
+                                        oldClass = getPpwStatusClass(c.from) + ' text-decoration-line-through opacity-75';
+                                    }
+
+                                    // Handle null or empty display names
+                                    let fromDisplay = c.from === 'null' || !c.from ? 'None' : c.from;
+                                    let toDisplay = c.to === 'null' || !c.to ? 'None' : c.to;
+
+                                    // For long text fields like Remarks, render details or expand/collapse
+                                    if (c.field === 'Remarks' && (fromDisplay.length > 50 || toDisplay.length > 50)) {
+                                        html += '<div class="change-item align-items-start flex-column p-2 w-100">' +
+                                                '<div class="d-flex align-items-center justify-content-between w-100 mb-1">' +
+                                                '<span class="change-field"><i class="fas fa-comment-alt me-1 text-muted"></i>' + escapeHtml(fieldLabel) + '</span>' +
+                                                '<span class="badge bg-light text-muted border small">Text Update</span>' +
+                                                '</div>' +
+                                                '<div class="small w-100 border-start ps-2 py-1 text-muted ms-1" style="font-size: 0.8rem;">' +
+                                                '<span class="text-decoration-line-through opacity-50">From: ' + escapeHtml(fromDisplay) + '</span>' +
+                                                '</div>' +
+                                                '<div class="change-note-box w-100 mt-1 ms-1">' +
+                                                renderLongText(toDisplay) +
+                                                '</div>' +
+                                                '</div>';
+                                    } else {
+                                        html += '<div class="change-item w-100">' +
+                                                '<span class="change-field">' + escapeHtml(fieldLabel) + '</span>' +
+                                                '<div class="d-flex align-items-center flex-wrap gap-1">' +
+                                                '<span class="' + oldClass + '">' + escapeHtml(fromDisplay) + '</span>' +
+                                                '<i class="fas fa-long-arrow-alt-right change-val-arrow mx-1"></i>' +
+                                                '<span class="' + newClass + '">' + escapeHtml(toDisplay) + '</span>' +
+                                                '</div>' +
+                                                '</div>';
+                                    }
+                                } else if (c.type === 'info') {
+                                    let icon = 'fas fa-info-circle';
+                                    if (c.field === 'Proof File') icon = 'fas fa-paperclip';
+                                    html += '<div class="change-item w-100">' +
+                                            '<span class="change-field"><i class="' + icon + ' me-1 text-muted"></i>' + escapeHtml(c.field) + '</span>' +
+                                            '<span class="badge bg-info-subtle text-info border">' + escapeHtml(c.value) + '</span>' +
+                                            '</div>';
+                                }
+                            });
+                            html += '</div>';
+                        }
+                    } else if (actionType === 'NOTE_ADDED') {
+                        const noteText = details.replace(/^Note added:\s*/i, '');
+                        html = '<div class="change-note-box w-100">' +
+                               '<i class="fas fa-comment-dots text-warning position-absolute" style="top: 8px; right: 8px; opacity: 0.5;"></i>' +
+                               renderLongText(noteText) +
+                               '</div>';
+                    } else if (actionType === 'CREATED') {
+                        html = '<div class="change-info-box w-100 d-flex align-items-center gap-2">' +
+                               '<div class="rounded-circle bg-success-subtle text-success d-flex align-items-center justify-content-center" style="width: 24px; height: 24px;">' +
+                               '<i class="fas fa-check small"></i>' +
+                               '</div>' +
+                               '<span>' + escapeHtml(details) + '</span>' +
+                               '</div>';
+                    }
+
+                    if (html) {
+                        container.innerHTML = html;
+                    }
+                });
+            }
+
+            function parseUpdatedDetails(detailsText) {
+                // Remove prefix "Updated: " or "Bulk updated: "
+                let cleaned = detailsText.replace(/^(Updated|Bulk updated):\s*/, '');
+                
+                const fields = ["Payment Status", "Status", "Check Status", "Remarks", "Ref Number", "PPW Status", "Proof File"];
+                const regex = new RegExp('(' + fields.map(f => f.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')).join('|') + '):\\s*', 'g');
+                
+                let matches = [];
+                let match;
+                while ((match = regex.exec(cleaned)) !== null) {
+                    matches.push({
+                        field: match[1],
+                        index: match.index,
+                        length: match[0].length
+                    });
+                }
+                
+                let changes = [];
+                for (let i = 0; i < matches.length; i++) {
+                    let current = matches[i];
+                    let next = matches[i + 1];
+                    let valueStart = current.index + current.length;
+                    let valueEnd = next ? next.index : cleaned.length;
+                    let valuePart = cleaned.substring(valueStart, valueEnd).trim();
+                    
+                    // Strip trailing comma if there is another match
+                    if (next && valuePart.endsWith(',')) {
+                        valuePart = valuePart.slice(0, -1).trim();
+                    }
+                    
+                    if (valuePart.includes(' -> ')) {
+                        let parts = valuePart.split(' -> ');
+                        let fromVal = parts[0].trim();
+                        let toVal = parts[1].trim();
+                        if (fromVal.startsWith("'") && fromVal.endsWith("'")) fromVal = fromVal.slice(1, -1);
+                        if (toVal.startsWith("'") && toVal.endsWith("'")) toVal = toVal.slice(1, -1);
+                        changes.push({
+                            field: current.field,
+                            type: 'change',
+                            from: fromVal,
+                            to: toVal
+                        });
+                    } else {
+                        changes.push({
+                            field: current.field,
+                            type: 'info',
+                            value: valuePart
+                        });
+                    }
+                }
+                return changes;
+            }
+
+            function getPaymentStatusClass(status) {
+                if (!status || status === 'null') return 'badge bg-secondary-subtle text-secondary border';
+                status = status.toUpperCase();
+                if (status === 'PAID') return 'badge bg-success-subtle text-success border border-success';
+                if (status === 'PROCESSING') return 'badge bg-info-subtle text-info border border-info';
+                if (status === 'ISSUE') return 'badge bg-warning-subtle text-warning-emphasis border border-warning';
+                return 'badge bg-secondary-subtle text-secondary border border-secondary';
+            }
+
+            function getApprovalStatusClass(status) {
+                if (!status || status === 'null') return 'badge bg-secondary-subtle text-secondary border';
+                status = status.toUpperCase();
+                if (status === 'APPROVED') return 'badge bg-success-subtle text-success border border-success';
+                if (status === 'REJECTED') return 'badge bg-danger-subtle text-danger border border-danger';
+                return 'badge bg-warning-subtle text-warning-emphasis border border-warning';
+            }
+
+            function getPpwStatusClass(status) {
+                if (!status || status === 'null') return 'badge bg-secondary-subtle text-secondary border';
+                status = status.toUpperCase();
+                if (status === 'UPDATED') return 'badge bg-primary-subtle text-primary border border-primary';
+                if (status === 'NOT_UPDATED') return 'badge bg-light text-muted border';
+                return 'badge bg-info-subtle text-info border border-info';
+            }
+
+            function renderLongText(text) {
+                if (text.length <= 60) return escapeHtml(text);
+                const id = 'text_' + Math.random().toString(36).substr(2, 9);
+                const shortText = text.substring(0, 60) + '...';
+                return '<span id="short_' + id + '">' + escapeHtml(shortText) + '</span>' +
+                       '<span id="full_' + id + '" class="d-none">' + escapeHtml(text) + '</span>' +
+                       '<a href="javascript:void(0)" class="expand-toggle" onclick="toggleText(\'' + id + '\')">Show More</a>';
+            }
+
+            window.toggleText = function(id) {
+                const shortEl = document.getElementById('short_' + id);
+                const fullEl = document.getElementById('full_' + id);
+                const toggleEl = shortEl.nextElementSibling.nextElementSibling;
+                if (fullEl.classList.contains('d-none')) {
+                    fullEl.classList.remove('d-none');
+                    shortEl.classList.add('d-none');
+                    toggleEl.textContent = 'Show Less';
+                } else {
+                    fullEl.classList.add('d-none');
+                    shortEl.classList.remove('d-none');
+                    toggleEl.textContent = 'Show More';
+                }
+            }
+
+            function escapeHtml(text) {
+                return text
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+            }
         </script>
     </div>
 </body>
