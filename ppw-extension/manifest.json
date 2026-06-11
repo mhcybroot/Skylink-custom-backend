@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Skylink PPW Sync",
+  "version": "1.0",
+  "description": "Automatically syncs PPW report IDs with the Skylink backend for 1-click access.",
+  "permissions": [],
+  "host_permissions": [
+    "http://76.13.221.43:8083/api/v1/ppw-mapping"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.propertypreswizard.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

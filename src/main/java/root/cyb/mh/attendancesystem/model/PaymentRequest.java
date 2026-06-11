@@ -113,6 +113,9 @@ public class PaymentRequest {
     private Boolean isPartialPayment;
     private String duplicateReason;
 
+    @Column(nullable = true)
+    private String ppwReportId;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private RequestStatus status = RequestStatus.PENDING;

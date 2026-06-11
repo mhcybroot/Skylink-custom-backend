@@ -497,11 +497,13 @@
                                         </td>
                                         <td class="text-center">
                                             <a th:if="${req.workOrderNumber != null and !req.workOrderNumber.isEmpty()}"
-                                               th:href="${'https://propertypreswizard.com/control.php/search/search/?org_wo_num=&wo_number=' + req.workOrderNumber + '&loan_number=&address=&city=&zip=&invoice_id=&search=Search&event=search'}"
+                                               th:href="${req.ppwReportId != null and !req.ppwReportId.isEmpty() 
+                                                            ? 'https://propertypreswizard.com/control.php/reportinfo/invoice/?report_id=' + req.ppwReportId 
+                                                            : 'https://propertypreswizard.com/control.php/search/search/?org_wo_num=&wo_number=' + req.workOrderNumber + '&loan_number=&address=&city=&zip=&invoice_id=&search=Search&event=search'}"
                                                target="_blank"
                                                rel="noopener noreferrer"
-                                               class="btn btn-sm btn-outline-primary rounded-1 px-2"
-                                               title="Search this Work Order on PPW">
+                                               th:class="${'btn btn-sm rounded-1 px-2 ' + (req.ppwReportId != null and !req.ppwReportId.isEmpty() ? 'btn-primary text-white shadow-sm' : 'btn-outline-primary')}"
+                                               th:title="${req.ppwReportId != null and !req.ppwReportId.isEmpty() ? 'Open 1-Click Report' : 'Search this Work Order on PPW'}">
                                                 <i class="fas fa-external-link-alt me-1" style="font-size:0.7rem;"></i>PPW
                                             </a>
                                             <span th:if="${req.workOrderNumber == null or req.workOrderNumber.isEmpty()}" class="text-muted">—</span>

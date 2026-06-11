@@ -12,6 +12,8 @@ public interface PaymentRequestRepository extends JpaRepository<PaymentRequest, 
                 org.springframework.data.jpa.repository.JpaSpecificationExecutor<PaymentRequest> {
         boolean existsByWorkOrderNumberIgnoreCase(String workOrderNumber);
 
+        List<PaymentRequest> findByWorkOrderNumber(String workOrderNumber);
+
         List<PaymentRequest> findByRequester(User requester);
 
         List<PaymentRequest> findByContractorIdOrderByRequestDateDesc(Long contractorId);
