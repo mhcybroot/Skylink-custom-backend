@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head>
+    <title>Deleted Payment Requests — History</title>
+</head>
+
+<body>
+    <div th:replace="~{layout :: layout(~{::section}, ~{::script}, 'payment-requests')}">
+        <section class="bg-light min-vh-100">
+            <style>
+                .deleted-table th {
+                    font-size: 0.72rem;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    letter-spacing: 0.06em;
+                    color: #6c757d;
+                    white-space: nowrap;
+                }
+                .deleted-table td {
+                    font-size: 0.85rem;
+                    vertical-align: middle;
+                }
+                .deleted-table tbody tr {
+                    transition: background 0.15s ease;
+                }
+                .deleted-table tbody tr:hover {
+                    background-color: #fff5f5;
+                }
+                .orig-id-badge {
+                    font-family: monospace;
+                    font-size: 0.78rem;
+                    color: #6c757d;
+                    background: #f3f4f6;
+                    border: 1px solid #e5e7eb;
+                    padding: 2px 7px;
+                    border-radius: 4px;
+                }
+                .deleted-by-chip {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 5px;
+                    background: #fff0f0;
+                    border: 1px solid #fecaca;
+                    color: #b91c1c;
+                    font-size: 0.78rem;
+                    padding: 2px 8px;
+                    border-radius: 20px;
+                }
+                .empty-state-icon {
+                    font-size: 3.5rem;
+                    color: #dee2e6;
+                }
+            </style>
+
+            <div class="container-fluid px-4 md-px-5 py-4">
+
+                <!-- Header -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <i class="fas fa-trash-alt text-danger"></i>
+                            <h4 class="mb-0 fw-bold text-dark tracking-tight">Deleted Payment Requests</h4>
+                        </div>
+                        <p class="text-muted small mb-0">Archive of all permanently deleted payment requests</p>
+                    </div>
+                    <a th:href="@{/payment-requests}" class="btn btn-outline-secondary rounded-1 shadow-sm fs-6">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Payment Requests
+                    </a>
+                </div>
+
+                <!-- Stats bar -->
+                <div class="mb-4" th:if="${deletedRequests != null and !deletedRequests.isEmpty()}">
+                    <span class="text-muted small">
+                        <i class="fas fa-archive me-1"></i>
+                        <span th:text="${deletedRequests.size()}">0</span> record(s) in archive
+                    </span>
+                </div>
+
+                <!-- Empty State -->
+                <div th:if="${deletedRequests == null or deletedRequests.isEmpty()}"
+                     class="card border-0 shadow-sm text-center py-5">
+                    <div class="card-body py-5">
+                        <div class="empty-state-icon mb-3">
+                            <i class="fas fa-trash-restore"></i>
+                        </div>
+                        <h5 class="fw-semibold text-muted mb-2">No Deleted Requests</h5>
+                        <p class="text-muted small mb-0">
+                            When a payment request is deleted, it will appear here as a permanent archive.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <div class="card border rounded-1 shadow-sm" th:if="${deletedRequests != null and !deletedRequests.isEmpty()}">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0 deleted-table">
+                                <thead class="table-light border-bottom">
+                                    <tr>
+                                        <th class="ps-3">Original ID</th>
+                                        <th>Work Order #</th>
+                                        <th>Requester</th>
+                                        <th>Contractor</th>
+                                        <th>Client</th>
+                                        <th>Company</th>
+                                        <th class="text-end">Amount</th>
+                                        <th>Request Date</th>
+                                        <th>Final Status</th>
+                                        <th>Payment Status</th>
+                                        <th>Deleted By</th>
+                                        <th class="pe-3">Deleted At</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="dr : ${deletedRequests}">
+                                        <!-- Original ID -->
+                                        <td class="ps-3">
+                                            <span class="orig-id-badge" th:text="'#' + ${dr.originalId}">-</span>
+                                        </td>
+
+                                        <!-- Work Order -->
+                                        <td>
+                                            <span class="fw-semibold" th:text="${dr.workOrderNumber}">-</span>
+                                        </td>
+
+                                        <!-- Requester -->
+                                        <td th:text="${dr.requesterName ?: '—'}">—</td>
+
+                                        <!-- Contractor -->
+                                        <td th:text="${dr.contractorName ?: '—'}">—</td>
+
+                                        <!-- Client -->
+                                        <td th:text="${dr.clientName ?: '—'}">—</td>
+
+                                        <!-- Company -->
+                                        <td th:text="${dr.companyName ?: '—'}">—</td>
+
+                                        <!-- Amount -->
+                                        <td class="text-end fw-semibold text-dark">
+                                            <span th:if="${dr.amount != null}"
+                                                  th:text="${'$' + #numbers.formatDecimal(dr.amount, 1, 2)}">—</span>
+                                            <span th:if="${dr.amount == null}" class="text-muted">—</span>
+                                        </td>
+
+                                        <!-- Request Date -->
+                                        <td>
+                                            <span th:if="${dr.requestDate != null}"
+                                                  th:text="${#temporals.format(dr.requestDate, 'MMM d, yyyy')}">—</span>
+                                            <span th:if="${dr.requestDate == null}" class="text-muted">—</span>
+                                        </td>
+
+                                        <!-- Final Approval Status -->
+                                        <td>
+                                            <span th:if="${dr.finalStatus != null}"
+                                                  class="badge rounded-1 fw-normal border"
+                                                  th:text="${dr.finalStatus}"
+                                                  th:classappend="${dr.finalStatus == 'APPROVED'} ? 'bg-success-subtle text-success border-success-subtle' :
+                                                                  (${dr.finalStatus == 'REJECTED'} ? 'bg-danger-subtle text-danger border-danger-subtle' :
+                                                                  (${dr.finalStatus == 'PENDING'}  ? 'bg-warning-subtle text-warning-emphasis border-warning-subtle' :
+                                                                   'bg-light text-muted border-secondary-subtle'))">—</span>
+                                            <span th:if="${dr.finalStatus == null}" class="text-muted">—</span>
+                                        </td>
+
+                                        <!-- Final Payment Status -->
+                                        <td>
+                                            <span th:if="${dr.finalPaymentStatus != null}"
+                                                  class="badge rounded-1 fw-normal border"
+                                                  th:text="${dr.finalPaymentStatus}"
+                                                  th:classappend="${dr.finalPaymentStatus == 'PAID'}    ? 'bg-success-subtle text-success border-success-subtle' :
+                                                                  (${dr.finalPaymentStatus == 'ISSUE'}   ? 'bg-warning-subtle text-warning-emphasis border-warning-subtle' :
+                                                                  (${dr.finalPaymentStatus == 'UNPAID'}  ? 'bg-danger-subtle text-danger border-danger-subtle' :
+                                                                   'bg-light text-muted border-secondary-subtle'))">—</span>
+                                            <span th:if="${dr.finalPaymentStatus == null}" class="text-muted">—</span>
+                                        </td>
+
+                                        <!-- Deleted By -->
+                                        <td>
+                                            <span class="deleted-by-chip" th:if="${dr.deletedBy != null}">
+                                                <i class="fas fa-user-times" style="font-size:0.7rem;"></i>
+                                                <span th:text="${dr.deletedBy}">admin</span>
+                                            </span>
+                                            <span th:if="${dr.deletedBy == null}" class="text-muted">—</span>
+                                        </td>
+
+                                        <!-- Deleted At -->
+                                        <td class="pe-3 text-muted small">
+                                            <span th:if="${dr.deletedAt != null}"
+                                                  th:text="${#temporals.format(dr.deletedAt, 'MMM d, yyyy h:mm a')}">—</span>
+                                            <span th:if="${dr.deletedAt == null}">—</span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+        <script th:inline="javascript">
+            // No JS required for this page — purely read-only table
+        </script>
+    </div>
+</body>
+</html>

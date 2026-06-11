@@ -8,6 +8,8 @@ import root.cyb.mh.attendancesystem.model.enums.RequestStatus;
 import root.cyb.mh.attendancesystem.model.enums.PaymentStatus;
 import root.cyb.mh.attendancesystem.model.enums.PPWStatus;
 import root.cyb.mh.attendancesystem.repository.PaymentRequestRepository;
+import root.cyb.mh.attendancesystem.model.DeletedPaymentRequest;
+import root.cyb.mh.attendancesystem.repository.DeletedPaymentRequestRepository;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -30,6 +32,9 @@ public class PaymentRequestService {
 
     @Autowired
     private root.cyb.mh.attendancesystem.repository.PaymentRequestActivityRepository paymentRequestActivityRepository;
+
+    @Autowired
+    private DeletedPaymentRequestRepository deletedPaymentRequestRepository;
 
     public void logActivity(PaymentRequest request, String username, String actionType, String details) {
         root.cyb.mh.attendancesystem.model.PaymentRequestActivity activity = new root.cyb.mh.attendancesystem.model.PaymentRequestActivity();
@@ -238,8 +243,42 @@ public class PaymentRequestService {
         return "Unknown";
     }
 
-    public void deleteRequest(Long id) {
-        paymentRequestActivityRepository.deleteAll(paymentRequestActivityRepository.findByPaymentRequestIdOrderByTimestampDesc(id));
+    public void deleteRequest(Long id, String deletedBy) {
+        // Snapshot the request before deleting it
+        paymentRequestRepository.findById(id).ifPresent(req -> {
+            DeletedPaymentRequest archive = new DeletedPaymentRequest();
+            archive.setOriginalId(req.getId());
+            archive.setWorkOrderNumber(req.getWorkOrderNumber());
+            archive.setAmount(req.getAmount());
+            archive.setRequestDate(req.getRequestDate());
+            archive.setReason(req.getReason());
+            archive.setRemarks(req.getRemarks());
+            archive.setFinalStatus(req.getStatus() != null ? req.getStatus().name() : null);
+            archive.setFinalPaymentStatus(req.getPaymentStatus() != null ? req.getPaymentStatus().name() : null);
+            archive.setFinalPpwStatus(req.getPpwUpdateStatus() != null ? req.getPpwUpdateStatus().name() : null);
+            // Contractor
+            if (req.getContractor() != null)
+                archive.setContractorName(req.getContractor().getName());
+            else
+                archive.setContractorName(req.getContractorName());
+            // Client
+            if (req.getClient() != null)
+                archive.setClientName(req.getClient().getName());
+            // Company
+            if (req.getCompany() != null)
+                archive.setCompanyName(req.getCompany().getName());
+            // Payment method
+            if (req.getPaymentMethod() != null)
+                archive.setPaymentMethodName(req.getPaymentMethod().getMethodName());
+            // Requester
+            archive.setRequesterName(getRequesterName(req));
+            archive.setDeletedBy(deletedBy);
+            archive.setDeletedAt(java.time.LocalDateTime.now());
+            deletedPaymentRequestRepository.save(archive);
+        });
+
+        paymentRequestActivityRepository.deleteAll(
+            paymentRequestActivityRepository.findByPaymentRequestIdOrderByTimestampDesc(id));
         paymentRequestRepository.deleteById(id);
     }
 

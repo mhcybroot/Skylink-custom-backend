@@ -65,6 +65,9 @@ public class PaymentRequestController {
     @Autowired
     private root.cyb.mh.attendancesystem.service.EmailService emailService;
 
+    @Autowired
+    private root.cyb.mh.attendancesystem.repository.DeletedPaymentRequestRepository deletedPaymentRequestRepository;
+
     @GetMapping
     public String listRequests(
             @RequestParam(required = false) String view,
@@ -581,12 +584,13 @@ public class PaymentRequestController {
 
     @PostMapping("/{id}/delete")
     @PreAuthorize("hasRole('ADMIN')")
-    public String deleteRequest(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+    public String deleteRequest(@PathVariable Long id, RedirectAttributes redirectAttributes,
+            @AuthenticationPrincipal UserDetails userDetails) {
         Optional<PaymentRequest> requestOpt = paymentRequestService.getRequestById(id);
         if (requestOpt.isPresent()) {
             PaymentRequest request = requestOpt.get();
             if (request.getStatus() == root.cyb.mh.attendancesystem.model.enums.RequestStatus.REJECTED) {
-                paymentRequestService.deleteRequest(id);
+                paymentRequestService.deleteRequest(id, userDetails.getUsername());
                 redirectAttributes.addFlashAttribute("successMessage", "Payment request deleted successfully.");
                 return "redirect:/payment-requests";
             } else {
@@ -596,6 +600,13 @@ public class PaymentRequestController {
             redirectAttributes.addFlashAttribute("errorMessage", "Request not found.");
         }
         return "redirect:/payment-requests/" + id;
+    }
+
+    @GetMapping("/deleted")
+    @PreAuthorize("hasRole('ADMIN')")
+    public String listDeletedRequests(Model model) {
+        model.addAttribute("deletedRequests", deletedPaymentRequestRepository.findAllByOrderByDeletedAtDesc());
+        return "payment-request/deleted-list";
     }
 
     @GetMapping("/{id}/invoice")
