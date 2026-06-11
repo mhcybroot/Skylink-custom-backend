@@ -10,6 +10,7 @@
     <div th:replace="~{layout :: layout(~{::section}, ~{::script}, 'payment-requests')}">
         <section class="bg-light min-vh-100">
             <style>
+                /* ── Table styles ── */
                 .deleted-table th {
                     font-size: 0.72rem;
                     font-weight: 700;
@@ -18,83 +19,68 @@
                     color: #6c757d;
                     white-space: nowrap;
                 }
-                .deleted-table td {
-                    font-size: 0.85rem;
-                    vertical-align: middle;
-                }
-                .deleted-table tbody tr {
-                    transition: background 0.15s ease;
-                }
-                .deleted-table tbody tr:hover {
-                    background-color: #fff5f5;
-                }
+                .deleted-table td { font-size: 0.85rem; vertical-align: middle; }
+                .deleted-table tbody tr { transition: background 0.15s ease; }
+                .deleted-table tbody tr:hover { background-color: #fff5f5; }
                 .orig-id-badge {
-                    font-family: monospace;
-                    font-size: 0.78rem;
-                    color: #6c757d;
-                    background: #f3f4f6;
-                    border: 1px solid #e5e7eb;
-                    padding: 2px 7px;
-                    border-radius: 4px;
+                    font-family: monospace; font-size: 0.78rem; color: #6c757d;
+                    background: #f3f4f6; border: 1px solid #e5e7eb;
+                    padding: 2px 7px; border-radius: 4px;
                 }
                 .deleted-by-chip {
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 5px;
-                    background: #fff0f0;
-                    border: 1px solid #fecaca;
-                    color: #b91c1c;
-                    font-size: 0.78rem;
-                    padding: 2px 8px;
+                    display: inline-flex; align-items: center; gap: 5px;
+                    background: #fff0f0; border: 1px solid #fecaca;
+                    color: #b91c1c; font-size: 0.78rem; padding: 2px 8px;
                     border-radius: 20px;
                 }
-                .empty-state-icon {
-                    font-size: 3.5rem;
-                    color: #dee2e6;
+                .empty-state-icon { font-size: 3.5rem; color: #dee2e6; }
+                .btn-act-log { font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+
+                /* ── Timeline (copied from view.html) ── */
+                .timeline { position: relative; padding-left: 0.5rem; }
+                .timeline-item:last-child .timeline-line { display: none !important; }
+                .timeline-badge { transition: all 0.2s ease-in-out; }
+                .timeline-item:hover .timeline-badge { transform: scale(1.15); }
+                .timeline-content { flex-grow: 1; }
+                .badge-created  { background-color: hsl(142,60%,40%) !important; color:#fff !important; }
+                .badge-viewed   { background-color: hsl(200,70%,45%) !important; color:#fff !important; }
+                .badge-updated  { background-color: hsl(224,75%,48%) !important; color:#fff !important; }
+                .badge-note-added { background-color: hsl(38,90%,42%) !important; color:#fff !important; }
+
+                /* ── Change-item styles (copied from view.html) ── */
+                .change-item {
+                    display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem;
+                    padding: 0.35rem 0.5rem; border-radius: 4px;
+                    background: #f8f9fa; border: 1px solid #e9ecef;
+                    margin-bottom: 0.35rem; transition: all 0.15s ease-in-out;
                 }
-                /* Activity log modal */
-                .activity-log-entry {
-                    border-left: 3px solid #e5e7eb;
-                    padding: 8px 12px;
-                    margin-bottom: 10px;
-                    background: #f9fafb;
-                    border-radius: 0 6px 6px 0;
+                .change-item:hover {
+                    background: #f1f3f5; border-color: #dee2e6;
+                    transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,.03);
                 }
-                .activity-log-entry:last-child { margin-bottom: 0; }
-                .activity-log-entry .act-type {
-                    font-size: 0.72rem;
-                    font-weight: 700;
-                    text-transform: uppercase;
-                    letter-spacing: 0.05em;
+                .change-field {
+                    font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+                    color: #555e66; letter-spacing: .5px; min-width: 120px;
                 }
-                .activity-log-entry .act-type.CREATED   { color: #16a34a; }
-                .activity-log-entry .act-type.UPDATED   { color: #2563eb; }
-                .activity-log-entry .act-type.NOTE_ADDED{ color: #d97706; }
-                .activity-log-entry .act-type.VIEWED    { color: #6b7280; }
-                .activity-log-entry .act-type.APPROVED  { color: #16a34a; }
-                .activity-log-entry .act-type.REJECTED  { color: #dc2626; }
-                .activity-log-entry .act-details {
-                    font-size: 0.82rem;
-                    color: #374151;
-                    margin-top: 3px;
-                    white-space: pre-wrap;
-                    word-break: break-word;
+                .change-val-arrow { color: #adb5bd; font-size: 0.8rem; }
+                .change-note-box {
+                    background: #fffdf5; border-left: 3px solid #ffc107;
+                    padding: 0.5rem 0.75rem; border-radius: 0 4px 4px 0;
+                    font-size: 0.85rem; color: #495057; position: relative;
+                    border-top: 1px solid #fff3cd; border-right: 1px solid #fff3cd;
+                    border-bottom: 1px solid #fff3cd;
                 }
-                .act-timestamp {
-                    font-size: 0.72rem;
-                    color: #9ca3af;
+                .change-info-box {
+                    background: #f8f9fa; border: 1px solid #e9ecef;
+                    padding: 0.5rem 0.75rem; border-radius: 4px;
+                    font-size: 0.85rem; color: #495057;
                 }
-                .act-user {
-                    font-size: 0.78rem;
-                    font-weight: 600;
-                    color: #4b5563;
+                .expand-toggle {
+                    font-size: 0.7rem; font-weight: 600; color: #0d6efd;
+                    cursor: pointer; text-decoration: none; margin-left: 0.5rem;
+                    user-select: none;
                 }
-                .btn-act-log {
-                    font-size: 0.75rem;
-                    padding: 2px 8px;
-                    border-radius: 4px;
-                    white-space: nowrap;
-                }
+                .expand-toggle:hover { text-decoration: underline; }
             </style>
 
             <div class="container-fluid px-4 md-px-5 py-4">
@@ -125,13 +111,9 @@
                 <div th:if="${deletedRequests == null or deletedRequests.isEmpty()}"
                      class="card border-0 shadow-sm text-center py-5">
                     <div class="card-body py-5">
-                        <div class="empty-state-icon mb-3">
-                            <i class="fas fa-trash-restore"></i>
-                        </div>
+                        <div class="empty-state-icon mb-3"><i class="fas fa-trash-restore"></i></div>
                         <h5 class="fw-semibold text-muted mb-2">No Deleted Requests</h5>
-                        <p class="text-muted small mb-0">
-                            When a payment request is deleted, it will appear here with its full activity log.
-                        </p>
+                        <p class="text-muted small mb-0">When a payment request is deleted, it will appear here with its full activity log.</p>
                     </div>
                 </div>
 
@@ -158,47 +140,25 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr th:each="dr, iterStat : ${deletedRequests}">
-                                        <!-- Original ID -->
+                                    <tr th:each="dr : ${deletedRequests}">
                                         <td class="ps-3">
                                             <span class="orig-id-badge" th:text="'#' + ${dr.originalId}">-</span>
                                         </td>
-
-                                        <!-- Work Order -->
-                                        <td>
-                                            <span class="fw-semibold" th:text="${dr.workOrderNumber}">-</span>
-                                        </td>
-
-                                        <!-- Requester -->
+                                        <td><span class="fw-semibold" th:text="${dr.workOrderNumber}">-</span></td>
                                         <td th:text="${dr.requesterName ?: '—'}">—</td>
-
-                                        <!-- Contractor -->
                                         <td th:text="${dr.contractorName ?: '—'}">—</td>
-
-                                        <!-- Client -->
                                         <td th:text="${dr.clientName ?: '—'}">—</td>
-
-                                        <!-- Company -->
                                         <td th:text="${dr.companyName ?: '—'}">—</td>
-
-                                        <!-- Amount -->
                                         <td class="text-end fw-semibold text-dark">
-                                            <span th:if="${dr.amount != null}"
-                                                  th:text="${'$' + #numbers.formatDecimal(dr.amount, 1, 2)}">—</span>
+                                            <span th:if="${dr.amount != null}" th:text="${'$' + #numbers.formatDecimal(dr.amount, 1, 2)}">—</span>
                                             <span th:if="${dr.amount == null}" class="text-muted">—</span>
                                         </td>
-
-                                        <!-- Request Date -->
                                         <td>
-                                            <span th:if="${dr.requestDate != null}"
-                                                  th:text="${#temporals.format(dr.requestDate, 'MMM d, yyyy')}">—</span>
+                                            <span th:if="${dr.requestDate != null}" th:text="${#temporals.format(dr.requestDate, 'MMM d, yyyy')}">—</span>
                                             <span th:if="${dr.requestDate == null}" class="text-muted">—</span>
                                         </td>
-
-                                        <!-- Final Approval Status -->
                                         <td>
-                                            <span th:if="${dr.finalStatus != null}"
-                                                  class="badge rounded-1 fw-normal border"
+                                            <span th:if="${dr.finalStatus != null}" class="badge rounded-1 fw-normal border"
                                                   th:text="${dr.finalStatus}"
                                                   th:classappend="${dr.finalStatus == 'APPROVED'} ? 'bg-success-subtle text-success border-success-subtle' :
                                                                   (${dr.finalStatus == 'REJECTED'} ? 'bg-danger-subtle text-danger border-danger-subtle' :
@@ -206,20 +166,15 @@
                                                                    'bg-light text-muted border-secondary-subtle'))">—</span>
                                             <span th:if="${dr.finalStatus == null}" class="text-muted">—</span>
                                         </td>
-
-                                        <!-- Final Payment Status -->
                                         <td>
-                                            <span th:if="${dr.finalPaymentStatus != null}"
-                                                  class="badge rounded-1 fw-normal border"
+                                            <span th:if="${dr.finalPaymentStatus != null}" class="badge rounded-1 fw-normal border"
                                                   th:text="${dr.finalPaymentStatus}"
-                                                  th:classappend="${dr.finalPaymentStatus == 'PAID'}    ? 'bg-success-subtle text-success border-success-subtle' :
-                                                                  (${dr.finalPaymentStatus == 'ISSUE'}   ? 'bg-warning-subtle text-warning-emphasis border-warning-subtle' :
-                                                                  (${dr.finalPaymentStatus == 'UNPAID'}  ? 'bg-danger-subtle text-danger border-danger-subtle' :
+                                                  th:classappend="${dr.finalPaymentStatus == 'PAID'}   ? 'bg-success-subtle text-success border-success-subtle' :
+                                                                  (${dr.finalPaymentStatus == 'ISSUE'}  ? 'bg-warning-subtle text-warning-emphasis border-warning-subtle' :
+                                                                  (${dr.finalPaymentStatus == 'UNPAID'} ? 'bg-danger-subtle text-danger border-danger-subtle' :
                                                                    'bg-light text-muted border-secondary-subtle'))">—</span>
                                             <span th:if="${dr.finalPaymentStatus == null}" class="text-muted">—</span>
                                         </td>
-
-                                        <!-- Deleted By -->
                                         <td>
                                             <span class="deleted-by-chip" th:if="${dr.deletedBy != null}">
                                                 <i class="fas fa-user-times" style="font-size:0.7rem;"></i>
@@ -227,22 +182,15 @@
                                             </span>
                                             <span th:if="${dr.deletedBy == null}" class="text-muted">—</span>
                                         </td>
-
-                                        <!-- Deleted At -->
                                         <td class="text-muted small">
-                                            <span th:if="${dr.deletedAt != null}"
-                                                  th:text="${#temporals.format(dr.deletedAt, 'MMM d, yyyy h:mm a')}">—</span>
+                                            <span th:if="${dr.deletedAt != null}" th:text="${#temporals.format(dr.deletedAt, 'MMM d, yyyy h:mm a')}">—</span>
                                             <span th:if="${dr.deletedAt == null}">—</span>
                                         </td>
-
-                                        <!-- Activity Log Button -->
                                         <td class="pe-3 text-center">
                                             <button th:if="${dr.activityLog != null and !dr.activityLog.isEmpty()}"
                                                     class="btn btn-outline-primary btn-act-log"
-                                                    th:attr="data-log=${dr.activityLog},
-                                                             data-id=${dr.originalId},
-                                                             data-bs-toggle='modal',
-                                                             data-bs-target='#activityLogModal'"
+                                                    th:attr="data-log=${dr.activityLog}, data-id=${dr.originalId}"
+                                                    data-bs-toggle="modal" data-bs-target="#activityLogModal"
                                                     onclick="showActivityLog(this)">
                                                 <i class="fas fa-history me-1"></i>View Log
                                             </button>
@@ -258,21 +206,21 @@
 
             </div>
 
-            <!-- Activity Log Modal -->
+            <!-- ── Activity Log Modal ── -->
             <div class="modal fade" id="activityLogModal" tabindex="-1" aria-labelledby="activityLogModalLabel" aria-hidden="true">
                 <div class="modal-dialog modal-lg modal-dialog-scrollable">
                     <div class="modal-content rounded-2 shadow">
                         <div class="modal-header border-bottom py-3">
                             <div>
                                 <h6 class="modal-title fw-bold mb-0" id="activityLogModalLabel">
-                                    <i class="fas fa-history text-primary me-2"></i>Activity Log
+                                    <i class="fas fa-history text-primary me-2"></i>Lifecycle Log &amp; History
                                 </h6>
                                 <p class="text-muted small mb-0 mt-1" id="activityLogModalSubtitle">Payment Request #—</p>
                             </div>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
-                        <div class="modal-body" id="activityLogContainer" style="max-height: 60vh; overflow-y: auto; padding: 1.25rem;">
-                            <!-- Rendered by JS -->
+                        <div class="modal-body p-4" id="activityLogContainer" style="max-height:65vh; overflow-y:auto;">
+                            <!-- Populated by JS -->
                         </div>
                         <div class="modal-footer border-top py-2">
                             <button type="button" class="btn btn-sm btn-outline-secondary rounded-1" data-bs-dismiss="modal">Close</button>
@@ -282,16 +230,19 @@
             </div>
 
         </section>
+
         <script th:inline="javascript">
-            /**
-             * Parse pipe-delimited activity log text and render styled entries into the modal.
-             * Format per line: "timestamp|username|actionType|details"
-             */
+            /* ───────────────────────────────────────────────────
+               Parse pipe-delimited archived log and render the
+               EXACT same timeline as view.html
+               Format per line: timestamp|username|actionType|details
+            ─────────────────────────────────────────────────── */
             function showActivityLog(btn) {
                 const rawLog = btn.getAttribute('data-log') || '';
                 const origId = btn.getAttribute('data-id') || '—';
 
-                document.getElementById('activityLogModalSubtitle').textContent = 'Payment Request #' + origId;
+                document.getElementById('activityLogModalSubtitle').textContent =
+                    'Payment Request #' + origId;
 
                 const container = document.getElementById('activityLogContainer');
                 container.innerHTML = '';
@@ -299,27 +250,15 @@
                 const lines = rawLog.split('\n').filter(l => l.trim() !== '');
 
                 if (lines.length === 0) {
-                    container.innerHTML = '<p class="text-muted text-center py-3">No activity entries found.</p>';
+                    container.innerHTML =
+                        '<div class="text-center py-4 text-muted">' +
+                        '<i class="fas fa-history fa-2x mb-2 opacity-50"></i>' +
+                        '<p class="mb-0 small">No activity logged yet.</p></div>';
                     return;
                 }
 
-                const typeColors = {
-                    'CREATED':    '#16a34a',
-                    'UPDATED':    '#2563eb',
-                    'NOTE_ADDED': '#d97706',
-                    'VIEWED':     '#6b7280',
-                    'APPROVED':   '#16a34a',
-                    'REJECTED':   '#dc2626',
-                };
-
-                const typeIcons = {
-                    'CREATED':    'fa-plus-circle',
-                    'UPDATED':    'fa-pen',
-                    'NOTE_ADDED': 'fa-sticky-note',
-                    'VIEWED':     'fa-eye',
-                    'APPROVED':   'fa-check-circle',
-                    'REJECTED':   'fa-times-circle',
-                };
+                const timelineEl = document.createElement('div');
+                timelineEl.className = 'timeline';
 
                 lines.forEach(line => {
                     const parts = line.split('|');
@@ -328,10 +267,19 @@
                     const [timestamp, username, actionType, ...detailParts] = parts;
                     const details = detailParts.join('|').trim();
 
-                    const color = typeColors[actionType] || '#6b7280';
-                    const icon  = typeIcons[actionType]  || 'fa-circle';
+                    // Badge class
+                    const badgeClass = actionType === 'CREATED'    ? 'badge-created'
+                                     : actionType === 'VIEWED'     ? 'badge-viewed'
+                                     : actionType === 'UPDATED'    ? 'badge-updated'
+                                     : 'badge-note-added';
 
-                    // Format timestamp nicely
+                    // Icon
+                    const iconClass = actionType === 'CREATED'    ? 'fas fa-plus'
+                                    : actionType === 'VIEWED'     ? 'fas fa-eye'
+                                    : actionType === 'UPDATED'    ? 'fas fa-edit'
+                                    : 'fas fa-comment-dots';
+
+                    // Format timestamp
                     let timeStr = timestamp;
                     try {
                         const d = new Date(timestamp.replace('T', ' '));
@@ -341,20 +289,170 @@
                         });
                     } catch(e) {}
 
-                    const entry = document.createElement('div');
-                    entry.className = 'activity-log-entry';
-                    entry.style.borderLeftColor = color;
-                    entry.innerHTML = `
-                        <div class="d-flex align-items-center gap-2 mb-1">
-                            <i class="fas ${icon}" style="color:${color}; font-size:0.8rem;"></i>
-                            <span class="act-type" style="color:${color};">${actionType}</span>
-                            <span class="act-user">· ${username}</span>
-                            <span class="act-timestamp ms-auto">${timeStr}</span>
-                        </div>
-                        ${details ? `<div class="act-details">${details}</div>` : ''}
-                    `;
-                    container.appendChild(entry);
+                    // Build details HTML using the same renderer as view.html
+                    let detailsHtml = '';
+                    if (actionType === 'UPDATED' && details) {
+                        const changes = parseUpdatedDetails(details);
+                        if (changes.length > 0) {
+                            detailsHtml = '<div class="d-flex flex-column gap-1 w-100">';
+                            changes.forEach(c => {
+                                if (c.type === 'change') {
+                                    let oldClass = 'badge bg-light text-muted border text-decoration-line-through';
+                                    let newClass = 'badge bg-secondary-subtle text-secondary border';
+                                    if (c.field === 'Payment Status') {
+                                        newClass = getPaymentStatusClass(c.to);
+                                        oldClass = getPaymentStatusClass(c.from) + ' text-decoration-line-through opacity-75';
+                                    } else if (c.field === 'Status') {
+                                        newClass = getApprovalStatusClass(c.to);
+                                        oldClass = getApprovalStatusClass(c.from) + ' text-decoration-line-through opacity-75';
+                                    } else if (c.field === 'PPW Status') {
+                                        newClass = getPpwStatusClass(c.to);
+                                        oldClass = getPpwStatusClass(c.from) + ' text-decoration-line-through opacity-75';
+                                    }
+                                    let fromDisplay = c.from === 'null' || !c.from ? 'None' : c.from;
+                                    let toDisplay   = c.to   === 'null' || !c.to   ? 'None' : c.to;
+
+                                    if (c.field === 'Remarks' && (fromDisplay.length > 50 || toDisplay.length > 50)) {
+                                        detailsHtml +=
+                                            '<div class="change-item align-items-start flex-column p-2 w-100">' +
+                                            '<div class="d-flex align-items-center justify-content-between w-100 mb-1">' +
+                                            '<span class="change-field"><i class="fas fa-comment-alt me-1 text-muted"></i>' + escapeHtml(c.field) + '</span>' +
+                                            '<span class="badge bg-light text-muted border small">Text Update</span>' +
+                                            '</div>' +
+                                            '<div class="small w-100 border-start ps-2 py-1 text-muted ms-1" style="font-size:0.8rem;">' +
+                                            '<span class="text-decoration-line-through opacity-50">From: ' + escapeHtml(fromDisplay) + '</span>' +
+                                            '</div>' +
+                                            '<div class="change-note-box w-100 mt-1 ms-1">' + renderLongText(toDisplay) + '</div>' +
+                                            '</div>';
+                                    } else {
+                                        detailsHtml +=
+                                            '<div class="change-item w-100">' +
+                                            '<span class="change-field">' + escapeHtml(c.field) + '</span>' +
+                                            '<div class="d-flex align-items-center flex-wrap gap-1">' +
+                                            '<span class="' + oldClass + '">' + escapeHtml(fromDisplay) + '</span>' +
+                                            '<i class="fas fa-long-arrow-alt-right change-val-arrow mx-1"></i>' +
+                                            '<span class="' + newClass  + '">' + escapeHtml(toDisplay) + '</span>' +
+                                            '</div></div>';
+                                    }
+                                } else if (c.type === 'info') {
+                                    let icon = c.field === 'Proof File' ? 'fas fa-paperclip' : 'fas fa-info-circle';
+                                    detailsHtml +=
+                                        '<div class="change-item w-100">' +
+                                        '<span class="change-field"><i class="' + icon + ' me-1 text-muted"></i>' + escapeHtml(c.field) + '</span>' +
+                                        '<span class="badge bg-info-subtle text-info border">' + escapeHtml(c.value) + '</span>' +
+                                        '</div>';
+                                }
+                            });
+                            detailsHtml += '</div>';
+                        }
+                    } else if (actionType === 'NOTE_ADDED' && details) {
+                        const noteText = details.replace(/^Note added:\s*/i, '');
+                        detailsHtml =
+                            '<div class="change-note-box w-100">' +
+                            '<i class="fas fa-comment-dots text-warning position-absolute" style="top:8px;right:8px;opacity:.5;"></i>' +
+                            renderLongText(noteText) + '</div>';
+                    } else if (actionType === 'CREATED' && details) {
+                        detailsHtml =
+                            '<div class="change-info-box w-100 d-flex align-items-center gap-2">' +
+                            '<div class="rounded-circle bg-success-subtle text-success d-flex align-items-center justify-content-center" style="width:24px;height:24px;">' +
+                            '<i class="fas fa-check small"></i></div>' +
+                            '<span>' + escapeHtml(details) + '</span></div>';
+                    } else if (details) {
+                        // Fallback: plain muted box (VIEWED etc.)
+                        detailsHtml =
+                            '<div class="text-muted small font-monospace bg-light border p-2 rounded-1 text-break" style="line-height:1.4;">' +
+                            escapeHtml(details) + '</div>';
+                    }
+
+                    // Build the timeline item
+                    const item = document.createElement('div');
+                    item.className = 'timeline-item d-flex mb-4';
+                    item.innerHTML =
+                        '<div class="timeline-badge-container d-flex flex-column align-items-center me-3">' +
+                        '<div class="timeline-badge ' + badgeClass + ' d-flex align-items-center justify-content-center rounded-circle shadow-sm" style="width:32px;height:32px;font-size:0.85rem;z-index:2;">' +
+                        '<i class="' + iconClass + '"></i></div>' +
+                        '<div class="timeline-line flex-grow-1 border-start border-2 my-1" style="border-style:dashed!important;z-index:1;"></div>' +
+                        '</div>' +
+                        '<div class="timeline-content pb-2">' +
+                        '<div class="d-flex align-items-center gap-2 mb-1 flex-wrap">' +
+                        '<span class="fw-bold text-dark">' + escapeHtml(username) + '</span>' +
+                        '<span class="badge bg-light text-secondary border fw-normal py-1">' + escapeHtml(actionType) + '</span>' +
+                        '<small class="text-muted ms-auto font-monospace">' + escapeHtml(timeStr) + '</small>' +
+                        '</div>' +
+                        (detailsHtml ? '<div class="activity-details-rendered">' + detailsHtml + '</div>' : '') +
+                        '</div>';
+
+                    timelineEl.appendChild(item);
                 });
+
+                container.appendChild(timelineEl);
+            }
+
+            /* ── Helpers (identical to view.html) ── */
+            function parseUpdatedDetails(detailsText) {
+                let cleaned = detailsText.replace(/^(Updated|Bulk updated):\s*/, '');
+                const fields = ["Payment Status","Status","Check Status","Remarks","Ref Number","PPW Status","Proof File"];
+                const regex = new RegExp('(' + fields.map(f => f.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')).join('|') + '):\\s*', 'g');
+                let matches = [], match;
+                while ((match = regex.exec(cleaned)) !== null)
+                    matches.push({ field: match[1], index: match.index, length: match[0].length });
+                let changes = [];
+                for (let i = 0; i < matches.length; i++) {
+                    let cur = matches[i], next = matches[i+1];
+                    let valuePart = cleaned.substring(cur.index + cur.length, next ? next.index : cleaned.length).trim();
+                    if (next && valuePart.endsWith(',')) valuePart = valuePart.slice(0,-1).trim();
+                    if (valuePart.includes(' -> ')) {
+                        let [f, t] = valuePart.split(' -> ');
+                        if (f.startsWith("'") && f.endsWith("'")) f = f.slice(1,-1);
+                        if (t.startsWith("'") && t.endsWith("'")) t = t.slice(1,-1);
+                        changes.push({ field: cur.field, type: 'change', from: f.trim(), to: t.trim() });
+                    } else {
+                        changes.push({ field: cur.field, type: 'info', value: valuePart });
+                    }
+                }
+                return changes;
+            }
+
+            function getPaymentStatusClass(s) {
+                if (!s || s === 'null') return 'badge bg-secondary-subtle text-secondary border';
+                s = s.toUpperCase();
+                if (s === 'PAID')       return 'badge bg-success-subtle text-success border border-success';
+                if (s === 'PROCESSING') return 'badge bg-info-subtle text-info border border-info';
+                if (s === 'ISSUE')      return 'badge bg-warning-subtle text-warning-emphasis border border-warning';
+                return 'badge bg-secondary-subtle text-secondary border border-secondary';
+            }
+            function getApprovalStatusClass(s) {
+                if (!s || s === 'null') return 'badge bg-secondary-subtle text-secondary border';
+                s = s.toUpperCase();
+                if (s === 'APPROVED') return 'badge bg-success-subtle text-success border border-success';
+                if (s === 'REJECTED') return 'badge bg-danger-subtle text-danger border border-danger';
+                return 'badge bg-warning-subtle text-warning-emphasis border border-warning';
+            }
+            function getPpwStatusClass(s) {
+                if (!s || s === 'null') return 'badge bg-secondary-subtle text-secondary border';
+                s = s.toUpperCase();
+                if (s === 'UPDATED')     return 'badge bg-primary-subtle text-primary border border-primary';
+                if (s === 'NOT_UPDATED') return 'badge bg-light text-muted border';
+                return 'badge bg-info-subtle text-info border border-info';
+            }
+            function renderLongText(text) {
+                if (text.length <= 60) return escapeHtml(text);
+                const id = 'text_' + Math.random().toString(36).substr(2, 9);
+                return '<span id="short_' + id + '">' + escapeHtml(text.substring(0,60)) + '...</span>' +
+                       '<span id="full_' + id + '" class="d-none">' + escapeHtml(text) + '</span>' +
+                       '<a href="javascript:void(0)" class="expand-toggle" onclick="toggleText(\'' + id + '\')">Show More</a>';
+            }
+            window.toggleText = function(id) {
+                const s = document.getElementById('short_' + id);
+                const f = document.getElementById('full_' + id);
+                const t = s.nextElementSibling.nextElementSibling;
+                if (f.classList.contains('d-none')) { f.classList.remove('d-none'); s.classList.add('d-none'); t.textContent='Show Less'; }
+                else { f.classList.add('d-none'); s.classList.remove('d-none'); t.textContent='Show More'; }
+            };
+            function escapeHtml(text) {
+                return String(text)
+                    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+                    .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
             }
         </script>
     </div>
