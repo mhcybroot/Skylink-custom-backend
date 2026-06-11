@@ -36,15 +36,18 @@ async function extractAndSync() {
         if (syncedWorkOrders.has(workOrderNumber)) continue;
         
         try {
-            await fetch('http://76.13.221.43:8083/api/v1/ppw-mapping', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    workOrderNumber: workOrderNumber,
-                    reportId: reportId
-                })
+            chrome.runtime.sendMessage({
+                action: "sync_ppw",
+                workOrderNumber: workOrderNumber,
+                reportId: reportId
+            }, (response) => {
+                if (chrome.runtime.lastError) {
+                    console.error('[Skylink PPW Sync] Error communicating with background script:', chrome.runtime.lastError);
+                } else if (response && response.success) {
+                    console.log(`[Skylink PPW Sync] Sent WO: ${workOrderNumber} -> Report ID: ${reportId}`);
+                } else {
+                    console.error('[Skylink PPW Sync] Background fetch failed for WO:', workOrderNumber);
+                }
             });
             
             syncedWorkOrders.add(workOrderNumber);
