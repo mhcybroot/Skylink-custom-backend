@@ -52,6 +52,49 @@
                     font-size: 3.5rem;
                     color: #dee2e6;
                 }
+                /* Activity log modal */
+                .activity-log-entry {
+                    border-left: 3px solid #e5e7eb;
+                    padding: 8px 12px;
+                    margin-bottom: 10px;
+                    background: #f9fafb;
+                    border-radius: 0 6px 6px 0;
+                }
+                .activity-log-entry:last-child { margin-bottom: 0; }
+                .activity-log-entry .act-type {
+                    font-size: 0.72rem;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                }
+                .activity-log-entry .act-type.CREATED   { color: #16a34a; }
+                .activity-log-entry .act-type.UPDATED   { color: #2563eb; }
+                .activity-log-entry .act-type.NOTE_ADDED{ color: #d97706; }
+                .activity-log-entry .act-type.VIEWED    { color: #6b7280; }
+                .activity-log-entry .act-type.APPROVED  { color: #16a34a; }
+                .activity-log-entry .act-type.REJECTED  { color: #dc2626; }
+                .activity-log-entry .act-details {
+                    font-size: 0.82rem;
+                    color: #374151;
+                    margin-top: 3px;
+                    white-space: pre-wrap;
+                    word-break: break-word;
+                }
+                .act-timestamp {
+                    font-size: 0.72rem;
+                    color: #9ca3af;
+                }
+                .act-user {
+                    font-size: 0.78rem;
+                    font-weight: 600;
+                    color: #4b5563;
+                }
+                .btn-act-log {
+                    font-size: 0.75rem;
+                    padding: 2px 8px;
+                    border-radius: 4px;
+                    white-space: nowrap;
+                }
             </style>
 
             <div class="container-fluid px-4 md-px-5 py-4">
@@ -63,7 +106,7 @@
                             <i class="fas fa-trash-alt text-danger"></i>
                             <h4 class="mb-0 fw-bold text-dark tracking-tight">Deleted Payment Requests</h4>
                         </div>
-                        <p class="text-muted small mb-0">Archive of all permanently deleted payment requests</p>
+                        <p class="text-muted small mb-0">Archive of all permanently deleted payment requests, including full activity logs</p>
                     </div>
                     <a th:href="@{/payment-requests}" class="btn btn-outline-secondary rounded-1 shadow-sm fs-6">
                         <i class="fas fa-arrow-left me-2"></i>Back to Payment Requests
@@ -87,7 +130,7 @@
                         </div>
                         <h5 class="fw-semibold text-muted mb-2">No Deleted Requests</h5>
                         <p class="text-muted small mb-0">
-                            When a payment request is deleted, it will appear here as a permanent archive.
+                            When a payment request is deleted, it will appear here with its full activity log.
                         </p>
                     </div>
                 </div>
@@ -110,11 +153,12 @@
                                         <th>Final Status</th>
                                         <th>Payment Status</th>
                                         <th>Deleted By</th>
-                                        <th class="pe-3">Deleted At</th>
+                                        <th>Deleted At</th>
+                                        <th class="pe-3 text-center">Activity Log</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr th:each="dr : ${deletedRequests}">
+                                    <tr th:each="dr, iterStat : ${deletedRequests}">
                                         <!-- Original ID -->
                                         <td class="ps-3">
                                             <span class="orig-id-badge" th:text="'#' + ${dr.originalId}">-</span>
@@ -185,10 +229,25 @@
                                         </td>
 
                                         <!-- Deleted At -->
-                                        <td class="pe-3 text-muted small">
+                                        <td class="text-muted small">
                                             <span th:if="${dr.deletedAt != null}"
                                                   th:text="${#temporals.format(dr.deletedAt, 'MMM d, yyyy h:mm a')}">—</span>
                                             <span th:if="${dr.deletedAt == null}">—</span>
+                                        </td>
+
+                                        <!-- Activity Log Button -->
+                                        <td class="pe-3 text-center">
+                                            <button th:if="${dr.activityLog != null and !dr.activityLog.isEmpty()}"
+                                                    class="btn btn-outline-primary btn-act-log"
+                                                    th:attr="data-log=${dr.activityLog},
+                                                             data-id=${dr.originalId},
+                                                             data-bs-toggle='modal',
+                                                             data-bs-target='#activityLogModal'"
+                                                    onclick="showActivityLog(this)">
+                                                <i class="fas fa-history me-1"></i>View Log
+                                            </button>
+                                            <span th:if="${dr.activityLog == null or dr.activityLog.isEmpty()}"
+                                                  class="text-muted small">No log</span>
                                         </td>
                                     </tr>
                                 </tbody>
@@ -198,9 +257,105 @@
                 </div>
 
             </div>
+
+            <!-- Activity Log Modal -->
+            <div class="modal fade" id="activityLogModal" tabindex="-1" aria-labelledby="activityLogModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                    <div class="modal-content rounded-2 shadow">
+                        <div class="modal-header border-bottom py-3">
+                            <div>
+                                <h6 class="modal-title fw-bold mb-0" id="activityLogModalLabel">
+                                    <i class="fas fa-history text-primary me-2"></i>Activity Log
+                                </h6>
+                                <p class="text-muted small mb-0 mt-1" id="activityLogModalSubtitle">Payment Request #—</p>
+                            </div>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body" id="activityLogContainer" style="max-height: 60vh; overflow-y: auto; padding: 1.25rem;">
+                            <!-- Rendered by JS -->
+                        </div>
+                        <div class="modal-footer border-top py-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary rounded-1" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </section>
         <script th:inline="javascript">
-            // No JS required for this page — purely read-only table
+            /**
+             * Parse pipe-delimited activity log text and render styled entries into the modal.
+             * Format per line: "timestamp|username|actionType|details"
+             */
+            function showActivityLog(btn) {
+                const rawLog = btn.getAttribute('data-log') || '';
+                const origId = btn.getAttribute('data-id') || '—';
+
+                document.getElementById('activityLogModalSubtitle').textContent = 'Payment Request #' + origId;
+
+                const container = document.getElementById('activityLogContainer');
+                container.innerHTML = '';
+
+                const lines = rawLog.split('\n').filter(l => l.trim() !== '');
+
+                if (lines.length === 0) {
+                    container.innerHTML = '<p class="text-muted text-center py-3">No activity entries found.</p>';
+                    return;
+                }
+
+                const typeColors = {
+                    'CREATED':    '#16a34a',
+                    'UPDATED':    '#2563eb',
+                    'NOTE_ADDED': '#d97706',
+                    'VIEWED':     '#6b7280',
+                    'APPROVED':   '#16a34a',
+                    'REJECTED':   '#dc2626',
+                };
+
+                const typeIcons = {
+                    'CREATED':    'fa-plus-circle',
+                    'UPDATED':    'fa-pen',
+                    'NOTE_ADDED': 'fa-sticky-note',
+                    'VIEWED':     'fa-eye',
+                    'APPROVED':   'fa-check-circle',
+                    'REJECTED':   'fa-times-circle',
+                };
+
+                lines.forEach(line => {
+                    const parts = line.split('|');
+                    if (parts.length < 3) return;
+
+                    const [timestamp, username, actionType, ...detailParts] = parts;
+                    const details = detailParts.join('|').trim();
+
+                    const color = typeColors[actionType] || '#6b7280';
+                    const icon  = typeIcons[actionType]  || 'fa-circle';
+
+                    // Format timestamp nicely
+                    let timeStr = timestamp;
+                    try {
+                        const d = new Date(timestamp.replace('T', ' '));
+                        if (!isNaN(d)) timeStr = d.toLocaleString('en-US', {
+                            month: 'short', day: 'numeric', year: 'numeric',
+                            hour: 'numeric', minute: '2-digit', hour12: true
+                        });
+                    } catch(e) {}
+
+                    const entry = document.createElement('div');
+                    entry.className = 'activity-log-entry';
+                    entry.style.borderLeftColor = color;
+                    entry.innerHTML = `
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <i class="fas ${icon}" style="color:${color}; font-size:0.8rem;"></i>
+                            <span class="act-type" style="color:${color};">${actionType}</span>
+                            <span class="act-user">· ${username}</span>
+                            <span class="act-timestamp ms-auto">${timeStr}</span>
+                        </div>
+                        ${details ? `<div class="act-details">${details}</div>` : ''}
+                    `;
+                    container.appendChild(entry);
+                });
+            }
         </script>
     </div>
 </body>

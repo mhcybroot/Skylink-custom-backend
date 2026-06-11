@@ -57,4 +57,11 @@ public class DeletedPaymentRequest {
     /** Timestamp when deletion occurred */
     @Column(nullable = false)
     private LocalDateTime deletedAt;
+
+    /**
+     * Serialized activity log entries from payment_request_activities,
+     * stored as pipe-delimited text: "timestamp|username|actionType|details\n..."
+     */
+    @Column(columnDefinition = "TEXT")
+    private String activityLog;
 }

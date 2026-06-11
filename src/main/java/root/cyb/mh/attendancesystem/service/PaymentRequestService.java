@@ -244,6 +244,10 @@ public class PaymentRequestService {
     }
 
     public void deleteRequest(Long id, String deletedBy) {
+        // Fetch activities BEFORE deleting anything
+        java.util.List<root.cyb.mh.attendancesystem.model.PaymentRequestActivity> activities =
+            paymentRequestActivityRepository.findByPaymentRequestIdOrderByTimestampDesc(id);
+
         // Snapshot the request before deleting it
         paymentRequestRepository.findById(id).ifPresent(req -> {
             DeletedPaymentRequest archive = new DeletedPaymentRequest();
@@ -274,11 +278,25 @@ public class PaymentRequestService {
             archive.setRequesterName(getRequesterName(req));
             archive.setDeletedBy(deletedBy);
             archive.setDeletedAt(java.time.LocalDateTime.now());
+
+            // Serialize activity logs — format: "timestamp|username|actionType|details"
+            if (!activities.isEmpty()) {
+                StringBuilder sb = new StringBuilder();
+                for (root.cyb.mh.attendancesystem.model.PaymentRequestActivity a : activities) {
+                    sb.append(a.getTimestamp())
+                      .append("|").append(a.getUsername())
+                      .append("|").append(a.getActionType())
+                      .append("|").append(a.getDetails() != null ? a.getDetails().replace("\n", " ") : "")
+                      .append("\n");
+                }
+                archive.setActivityLog(sb.toString().trim());
+            }
+
             deletedPaymentRequestRepository.save(archive);
         });
 
-        paymentRequestActivityRepository.deleteAll(
-            paymentRequestActivityRepository.findByPaymentRequestIdOrderByTimestampDesc(id));
+        // Now delete activities and the request
+        paymentRequestActivityRepository.deleteAll(activities);
         paymentRequestRepository.deleteById(id);
     }
 
