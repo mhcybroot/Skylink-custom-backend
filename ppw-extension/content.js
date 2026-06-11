@@ -23,7 +23,13 @@ async function extractAndSync() {
         const viewLink = row.querySelector('td.view a[href*="reportinfo/?report_id="]');
         if (!viewLink) continue;
         
-        const workOrderNumber = viewLink.textContent.trim();
+        // viewLink.textContent gives us the 'PPW #' (e.g. 6420)
+        // We want the 'WO #' which is in the very next column.
+        const viewTd = viewLink.closest('td');
+        const woTd = viewTd.nextElementSibling;
+        if (!woTd) continue;
+        
+        const workOrderNumber = woTd.textContent.trim();
         if (!workOrderNumber) continue;
         
         // Skip if we already synced this WO during this page session
@@ -43,6 +49,7 @@ async function extractAndSync() {
             
             syncedWorkOrders.add(workOrderNumber);
             syncCount++;
+            console.log(`[Skylink PPW Sync] Sent WO: ${workOrderNumber} -> Report ID: ${reportId}`);
         } catch (err) {
             console.error('[Skylink PPW Sync] Error syncing WO:', workOrderNumber, err);
         }

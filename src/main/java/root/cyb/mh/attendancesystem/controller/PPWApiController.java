@@ -19,6 +19,11 @@ public class PPWApiController {
 
     @PostMapping
     public ResponseEntity<?> updatePPWReportId(@RequestBody PPWMappingRequest request) {
+        System.out.println("====== PPW SYNC REQUEST RECEIVED ======");
+        System.out.println("Work Order: " + request.workOrderNumber);
+        System.out.println("Report ID: " + request.reportId);
+        System.out.println("=======================================");
+
         if (request.workOrderNumber == null || request.workOrderNumber.trim().isEmpty() ||
             request.reportId == null || request.reportId.trim().isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "workOrderNumber and reportId are required"));
