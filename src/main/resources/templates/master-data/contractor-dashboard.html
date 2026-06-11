@@ -194,13 +194,13 @@
                                                 $500.00</td>
                                             <td>
                                                 <span class="badge rounded-1 fw-normal border"
-                                                    th:classappend="${req.status != null && req.status.name() == 'APPROVED'} ? 'bg-success-subtle text-success border-success' : 
-                                                                           (${req.status != null && req.status.name() == 'REJECTED'} ? 'bg-danger-subtle text-danger border-danger' : 'bg-warning-subtle text-warning-emphasis border-warning')"
+                                                    th:classappend="${req.status != null && req.status.name() == 'APPROVED'} ? 'bg-success-subtle text-success border-success' :
+                                                                           (req.status != null && req.status.name() == 'REJECTED' ? 'bg-danger-subtle text-danger border-danger' : 'bg-warning-subtle text-warning-emphasis border-warning')"
                                                     th:text="${req.status}">PENDING</span>
                                             </td>
                                             <td>
                                                 <span class="badge rounded-1 fw-normal border"
-                                                    th:classappend="${req.paymentStatus != null && req.paymentStatus.name() == 'PAID'} ? 'bg-success-subtle text-success border-success' : 
+                                                    th:classappend="${req.paymentStatus != null && req.paymentStatus.name() == 'PAID'} ? 'bg-success-subtle text-success border-success' :
                                                                    (req.paymentStatus != null && req.paymentStatus.name() == 'ISSUE' ? 'bg-warning-subtle text-warning-emphasis border-warning' : 'bg-secondary-subtle text-secondary border-secondary')"
                                                     th:text="${req.paymentStatus}">UNPAID</span>
                                             </td>
