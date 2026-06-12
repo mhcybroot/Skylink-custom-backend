@@ -66,7 +66,7 @@
                         <i class="fas fa-chevron-down small text-muted"></i>
                     </div>
                 </div>
-                <div class="collapse show" id="filterCollapse">
+                <div class="collapse show" id="filterCollapse" style="overflow: visible !important;">
                     <div class="card-body">
                         <form th:action="@{/admin/history/daily}" method="get" id="filterForm">
                             <input type="hidden" name="date" th:value="${selectedDate}">
@@ -104,7 +104,7 @@
                                 <div class="col-md-3">
                                     <label class="form-label small fw-bold text-muted">Requester</label>
                                         <div class="dropdown">
-                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start bg-white border-secondary-subtle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.875rem;">
+                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start bg-white border-secondary-subtle" type="button" data-bs-toggle="dropdown" data-bs-strategy="fixed" aria-expanded="false" style="font-size: 0.875rem;">
                                                 <span th:if="${requesterName == null or #lists.isEmpty(requesterName)}">All Requesters</span>
                                                 <span th:if="${requesterName != null and !#lists.isEmpty(requesterName)}" th:text="${requesterName.size() + ' selected'}"></span>
                                             </button>
