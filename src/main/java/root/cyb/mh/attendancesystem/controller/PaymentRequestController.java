@@ -96,6 +96,11 @@ public class PaymentRequestController {
         boolean isAdminOrHr = userDetails.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_HR"));
 
+        if (requesterName != null) {
+            requesterName = requesterName.stream().filter(s -> s != null && !s.trim().isEmpty()).collect(java.util.stream.Collectors.toList());
+            if (requesterName.isEmpty()) requesterName = null;
+        }
+
         Specification<PaymentRequest> spec = createSpecification(
                 startDate, endDate, contractorId, clientId, paymentMethodId,
                 workOrderNumber, requesterName, priority, status, paymentStatus,
@@ -197,6 +202,11 @@ public class PaymentRequestController {
 
         boolean isAdminOrHr = userDetails.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_HR"));
+
+        if (requesterName != null) {
+            requesterName = requesterName.stream().filter(s -> s != null && !s.trim().isEmpty()).collect(java.util.stream.Collectors.toList());
+            if (requesterName.isEmpty()) requesterName = null;
+        }
 
         Specification<PaymentRequest> spec = createSpecification(
                 startDate, endDate, contractorId, clientId, paymentMethodId,

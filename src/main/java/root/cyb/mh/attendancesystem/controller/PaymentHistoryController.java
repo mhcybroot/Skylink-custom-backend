@@ -80,6 +80,11 @@ public class PaymentHistoryController {
                         title = "Daily Report - " + d;
                 }
 
+                if (requesterName != null) {
+                    requesterName = requesterName.stream().filter(s -> s != null && !s.trim().isEmpty()).collect(java.util.stream.Collectors.toList());
+                    if (requesterName.isEmpty()) requesterName = null;
+                }
+
                 Specification<PaymentRequest> spec = PaymentRequestSpecification.getFilterSpec(
                                 rangeStart, rangeEnd,
                                 contractorId, clientId, paymentMethodId,
@@ -119,6 +124,11 @@ public class PaymentHistoryController {
                 if (date == null)
                         date = LocalDate.now();
 
+                if (requesterName != null) {
+                    requesterName = requesterName.stream().filter(s -> s != null && !s.trim().isEmpty()).collect(java.util.stream.Collectors.toList());
+                    if (requesterName.isEmpty()) requesterName = null;
+                }
+
                 Specification<PaymentRequest> spec = PaymentRequestSpecification.getFilterSpec(
                                 date, date,
                                 contractorId, clientId, paymentMethodId,
@@ -156,6 +166,11 @@ public class PaymentHistoryController {
                         startDate = LocalDate.now().with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
                 }
                 LocalDate endDate = startDate.plusDays(6);
+
+                if (requesterName != null) {
+                    requesterName = requesterName.stream().filter(s -> s != null && !s.trim().isEmpty()).collect(java.util.stream.Collectors.toList());
+                    if (requesterName.isEmpty()) requesterName = null;
+                }
 
                 Specification<PaymentRequest> spec = PaymentRequestSpecification.getFilterSpec(
                                 startDate, endDate,
@@ -201,6 +216,11 @@ public class PaymentHistoryController {
 
                 LocalDate startDate = LocalDate.of(year, month, 1);
                 LocalDate endDate = startDate.with(TemporalAdjusters.lastDayOfMonth());
+
+                if (requesterName != null) {
+                    requesterName = requesterName.stream().filter(s -> s != null && !s.trim().isEmpty()).collect(java.util.stream.Collectors.toList());
+                    if (requesterName.isEmpty()) requesterName = null;
+                }
 
                 Specification<PaymentRequest> spec = PaymentRequestSpecification.getFilterSpec(
                                 startDate, endDate,

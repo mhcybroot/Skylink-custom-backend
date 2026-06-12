@@ -127,8 +127,8 @@
                                         <label class="form-label small fw-bold text-muted">Requester</label>
                                         <div class="dropdown">
                                             <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start bg-white border-secondary-subtle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.875rem;">
-                                                <span th:if="${requesterName == null or requesterName.isEmpty()}">All Requesters</span>
-                                                <span th:if="${requesterName != null and !requesterName.isEmpty()}" th:text="${requesterName.size() + ' selected'}"></span>
+                                                <span th:if="${requesterName == null or #lists.isEmpty(requesterName)}">All Requesters</span>
+                                                <span th:if="${requesterName != null and !#lists.isEmpty(requesterName)}" th:text="${requesterName.size() + ' selected'}"></span>
                                             </button>
                                             <ul class="dropdown-menu p-2 w-100 shadow-sm" style="max-height: 250px; overflow-y: auto;">
                                                 <li th:each="r, rStat : ${activeRequesters}" class="px-2 py-1">
