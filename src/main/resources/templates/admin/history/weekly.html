@@ -60,7 +60,7 @@
             </div>
 
             <!-- Filters -->
-            <div class="card border-0 shadow-sm mb-4">
+            <div class="card border-0 shadow-sm mb-4" style="position: relative; z-index: 10;">
                 <div class="card-header bg-light py-2" role="button" data-bs-toggle="collapse"
                     data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
                     <div class="d-flex justify-content-between align-items-center">
@@ -109,7 +109,7 @@
                                 <div class="col-md-3">
                                     <label class="form-label small fw-bold text-muted">Requester</label>
                                         <div class="dropdown">
-                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start bg-white border-secondary-subtle" type="button" data-bs-toggle="dropdown" data-bs-strategy="fixed" aria-expanded="false" style="font-size: 0.875rem;">
+                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start bg-white border-secondary-subtle" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" style="font-size: 0.875rem;">
                                                 <span th:if="${requesterName == null or #lists.isEmpty(requesterName)}">All Requesters</span>
                                                 <span th:if="${requesterName != null and !#lists.isEmpty(requesterName)}" th:text="${requesterName.size() + ' selected'}"></span>
                                             </button>

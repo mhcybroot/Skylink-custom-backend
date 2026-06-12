@@ -40,7 +40,7 @@
                 </div>
 
                 <!-- Advanced Filters -->
-                <div class="card bg-white border rounded-1 shadow-sm mb-4">
+                <div class="card bg-white border rounded-1 shadow-sm mb-4" style="position: relative; z-index: 10;">
                     <div class="card-header bg-white border-bottom py-2" role="button" data-bs-toggle="collapse"
                         data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
                         <div class="d-flex justify-content-between align-items-center">
@@ -70,7 +70,7 @@
                                     <div class="col-md-3">
                                         <label class="form-label small fw-bold text-muted">Contractor</label>
                                         <div class="dropdown">
-                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start bg-white border-secondary-subtle" type="button" data-bs-toggle="dropdown" data-bs-strategy="fixed" aria-expanded="false" style="font-size: 0.875rem;">
+                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start bg-white border-secondary-subtle" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" style="font-size: 0.875rem;">
                                                 <span th:if="${contractorId == null or contractorId.isEmpty()}">All Contractors</span>
                                                 <span th:if="${contractorId != null and !contractorId.isEmpty()}" th:text="${contractorId.size() + ' selected'}"></span>
                                             </button>
@@ -87,7 +87,7 @@
                                     <div class="col-md-3">
                                         <label class="form-label small fw-bold text-muted">Client</label>
                                         <div class="dropdown">
-                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start bg-white border-secondary-subtle" type="button" data-bs-toggle="dropdown" data-bs-strategy="fixed" aria-expanded="false" style="font-size: 0.875rem;">
+                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start bg-white border-secondary-subtle" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" style="font-size: 0.875rem;">
                                                 <span th:if="${clientId == null or clientId.isEmpty()}">All Clients</span>
                                                 <span th:if="${clientId != null and !clientId.isEmpty()}" th:text="${clientId.size() + ' selected'}"></span>
                                             </button>
@@ -104,7 +104,7 @@
                                     <div class="col-md-3">
                                         <label class="form-label small fw-bold text-muted">Payment Method</label>
                                         <div class="dropdown">
-                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start bg-white border-secondary-subtle" type="button" data-bs-toggle="dropdown" data-bs-strategy="fixed" aria-expanded="false" style="font-size: 0.875rem;">
+                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start bg-white border-secondary-subtle" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" style="font-size: 0.875rem;">
                                                 <span th:if="${paymentMethodId == null or paymentMethodId.isEmpty()}">All Methods</span>
                                                 <span th:if="${paymentMethodId != null and !paymentMethodId.isEmpty()}" th:text="${paymentMethodId.size() + ' selected'}"></span>
                                             </button>
@@ -126,7 +126,7 @@
                                     <div class="col-md-2">
                                         <label class="form-label small fw-bold text-muted">Requester</label>
                                         <div class="dropdown">
-                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start bg-white border-secondary-subtle" type="button" data-bs-toggle="dropdown" data-bs-strategy="fixed" aria-expanded="false" style="font-size: 0.875rem;">
+                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start bg-white border-secondary-subtle" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" style="font-size: 0.875rem;">
                                                 <span th:if="${requesterName == null or #lists.isEmpty(requesterName)}">All Requesters</span>
                                                 <span th:if="${requesterName != null and !#lists.isEmpty(requesterName)}" th:text="${requesterName.size() + ' selected'}"></span>
                                             </button>
@@ -143,7 +143,7 @@
                                     <div class="col-md-3">
                                         <label class="form-label small fw-bold text-muted">Priority</label>
                                         <div class="dropdown">
-                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start bg-white border-secondary-subtle" type="button" data-bs-toggle="dropdown" data-bs-strategy="fixed" aria-expanded="false" style="font-size: 0.875rem;">
+                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start bg-white border-secondary-subtle" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" style="font-size: 0.875rem;">
                                                 <span th:if="${priority == null or priority.isEmpty()}">All Priorities</span>
                                                 <span th:if="${priority != null and !priority.isEmpty()}" th:text="${priority.size() + ' selected'}"></span>
                                             </button>
@@ -160,7 +160,7 @@
                                     <div class="col-md-3">
                                         <label class="form-label small fw-bold text-muted">Approval Status</label>
                                         <div class="dropdown">
-                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start bg-white border-secondary-subtle" type="button" data-bs-toggle="dropdown" data-bs-strategy="fixed" aria-expanded="false" style="font-size: 0.875rem;">
+                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start bg-white border-secondary-subtle" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" style="font-size: 0.875rem;">
                                                 <span th:if="${status == null or status.isEmpty()}">All Statuses</span>
                                                 <span th:if="${status != null and !status.isEmpty()}" th:text="${status.size() + ' selected'}"></span>
                                             </button>
@@ -177,7 +177,7 @@
                                     <div class="col-md-3">
                                         <label class="form-label small fw-bold text-muted">Payment Status</label>
                                         <div class="dropdown">
-                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start bg-white border-secondary-subtle" type="button" data-bs-toggle="dropdown" data-bs-strategy="fixed" aria-expanded="false" style="font-size: 0.875rem;">
+                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start bg-white border-secondary-subtle" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" style="font-size: 0.875rem;">
                                                 <span th:if="${paymentStatus == null or paymentStatus.isEmpty()}">All Payment Statuses</span>
                                                 <span th:if="${paymentStatus != null and !paymentStatus.isEmpty()}" th:text="${paymentStatus.size() + ' selected'}"></span>
                                             </button>
@@ -194,7 +194,7 @@
                                     <div class="col-md-3">
                                         <label class="form-label small fw-bold text-muted">PPW Status</label>
                                         <div class="dropdown">
-                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start bg-white border-secondary-subtle" type="button" data-bs-toggle="dropdown" data-bs-strategy="fixed" aria-expanded="false" style="font-size: 0.875rem;">
+                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start bg-white border-secondary-subtle" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" style="font-size: 0.875rem;">
                                                 <span th:if="${ppwUpdateStatus == null or ppwUpdateStatus.isEmpty()}">All PPW Statuses</span>
                                                 <span th:if="${ppwUpdateStatus != null and !ppwUpdateStatus.isEmpty()}" th:text="${ppwUpdateStatus.size() + ' selected'}"></span>
                                             </button>
