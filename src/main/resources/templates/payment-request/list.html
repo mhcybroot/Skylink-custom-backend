@@ -55,6 +55,7 @@
                                 <input type="hidden" name="view" th:value="${param.view}">
                                 <input type="hidden" name="sortField" th:value="${sortField}">
                                 <input type="hidden" name="sortDir" th:value="${sortDir}">
+                                <input type="hidden" name="size" th:value="${size}">
 
                                 <div class="row g-3">
                                     <div class="col-md-3">
@@ -298,42 +299,42 @@
                                             </a>
                                         </th>
                                         <th class="py-3 border-bottom-0">
-                                            <a th:href="@{/payment-requests(view=${param.view}, sortField='amount', sortDir=${sortField == 'amount' ? reverseSortDir : 'asc'}, startDate=${startDate}, endDate=${endDate}, contractorId=${contractorId}, clientId=${clientId}, paymentMethodId=${paymentMethodId}, workOrderNumber=${workOrderNumber}, requesterName=${requesterName}, priority=${priority}, status=${status}, paymentStatus=${paymentStatus}, ppwUpdateStatus=${ppwUpdateStatus}, columns=${param.columns})}"
+                                            <a th:href="@{/payment-requests(size=${size}, view=${param.view}, sortField='amount', sortDir=${sortField == 'amount' ? reverseSortDir : 'asc'}, startDate=${startDate}, endDate=${endDate}, contractorId=${contractorId}, clientId=${clientId}, paymentMethodId=${paymentMethodId}, workOrderNumber=${workOrderNumber}, requesterName=${requesterName}, priority=${priority}, status=${status}, paymentStatus=${paymentStatus}, ppwUpdateStatus=${ppwUpdateStatus}, columns=${param.columns})}"
                                                 class="text-decoration-none text-secondary fw-bold">
                                                 Amount <i class="fas"
                                                     th:classappend="${sortField == 'amount'} ? (${sortDir == 'asc'} ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort'"></i>
                                             </a>
                                         </th>
                                         <th class="py-3 border-bottom-0">
-                                            <a th:href="@{/payment-requests(view=${param.view}, sortField='contractorName', sortDir=${sortField == 'contractorName' ? reverseSortDir : 'asc'}, startDate=${startDate}, endDate=${endDate}, contractorId=${contractorId}, clientId=${clientId}, paymentMethodId=${paymentMethodId}, workOrderNumber=${workOrderNumber}, requesterName=${requesterName}, priority=${priority}, status=${status}, paymentStatus=${paymentStatus}, ppwUpdateStatus=${ppwUpdateStatus}, columns=${param.columns})}"
+                                            <a th:href="@{/payment-requests(size=${size}, view=${param.view}, sortField='contractorName', sortDir=${sortField == 'contractorName' ? reverseSortDir : 'asc'}, startDate=${startDate}, endDate=${endDate}, contractorId=${contractorId}, clientId=${clientId}, paymentMethodId=${paymentMethodId}, workOrderNumber=${workOrderNumber}, requesterName=${requesterName}, priority=${priority}, status=${status}, paymentStatus=${paymentStatus}, ppwUpdateStatus=${ppwUpdateStatus}, columns=${param.columns})}"
                                                 class="text-decoration-none text-secondary fw-bold">
                                                 Contractor <i class="fas"
                                                     th:classappend="${sortField == 'contractorName'} ? (${sortDir == 'asc'} ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort'"></i>
                                             </a>
                                         </th>
                                         <th class="py-3 border-bottom-0">
-                                            <a th:href="@{/payment-requests(view=${param.view}, sortField='priority', sortDir=${sortField == 'priority' ? reverseSortDir : 'asc'}, startDate=${startDate}, endDate=${endDate}, contractorId=${contractorId}, clientId=${clientId}, paymentMethodId=${paymentMethodId}, workOrderNumber=${workOrderNumber}, requesterName=${requesterName}, priority=${priority}, status=${status}, paymentStatus=${paymentStatus}, ppwUpdateStatus=${ppwUpdateStatus}, columns=${param.columns})}"
+                                            <a th:href="@{/payment-requests(size=${size}, view=${param.view}, sortField='priority', sortDir=${sortField == 'priority' ? reverseSortDir : 'asc'}, startDate=${startDate}, endDate=${endDate}, contractorId=${contractorId}, clientId=${clientId}, paymentMethodId=${paymentMethodId}, workOrderNumber=${workOrderNumber}, requesterName=${requesterName}, priority=${priority}, status=${status}, paymentStatus=${paymentStatus}, ppwUpdateStatus=${ppwUpdateStatus}, columns=${param.columns})}"
                                                 class="text-decoration-none text-secondary fw-bold">
                                                 Priority <i class="fas"
                                                     th:classappend="${sortField == 'priority'} ? (${sortDir == 'asc'} ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort'"></i>
                                             </a>
                                         </th>
                                         <th class="py-3 border-bottom-0">
-                                            <a th:href="@{/payment-requests(view=${param.view}, sortField='status', sortDir=${sortField == 'status' ? reverseSortDir : 'asc'}, startDate=${startDate}, endDate=${endDate}, contractorId=${contractorId}, clientId=${clientId}, paymentMethodId=${paymentMethodId}, workOrderNumber=${workOrderNumber}, requesterName=${requesterName}, priority=${priority}, status=${status}, paymentStatus=${paymentStatus}, ppwUpdateStatus=${ppwUpdateStatus}, columns=${param.columns})}"
+                                            <a th:href="@{/payment-requests(size=${size}, view=${param.view}, sortField='status', sortDir=${sortField == 'status' ? reverseSortDir : 'asc'}, startDate=${startDate}, endDate=${endDate}, contractorId=${contractorId}, clientId=${clientId}, paymentMethodId=${paymentMethodId}, workOrderNumber=${workOrderNumber}, requesterName=${requesterName}, priority=${priority}, status=${status}, paymentStatus=${paymentStatus}, ppwUpdateStatus=${ppwUpdateStatus}, columns=${param.columns})}"
                                                 class="text-decoration-none text-secondary fw-bold">
                                                 Approval <i class="fas"
                                                     th:classappend="${sortField == 'status'} ? (${sortDir == 'asc'} ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort'"></i>
                                             </a>
                                         </th>
                                         <th class="py-3 border-bottom-0">
-                                            <a th:href="@{/payment-requests(view=${param.view}, sortField='paymentStatus', sortDir=${sortField == 'paymentStatus' ? reverseSortDir : 'asc'}, startDate=${startDate}, endDate=${endDate}, contractorId=${contractorId}, clientId=${clientId}, paymentMethodId=${paymentMethodId}, workOrderNumber=${workOrderNumber}, requesterName=${requesterName}, priority=${priority}, status=${status}, paymentStatus=${paymentStatus}, ppwUpdateStatus=${ppwUpdateStatus}, columns=${param.columns})}"
+                                            <a th:href="@{/payment-requests(size=${size}, view=${param.view}, sortField='paymentStatus', sortDir=${sortField == 'paymentStatus' ? reverseSortDir : 'asc'}, startDate=${startDate}, endDate=${endDate}, contractorId=${contractorId}, clientId=${clientId}, paymentMethodId=${paymentMethodId}, workOrderNumber=${workOrderNumber}, requesterName=${requesterName}, priority=${priority}, status=${status}, paymentStatus=${paymentStatus}, ppwUpdateStatus=${ppwUpdateStatus}, columns=${param.columns})}"
                                                 class="text-decoration-none text-secondary fw-bold">
                                                 Payment <i class="fas"
                                                     th:classappend="${sortField == 'paymentStatus'} ? (${sortDir == 'asc'} ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort'"></i>
                                             </a>
                                         </th>
                                         <th class="py-3 border-bottom-0">
-                                            <a th:href="@{/payment-requests(view=${param.view}, sortField='ppwUpdateStatus', sortDir=${sortField == 'ppwUpdateStatus' ? reverseSortDir : 'asc'}, startDate=${startDate}, endDate=${endDate}, contractorId=${contractorId}, clientId=${clientId}, paymentMethodId=${paymentMethodId}, workOrderNumber=${workOrderNumber}, requesterName=${requesterName}, priority=${priority}, status=${status}, paymentStatus=${paymentStatus}, ppwUpdateStatus=${ppwUpdateStatus}, columns=${param.columns})}"
+                                            <a th:href="@{/payment-requests(size=${size}, view=${param.view}, sortField='ppwUpdateStatus', sortDir=${sortField == 'ppwUpdateStatus' ? reverseSortDir : 'asc'}, startDate=${startDate}, endDate=${endDate}, contractorId=${contractorId}, clientId=${clientId}, paymentMethodId=${paymentMethodId}, workOrderNumber=${workOrderNumber}, requesterName=${requesterName}, priority=${priority}, status=${status}, paymentStatus=${paymentStatus}, ppwUpdateStatus=${ppwUpdateStatus}, columns=${param.columns})}"
                                                 class="text-decoration-none text-secondary fw-bold">
                                                 PPW <i class="fas"
                                                     th:classappend="${sortField == 'ppwUpdateStatus'} ? (${sortDir == 'asc'} ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort'"></i>
