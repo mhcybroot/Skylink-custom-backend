@@ -49,7 +49,7 @@ public class PaymentHistoryController {
                         @RequestParam(required = false) Long clientId,
                         @RequestParam(required = false) Long paymentMethodId,
                         @RequestParam(required = false) String workOrderNumber,
-                        @RequestParam(required = false) String requesterName,
+                        @RequestParam(required = false) List<String> requesterName,
                         @RequestParam(required = false) PaymentPriority priority,
                         @RequestParam(required = false) RequestStatus status,
                         @RequestParam(required = false) PaymentStatus paymentStatus,
@@ -109,7 +109,7 @@ public class PaymentHistoryController {
                         @RequestParam(required = false) Long clientId,
                         @RequestParam(required = false) Long paymentMethodId,
                         @RequestParam(required = false) String workOrderNumber,
-                        @RequestParam(required = false) String requesterName,
+                        @RequestParam(required = false) List<String> requesterName,
                         @RequestParam(required = false) PaymentPriority priority,
                         @RequestParam(required = false) RequestStatus status,
                         @RequestParam(required = false) PaymentStatus paymentStatus,
@@ -145,7 +145,7 @@ public class PaymentHistoryController {
                         @RequestParam(required = false) Long clientId,
                         @RequestParam(required = false) Long paymentMethodId,
                         @RequestParam(required = false) String workOrderNumber,
-                        @RequestParam(required = false) String requesterName,
+                        @RequestParam(required = false) List<String> requesterName,
                         @RequestParam(required = false) PaymentPriority priority,
                         @RequestParam(required = false) RequestStatus status,
                         @RequestParam(required = false) PaymentStatus paymentStatus,
@@ -186,7 +186,7 @@ public class PaymentHistoryController {
                         @RequestParam(required = false) Long clientId,
                         @RequestParam(required = false) Long paymentMethodId,
                         @RequestParam(required = false) String workOrderNumber,
-                        @RequestParam(required = false) String requesterName,
+                        @RequestParam(required = false) List<String> requesterName,
                         @RequestParam(required = false) PaymentPriority priority,
                         @RequestParam(required = false) RequestStatus status,
                         @RequestParam(required = false) PaymentStatus paymentStatus,
@@ -237,7 +237,7 @@ public class PaymentHistoryController {
                         LocalDate date, LocalDate wStart, LocalDate wEnd,
                         Integer year, Integer month,
                         Long contractorId, Long clientId, Long paymentMethodId,
-                        String workOrderNumber, String requesterName,
+                        String workOrderNumber, List<String> requesterName,
                         PaymentPriority priority, RequestStatus status,
                         PaymentStatus paymentStatus, PPWStatus ppwUpdateStatus) {
 
@@ -245,6 +245,13 @@ public class PaymentHistoryController {
                 model.addAttribute("activeContractors", contractorRepository.findByActiveTrue());
                 model.addAttribute("activeClients", clientRepository.findByActiveTrue());
                 model.addAttribute("activePaymentMethods", paymentMethodRepository.findByActiveTrue());
+
+                List<String> activeRequesters = new java.util.ArrayList<>();
+                activeRequesters.addAll(paymentRequestRepository.findDistinctUserRequesters());
+                activeRequesters.addAll(paymentRequestRepository.findDistinctEmployeeRequesters());
+                activeRequesters = activeRequesters.stream().distinct().sorted(String.CASE_INSENSITIVE_ORDER).collect(java.util.stream.Collectors.toList());
+                model.addAttribute("activeRequesters", activeRequesters);
+
                 model.addAttribute("priorities", PaymentPriority.values());
                 model.addAttribute("requestStatuses", RequestStatus.values());
                 model.addAttribute("paymentStatuses", PaymentStatus.values());

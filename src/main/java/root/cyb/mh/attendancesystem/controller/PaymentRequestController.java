@@ -81,7 +81,7 @@ public class PaymentRequestController {
             @RequestParam(required = false) List<Long> clientId,
             @RequestParam(required = false) List<Long> paymentMethodId,
             @RequestParam(required = false) String workOrderNumber,
-            @RequestParam(required = false) String requesterName,
+            @RequestParam(required = false) List<String> requesterName,
             @RequestParam(required = false) List<PaymentPriority> priority,
             @RequestParam(required = false) List<RequestStatus> status,
             @RequestParam(required = false) List<PaymentStatus> paymentStatus,
@@ -162,6 +162,12 @@ public class PaymentRequestController {
         model.addAttribute("paymentStatuses", PaymentStatus.values());
         model.addAttribute("ppwStatuses", PPWStatus.values());
 
+        List<String> activeRequesters = new java.util.ArrayList<>();
+        activeRequesters.addAll(paymentRequestRepository.findDistinctUserRequesters());
+        activeRequesters.addAll(paymentRequestRepository.findDistinctEmployeeRequesters());
+        activeRequesters = activeRequesters.stream().distinct().sorted(String.CASE_INSENSITIVE_ORDER).collect(java.util.stream.Collectors.toList());
+        model.addAttribute("activeRequesters", activeRequesters);
+
         return "payment-request/list";
     }
 
@@ -180,7 +186,7 @@ public class PaymentRequestController {
             @RequestParam(required = false) List<Long> clientId,
             @RequestParam(required = false) List<Long> paymentMethodId,
             @RequestParam(required = false) String workOrderNumber,
-            @RequestParam(required = false) String requesterName,
+            @RequestParam(required = false) List<String> requesterName,
             @RequestParam(required = false) List<PaymentPriority> priority,
             @RequestParam(required = false) List<RequestStatus> status,
             @RequestParam(required = false) List<PaymentStatus> paymentStatus,
@@ -215,7 +221,7 @@ public class PaymentRequestController {
     private Specification<PaymentRequest> createSpecification(
             LocalDate startDate, LocalDate endDate,
             List<Long> contractorId, List<Long> clientId, List<Long> paymentMethodId,
-            String workOrderNumber, String requesterName,
+            String workOrderNumber, List<String> requesterName,
             List<PaymentPriority> priority, List<RequestStatus> status,
             List<PaymentStatus> paymentStatus, List<PPWStatus> ppwUpdateStatus,
             String view, UserDetails userDetails, boolean isAdminOrHr) {

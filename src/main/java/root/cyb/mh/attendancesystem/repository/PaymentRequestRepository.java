@@ -19,6 +19,12 @@ public interface PaymentRequestRepository extends JpaRepository<PaymentRequest, 
 
         List<PaymentRequest> findByRequester(User requester);
 
+        @org.springframework.data.jpa.repository.Query("SELECT DISTINCT u.username FROM PaymentRequest p JOIN p.requester u WHERE u IS NOT NULL")
+        List<String> findDistinctUserRequesters();
+
+        @org.springframework.data.jpa.repository.Query("SELECT DISTINCT e.name FROM PaymentRequest p JOIN p.employeeRequester e WHERE e IS NOT NULL")
+        List<String> findDistinctEmployeeRequesters();
+
         List<PaymentRequest> findByContractorIdOrderByRequestDateDesc(Long contractorId);
 
         List<PaymentRequest> findByContractorIdAndEmployeeRequesterOrderByRequestDateDesc(Long contractorId,

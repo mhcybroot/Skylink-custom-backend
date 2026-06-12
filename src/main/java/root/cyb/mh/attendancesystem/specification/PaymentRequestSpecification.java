@@ -16,7 +16,7 @@ public class PaymentRequestSpecification {
     public static Specification<PaymentRequest> getFilterSpec(
             LocalDate startDate, LocalDate endDate,
             Long contractorId, Long clientId, Long paymentMethodId,
-            String workOrderNumber, String requesterName,
+            String workOrderNumber, List<String> requesterName,
             PaymentPriority priority, RequestStatus status,
             PaymentStatus paymentStatus, PPWStatus ppwUpdateStatus) {
         return getFilterSpec(
@@ -36,7 +36,7 @@ public class PaymentRequestSpecification {
             LocalDate startDate, LocalDate endDate,
             List<Long> contractorIds, List<Long> clientIds, List<Long> paymentMethodIds,
             String workOrderNumber,
-            String requesterName,
+            List<String> requesterName,
             List<PaymentPriority> priorities,
             List<RequestStatus> statuses,
             List<PaymentStatus> paymentStatuses,
@@ -93,14 +93,12 @@ public class PaymentRequestSpecification {
             }
 
             // Requester (Name or Username)
-            if (requesterName != null && !requesterName.trim().isEmpty()) {
-                String pattern = "%" + requesterName.toLowerCase() + "%";
-
+            if (requesterName != null && !requesterName.isEmpty()) {
                 Join<PaymentRequest, User> userJoin = root.join("requester", JoinType.LEFT);
                 Join<PaymentRequest, Employee> empJoin = root.join("employeeRequester", JoinType.LEFT);
 
-                Predicate userMatch = cb.like(cb.lower(userJoin.get("username")), pattern);
-                Predicate empMatch = cb.like(cb.lower(empJoin.get("name")), pattern);
+                Predicate userMatch = userJoin.get("username").in(requesterName);
+                Predicate empMatch = empJoin.get("name").in(requesterName);
 
                 predicates.add(cb.or(userMatch, empMatch));
             }
