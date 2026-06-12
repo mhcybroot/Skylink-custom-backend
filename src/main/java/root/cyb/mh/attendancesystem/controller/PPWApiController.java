@@ -29,7 +29,7 @@ public class PPWApiController {
             return ResponseEntity.badRequest().body(Map.of("error", "workOrderNumber and reportId are required"));
         }
 
-        List<PaymentRequest> requests = paymentRequestRepository.findByWorkOrderNumber(request.workOrderNumber);
+        List<PaymentRequest> requests = paymentRequestRepository.findByWorkOrderNumberTrimmed(request.workOrderNumber);
         
         int updated = 0;
         for (PaymentRequest pr : requests) {
