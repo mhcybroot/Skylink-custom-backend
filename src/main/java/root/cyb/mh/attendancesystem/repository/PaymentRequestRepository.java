@@ -14,7 +14,7 @@ public interface PaymentRequestRepository extends JpaRepository<PaymentRequest, 
 
         List<PaymentRequest> findByWorkOrderNumber(String workOrderNumber);
 
-        @org.springframework.data.jpa.repository.Query("SELECT p FROM PaymentRequest p WHERE TRIM(p.workOrderNumber) = TRIM(:workOrderNumber)")
+        @org.springframework.data.jpa.repository.Query("SELECT p FROM PaymentRequest p WHERE LOWER(REPLACE(p.workOrderNumber, ' ', '')) = LOWER(REPLACE(:workOrderNumber, ' ', ''))")
         List<PaymentRequest> findByWorkOrderNumberTrimmed(@org.springframework.data.repository.query.Param("workOrderNumber") String workOrderNumber);
 
         List<PaymentRequest> findByRequester(User requester);
