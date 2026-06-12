@@ -40,7 +40,7 @@
                 </div>
 
                 <!-- Advanced Filters -->
-                <div class="card bg-white border rounded-1 shadow-sm mb-4" style="position: relative; z-index: 10;">
+                <div class="card bg-white border rounded-1 shadow-sm mb-4" style="position: relative; z-index: 10; overflow: visible !important;">
                     <div class="card-header bg-white border-bottom py-2" role="button" data-bs-toggle="collapse"
                         data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
                         <div class="d-flex justify-content-between align-items-center">
@@ -69,54 +69,21 @@
                                     </div>
                                     <div class="col-md-3">
                                         <label class="form-label small fw-bold text-muted">Contractor</label>
-                                        <div class="dropdown">
-                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start bg-white border-secondary-subtle" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" style="font-size: 0.875rem;">
-                                                <span th:if="${contractorId == null or contractorId.isEmpty()}">All Contractors</span>
-                                                <span th:if="${contractorId != null and !contractorId.isEmpty()}" th:text="${contractorId.size() + ' selected'}"></span>
-                                            </button>
-                                            <ul class="dropdown-menu p-2 w-100 shadow-sm" style="max-height: 250px; overflow-y: auto;">
-                                                <li th:each="c : ${activeContractors}" class="px-2 py-1">
-                                                    <div class="form-check mb-0">
-                                                        <input class="form-check-input" type="checkbox" name="contractorId" th:value="${c.id}" th:id="${'contractor_' + c.id}" th:checked="${contractorId != null and contractorId.contains(c.id)}">
-                                                        <label class="form-check-label small" th:for="${'contractor_' + c.id}" th:text="${c.name}"></label>
-                                                    </div>
-                                                </li>
-                                            </ul>
-                                        </div>
+                                        <select name="contractorId" class="form-select select2-multiple" multiple="multiple" data-placeholder="All Contractors">
+                                            <option th:each="c : ${activeContractors}" th:value="${c.id}" th:text="${c.name}" th:selected="${contractorId != null and contractorId.contains(c.id)}"></option>
+                                        </select>
                                     </div>
                                     <div class="col-md-3">
                                         <label class="form-label small fw-bold text-muted">Client</label>
-                                        <div class="dropdown">
-                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start bg-white border-secondary-subtle" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" style="font-size: 0.875rem;">
-                                                <span th:if="${clientId == null or clientId.isEmpty()}">All Clients</span>
-                                                <span th:if="${clientId != null and !clientId.isEmpty()}" th:text="${clientId.size() + ' selected'}"></span>
-                                            </button>
-                                            <ul class="dropdown-menu p-2 w-100 shadow-sm" style="max-height: 250px; overflow-y: auto;">
-                                                <li th:each="c : ${activeClients}" class="px-2 py-1">
-                                                    <div class="form-check mb-0">
-                                                        <input class="form-check-input" type="checkbox" name="clientId" th:value="${c.id}" th:id="${'client_' + c.id}" th:checked="${clientId != null and clientId.contains(c.id)}">
-                                                        <label class="form-check-label small" th:for="${'client_' + c.id}" th:text="${c.code + ' - ' + c.name}"></label>
-                                                    </div>
-                                                </li>
-                                            </ul>
-                                        </div>
+                                        <select name="clientId" class="form-select select2-multiple" multiple="multiple" data-placeholder="All Clients">
+                                            <option th:each="c : ${activeClients}" th:value="${c.id}" th:text="${c.code + ' - ' + c.name}" th:selected="${clientId != null and clientId.contains(c.id)}"></option>
+                                        </select>
                                     </div>
                                     <div class="col-md-3">
                                         <label class="form-label small fw-bold text-muted">Payment Method</label>
-                                        <div class="dropdown">
-                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start bg-white border-secondary-subtle" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" style="font-size: 0.875rem;">
-                                                <span th:if="${paymentMethodId == null or paymentMethodId.isEmpty()}">All Methods</span>
-                                                <span th:if="${paymentMethodId != null and !paymentMethodId.isEmpty()}" th:text="${paymentMethodId.size() + ' selected'}"></span>
-                                            </button>
-                                            <ul class="dropdown-menu p-2 w-100 shadow-sm" style="max-height: 250px; overflow-y: auto;">
-                                                <li th:each="p : ${activePaymentMethods}" class="px-2 py-1">
-                                                    <div class="form-check mb-0">
-                                                        <input class="form-check-input" type="checkbox" name="paymentMethodId" th:value="${p.id}" th:id="${'method_' + p.id}" th:checked="${paymentMethodId != null and paymentMethodId.contains(p.id)}">
-                                                        <label class="form-check-label small" th:for="${'method_' + p.id}" th:text="${p.methodName}"></label>
-                                                    </div>
-                                                </li>
-                                            </ul>
-                                        </div>
+                                        <select name="paymentMethodId" class="form-select select2-multiple" multiple="multiple" data-placeholder="All Methods">
+                                            <option th:each="p : ${activePaymentMethods}" th:value="${p.id}" th:text="${p.methodName}" th:selected="${paymentMethodId != null and paymentMethodId.contains(p.id)}"></option>
+                                        </select>
                                     </div>
                                     <div class="col-md-3">
                                         <label class="form-label small fw-bold text-muted">Work Order</label>
@@ -125,88 +92,33 @@
                                     </div>
                                     <div class="col-md-2">
                                         <label class="form-label small fw-bold text-muted">Requester</label>
-                                        <div class="dropdown">
-                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start bg-white border-secondary-subtle" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" style="font-size: 0.875rem;">
-                                                <span th:if="${requesterName == null or #lists.isEmpty(requesterName)}">All Requesters</span>
-                                                <span th:if="${requesterName != null and !#lists.isEmpty(requesterName)}" th:text="${requesterName.size() + ' selected'}"></span>
-                                            </button>
-                                            <ul class="dropdown-menu p-2 w-100 shadow-sm" style="max-height: 250px; overflow-y: auto;">
-                                                <li th:each="r, rStat : ${activeRequesters}" class="px-2 py-1">
-                                                    <div class="form-check mb-0">
-                                                        <input class="form-check-input" type="checkbox" name="requesterName" th:value="${r}" th:id="${'requester_' + rStat.index}" th:checked="${requesterName != null and requesterName.contains(r)}">
-                                                        <label class="form-check-label small" th:for="${'requester_' + rStat.index}" th:text="${r}"></label>
-                                                    </div>
-                                                </li>
-                                            </ul>
-                                        </div>
+                                        <select name="requesterName" class="form-select select2-multiple" multiple="multiple" data-placeholder="All Requesters">
+                                            <option th:each="r : ${activeRequesters}" th:value="${r}" th:text="${r}" th:selected="${requesterName != null and requesterName.contains(r)}"></option>
+                                        </select>
                                     </div>
                                     <div class="col-md-3">
                                         <label class="form-label small fw-bold text-muted">Priority</label>
-                                        <div class="dropdown">
-                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start bg-white border-secondary-subtle" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" style="font-size: 0.875rem;">
-                                                <span th:if="${priority == null or priority.isEmpty()}">All Priorities</span>
-                                                <span th:if="${priority != null and !priority.isEmpty()}" th:text="${priority.size() + ' selected'}"></span>
-                                            </button>
-                                            <ul class="dropdown-menu p-2 w-100 shadow-sm" style="max-height: 250px; overflow-y: auto;">
-                                                <li th:each="p : ${priorities}" class="px-2 py-1">
-                                                    <div class="form-check mb-0">
-                                                        <input class="form-check-input" type="checkbox" name="priority" th:value="${p}" th:id="${'priority_' + p}" th:checked="${priority != null and priority.contains(p)}">
-                                                        <label class="form-check-label small" th:for="${'priority_' + p}" th:text="${p}"></label>
-                                                    </div>
-                                                </li>
-                                            </ul>
-                                        </div>
+                                        <select name="priority" class="form-select select2-multiple" multiple="multiple" data-placeholder="All Priorities">
+                                            <option th:each="p : ${priorities}" th:value="${p}" th:text="${p}" th:selected="${priority != null and priority.contains(p)}"></option>
+                                        </select>
                                     </div>
                                     <div class="col-md-3">
                                         <label class="form-label small fw-bold text-muted">Approval Status</label>
-                                        <div class="dropdown">
-                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start bg-white border-secondary-subtle" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" style="font-size: 0.875rem;">
-                                                <span th:if="${status == null or status.isEmpty()}">All Statuses</span>
-                                                <span th:if="${status != null and !status.isEmpty()}" th:text="${status.size() + ' selected'}"></span>
-                                            </button>
-                                            <ul class="dropdown-menu p-2 w-100 shadow-sm" style="max-height: 250px; overflow-y: auto;">
-                                                <li th:each="s : ${requestStatuses}" class="px-2 py-1">
-                                                    <div class="form-check mb-0">
-                                                        <input class="form-check-input" type="checkbox" name="status" th:value="${s}" th:id="${'status_' + s}" th:checked="${status != null and status.contains(s)}">
-                                                        <label class="form-check-label small" th:for="${'status_' + s}" th:text="${s}"></label>
-                                                    </div>
-                                                </li>
-                                            </ul>
-                                        </div>
+                                        <select name="status" class="form-select select2-multiple" multiple="multiple" data-placeholder="All Statuses">
+                                            <option th:each="s : ${requestStatuses}" th:value="${s}" th:text="${s}" th:selected="${status != null and status.contains(s)}"></option>
+                                        </select>
                                     </div>
                                     <div class="col-md-3">
                                         <label class="form-label small fw-bold text-muted">Payment Status</label>
-                                        <div class="dropdown">
-                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start bg-white border-secondary-subtle" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" style="font-size: 0.875rem;">
-                                                <span th:if="${paymentStatus == null or paymentStatus.isEmpty()}">All Payment Statuses</span>
-                                                <span th:if="${paymentStatus != null and !paymentStatus.isEmpty()}" th:text="${paymentStatus.size() + ' selected'}"></span>
-                                            </button>
-                                            <ul class="dropdown-menu p-2 w-100 shadow-sm" style="max-height: 250px; overflow-y: auto;">
-                                                <li th:each="ps : ${paymentStatuses}" class="px-2 py-1">
-                                                    <div class="form-check mb-0">
-                                                        <input class="form-check-input" type="checkbox" name="paymentStatus" th:value="${ps}" th:id="${'paymentStatus_' + ps}" th:checked="${paymentStatus != null and paymentStatus.contains(ps)}">
-                                                        <label class="form-check-label small" th:for="${'paymentStatus_' + ps}" th:text="${ps}"></label>
-                                                    </div>
-                                                </li>
-                                            </ul>
-                                        </div>
+                                        <select name="paymentStatus" class="form-select select2-multiple" multiple="multiple" data-placeholder="All Payment Statuses">
+                                            <option th:each="ps : ${paymentStatuses}" th:value="${ps}" th:text="${ps}" th:selected="${paymentStatus != null and paymentStatus.contains(ps)}"></option>
+                                        </select>
                                     </div>
                                     <div class="col-md-3">
                                         <label class="form-label small fw-bold text-muted">PPW Status</label>
-                                        <div class="dropdown">
-                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start bg-white border-secondary-subtle" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" style="font-size: 0.875rem;">
-                                                <span th:if="${ppwUpdateStatus == null or ppwUpdateStatus.isEmpty()}">All PPW Statuses</span>
-                                                <span th:if="${ppwUpdateStatus != null and !ppwUpdateStatus.isEmpty()}" th:text="${ppwUpdateStatus.size() + ' selected'}"></span>
-                                            </button>
-                                            <ul class="dropdown-menu p-2 w-100 shadow-sm" style="max-height: 250px; overflow-y: auto;">
-                                                <li th:each="ppw : ${ppwStatuses}" class="px-2 py-1">
-                                                    <div class="form-check mb-0">
-                                                        <input class="form-check-input" type="checkbox" name="ppwUpdateStatus" th:value="${ppw}" th:id="${'ppw_' + ppw}" th:checked="${ppwUpdateStatus != null and ppwUpdateStatus.contains(ppw)}">
-                                                        <label class="form-check-label small" th:for="${'ppw_' + ppw}" th:text="${ppw}"></label>
-                                                    </div>
-                                                </li>
-                                            </ul>
-                                        </div>
+                                        <select name="ppwUpdateStatus" class="form-select select2-multiple" multiple="multiple" data-placeholder="All PPW Statuses">
+                                            <option th:each="ppw : ${ppwStatuses}" th:value="${ppw}" th:text="${ppw}" th:selected="${ppwUpdateStatus != null and ppwUpdateStatus.contains(ppw)}"></option>
+                                        </select>
                                     </div>
                                     <div class="col-md-6 d-flex justify-content-end align-items-end gap-2">
                                         <button type="button" class="btn btn-sm btn-outline-dark rounded-1"
