@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import root.cyb.mh.attendancesystem.model.EmployeeDailyWorkStatus;
@@ -83,7 +84,7 @@ public class WorkStatusController {
     }
 
     @PostMapping("/end-work")
-    public String endWork(Principal principal, RedirectAttributes redirectAttributes) {
+    public String endWork(Principal principal, @RequestParam(required = false) Integer completedWorkCount, RedirectAttributes redirectAttributes) {
         String employeeId = principal.getName();
         LocalDate today = LocalDate.now();
         EmployeeDailyWorkStatus status = statusRepository.findByEmployeeIdAndDate(employeeId, today).orElse(null);
@@ -99,6 +100,9 @@ public class WorkStatusController {
             }
             status.setStatus(WorkStatus.ENDED_WORK);
             status.setWorkEndTime(LocalDateTime.now());
+            if (completedWorkCount != null) {
+                status.setCompletedWorkCount(completedWorkCount);
+            }
             statusRepository.save(status);
             redirectAttributes.addFlashAttribute("success",
                     "Work ended. Please punch out at the attendance machine within 30 minutes.");

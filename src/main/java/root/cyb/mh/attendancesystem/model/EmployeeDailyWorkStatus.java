@@ -30,6 +30,9 @@ public class EmployeeDailyWorkStatus {
     @Column(columnDefinition = "integer default 0")
     private int totalBreakSeconds = 0;
 
+    @Column(columnDefinition = "integer default 0")
+    private Integer completedWorkCount = 0;
+
     public int getTotalBreakSeconds() {
         if (this.totalBreakSeconds == 0 && this.totalBreakMinutes > 0) {
             return this.totalBreakMinutes * 60; // Fallback for existing migrated records
