@@ -84,7 +84,7 @@ public class WorkStatusController {
     }
 
     @PostMapping("/end-work")
-    public String endWork(Principal principal, @RequestParam(required = false) Integer completedWorkCount, RedirectAttributes redirectAttributes) {
+    public String endWork(Principal principal, @RequestParam(required = false) Double completedWorkCount, RedirectAttributes redirectAttributes) {
         String employeeId = principal.getName();
         LocalDate today = LocalDate.now();
         EmployeeDailyWorkStatus status = statusRepository.findByEmployeeIdAndDate(employeeId, today).orElse(null);

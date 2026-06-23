@@ -30,8 +30,8 @@ public class EmployeeDailyWorkStatus {
     @Column(columnDefinition = "integer default 0")
     private int totalBreakSeconds = 0;
 
-    @Column(columnDefinition = "integer default 0")
-    private Integer completedWorkCount = 0;
+    @Column(columnDefinition = "numeric(5,2) default 0")
+    private Double completedWorkCount = 0.0;
 
     public int getTotalBreakSeconds() {
         if (this.totalBreakSeconds == 0 && this.totalBreakMinutes > 0) {
