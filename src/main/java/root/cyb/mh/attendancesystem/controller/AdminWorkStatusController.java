@@ -130,6 +130,21 @@ public class AdminWorkStatusController {
         return ResponseEntity.badRequest().body("Employee is not currently working or on break.");
     }
 
+    @PostMapping("/force-restart/{employeeId}")
+    public ResponseEntity<String> forceRestartShift(@PathVariable String employeeId) {
+        LocalDate today = LocalDate.now();
+        EmployeeDailyWorkStatus status = workStatusRepository.findByEmployeeIdAndDate(employeeId, today).orElse(null);
+
+        if (status != null && status.getStatus() == WorkStatus.ENDED_WORK) {
+            status.setStatus(WorkStatus.WORKING);
+            status.setWorkEndTime(null);
+            workStatusRepository.save(status);
+            return ResponseEntity.ok("Successfully restarted shift for employee " + employeeId);
+        }
+
+        return ResponseEntity.badRequest().body("Employee shift is not ended.");
+    }
+
     // DTO for returning flattened Realtime data
     public static class RealtimeWorkStatusDto {
         private String employeeId;

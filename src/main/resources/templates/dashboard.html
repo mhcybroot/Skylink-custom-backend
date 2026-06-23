@@ -1231,6 +1231,14 @@
                                          </button>
                                     </div>
                                 `;
+                            } else if (emp.status === 'ENDED_WORK') {
+                                actionHtml = `
+                                    <div class="border-top px-4 py-2 bg-light d-flex justify-content-end">
+                                         <button onclick="forceRestartShift('${emp.employeeId}', '${emp.name}')" class="btn btn-sm btn-outline-primary shadow-sm rounded-pill fw-bold" style="font-size: 0.75rem;">
+                                            <i class="fas fa-play me-1"></i> Restart Shift
+                                         </button>
+                                    </div>
+                                `;
                             }
 
                             gridCol.innerHTML = `
@@ -1280,6 +1288,16 @@
                         .then(r => {
                             if (r.ok) loadLiveOperations();
                             else alert("Failed to end shift.");
+                        });
+                }
+            };
+
+            window.forceRestartShift = function (empId, empName) {
+                if (confirm(`Are you sure you want to RESTART the shift for ${empName}?`)) {
+                    fetch('/api/admin/work-status/force-restart/' + empId, { method: 'POST' })
+                        .then(r => {
+                            if (r.ok) loadLiveOperations();
+                            else alert("Failed to restart shift.");
                         });
                 }
             };
