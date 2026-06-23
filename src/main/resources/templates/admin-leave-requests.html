@@ -21,6 +21,7 @@
                             <thead class="table-light">
                                 <tr>
                                     <th>Employee</th>
+                                    <th>Requested On</th>
                                     <th>Dates</th>
                                     <th>Reason</th>
                                     <th>Status</th>
@@ -34,6 +35,10 @@
                                         <div class="fw-bold" th:text="${req.employee.name}">John Doe</div>
                                         <small class="text-muted"
                                             th:text="${req.employee.department != null ? req.employee.department.name : 'No Dept'}">IT</small>
+                                    </td>
+                                    <td>
+                                        <div class="small fw-medium" th:text="${#temporals.format(req.createdAt, 'MMM dd, yyyy')}">Jan 01, 2024</div>
+                                        <div class="small text-muted" th:text="${#temporals.format(req.createdAt, 'hh:mm a')}">10:00 AM</div>
                                     </td>
                                     <td>
                                         <div th:text="${req.leaveType}" class="badge bg-secondary mb-1">VACATION</div>
@@ -57,7 +62,7 @@
                                     </td>
                                     <td class="text-end">
                                         <button class="btn btn-sm btn-outline-secondary me-1"
-                                            th:onclick="viewRequest([[${req.employee.name}]], [[${req.employee.department != null ? req.employee.department.name : 'No Dept'}]], [[${req.leaveType}]], [[${req.startDate} + ' to ' + ${req.endDate}]], [[${req.reason}]], [[${req.status}]])"
+                                            th:onclick="viewRequest([[${req.employee.name}]], [[${req.employee.department != null ? req.employee.department.name : 'No Dept'}]], [[${#temporals.format(req.createdAt, 'MMM dd, yyyy hh:mm a')}]], [[${req.leaveType}]], [[${req.startDate} + ' to ' + ${req.endDate}]], [[${req.reason}]], [[${req.status}]])"
                                             title="View Details">
                                             <i class="fas fa-eye"></i>
                                         </button>
@@ -141,6 +146,9 @@
                             <p class="text-muted small mb-3" id="viewDept">Department</p>
 
                             <dl class="row">
+                                <dt class="col-sm-4">Requested On:</dt>
+                                <dd class="col-sm-8" id="viewRequestedOn">Jan 01, 2024</dd>
+
                                 <dt class="col-sm-4">Leave Type:</dt>
                                 <dd class="col-sm-8"><span class="badge bg-secondary" id="viewType">TYPE</span></dd>
 
@@ -181,9 +189,10 @@
                 modalMessage.textContent = `Are you sure you want to mark this request as ${action}?`
             })
 
-            function viewRequest(name, dept, type, dates, reason, status) {
+            function viewRequest(name, dept, requestedOn, type, dates, reason, status) {
                 document.getElementById('viewName').textContent = name;
                 document.getElementById('viewDept').textContent = dept;
+                document.getElementById('viewRequestedOn').textContent = requestedOn;
                 document.getElementById('viewType').textContent = type;
                 document.getElementById('viewDates').textContent = dates;
                 document.getElementById('viewReason').textContent = reason;
