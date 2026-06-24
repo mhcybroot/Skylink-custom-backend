@@ -7,23 +7,13 @@
     <div th:replace="~{layout :: layout(~{::section}, ~{::script}, 'admin-analyst-controller')}">
         <section>
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1 class="h3 mb-0 text-gray-800">Processing Sheet: Analyst Controller</h1>
-                <div class="d-flex align-items-center">
-                    <a href="/processing-sheet/delete-history" class="btn btn-outline-danger btn-sm me-3"><i class="fas fa-trash-alt me-1"></i> Delete History</a>
-                    <form action="/processing-sheet/import/upload" method="post" enctype="multipart/form-data" class="d-flex align-items-center">
-                        <input type="file" name="file" class="form-control form-control-sm me-2" accept=".csv" required>
-                        <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-upload me-1"></i> Import Bulk WO</button>
-                    </form>
-                </div>
+                <h1 class="h3 mb-0 text-gray-800">Processing Sheet: Delete History</h1>
+                <a href="/processing-sheet/analyst-controller" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i> Back to Analyst Controller</a>
             </div>
 
             <div class="card shadow mb-4">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 font-weight-bold text-primary">Work Orders by Entry Date</h6>
-                    <form method="get" action="/processing-sheet/analyst-controller" class="d-flex align-items-center">
-                        <label class="me-2 mb-0 fw-bold text-gray-800">Entry Date:</label>
-                        <input type="date" name="date" class="form-control form-control-sm" th:value="${currentDate}" onchange="this.form.submit()">
-                    </form>
+                    <h6 class="m-0 font-weight-bold text-danger">Deleted Work Orders</h6>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -31,13 +21,13 @@
                             <thead>
                                 <tr>
                                     <th>WO #</th>
-                                    <th>Date Due</th>
+                                    <th>Deleted At</th>
                                     <th>Client Code</th>
                                     <th>Category</th>
                                     <th>Address</th>
                                     <th>Photos</th>
                                     <th>Analyst</th>
-                                    <th>Status</th>
+                                    <th>Deleted By</th>
                                     <th>Lifeline</th>
                                     <th>Late Status</th>
                                     <th>BA FROM (W/O)</th>
@@ -47,20 +37,19 @@
                                     <th>CLIENT INVOICE</th>
                                     <th>CREW INVOICE</th>
                                     <th>NOTES</th>
-                                    <th>ACTIONS</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr th:each="wo : ${workOrders}" th:id="'wo-' + ${wo.woNumber}">
                                     <td class="wo-hover-cell" th:data-wo="${wo.woNumber}" th:text="${wo.woNumber}"></td>
-                                    <td th:text="${wo.dateDue}"></td>
+                                    <td th:text="${#temporals.format(wo.deletedAt, 'yyyy-MM-dd HH:mm')}"></td>
                                     <td th:text="${wo.clientCode}"></td>
                                     <td th:text="${wo.category}"></td>
                                     <td class="wo-hover-cell address-hover" th:data-address="${wo.address}" th:text="${wo.address}"></td>
                                     <td th:text="${wo.photoCount}"></td>
                                     <td th:text="${wo.analyst}"></td>
                                     <td>
-                                        <span class="badge bg-secondary status-badge" th:text="${wo.status}"></span>
+                                        <span class="badge bg-danger status-badge" th:text="${wo.deletedByName}"></span>
                                     </td>
                                     <td>
                                         <a th:href="@{/processing-sheet/lifeline/{wo}(wo=${wo.woNumber})}" class="btn btn-sm btn-outline-primary lifeline-btn" th:data-wo="${wo.woNumber}">
@@ -75,14 +64,9 @@
                                     <td th:text="${wo.clientInvoice != null ? '$' + wo.clientInvoice : ''}"></td>
                                     <td th:text="${wo.crewInvoice != null ? '$' + wo.crewInvoice : ''}"></td>
                                     <td th:text="${wo.notes}"></td>
-                                    <td class="text-nowrap">
-                                        <button class="btn btn-sm btn-outline-danger delete-wo-btn" th:data-wo="${wo.woNumber}">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </td>
                                 </tr>
                                 <tr th:if="${#lists.isEmpty(workOrders)}">
-                                    <td colspan="18" class="text-center text-muted">No Work Orders found for this date.</td>
+                                    <td colspan="17" class="text-center text-muted">No deleted Work Orders found.</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -281,16 +265,11 @@
                     });
                 });
                 
-                // Hide popovers if clicking anywhere outside
+                // Hide popover if clicking anywhere outside
                 document.addEventListener('click', function(e) {
                     if (activePopover && !e.target.closest('.duplicate-popover') && !e.target.closest('.wo-hover-cell')) {
                         activePopover.classList.remove('show');
-                        setTimeout(() => { if (activePopover) activePopover.remove(); }, 300);
-                    }
-                    const activeLifeline = document.querySelector('.lifeline-popover.show');
-                    if (activeLifeline && !e.target.closest('.lifeline-popover') && !e.target.closest('.lifeline-btn')) {
-                        activeLifeline.classList.remove('show');
-                        setTimeout(() => activeLifeline.remove(), 300);
+                        setTimeout(() => activePopover.remove(), 300);
                     }
                 });
                 
@@ -309,13 +288,10 @@
                     }, 100);
                 }
                 
-                // Handle Delete button clicks via Event Delegation
-                document.addEventListener('click', function(e) {
-                    console.log('Document clicked! Target:', e.target);
-                    const btn = e.target.closest('.delete-wo-btn');
-                    console.log('Button matched?', btn);
-                    if (btn) {
-                        const woNumber = btn.getAttribute('data-wo');
+                // Handle Delete button clicks
+                document.querySelectorAll('.delete-wo-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const woNumber = this.getAttribute('data-wo');
                         if (confirm('Are you sure you want to delete Work Order ' + woNumber + '?')) {
                             fetch('/processing-sheet/api/delete-wo', {
                                 method: 'POST',
@@ -338,7 +314,7 @@
                                 alert('Error deleting work order. Check console.');
                             });
                         }
-                    }
+                    });
                 });
             });
         </script>

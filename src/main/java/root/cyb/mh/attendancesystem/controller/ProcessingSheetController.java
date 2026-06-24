@@ -15,14 +15,17 @@ import root.cyb.mh.attendancesystem.dto.ProcessingWorkOrderImportForm;
 import root.cyb.mh.attendancesystem.model.Employee;
 import root.cyb.mh.attendancesystem.model.ProcessingWorkOrder;
 import root.cyb.mh.attendancesystem.model.ProcessingWorkOrderHistory;
+import root.cyb.mh.attendancesystem.model.DeletedProcessingWorkOrder;
 import root.cyb.mh.attendancesystem.repository.EmployeeRepository;
 import root.cyb.mh.attendancesystem.repository.ProcessingWorkOrderRepository;
 import root.cyb.mh.attendancesystem.repository.ProcessingWorkOrderHistoryRepository;
+import root.cyb.mh.attendancesystem.repository.DeletedProcessingWorkOrderRepository;
 
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.security.Principal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
@@ -37,12 +40,14 @@ public class ProcessingSheetController {
     private final ProcessingWorkOrderRepository processingWorkOrderRepository;
     private final EmployeeRepository employeeRepository;
     private final ProcessingWorkOrderHistoryRepository historyRepository;
+    private final DeletedProcessingWorkOrderRepository deletedProcessingWorkOrderRepository;
 
     @Autowired
-    public ProcessingSheetController(ProcessingWorkOrderRepository processingWorkOrderRepository, EmployeeRepository employeeRepository, ProcessingWorkOrderHistoryRepository historyRepository) {
+    public ProcessingSheetController(ProcessingWorkOrderRepository processingWorkOrderRepository, EmployeeRepository employeeRepository, ProcessingWorkOrderHistoryRepository historyRepository, DeletedProcessingWorkOrderRepository deletedProcessingWorkOrderRepository) {
         this.processingWorkOrderRepository = processingWorkOrderRepository;
         this.employeeRepository = employeeRepository;
         this.historyRepository = historyRepository;
+        this.deletedProcessingWorkOrderRepository = deletedProcessingWorkOrderRepository;
     }
 
     @ModelAttribute("importForm")
@@ -216,9 +221,12 @@ public class ProcessingSheetController {
 
     @PostMapping("/import/save")
     public String saveImport(@ModelAttribute("importForm") ProcessingWorkOrderImportForm importForm, SessionStatus sessionStatus, Principal principal) {
-        String currentUserId = "";
+        String currentUserId = principal.getName();
         String currentUserName = principal.getName();
         Optional<Employee> currentEmp = employeeRepository.findByUsername(principal.getName());
+        if (!currentEmp.isPresent()) {
+            currentEmp = employeeRepository.findById(principal.getName());
+        }
         if (currentEmp.isPresent()) {
             currentUserId = currentEmp.get().getId();
             currentUserName = currentEmp.get().getName();
@@ -460,11 +468,118 @@ public class ProcessingSheetController {
         return ResponseEntity.ok(Map.of("success", true, "message", "Updated successfully"));
     }
 
+    @PostMapping(value = "/api/delete-wo", produces = "application/json")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> deleteWorkOrder(@RequestBody Map<String, String> payload, Principal principal, org.springframework.security.core.Authentication auth) {
+        String woNumber = payload.get("woNumber");
+        if (woNumber == null || woNumber.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Missing WO Number"));
+        }
+
+        List<ProcessingWorkOrder> existingWOs = processingWorkOrderRepository.findByWoNumber(woNumber);
+        if (existingWOs.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Work Order not found"));
+        }
+        ProcessingWorkOrder wo = existingWOs.get(0);
+
+        String currentUserName = principal.getName();
+        String currentUserId = "";
+        Optional<Employee> emp = employeeRepository.findByUsername(currentUserName);
+        boolean isAdmin = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equalsIgnoreCase("ROLE_ADMIN"));
+        boolean isAnalystController = false;
+
+        if (emp.isPresent()) {
+            Employee currentEmp = emp.get();
+            currentUserName = currentEmp.getName();
+            currentUserId = currentEmp.getId();
+            isAnalystController = currentEmp.isAnalystController();
+            if ("ADMIN".equalsIgnoreCase(currentEmp.getRole()) || "ROLE_ADMIN".equalsIgnoreCase(currentEmp.getRole())) {
+                isAdmin = true;
+            }
+        } else {
+            // Fallback: check if the user is an Employee via ID
+            emp = employeeRepository.findById(currentUserName);
+            if (emp.isPresent()) {
+                Employee currentEmp = emp.get();
+                currentUserName = currentEmp.getName();
+                currentUserId = currentEmp.getId();
+                isAnalystController = currentEmp.isAnalystController();
+                if ("ADMIN".equalsIgnoreCase(currentEmp.getRole()) || "ROLE_ADMIN".equalsIgnoreCase(currentEmp.getRole())) {
+                    isAdmin = true;
+                }
+            } else {
+                currentUserId = principal.getName(); // Fallback to principal name
+            }
+        }
+
+        if (!isAdmin) {
+            if (!isAnalystController || !currentUserId.equals(wo.getCreatedByEmployeeId())) {
+                return ResponseEntity.status(403).body(Map.of("success", false, "message", "You do not have permission to delete this work order. (Created By: " + wo.getCreatedByEmployeeId() + ", Your ID: " + currentUserId + ", Admin: " + isAdmin + ")"));
+            }
+        }
+
+        DeletedProcessingWorkOrder deletedWo = new DeletedProcessingWorkOrder();
+        deletedWo.setOriginalId(wo.getId());
+        deletedWo.setWoNumber(wo.getWoNumber());
+        deletedWo.setWoType(wo.getWoType());
+        deletedWo.setClientCode(wo.getClientCode());
+        deletedWo.setAddress(wo.getAddress());
+        deletedWo.setPhotoCount(wo.getPhotoCount());
+        deletedWo.setWorkDate(wo.getWorkDate());
+        deletedWo.setCategory(wo.getCategory());
+        deletedWo.setLateStatus(wo.getLateStatus());
+        deletedWo.setAnalyst(wo.getAnalyst());
+        deletedWo.setStatus(wo.getStatus());
+        deletedWo.setDateDue(wo.getDateDue());
+        deletedWo.setEntryDate(wo.getEntryDate());
+        deletedWo.setNotes(wo.getNotes());
+        deletedWo.setBaFromWo(wo.getBaFromWo());
+        deletedWo.setBaByAnalyst(wo.getBaByAnalyst());
+        deletedWo.setBidCount(wo.getBidCount());
+        deletedWo.setBidAmount(wo.getBidAmount());
+        deletedWo.setClientInvoice(wo.getClientInvoice());
+        deletedWo.setCrewInvoice(wo.getCrewInvoice());
+        deletedWo.setAssignedAnalystEmployeeId(wo.getAssignedAnalystEmployeeId());
+        deletedWo.setCreatedAt(wo.getCreatedAt());
+        deletedWo.setUpdatedAt(wo.getUpdatedAt());
+        deletedWo.setCreatedByEmployeeId(wo.getCreatedByEmployeeId());
+        deletedWo.setLastUpdatedByEmployeeId(wo.getLastUpdatedByEmployeeId());
+        
+        deletedWo.setDeletedAt(LocalDateTime.now());
+        deletedWo.setDeletedByEmployeeId(currentUserId);
+        deletedWo.setDeletedByName(currentUserName);
+
+        deletedProcessingWorkOrderRepository.save(deletedWo);
+        
+        historyRepository.save(new ProcessingWorkOrderHistory(
+            wo.getId(), wo.getWoNumber(), "DELETED", null, null, currentUserName
+        ));
+
+        processingWorkOrderRepository.delete(wo);
+
+        return ResponseEntity.ok(Map.of("success", true, "message", "Work order deleted successfully."));
+    }
+
+    @GetMapping("/delete-history")
+    public String deleteHistoryDashboard(Model model) {
+        List<DeletedProcessingWorkOrder> deletedWorkOrders = deletedProcessingWorkOrderRepository.findAllByOrderByDeletedAtDesc();
+        model.addAttribute("workOrders", deletedWorkOrders);
+        return "admin-analyst-delete-history";
+    }
+
     @GetMapping("/api/lifeline")
     @ResponseBody
     public ResponseEntity<List<ProcessingWorkOrderHistory>> getLifeline(@RequestParam String woNumber) {
         List<ProcessingWorkOrderHistory> history = historyRepository.findByWoNumberOrderByChangedAtDesc(woNumber);
         return ResponseEntity.ok(history);
+    }
+
+    @GetMapping("/lifeline/{woNumber}")
+    public String getLifelinePage(@PathVariable String woNumber, Model model) {
+        List<ProcessingWorkOrderHistory> history = historyRepository.findByWoNumberOrderByChangedAtDesc(woNumber);
+        model.addAttribute("woNumber", woNumber);
+        model.addAttribute("history", history);
+        return "admin-analyst-lifeline";
     }
 
     @GetMapping("/api/address-duplicates")

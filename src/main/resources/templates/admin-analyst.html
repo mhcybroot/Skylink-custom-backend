@@ -53,9 +53,9 @@
                                         <span class="badge bg-secondary status-badge" th:text="${wo.status}"></span>
                                     </td>
                                     <td>
-                                        <button class="btn btn-sm btn-outline-primary lifeline-btn" th:data-wo="${wo.woNumber}">
+                                        <a th:href="@{/processing-sheet/lifeline/{wo}(wo=${wo.woNumber})}" class="btn btn-sm btn-outline-primary lifeline-btn" th:data-wo="${wo.woNumber}">
                                             <i class="fas fa-history"></i>
-                                        </button>
+                                        </a>
                                     </td>
                                     <td th:text="${wo.lateStatus}"></td>
                                     <td class="editable-cell" data-field="baFromWo" th:text="${wo.baFromWo}"></td>
