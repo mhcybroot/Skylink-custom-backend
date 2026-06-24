@@ -80,6 +80,8 @@ public class EmployeeController {
                 existing.setRole(employee.getRole());
                 existing.setEmail(employee.getEmail());
                 existing.setGuest(employee.isGuest()); // Use correct getter/setter
+                existing.setAnalyst(employee.isAnalyst());
+                existing.setAnalystController(employee.isAnalystController());
                 existing.setAnnualLeaveQuota(employee.getAnnualLeaveQuota()); // Update Quota
                 existing.setJoiningDate(employee.getJoiningDate()); // Update Joining Date
                 existing.setJoiningDate(employee.getJoiningDate()); // Update Joining Date

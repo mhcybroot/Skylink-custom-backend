@@ -13,32 +13,36 @@
 
 /* Base Body Styles */
 body {
-    background: #f0f2f5;
-    background-image:
-        radial-gradient(at 0% 0%, hsla(253, 16%, 7%, 0) 0, hsla(253, 16%, 7%, 0) 50%),
-        radial-gradient(at 50% 0%, hsla(225, 39%, 30%, 0) 0, hsla(225, 39%, 30%, 0) 50%),
-        radial-gradient(at 100% 0%, hsla(339, 49%, 30%, 0) 0, hsla(339, 49%, 30%, 0) 50%);
+    background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+    background-size: 400% 400%;
+    animation: gradientBG 15s ease infinite;
     background-attachment: fixed;
     font-family: var(--font-main);
-    color: #2d3748;
+    color: var(--color-text-primary);
+}
+
+@keyframes gradientBG {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
 }
 
 /* Glassmorphism Cards */
 .card {
-    background: var(--glass-bg);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
     border-radius: var(--border-radius-card);
-    box-shadow: var(--shadow-soft);
+    box-shadow: 0 10px 30px 0 rgba(31, 38, 135, 0.1);
     transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
     overflow: hidden;
     /* For inner highlights */
 }
 
 .card:hover {
-    transform: translateY(-5px);
-    box-shadow: var(--shadow-hover);
+    transform: translateY(-4px) scale(1.01);
+    box-shadow: 0 15px 35px 0 rgba(31, 38, 135, 0.15);
 }
 
 .card-header {
@@ -201,33 +205,61 @@ body.sb-sidenav-toggled #sidebar-wrapper .logout-btn {
 
 /* Modern Buttons */
 .btn-primary {
-    background: var(--primary-gradient);
+    background: var(--gradient-primary);
     border: none;
     border-radius: var(--border-radius-btn);
-    box-shadow: 0 4px 15px rgba(118, 75, 162, 0.3);
-    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
+    transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
     font-weight: 500;
     padding: 0.5rem 1.5rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-primary:after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.4s ease, height 0.4s ease;
+}
+
+.btn-primary:active:after {
+    width: 200px;
+    height: 200px;
+    opacity: 0;
 }
 
 .btn-primary:hover {
     filter: brightness(110%);
-    transform: scale(1.05);
-    box-shadow: 0 6px 20px rgba(118, 75, 162, 0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(79, 70, 229, 0.45);
 }
 
 .btn-success {
-    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    background: var(--gradient-success);
     border: none;
-    color: #1a472a;
-    /* Darker text for contrast on bright green */
+    color: #ffffff;
     border-radius: var(--border-radius-btn);
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
 }
 
 .btn-success:hover {
-    transform: scale(1.05);
-    box-shadow: 0 6px 20px rgba(67, 233, 123, 0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+    color: #ffffff;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--color-primary-light);
+    box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.25);
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 
 /* Animations */
@@ -244,8 +276,7 @@ body.sb-sidenav-toggled #sidebar-wrapper .logout-btn {
 }
 
 .card {
-    animation: fadeInUp 0.6s ease-out;
-    /* Animate cards on load */
+    animation: fadeInUp 0.7s cubic-bezier(0.165, 0.84, 0.44, 1);
     animation-fill-mode: both;
 }
 
@@ -270,7 +301,6 @@ body.sb-sidenav-toggled #sidebar-wrapper .logout-btn {
 .table {
     border-collapse: separate;
     border-spacing: 0 8px;
-    /* Gap between rows */
 }
 
 .table thead th {
@@ -278,25 +308,122 @@ body.sb-sidenav-toggled #sidebar-wrapper .logout-btn {
     text-transform: uppercase;
     font-size: 0.75rem;
     letter-spacing: 1px;
-    color: #a0aec0;
-    padding-bottom: 15px;
+    color: var(--color-text-muted);
+    padding-bottom: 12px;
 }
 
 .table tbody tr {
-    background: #fff;
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
     border-radius: 8px;
-    /* Doesn't work directly on TR, needs TD styling */
-    transition: transform 0.2s ease;
+    transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+    animation: fadeInUp 0.5s cubic-bezier(0.165, 0.84, 0.44, 1) both;
 }
 
+.table tbody tr:nth-child(1) { animation-delay: 0.1s; }
+.table tbody tr:nth-child(2) { animation-delay: 0.15s; }
+.table tbody tr:nth-child(3) { animation-delay: 0.2s; }
+.table tbody tr:nth-child(4) { animation-delay: 0.25s; }
+.table tbody tr:nth-child(5) { animation-delay: 0.3s; }
+.table tbody tr:nth-child(6) { animation-delay: 0.35s; }
+
 .table tbody tr:hover {
-    transform: scale(1.01);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-    background: #fff;
-    /* Ensure it stays white/distinct */
+    transform: translateY(-2px) scale(1.005);
+    box-shadow: 0 8px 20px rgba(31, 38, 135, 0.1);
+    background: rgba(255, 255, 255, 0.9);
     z-index: 10;
     position: relative;
+}
+
+/* Duplicate Hover UX */
+.wo-hover-cell {
+    position: relative;
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--color-primary-light);
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-underline-offset: 4px;
+    transition: color 0.2s ease;
+}
+
+.wo-hover-cell:hover {
+    color: var(--color-primary-dark);
+}
+
+.duplicate-popover {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    border-radius: 12px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+    padding: 12px;
+    min-width: 250px;
+    z-index: 1050;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.duplicate-popover.show {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(-50%) translateY(5px);
+}
+
+.duplicate-popover-header {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--color-text-muted);
+    margin-bottom: 8px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    padding-bottom: 4px;
+}
+
+.duplicate-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.duplicate-list li {
+    padding: 6px 8px;
+    border-radius: 6px;
+    transition: background 0.2s ease;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.duplicate-list li:hover {
+    background: rgba(0, 0, 0, 0.04);
+}
+
+.duplicate-list a {
+    text-decoration: none;
+    color: var(--color-primary);
+    font-weight: 500;
+}
+
+.duplicate-list a:hover {
+    color: var(--color-primary-dark);
+    text-decoration: underline;
+}
+
+.duplicate-status {
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: var(--color-surface);
+    color: var(--color-text-secondary);
 }
 
 .table td {

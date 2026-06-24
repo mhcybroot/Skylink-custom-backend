@@ -45,6 +45,12 @@ public class Employee {
     @jakarta.persistence.Column(columnDefinition = "boolean default false")
     private boolean isGuest = false;
 
+    @jakarta.persistence.Column(columnDefinition = "boolean default false")
+    private boolean isAnalyst = false;
+
+    @jakarta.persistence.Column(columnDefinition = "boolean default false")
+    private boolean isAnalystController = false;
+
     private java.time.LocalDate joiningDate;
 
     private String avatarPath;

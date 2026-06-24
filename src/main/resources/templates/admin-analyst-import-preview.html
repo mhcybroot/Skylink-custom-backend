@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Import Preview</title>
+</head>
+<body>
+    <div th:replace="~{layout :: layout(~{::section}, ~{::script}, 'admin-analyst-controller')}">
+        <section>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0 text-gray-800">Import Bulk WO: Step 1 (Preview & Filter)</h1>
+            </div>
+
+            <form action="/processing-sheet/import/preview" method="post" th:object="${importForm}">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">Select Categories to Skip</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3 mb-2" th:each="cat : ${categories}">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" th:id="'cat_' + ${cat}" th:name="skippedCategories" th:value="${cat}" th:field="*{skippedCategories}">
+                                    <label class="form-check-label" th:for="'cat_' + ${cat}" th:text="${cat}"></label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-warning">Duplicate Resolution</h6>
+                        <small class="text-muted">The following Work Orders already exist in the database. Choose an action for each.</small>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Row #</th>
+                                        <th>WO #</th>
+                                        <th>Client</th>
+                                        <th>Category</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="row, stat : *{rows}" th:if="${row.exists}">
+                                        <td th:text="${stat.count}"></td>
+                                        <td th:text="${row.woNumber}"></td>
+                                        <td th:text="${row.clientCode}"></td>
+                                        <td th:text="${row.category}"></td>
+                                        <td>
+                                            <!-- Hidden fields to keep the rest of the DTO intact in session -->
+                                            <input type="hidden" th:field="*{rows[__${stat.index}__].woNumber}" />
+                                            <input type="hidden" th:field="*{rows[__${stat.index}__].status}" />
+                                            <input type="hidden" th:field="*{rows[__${stat.index}__].dateDue}" />
+                                            <input type="hidden" th:field="*{rows[__${stat.index}__].clientCode}" />
+                                            <input type="hidden" th:field="*{rows[__${stat.index}__].category}" />
+                                            <input type="hidden" th:field="*{rows[__${stat.index}__].address}" />
+                                            <input type="hidden" th:field="*{rows[__${stat.index}__].city}" />
+                                            <input type="hidden" th:field="*{rows[__${stat.index}__].state}" />
+                                            <input type="hidden" th:field="*{rows[__${stat.index}__].zip}" />
+                                            <input type="hidden" th:field="*{rows[__${stat.index}__].contractor}" />
+                                            <input type="hidden" th:field="*{rows[__${stat.index}__].admin}" />
+                                            <input type="hidden" th:field="*{rows[__${stat.index}__].icons}" />
+                                            <input type="hidden" th:field="*{rows[__${stat.index}__].workType}" />
+                                            <input type="hidden" th:field="*{rows[__${stat.index}__].photoCount}" />
+                                            <input type="hidden" th:field="*{rows[__${stat.index}__].exists}" />
+                                            
+                                            <select th:field="*{rows[__${stat.index}__].resolution}" class="form-select form-select-sm">
+                                                <option value="SKIP">Skip (Do not import)</option>
+                                                <option value="UPDATE">Update Existing</option>
+                                                <option value="DUPLICATE">Import as Duplicate (-DUP)</option>
+                                            </select>
+                                        </td>
+                                    </tr>
+                                    <tr th:each="row, stat : *{rows}" th:unless="${row.exists}">
+                                            <!-- Keep non-duplicate fields in form so they don't get lost -->
+                                            <input type="hidden" th:field="*{rows[__${stat.index}__].woNumber}" />
+                                            <input type="hidden" th:field="*{rows[__${stat.index}__].status}" />
+                                            <input type="hidden" th:field="*{rows[__${stat.index}__].dateDue}" />
+                                            <input type="hidden" th:field="*{rows[__${stat.index}__].clientCode}" />
+                                            <input type="hidden" th:field="*{rows[__${stat.index}__].category}" />
+                                            <input type="hidden" th:field="*{rows[__${stat.index}__].address}" />
+                                            <input type="hidden" th:field="*{rows[__${stat.index}__].city}" />
+                                            <input type="hidden" th:field="*{rows[__${stat.index}__].state}" />
+                                            <input type="hidden" th:field="*{rows[__${stat.index}__].zip}" />
+                                            <input type="hidden" th:field="*{rows[__${stat.index}__].contractor}" />
+                                            <input type="hidden" th:field="*{rows[__${stat.index}__].admin}" />
+                                            <input type="hidden" th:field="*{rows[__${stat.index}__].icons}" />
+                                            <input type="hidden" th:field="*{rows[__${stat.index}__].workType}" />
+                                            <input type="hidden" th:field="*{rows[__${stat.index}__].photoCount}" />
+                                            <input type="hidden" th:field="*{rows[__${stat.index}__].exists}" />
+                                            <input type="hidden" th:field="*{rows[__${stat.index}__].resolution}" />
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-footer text-end">
+                        <button type="submit" class="btn btn-primary">Next: Assign Analysts <i class="fas fa-arrow-right ms-1"></i></button>
+                    </div>
+                </div>
+            </form>
+        </section>
+        <script>
+        </script>
+    </div>
+</body>
+</html>

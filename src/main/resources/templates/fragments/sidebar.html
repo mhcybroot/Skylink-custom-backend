@@ -115,6 +115,29 @@
                 </div>
             </div>
 
+            <!-- Processing Sheets -->
+            <div th:if="${#authorization.expression('hasAnyRole(''ADMIN'', ''HR'')') or (loggedEmployee != null and (loggedEmployee.isAnalyst or loggedEmployee.isAnalystController))}" class="nav-item-wrapper mb-1">
+                <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center rounded-3 category-link"
+                    data-bs-toggle="collapse" href="#collapseProcessing" role="button" aria-expanded="false"
+                    th:classappend="${#lists.contains({'admin-analyst', 'admin-analyst-controller'}, activeLink)} ? 'category-active'">
+                    <div><i class="fas fa-file-invoice menu-icon"></i> <span class="menu-text">Processing Sheets</span></div>
+                    <i class="fas fa-chevron-down accordion-icon"></i>
+                </a>
+                <div class="collapse" id="collapseProcessing" data-bs-parent="#sidebarAccordion"
+                    th:classappend="${#lists.contains({'admin-analyst', 'admin-analyst-controller'}, activeLink)} ? 'show'">
+                    <ul class="nav flex-column submenu-list ps-4 pt-1 pb-2">
+                        <li th:if="${#authorization.expression('hasAnyRole(''ADMIN'', ''HR'')') or (loggedEmployee != null and loggedEmployee.isAnalyst)}" class="nav-item">
+                            <a href="/processing-sheet/analyst" class="nav-link py-1"
+                                th:classappend="${activeLink == 'admin-analyst'} ? 'active'">Analyst</a>
+                        </li>
+                        <li th:if="${#authorization.expression('hasAnyRole(''ADMIN'', ''HR'')') or (loggedEmployee != null and loggedEmployee.isAnalystController)}" class="nav-item">
+                            <a href="/processing-sheet/analyst-controller" class="nav-link py-1"
+                                th:classappend="${activeLink == 'admin-analyst-controller'} ? 'active'">Analyst Controller</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
             <!-- Employee Specific Routes -->
             <div sec:authorize="hasRole('EMPLOYEE')">
                 <div class="nav-item-wrapper mb-1">

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Review & Confirm Import</title>
+</head>
+<body>
+    <div th:replace="~{layout :: layout(~{::section}, ~{::script}, 'admin-analyst-controller')}">
+        <section>
+            <!-- Page Title -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4 class="mb-0 text-dark fw-bold">Import Bulk WO: Step 4 (Review & Confirm)</h4>
+            </div>
+
+            <form th:action="@{|/processing-sheet/import/save|}" th:object="${importForm}" method="post">
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 text-primary fw-bold">Final Confirmation</h6>
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-check-circle me-1"></i> Confirm and Import
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info border-0 shadow-sm rounded-3 mb-4">
+                            <i class="bi bi-info-circle-fill me-2"></i> Please review the final Work Orders before they are saved to the database. Skipped categories and skipped duplicates have been excluded.
+                        </div>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-sm table-hover align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Row #</th>
+                                        <th>WO #</th>
+                                        <th>Client</th>
+                                        <th>Category</th>
+                                        <th>Address</th>
+                                        <th>Date Due</th>
+                                        <th>Status</th>
+                                        <th>Analyst</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="wo, iterStat : ${previewWOs}">
+                                        <td th:text="${iterStat.count}"></td>
+                                        <td th:text="${wo.woNumber}" class="fw-bold text-primary"></td>
+                                        <td th:text="${wo.clientCode}"></td>
+                                        <td th:text="${wo.category}"></td>
+                                        <td th:text="${wo.address}"></td>
+                                        <td th:text="${wo.dateDue}"></td>
+                                        <td><span class="badge bg-secondary" th:text="${wo.status}"></span></td>
+                                        <td th:text="${wo.analyst ?: 'Unassigned'}"></td>
+                                    </tr>
+                                    <tr th:if="${#lists.isEmpty(previewWOs)}">
+                                        <td colspan="8" class="text-center text-muted py-4">No Work Orders to import. Please go back.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="mt-4 text-end">
+                            <a href="/processing-sheet/import/assign" class="btn btn-outline-secondary me-2">Back</a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check-circle me-1"></i> Confirm and Import
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </section>
+        <script>
+            // No custom scripts needed for confirmation page
+        </script>
+    </div>
+</body>
+</html>

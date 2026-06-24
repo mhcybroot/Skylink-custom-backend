@@ -20,6 +20,8 @@ public interface EmployeeRepository extends JpaRepository<Employee, String> {
 
     java.util.Optional<Employee> findByUsername(String username);
 
+    java.util.List<Employee> findByIsAnalystTrue();
+
     @Query("SELECT e FROM Employee e LEFT JOIN e.department d WHERE " +
             "LOWER(e.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(e.email) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +

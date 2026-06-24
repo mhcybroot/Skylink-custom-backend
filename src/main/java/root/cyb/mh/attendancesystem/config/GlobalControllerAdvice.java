@@ -8,7 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import root.cyb.mh.attendancesystem.repository.EmployeeRepository;
-
+import root.cyb.mh.attendancesystem.model.Employee;
+import java.util.Optional;
 @ControllerAdvice
 public class GlobalControllerAdvice {
 
@@ -33,5 +34,17 @@ public class GlobalControllerAdvice {
         String currentUserId = authentication.getName();
         // Check if anyone reports to this user (Primary or Assistant)
         return employeeRepository.existsByReportsTo_IdOrReportsToAssistant_Id(currentUserId, currentUserId);
+    }
+
+    @ModelAttribute("loggedEmployee")
+    public Employee loggedEmployee() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()
+                || authentication.getPrincipal().equals("anonymousUser")) {
+            return null;
+        }
+        String currentUserId = authentication.getName();
+        Optional<Employee> emp = employeeRepository.findById(currentUserId);
+        return emp.orElse(null);
     }
 }
