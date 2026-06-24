@@ -9,12 +9,15 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.bind.support.SessionStatus;
+import org.springframework.http.ResponseEntity;
 import root.cyb.mh.attendancesystem.dto.ProcessingWorkOrderImportDTO;
 import root.cyb.mh.attendancesystem.dto.ProcessingWorkOrderImportForm;
 import root.cyb.mh.attendancesystem.model.Employee;
 import root.cyb.mh.attendancesystem.model.ProcessingWorkOrder;
+import root.cyb.mh.attendancesystem.model.ProcessingWorkOrderHistory;
 import root.cyb.mh.attendancesystem.repository.EmployeeRepository;
 import root.cyb.mh.attendancesystem.repository.ProcessingWorkOrderRepository;
+import root.cyb.mh.attendancesystem.repository.ProcessingWorkOrderHistoryRepository;
 
 import java.io.InputStreamReader;
 import java.io.Reader;
@@ -31,11 +34,16 @@ import java.util.stream.Collectors;
 @SessionAttributes("importForm")
 public class ProcessingSheetController {
 
-    @Autowired
-    private ProcessingWorkOrderRepository processingWorkOrderRepository;
+    private final ProcessingWorkOrderRepository processingWorkOrderRepository;
+    private final EmployeeRepository employeeRepository;
+    private final ProcessingWorkOrderHistoryRepository historyRepository;
 
     @Autowired
-    private EmployeeRepository employeeRepository;
+    public ProcessingSheetController(ProcessingWorkOrderRepository processingWorkOrderRepository, EmployeeRepository employeeRepository, ProcessingWorkOrderHistoryRepository historyRepository) {
+        this.processingWorkOrderRepository = processingWorkOrderRepository;
+        this.employeeRepository = employeeRepository;
+        this.historyRepository = historyRepository;
+    }
 
     @ModelAttribute("importForm")
     public ProcessingWorkOrderImportForm setUpImportForm() {
@@ -171,6 +179,15 @@ public class ProcessingSheetController {
             return "redirect:/processing-sheet/analyst-controller";
         }
         
+        for (ProcessingWorkOrderImportDTO row : importForm.getRows()) {
+            if ("UPDATE".equals(row.getResolution()) && (row.getAssignedAnalystEmployeeId() == null || row.getAssignedAnalystEmployeeId().isEmpty())) {
+                List<ProcessingWorkOrder> existingWOs = processingWorkOrderRepository.findByWoNumber(row.getWoNumber());
+                if (!existingWOs.isEmpty() && existingWOs.get(0).getAssignedAnalystEmployeeId() != null) {
+                    row.setAssignedAnalystEmployeeId(existingWOs.get(0).getAssignedAnalystEmployeeId());
+                }
+            }
+        }
+        
         List<Employee> analysts = employeeRepository.findByIsAnalystTrue();
         model.addAttribute("analysts", analysts);
         
@@ -185,7 +202,13 @@ public class ProcessingSheetController {
             currentUserId = currentEmp.get().getId();
         }
 
-        List<ProcessingWorkOrder> previewWOs = buildWorkOrdersFromForm(importForm, currentUserId);
+        String currentUserName = principal.getName();
+        if (currentEmp.isPresent()) {
+            currentUserName = currentEmp.get().getName();
+        }
+
+        List<ProcessingWorkOrderHistory> dummyHistoryLogs = new ArrayList<>();
+        List<ProcessingWorkOrder> previewWOs = buildWorkOrdersFromForm(importForm, currentUserId, currentUserName, dummyHistoryLogs);
         model.addAttribute("previewWOs", previewWOs);
         
         return "admin-analyst-import-confirm";
@@ -194,20 +217,51 @@ public class ProcessingSheetController {
     @PostMapping("/import/save")
     public String saveImport(@ModelAttribute("importForm") ProcessingWorkOrderImportForm importForm, SessionStatus sessionStatus, Principal principal) {
         String currentUserId = "";
+        String currentUserName = principal.getName();
         Optional<Employee> currentEmp = employeeRepository.findByUsername(principal.getName());
         if (currentEmp.isPresent()) {
             currentUserId = currentEmp.get().getId();
+            currentUserName = currentEmp.get().getName();
         }
 
-        List<ProcessingWorkOrder> toSave = buildWorkOrdersFromForm(importForm, currentUserId);
+        List<ProcessingWorkOrderHistory> updateHistoryLogs = new ArrayList<>();
+        List<ProcessingWorkOrder> toSave = buildWorkOrdersFromForm(importForm, currentUserId, currentUserName, updateHistoryLogs);
+        
+        Set<String> updatedWoNumbers = new HashSet<>();
+        for (ProcessingWorkOrder wo : toSave) {
+            if (wo.getId() != null) {
+                updatedWoNumbers.add(wo.getWoNumber());
+            }
+        }
         
         processingWorkOrderRepository.saveAll(toSave);
+        
+        List<ProcessingWorkOrderHistory> finalLogs = new ArrayList<>(updateHistoryLogs);
+        for (ProcessingWorkOrder wo : toSave) {
+            if (!updatedWoNumbers.contains(wo.getWoNumber())) {
+                String action = wo.getWoNumber().contains("-DUP") ? "IMPORTED_AS_DUPLICATE" : "IMPORTED";
+                finalLogs.add(new ProcessingWorkOrderHistory(
+                    wo.getId(), wo.getWoNumber(), action, null, null, currentUserName
+                ));
+            }
+        }
+        historyRepository.saveAll(finalLogs);
         sessionStatus.setComplete(); // Clear session attributes
         
         return "redirect:/processing-sheet/analyst-controller?success=true";
     }
 
-    private List<ProcessingWorkOrder> buildWorkOrdersFromForm(ProcessingWorkOrderImportForm importForm, String currentUserId) {
+    private void logIfChanged(List<ProcessingWorkOrderHistory> logs, ProcessingWorkOrder wo, String field, String oldVal, String newVal, String userName) {
+        String safeOld = oldVal == null ? "" : oldVal;
+        String safeNew = newVal == null ? "" : newVal;
+        if (!safeOld.equals(safeNew)) {
+            logs.add(new ProcessingWorkOrderHistory(
+                wo.getId(), wo.getWoNumber(), "UPDATED_" + field.toUpperCase() + "_VIA_IMPORT", safeOld, safeNew, userName
+            ));
+        }
+    }
+
+    private List<ProcessingWorkOrder> buildWorkOrdersFromForm(ProcessingWorkOrderImportForm importForm, String currentUserId, String currentUserName, List<ProcessingWorkOrderHistory> historyLogs) {
         List<ProcessingWorkOrder> toSave = new ArrayList<>();
         LocalDate today = LocalDate.now();
         
@@ -222,6 +276,8 @@ public class ProcessingSheetController {
             
             ProcessingWorkOrder wo = new ProcessingWorkOrder();
             
+            boolean isUpdate = false;
+            
             if (row.isExists()) {
                 if ("SKIP".equals(row.getResolution())) {
                     continue;
@@ -229,6 +285,7 @@ public class ProcessingSheetController {
                     List<ProcessingWorkOrder> existingWOs = processingWorkOrderRepository.findByWoNumber(row.getWoNumber());
                     if (!existingWOs.isEmpty()) {
                         wo = existingWOs.get(0); // Update the first one found
+                        isUpdate = true;
                     }
                 } else if ("DUPLICATE".equals(row.getResolution())) {
                     String baseWoNumber = row.getWoNumber();
@@ -245,6 +302,14 @@ public class ProcessingSheetController {
                 wo.setWoNumber(row.getWoNumber());
                 newlyAssignedWOs.add(row.getWoNumber());
             }
+            String oldWoType = wo.getWoType();
+            String oldClientCode = wo.getClientCode();
+            String oldAddress = wo.getAddress();
+            Integer oldPhotoCountInt = wo.getPhotoCount();
+            String oldPhotoCount = oldPhotoCountInt != null ? String.valueOf(oldPhotoCountInt) : null;
+            String oldCategory = wo.getCategory();
+            LocalDate oldDateDue = wo.getDateDue();
+            String oldAnalyst = wo.getAnalyst();
             
             wo.setWoType(row.getWorkType());
             wo.setClientCode(row.getClientCode());
@@ -252,25 +317,38 @@ public class ProcessingSheetController {
             wo.setPhotoCount(row.getPhotoCount());
             wo.setCategory(row.getCategory());
             wo.setDateDue(row.getDateDue());
-            wo.setEntryDate(today);
-            wo.setStatus("NEW");
             
-            if (wo.getDateDue() != null) {
+            if (!isUpdate) {
+                wo.setEntryDate(today);
+                wo.setStatus("NEW");
+                wo.setCreatedByEmployeeId(currentUserId);
+            }
+            
+            if (wo.getDateDue() != null && wo.getEntryDate() != null) {
                 long lateDays = ChronoUnit.DAYS.between(wo.getDateDue(), wo.getEntryDate());
                 wo.setLateStatus(String.valueOf(lateDays));
             } else {
                 wo.setLateStatus("0");
             }
             
-            wo.setAssignedAnalystEmployeeId(row.getAssignedAnalystEmployeeId());
             if (row.getAssignedAnalystEmployeeId() != null && !row.getAssignedAnalystEmployeeId().isEmpty()) {
+                wo.setAssignedAnalystEmployeeId(row.getAssignedAnalystEmployeeId());
                 Optional<Employee> a = employeeRepository.findById(row.getAssignedAnalystEmployeeId());
                 if(a.isPresent()) {
                     wo.setAnalyst(a.get().getName());
                 }
             }
             
-            wo.setCreatedByEmployeeId(currentUserId);
+            if (isUpdate) {
+                String newPhotoCount = wo.getPhotoCount() != null ? String.valueOf(wo.getPhotoCount()) : null;
+                logIfChanged(historyLogs, wo, "WORK_TYPE", oldWoType, wo.getWoType(), currentUserName);
+                logIfChanged(historyLogs, wo, "CLIENT_CODE", oldClientCode, wo.getClientCode(), currentUserName);
+                logIfChanged(historyLogs, wo, "ADDRESS", oldAddress, wo.getAddress(), currentUserName);
+                logIfChanged(historyLogs, wo, "PHOTO_COUNT", oldPhotoCount, newPhotoCount, currentUserName);
+                logIfChanged(historyLogs, wo, "CATEGORY", oldCategory, wo.getCategory(), currentUserName);
+                logIfChanged(historyLogs, wo, "DATE_DUE", oldDateDue != null ? oldDateDue.toString() : null, wo.getDateDue() != null ? wo.getDateDue().toString() : null, currentUserName);
+                logIfChanged(historyLogs, wo, "ANALYST", oldAnalyst, wo.getAnalyst(), currentUserName);
+            }
             
             toSave.add(wo);
         }
@@ -295,26 +373,28 @@ public class ProcessingSheetController {
 
     @PostMapping(value = "/api/update-wo", produces = "application/json")
     @ResponseBody
-    public org.springframework.http.ResponseEntity<Map<String, Object>> updateWorkOrder(@RequestBody Map<String, String> payload, Principal principal) {
-        Map<String, Object> response = new HashMap<>();
+    public ResponseEntity<Map<String, Object>> updateWorkOrder(@RequestBody Map<String, String> payload, Principal principal) {
+        String currentUserName = principal.getName();
+        Optional<Employee> emp = employeeRepository.findByUsername(currentUserName);
+        if (emp.isPresent()) {
+            currentUserName = emp.get().getName();
+        }
+
         String woNumber = payload.get("woNumber");
         String field = payload.get("field");
         String value = payload.get("value");
 
         if (woNumber == null || field == null) {
-            response.put("success", false);
-            response.put("message", "Invalid request");
-            return org.springframework.http.ResponseEntity.ok(response);
+            return ResponseEntity.ok(Map.of("success", false, "message", "Invalid request"));
         }
 
         List<ProcessingWorkOrder> existingWOs = processingWorkOrderRepository.findByWoNumber(woNumber);
         if (existingWOs.isEmpty()) {
-            response.put("success", false);
-            response.put("message", "Work Order not found");
-            return org.springframework.http.ResponseEntity.ok(response);
+            return ResponseEntity.ok(Map.of("success", false, "message", "Work Order not found"));
         }
 
         ProcessingWorkOrder wo = existingWOs.get(0);
+        String oldValue = "";
         
         // Ensure analyst only updates their own WO (Optional security layer, assuming it's required)
         Optional<Employee> empOpt = employeeRepository.findById(principal.getName());
@@ -323,52 +403,68 @@ public class ProcessingSheetController {
         }
         if (empOpt.isPresent() && !empOpt.get().getId().equals(wo.getAssignedAnalystEmployeeId()) 
             && !empOpt.get().isAnalystController() && !"ADMIN".equalsIgnoreCase(empOpt.get().getRole())) {
-            response.put("success", false);
-            response.put("message", "Unauthorized to update this Work Order");
-            return org.springframework.http.ResponseEntity.ok(response);
+            return ResponseEntity.ok(Map.of("success", false, "message", "Unauthorized to update this Work Order"));
         }
 
         try {
             switch (field) {
                 case "status":
+                    oldValue = wo.getStatus();
                     wo.setStatus(value);
                     break;
                 case "baFromWo":
+                    oldValue = wo.getBaFromWo();
                     wo.setBaFromWo(value);
                     break;
                 case "baByAnalyst":
+                    oldValue = wo.getBaByAnalyst();
                     wo.setBaByAnalyst(value);
                     break;
                 case "bidCount":
+                    oldValue = wo.getBidCount() != null ? String.valueOf(wo.getBidCount()) : "";
                     wo.setBidCount(value == null || value.trim().isEmpty() ? null : Integer.valueOf(value.replace(",", "").trim()));
                     break;
                 case "bidAmount":
+                    oldValue = wo.getBidAmount() != null ? String.valueOf(wo.getBidAmount()) : "";
                     wo.setBidAmount(value == null || value.trim().isEmpty() ? null : new java.math.BigDecimal(value.replace("$", "").replace(",", "").trim()));
                     break;
                 case "clientInvoice":
+                    oldValue = wo.getClientInvoice() != null ? String.valueOf(wo.getClientInvoice()) : "";
                     wo.setClientInvoice(value == null || value.trim().isEmpty() ? null : new java.math.BigDecimal(value.replace("$", "").replace(",", "").trim()));
                     break;
                 case "crewInvoice":
+                    oldValue = wo.getCrewInvoice() != null ? String.valueOf(wo.getCrewInvoice()) : "";
                     wo.setCrewInvoice(value == null || value.trim().isEmpty() ? null : new java.math.BigDecimal(value.replace("$", "").replace(",", "").trim()));
                     break;
                 case "notes":
+                    oldValue = wo.getNotes();
                     wo.setNotes(value);
                     break;
                 default:
-                    response.put("success", false);
-                    response.put("message", "Invalid field");
-                    return org.springframework.http.ResponseEntity.ok(response);
+                    return ResponseEntity.ok(Map.of("success", false, "message", "Invalid field"));
+            }
+
+            String newValue = value == null ? "" : value;
+            String safeOldValue = oldValue == null ? "" : oldValue;
+            if (!safeOldValue.equals(newValue)) {
+                historyRepository.save(new ProcessingWorkOrderHistory(
+                    wo.getId(), wo.getWoNumber(), "UPDATED_" + field.toUpperCase(), safeOldValue, newValue, currentUserName
+                ));
             }
         } catch (NumberFormatException e) {
-            response.put("success", false);
-            response.put("message", "Invalid number format");
-            return org.springframework.http.ResponseEntity.ok(response);
+            return ResponseEntity.ok(Map.of("success", false, "message", "Invalid number format"));
         }
 
         processingWorkOrderRepository.save(wo);
         
-        response.put("success", true);
-        return org.springframework.http.ResponseEntity.ok(response);
+        return ResponseEntity.ok(Map.of("success", true, "message", "Updated successfully"));
+    }
+
+    @GetMapping("/api/lifeline")
+    @ResponseBody
+    public ResponseEntity<List<ProcessingWorkOrderHistory>> getLifeline(@RequestParam String woNumber) {
+        List<ProcessingWorkOrderHistory> history = historyRepository.findByWoNumberOrderByChangedAtDesc(woNumber);
+        return ResponseEntity.ok(history);
     }
 
     @GetMapping("/api/address-duplicates")

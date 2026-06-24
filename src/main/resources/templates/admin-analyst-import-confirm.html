@@ -34,6 +34,7 @@
                                         <th>Category</th>
                                         <th>Address</th>
                                         <th>Date Due</th>
+                                        <th>Photos</th>
                                         <th>Status</th>
                                         <th>Analyst</th>
                                     </tr>
@@ -46,11 +47,12 @@
                                         <td th:text="${wo.category}"></td>
                                         <td th:text="${wo.address}"></td>
                                         <td th:text="${wo.dateDue}"></td>
+                                        <td th:text="${wo.photoCount}"></td>
                                         <td><span class="badge bg-secondary" th:text="${wo.status}"></span></td>
                                         <td th:text="${wo.analyst ?: 'Unassigned'}"></td>
                                     </tr>
                                     <tr th:if="${#lists.isEmpty(previewWOs)}">
-                                        <td colspan="8" class="text-center text-muted py-4">No Work Orders to import. Please go back.</td>
+                                        <td colspan="9" class="text-center text-muted py-4">No Work Orders to import. Please go back.</td>
                                     </tr>
                                 </tbody>
                             </table>

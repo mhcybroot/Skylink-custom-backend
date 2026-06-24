@@ -28,7 +28,9 @@
                                     <th>Client Code</th>
                                     <th>Category</th>
                                     <th>Address</th>
+                                    <th>Photos</th>
                                     <th>Status</th>
+                                    <th>Lifeline</th>
                                     <th>Late Status</th>
                                     <th>BA FROM (W/O)</th>
                                     <th>BA BY (ANALYST)</th>
@@ -46,8 +48,14 @@
                                     <td th:text="${wo.clientCode}"></td>
                                     <td th:text="${wo.category}"></td>
                                     <td class="wo-hover-cell address-hover" th:data-address="${wo.address}" th:text="${wo.address}"></td>
+                                    <td th:text="${wo.photoCount}"></td>
                                     <td class="editable-cell" data-field="status">
                                         <span class="badge bg-secondary status-badge" th:text="${wo.status}"></span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary lifeline-btn" th:data-wo="${wo.woNumber}">
+                                            <i class="fas fa-history"></i>
+                                        </button>
                                     </td>
                                     <td th:text="${wo.lateStatus}"></td>
                                     <td class="editable-cell" data-field="baFromWo" th:text="${wo.baFromWo}"></td>
@@ -59,7 +67,7 @@
                                     <td class="editable-cell" data-field="notes" th:text="${wo.notes}"></td>
                                 </tr>
                                 <tr th:if="${#lists.isEmpty(workOrders)}">
-                                    <td colspan="14" class="text-center text-muted">No assigned Work Orders found for this date.</td>
+                                    <td colspan="15" class="text-center text-muted">No assigned Work Orders found for this date.</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -67,6 +75,7 @@
                 </div>
             </div>
         </section>
+
         <script th:inline="javascript">
             document.addEventListener('DOMContentLoaded', function() {
                 const hoverCells = document.querySelectorAll('.wo-hover-cell');
@@ -299,6 +308,98 @@
                             });
                         }
                     });
+                });
+                let lifelineHoverTimeout;
+                let activeLifelinePopover = null;
+                
+                document.addEventListener('mouseover', function(e) {
+                    const btn = e.target.closest('.lifeline-btn');
+                    if (btn) {
+                        if (btn.dataset.hovering === 'true') return;
+                        btn.dataset.hovering = 'true';
+                        
+                        const woNumber = btn.getAttribute('data-wo');
+                        const btnRect = btn.getBoundingClientRect();
+                        
+                        clearTimeout(lifelineHoverTimeout);
+                        lifelineHoverTimeout = setTimeout(() => {
+                            fetch(`/processing-sheet/api/lifeline?woNumber=${encodeURIComponent(woNumber)}`)
+                                .then(res => res.json())
+                                .then(data => {
+                                    if(activeLifelinePopover) activeLifelinePopover.remove();
+                                    
+                                    const popover = document.createElement('div');
+                                    popover.className = 'lifeline-popover';
+                                    
+                                    let html = `
+                                        <div class="lifeline-popover-header">
+                                            <span>Lifeline: ${woNumber}</span>
+                                            <i class="fas fa-history text-primary"></i>
+                                        </div>
+                                        <div class="lifeline-popover-content">
+                                            <ul class="lifeline-timeline">
+                                    `;
+                                    
+                                    if (data && data.length > 0) {
+                                        data.forEach(log => {
+                                            let date = new Date(log.changedAt).toLocaleString();
+                                            let details = '';
+                                            if (log.actionType === 'IMPORTED' || log.actionType.includes('DUPLICATE')) {
+                                                details = `Imported by ${log.changedByName}`;
+                                            } else {
+                                                details = `Changed from <strong>${log.oldValue || 'empty'}</strong> to <strong>${log.newValue || 'empty'}</strong>`;
+                                            }
+                                            html += `
+                                                <li>
+                                                    <div class="time">${date} &bull; ${log.changedByName}</div>
+                                                    <div class="action">${log.actionType.replace('UPDATED_', 'Updated ')}</div>
+                                                    <div class="details">${details}</div>
+                                                </li>
+                                            `;
+                                        });
+                                    } else {
+                                        html += `<li><div class="text-muted text-center py-3">No history found.</div></li>`;
+                                    }
+                                    
+                                    html += `</ul></div>`;
+                                    popover.innerHTML = html;
+                                    
+                                    document.body.appendChild(popover);
+                                    
+                                    // Position below the button
+                                    popover.style.top = (btnRect.bottom + window.scrollY) + 'px';
+                                    popover.style.left = (btnRect.left + (btnRect.width / 2) + window.scrollX) + 'px';
+                                    
+                                    requestAnimationFrame(() => popover.classList.add('show'));
+                                    activeLifelinePopover = popover;
+                                    
+                                    popover.addEventListener('mouseleave', () => {
+                                        popover.classList.remove('show');
+                                        setTimeout(() => popover.remove(), 300);
+                                    });
+                                    
+                                    const leaveHandler = () => {
+                                        btn.dataset.hovering = 'false';
+                                        setTimeout(() => {
+                                            if (popover && !popover.matches(':hover')) {
+                                                popover.classList.remove('show');
+                                                setTimeout(() => popover.remove(), 300);
+                                            }
+                                        }, 100);
+                                        btn.removeEventListener('mouseleave', leaveHandler);
+                                    };
+                                    btn.addEventListener('mouseleave', leaveHandler);
+                                })
+                                .catch(err => console.error('Error fetching lifeline', err));
+                        }, 300);
+                        
+                        const earlyLeaveHandler = () => {
+                            btn.dataset.hovering = 'false';
+                            clearTimeout(lifelineHoverTimeout);
+                            btn.removeEventListener('mouseleave', earlyLeaveHandler);
+                        };
+                        btn.addEventListener('mouseleave', earlyLeaveHandler);
+                    }
                 });
             });
         </script>
