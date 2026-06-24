@@ -23,6 +23,7 @@ import root.cyb.mh.attendancesystem.repository.DeletedProcessingWorkOrderReposit
 
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.math.BigDecimal;
 import java.security.Principal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -85,6 +86,61 @@ public class ProcessingSheetController {
         
         List<ProcessingWorkOrder> wos = processingWorkOrderRepository.findByEntryDate(entryDate);
         model.addAttribute("workOrders", wos);
+        
+        // Calculate Global Metrics
+        int totalWo = wos.size();
+        int totalBidSubmitted = 0;
+        int totalMaintenanceWo = 0;
+        int totalPreservationWo = 0;
+        BigDecimal totalGrossProfit = BigDecimal.ZERO;
+        
+        // Analyst Metrics
+        Map<String, Map<String, Object>> analystStats = new HashMap<>();
+        
+        for (ProcessingWorkOrder wo : wos) {
+            // Global aggregates
+            if (wo.getBidCount() != null) {
+                totalBidSubmitted += wo.getBidCount();
+            }
+            if (wo.getCategory() != null) {
+                String cat = wo.getCategory().toLowerCase();
+                if (cat.contains("maintenance")) totalMaintenanceWo++;
+                if (cat.contains("preservation")) totalPreservationWo++;
+            }
+            
+            BigDecimal clientInv = wo.getClientInvoice() != null ? wo.getClientInvoice() : BigDecimal.ZERO;
+            BigDecimal crewInv = wo.getCrewInvoice() != null ? wo.getCrewInvoice() : BigDecimal.ZERO;
+            BigDecimal gp = clientInv.subtract(crewInv);
+            
+            totalGrossProfit = totalGrossProfit.add(gp);
+            
+            // Analyst aggregates
+            String analyst = wo.getAnalyst() != null && !wo.getAnalyst().trim().isEmpty() ? wo.getAnalyst() : "Unassigned";
+            analystStats.putIfAbsent(analyst, new HashMap<>(Map.of(
+                "name", analyst,
+                "bidCount", 0,
+                "bidAmount", BigDecimal.ZERO,
+                "grossProfit", BigDecimal.ZERO
+            )));
+            
+            Map<String, Object> stats = analystStats.get(analyst);
+            if (wo.getBidCount() != null) {
+                stats.put("bidCount", (int) stats.get("bidCount") + wo.getBidCount());
+            }
+            if (wo.getBidAmount() != null) {
+                stats.put("bidAmount", ((BigDecimal) stats.get("bidAmount")).add(wo.getBidAmount()));
+            }
+            
+            stats.put("grossProfit", ((BigDecimal) stats.get("grossProfit")).add(gp));
+        }
+        
+        model.addAttribute("totalWo", totalWo);
+        model.addAttribute("totalBidSubmitted", totalBidSubmitted);
+        model.addAttribute("totalMaintenanceWo", totalMaintenanceWo);
+        model.addAttribute("totalPreservationWo", totalPreservationWo);
+        model.addAttribute("totalGrossProfit", totalGrossProfit);
+        model.addAttribute("analystStats", analystStats.values());
+        
         return "admin-analyst-controller";
     }
 

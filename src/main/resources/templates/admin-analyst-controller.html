@@ -6,6 +6,9 @@
 <body>
     <div th:replace="~{layout :: layout(~{::section}, ~{::script}, 'admin-analyst-controller')}">
         <section>
+            <!-- DataTables CSS -->
+            <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+            
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h1 class="h3 mb-0 text-gray-800">Processing Sheet: Analyst Controller</h1>
                 <div class="d-flex align-items-center">
@@ -17,6 +20,110 @@
                 </div>
             </div>
 
+            <!-- Dashboard Stats -->
+            <div class="row mb-4">
+                <!-- Total WO Submitted -->
+                <div class="col-xl col-md-6 mb-4">
+                    <div class="card border-left-primary shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total WO Submitted</div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800" th:text="${totalWo}">0</div>
+                                </div>
+                                <div class="col-auto"><i class="fas fa-clipboard-list fa-2x text-gray-300"></i></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Total Bids Submitted -->
+                <div class="col-xl col-md-6 mb-4">
+                    <div class="card border-left-success shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Total Bids Submitted</div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800" th:text="${totalBidSubmitted}">0</div>
+                                </div>
+                                <div class="col-auto"><i class="fas fa-dollar-sign fa-2x text-gray-300"></i></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Total Maintenance WO -->
+                <div class="col-xl col-md-6 mb-4">
+                    <div class="card border-left-info shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Maintenance WOs</div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800" th:text="${totalMaintenanceWo}">0</div>
+                                </div>
+                                <div class="col-auto"><i class="fas fa-wrench fa-2x text-gray-300"></i></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Total Preservation WO -->
+                <div class="col-xl col-md-6 mb-4">
+                    <div class="card border-left-warning shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Preservation WOs</div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800" th:text="${totalPreservationWo}">0</div>
+                                </div>
+                                <div class="col-auto"><i class="fas fa-home fa-2x text-gray-300"></i></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Total Gross Profit -->
+                <div class="col-xl col-md-6 mb-4">
+                    <div class="card border-left-danger shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Total Gross Profit</div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800" th:text="${totalGrossProfit != null ? '$' + #numbers.formatDecimal(totalGrossProfit, 1, 'COMMA', 2, 'POINT') : '$0.00'}">$0.00</div>
+                                </div>
+                                <div class="col-auto"><i class="fas fa-chart-line fa-2x text-gray-300"></i></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Report by Analyst -->
+            <div class="card shadow mb-4">
+                <a href="#collapseReportAnalyst" class="d-block card-header py-3" data-bs-toggle="collapse" role="button" aria-expanded="true" aria-controls="collapseReportAnalyst">
+                    <h6 class="m-0 font-weight-bold text-primary">Report by Analyst</h6>
+                </a>
+                <div class="collapse show" id="collapseReportAnalyst">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-sm" width="100%" cellspacing="0">
+                                <thead>
+                                    <tr class="table-primary text-dark">
+                                        <th>Analyst</th>
+                                        <th>Bid Count</th>
+                                        <th>Bid Amount</th>
+                                        <th>Gross Profit (Client Inv - Crew Inv)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="stat : ${analystStats}">
+                                        <td class="font-weight-bold" th:text="${stat.name}"></td>
+                                        <td th:text="${stat.bidCount}"></td>
+                                        <td th:text="${stat.bidAmount != null ? '$' + #numbers.formatDecimal(stat.bidAmount, 1, 'COMMA', 2, 'POINT') : '$0.00'}"></td>
+                                        <td th:classappend="${stat.grossProfit < 0 ? 'text-danger' : 'text-success'}" th:text="${stat.grossProfit != null ? '$' + #numbers.formatDecimal(stat.grossProfit, 1, 'COMMA', 2, 'POINT') : '$0.00'}"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div class="card shadow mb-4">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
                     <h6 class="m-0 font-weight-bold text-primary">Work Orders by Entry Date</h6>
@@ -339,6 +446,19 @@
                             });
                         }
                     }
+                });
+
+                // Load DataTables dynamically
+                $.getScript("https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js", function() {
+                    $.getScript("https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js", function() {
+                        if (!$.fn.DataTable.isDataTable('#dataTable')) {
+                            $('#dataTable').DataTable({
+                                pageLength: 50,
+                                order: [], // Preserve backend sorting initially
+                                responsive: true
+                            });
+                        }
+                    });
                 });
             });
         </script>
