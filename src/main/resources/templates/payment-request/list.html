@@ -346,7 +346,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr th:each="req : ${requests}" class="border-bottom">
+                                    <tr th:each="req : ${requests}" class="border-bottom payment-request-row" style="cursor: pointer;" th:data-href="@{/payment-requests/{id}(id=${req.id})}">
                                         <td class="ps-4" sec:authorize="hasAnyRole('ADMIN', 'HR')">
                                             <div class="form-check">
                                                 <input class="form-check-input request-checkbox" type="checkbox" th:value="${req.id}"
@@ -579,6 +579,21 @@
         </section>
         <script>
             document.addEventListener('DOMContentLoaded', function () {
+                // Setup clickable rows
+                document.querySelectorAll('.payment-request-row').forEach(row => {
+                    row.addEventListener('click', function(e) {
+                        // Ignore clicks on specific elements like checkboxes, links, or buttons
+                        if (e.target.closest('input') || e.target.closest('a') || e.target.closest('button')) {
+                            return;
+                        }
+                        
+                        const href = this.getAttribute('data-href');
+                        if (href) {
+                            window.location.href = href;
+                        }
+                    });
+                });
+
                 const selectAllBox = document.getElementById('selectAllRequests');
                 const checkboxes = document.querySelectorAll('.request-checkbox');
                 const toolbar = document.getElementById('bulkActionsToolbar');
