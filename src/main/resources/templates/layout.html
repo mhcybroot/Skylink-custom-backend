@@ -10,6 +10,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="/css/modern-theme.css" rel="stylesheet">
     <link href="/css/corporate-design-system.css" rel="stylesheet">
+    <!-- Tailwind CSS (compiled via Gradle task) -->
+    <link href="/css/tailwind.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
@@ -24,8 +26,7 @@
 
         /* Layout Structure */
         :root {
-            --sidebar-width: 17rem;
-            --sidebar-mini-width: 4.5rem;
+            /* No sidebar */
         }
 
         #wrapper {
@@ -36,49 +37,20 @@
         }
 
         #sidebar-wrapper {
-            min-height: 100vh;
-            width: var(--sidebar-width);
-            transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), margin-left 0.3s ease;
-            position: relative;
-            z-index: 1040;
-            flex-shrink: 0;
+            display: none;
         }
 
         #page-content-wrapper {
             flex-grow: 1;
             min-width: 0;
-            /* Important for flex child to allow inner scroll */
-            transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-        }
-
-        /* Mobile Default: Hidden off-screen */
-        @media (max-width: 767.98px) {
-            #sidebar-wrapper {
-                position: fixed;
-                margin-left: calc(var(--sidebar-width) * -1);
-            }
-
-            body.sb-sidenav-toggled #sidebar-wrapper {
-                margin-left: 0;
-            }
-        }
-
-        /* Desktop Default: Full width, toggles to mini-width */
-        @media (min-width: 768px) {
-            body.sb-sidenav-toggled #sidebar-wrapper {
-                width: var(--sidebar-mini-width);
-            }
+            padding-bottom: 80px; /* Space for Bottom Navbar */
         }
     </style>
 </head>
 
 <body>
 
-    <div class="d-flex" id="wrapper">
-        <!-- Sidebar -->
-        <div th:replace="~{fragments/sidebar :: sidebar(activeLink=${activeLink})}"></div>
-
-        <!-- Page Content -->
+    <div class="d-flex flex-column" id="wrapper">
         <div id="page-content-wrapper">
             <div th:replace="~{fragments/topbar :: topbar}"></div>
 
@@ -87,22 +59,13 @@
                 <div th:replace="${content}"></div>
             </div>
         </div>
+        
+        <!-- Bottom Navbar -->
+        <div th:replace="~{fragments/bottom-navbar :: bottom-navbar(activeLink=${activeLink})}"></div>
     </div>
 
     <!-- Core Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Sidebar Toggle Logic Global
-        window.addEventListener('DOMContentLoaded', event => {
-            const sidebarToggle = document.body.querySelector('#sidebarToggle');
-            if (sidebarToggle) {
-                sidebarToggle.addEventListener('click', event => {
-                    event.preventDefault();
-                    document.body.classList.toggle('sb-sidenav-toggled');
-                });
-            }
-        });
-    </script>
 
     <!-- Global UX Scripts -->
     <script sec:authorize="hasRole('ADMIN')" src="/js/command-palette.js"></script>

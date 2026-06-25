@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<body th:fragment="bottom-navbar(activeLink)">
+
+    <!-- Main Bottom Navbar -->
+    <nav class="fixed bottom-0 left-0 w-full backdrop-blur-lg bg-slate-900/90 text-slate-300 z-[1040] border-t border-slate-700/50 shadow-[0_-4px_20px_rgba(0,0,0,0.3)] pb-safe transition-all duration-300">
+        <div class="max-w-screen-xl mx-auto px-2">
+            <div class="flex justify-around items-center h-16" id="dynamic-bottom-bar">
+                <!-- Javascript will inject up to 3 pinned items here -->
+                
+                <!-- More Drawer Toggle (Always visible) -->
+                <button class="no-underline hover:no-underline flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors hover:text-blue-400 outline-none"
+                        type="button" data-bs-toggle="offcanvas" data-bs-target="#bottomMoreDrawer" aria-controls="bottomMoreDrawer">
+                    <i class="fas fa-bars text-xl mb-0.5"></i>
+                    <span class="text-[10px] uppercase tracking-wider font-semibold">More</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Support for safe-area-inset on mobile devices -->
+    <style>
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+    </style>
+
+    <!-- Offcanvas "More" Drawer -->
+    <div class="offcanvas offcanvas-bottom !bg-slate-900 !text-slate-200 !h-auto !max-h-[85vh] rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.5)] border-t border-slate-700/50" 
+         tabindex="-1" id="bottomMoreDrawer" aria-labelledby="bottomMoreDrawerLabel">
+        
+        <div class="offcanvas-header border-b border-slate-700/50 px-5 py-4">
+            <div class="flex items-center gap-3 w-full">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg">
+                    <i class="fas fa-layer-group text-white text-sm"></i>
+                </div>
+                <div class="flex-1">
+                    <h5 class="offcanvas-title text-white font-bold tracking-wide" id="bottomMoreDrawerLabel">System Menu</h5>
+                    <p class="text-xs text-slate-400 m-0">[[${companyName}]]</p>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-primary" id="editPinnedBtn" style="border-radius: 20px; font-size: 12px; padding: 4px 12px;">Edit Pinned</button>
+                <button type="button" class="btn-close btn-close-white opacity-75 hover:opacity-100 ml-2" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+            </div>
+        </div>
+        
+        <div class="offcanvas-body px-4 py-4 overflow-y-auto custom-scrollbar">
+            
+            <div class="grid grid-cols-2 gap-3 md:grid-cols-4" id="drawerLinksContainer">
+                
+                <!-- Primary Actions Block (Previously on navbar) -->
+                <div class="bg-slate-800/50 rounded-2xl p-3 border border-slate-700/50 col-span-2 md:col-span-4">
+                    <h6 class="text-[11px] uppercase tracking-widest text-slate-400 font-bold mb-3 flex items-center gap-2">
+                        <i class="fas fa-star text-yellow-400"></i> Primary Actions
+                    </h6>
+                    <div class="grid grid-cols-2 gap-2">
+                        <a sec:authorize="hasAnyRole('ADMIN', 'HR')" href="/dashboard" data-id="dashboard" data-icon="fas fa-tachometer-alt" data-title="Dash"
+                           class="nav-item-link no-underline hover:no-underline text-sm py-2 px-3 rounded-lg hover:bg-slate-700/50 transition-colors" th:classappend="${activeLink == 'dashboard'} ? 'bg-blue-600/20 text-blue-400 font-medium' : 'text-slate-300'"><i class="fas fa-tachometer-alt w-5 text-center"></i> Admin Dash</a>
+                        
+                        <a sec:authorize="hasRole('EMPLOYEE')" href="/employee/dashboard" data-id="dashboard" data-icon="fas fa-id-card" data-title="My Dash"
+                           class="nav-item-link no-underline hover:no-underline text-sm py-2 px-3 rounded-lg hover:bg-slate-700/50 transition-colors" th:classappend="${activeLink == 'dashboard'} ? 'bg-blue-600/20 text-blue-400 font-medium' : 'text-slate-300'"><i class="fas fa-id-card w-5 text-center"></i> My Dash</a>
+                        
+                        <a th:if="${#authorization.expression('hasAnyRole(''ADMIN'', ''HR'')') or (loggedEmployee != null and loggedEmployee.isAnalyst)}" 
+                           href="/processing-sheet/analyst" data-id="processing-sheets" data-icon="fas fa-file-invoice" data-title="Sheets"
+                           class="nav-item-link no-underline hover:no-underline text-sm py-2 px-3 rounded-lg hover:bg-slate-700/50 transition-colors" th:classappend="${activeLink == 'admin-analyst'} ? 'bg-blue-600/20 text-blue-400 font-medium' : 'text-slate-300'"><i class="fas fa-file-invoice w-5 text-center"></i> Sheets</a>
+                        
+                        <a th:if="${#authorization.expression('hasAnyRole(''ADMIN'', ''HR'')') or (loggedEmployee != null and loggedEmployee.isAnalystController)}" 
+                           href="/processing-sheet/analyst-controller" data-id="verify" data-icon="fas fa-file-signature" data-title="Verify"
+                           class="nav-item-link no-underline hover:no-underline text-sm py-2 px-3 rounded-lg hover:bg-slate-700/50 transition-colors" th:classappend="${activeLink == 'admin-analyst-controller'} ? 'bg-blue-600/20 text-blue-400 font-medium' : 'text-slate-300'"><i class="fas fa-file-signature w-5 text-center"></i> Verify</a>
+                        
+                        <a sec:authorize="hasRole('EMPLOYEE')" href="/employee/attendance/history" data-id="my-space" data-icon="fas fa-user" data-title="My Space"
+                           class="nav-item-link no-underline hover:no-underline text-sm py-2 px-3 rounded-lg hover:bg-slate-700/50 transition-colors" th:classappend="${#lists.contains({'history', 'leave', 'payroll'}, activeLink)} ? 'bg-blue-600/20 text-blue-400 font-medium' : 'text-slate-300'"><i class="fas fa-user w-5 text-center"></i> My Space</a>
+                    </div>
+                </div>
+
+                <!-- HR & Staffing Block -->
+                <div sec:authorize="hasAnyRole('ADMIN', 'HR')" class="bg-slate-800/50 rounded-2xl p-3 border border-slate-700/50">
+                    <h6 class="text-[11px] uppercase tracking-widest text-slate-400 font-bold mb-3 flex items-center gap-2">
+                        <i class="fas fa-users text-blue-400"></i> HR & Staffing
+                    </h6>
+                    <div class="flex flex-col gap-1">
+                        <a href="/attendance" data-id="attendance" data-icon="fas fa-clock" data-title="Attendance" class="nav-item-link no-underline hover:no-underline text-sm py-1.5 px-2 rounded-lg hover:bg-slate-700/50 transition-colors" th:classappend="${activeLink == 'attendance'} ? 'bg-blue-600/20 text-blue-400 font-medium' : 'text-slate-300'">Attendance</a>
+                        <a href="/employees" data-id="employees" data-icon="fas fa-users" data-title="Employees" class="nav-item-link no-underline hover:no-underline text-sm py-1.5 px-2 rounded-lg hover:bg-slate-700/50 transition-colors" th:classappend="${activeLink == 'employees'} ? 'bg-blue-600/20 text-blue-400 font-medium' : 'text-slate-300'">Employees</a>
+                        <a href="/departments" data-id="departments" data-icon="fas fa-building" data-title="Depts" class="nav-item-link no-underline hover:no-underline text-sm py-1.5 px-2 rounded-lg hover:bg-slate-700/50 transition-colors" th:classappend="${activeLink == 'departments'} ? 'bg-blue-600/20 text-blue-400 font-medium' : 'text-slate-300'">Departments</a>
+                        <a href="/leave/manage" data-id="leave-manage" data-icon="fas fa-calendar-times" data-title="Leave" class="nav-item-link no-underline hover:no-underline text-sm py-1.5 px-2 rounded-lg hover:bg-slate-700/50 transition-colors" th:classappend="${activeLink == 'leave-manage'} ? 'bg-blue-600/20 text-blue-400 font-medium' : 'text-slate-300'">Leave Requests</a>
+                        <a href="/admin/shifts" data-id="shifts" data-icon="fas fa-business-time" data-title="Shifts" class="nav-item-link no-underline hover:no-underline text-sm py-1.5 px-2 rounded-lg hover:bg-slate-700/50 transition-colors" th:classappend="${activeLink == 'shifts'} ? 'bg-blue-600/20 text-blue-400 font-medium' : 'text-slate-300'">Shifts</a>
+                    </div>
+                </div>
+
+                <!-- Reports Block -->
+                <div sec:authorize="hasAnyRole('ADMIN', 'HR')" class="bg-slate-800/50 rounded-2xl p-3 border border-slate-700/50">
+                    <h6 class="text-[11px] uppercase tracking-widest text-slate-400 font-bold mb-3 flex items-center gap-2">
+                        <i class="fas fa-chart-pie text-emerald-400"></i> Reports
+                    </h6>
+                    <div class="flex flex-col gap-1">
+                        <a href="/reports" data-id="reports-daily" data-icon="fas fa-chart-bar" data-title="Daily" class="nav-item-link no-underline hover:no-underline text-sm py-1.5 px-2 rounded-lg hover:bg-slate-700/50 transition-colors" th:classappend="${activeLink == 'reports'} ? 'bg-emerald-600/20 text-emerald-400 font-medium' : 'text-slate-300'">Daily</a>
+                        <a href="/reports/weekly" data-id="reports-weekly" data-icon="fas fa-chart-area" data-title="Weekly" class="nav-item-link no-underline hover:no-underline text-sm py-1.5 px-2 rounded-lg hover:bg-slate-700/50 transition-colors" th:classappend="${activeLink == 'reports-weekly'} ? 'bg-emerald-600/20 text-emerald-400 font-medium' : 'text-slate-300'">Weekly</a>
+                        <a href="/reports/monthly" data-id="reports-monthly" data-icon="fas fa-chart-pie" data-title="Monthly" class="nav-item-link no-underline hover:no-underline text-sm py-1.5 px-2 rounded-lg hover:bg-slate-700/50 transition-colors" th:classappend="${activeLink == 'reports-monthly'} ? 'bg-emerald-600/20 text-emerald-400 font-medium' : 'text-slate-300'">Monthly</a>
+                        <a href="/leave/calendar" data-id="leave-calendar" data-icon="fas fa-calendar-alt" data-title="Calendar" class="nav-item-link no-underline hover:no-underline text-sm py-1.5 px-2 rounded-lg hover:bg-slate-700/50 transition-colors" th:classappend="${activeLink == 'leave-calendar'} ? 'bg-emerald-600/20 text-emerald-400 font-medium' : 'text-slate-300'">Leave Calendar</a>
+                    </div>
+                </div>
+
+                <!-- Finance Block -->
+                <div sec:authorize="hasAnyRole('ADMIN', 'HR')" class="bg-slate-800/50 rounded-2xl p-3 border border-slate-700/50">
+                    <h6 class="text-[11px] uppercase tracking-widest text-slate-400 font-bold mb-3 flex items-center gap-2">
+                        <i class="fas fa-wallet text-amber-400"></i> Finance
+                    </h6>
+                    <div class="flex flex-col gap-1">
+                        <a href="/payroll" data-id="payroll" data-icon="fas fa-money-check" data-title="Payroll" class="nav-item-link no-underline hover:no-underline text-sm py-1.5 px-2 rounded-lg hover:bg-slate-700/50 transition-colors" th:classappend="${activeLink == 'payroll'} ? 'bg-amber-600/20 text-amber-400 font-medium' : 'text-slate-300'">Payroll</a>
+                        <a href="/payment-requests" data-id="payment-requests-admin" data-icon="fas fa-file-invoice-dollar" data-title="Requests" class="nav-item-link no-underline hover:no-underline text-sm py-1.5 px-2 rounded-lg hover:bg-slate-700/50 transition-colors" th:classappend="${activeLink == 'payment-requests'} ? 'bg-amber-600/20 text-amber-400 font-medium' : 'text-slate-300'">Payment Requests</a>
+                        <a sec:authorize="hasRole('ADMIN')" href="/admin/payment-dashboard" data-id="finance-dash" data-icon="fas fa-wallet" data-title="Fin Dash" class="nav-item-link no-underline hover:no-underline text-sm py-1.5 px-2 rounded-lg hover:bg-slate-700/50 transition-colors" th:classappend="${activeLink == 'payment-dashboard'} ? 'bg-amber-600/20 text-amber-400 font-medium' : 'text-slate-300'">Dashboard</a>
+                    </div>
+                </div>
+                
+                <!-- System & Entities Block -->
+                <div sec:authorize="hasRole('ADMIN')" class="bg-slate-800/50 rounded-2xl p-3 border border-slate-700/50">
+                    <h6 class="text-[11px] uppercase tracking-widest text-slate-400 font-bold mb-3 flex items-center gap-2">
+                        <i class="fas fa-cogs text-purple-400"></i> System
+                    </h6>
+                    <div class="flex flex-col gap-1">
+                        <a href="/master-data/contractors" data-id="contractors" data-icon="fas fa-hard-hat" data-title="Contractors" class="nav-item-link no-underline hover:no-underline text-sm py-1.5 px-2 rounded-lg hover:bg-slate-700/50 transition-colors">Contractors</a>
+                        <a href="/admin/work-orders" data-id="work-orders" data-icon="fas fa-clipboard-list" data-title="Orders" class="nav-item-link no-underline hover:no-underline text-sm py-1.5 px-2 rounded-lg hover:bg-slate-700/50 transition-colors">Work Orders</a>
+                        <a href="/devices" data-id="devices" data-icon="fas fa-fingerprint" data-title="Devices" class="nav-item-link no-underline hover:no-underline text-sm py-1.5 px-2 rounded-lg hover:bg-slate-700/50 transition-colors">Devices</a>
+                        <a href="/settings" data-id="settings" data-icon="fas fa-cog" data-title="Settings" class="nav-item-link no-underline hover:no-underline text-sm py-1.5 px-2 rounded-lg hover:bg-slate-700/50 transition-colors">Settings</a>
+                        <a href="/users" data-id="users" data-icon="fas fa-user-shield" data-title="Users" class="nav-item-link no-underline hover:no-underline text-sm py-1.5 px-2 rounded-lg hover:bg-slate-700/50 transition-colors">Users</a>
+                    </div>
+                </div>
+
+                <!-- Employee My Space Extended -->
+                <div sec:authorize="hasRole('EMPLOYEE')" class="bg-slate-800/50 rounded-2xl p-3 border border-slate-700/50 col-span-2">
+                    <h6 class="text-[11px] uppercase tracking-widest text-slate-400 font-bold mb-3 flex items-center gap-2">
+                        <i class="fas fa-user-circle text-pink-400"></i> My Account & Space
+                    </h6>
+                    <div class="grid grid-cols-2 gap-2">
+                        <a href="/leave/employee" data-id="emp-leave" data-icon="fas fa-calendar-times" data-title="My Leave" class="nav-item-link no-underline hover:no-underline text-sm py-2 px-3 rounded-lg bg-slate-700/30 hover:bg-slate-700/60 transition-colors flex items-center gap-2" th:classappend="${activeLink == 'leave'} ? 'text-pink-400 font-medium' : 'text-slate-300'"><i class="fas fa-calendar-times w-4 text-center"></i> My Leave</a>
+                        <a href="/employee/payroll" data-id="emp-payroll" data-icon="fas fa-money-check-alt" data-title="Payslips" class="nav-item-link no-underline hover:no-underline text-sm py-2 px-3 rounded-lg bg-slate-700/30 hover:bg-slate-700/60 transition-colors flex items-center gap-2" th:classappend="${activeLink == 'payroll'} ? 'text-pink-400 font-medium' : 'text-slate-300'"><i class="fas fa-money-check-alt w-4 text-center"></i> Payslips</a>
+                        <a href="/payment-requests" data-id="payment-requests-emp" data-icon="fas fa-file-invoice-dollar" data-title="Requests" class="nav-item-link no-underline hover:no-underline text-sm py-2 px-3 rounded-lg bg-slate-700/30 hover:bg-slate-700/60 transition-colors flex items-center gap-2" th:classappend="${activeLink == 'payment-requests'} ? 'text-pink-400 font-medium' : 'text-slate-300'"><i class="fas fa-file-invoice-dollar w-4 text-center"></i> Requests</a>
+                        <a href="/employee/change-password" data-id="emp-password" data-icon="fas fa-key" data-title="Password" class="nav-item-link no-underline hover:no-underline text-sm py-2 px-3 rounded-lg bg-slate-700/30 hover:bg-slate-700/60 transition-colors flex items-center gap-2" th:classappend="${activeLink == 'change-password'} ? 'text-pink-400 font-medium' : 'text-slate-300'"><i class="fas fa-key w-4 text-center"></i> Password</a>
+                    </div>
+                </div>
+
+            </div>
+            
+            <!-- Safe Area Bottom Padding for Drawer -->
+            <div class="h-8"></div>
+        </div>
+    </div>
+    
+    <style>
+        /* Custom scrollbar for offcanvas */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(51, 65, 85, 0.8); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(71, 85, 105, 1); }
+        .nav-edit-checkbox { display: none; }
+        .edit-mode .nav-edit-checkbox { display: inline-block; margin-right: 10px; transform: scale(1.2); }
+    </style>
+
+    <script th:inline="javascript">
+        document.addEventListener("DOMContentLoaded", function() {
+            // Get user preferences injected by GlobalControllerAdvice
+            const pinnedList = /*[[${pinnedNavItems}]]*/ ["dashboard", "processing-sheets", "my-space"];
+            
+            const bottomBar = document.getElementById('dynamic-bottom-bar');
+            const drawerLinks = document.querySelectorAll('.nav-item-link');
+            
+            // Build the bottom bar
+            let pinnedCount = 0;
+            
+            // Reorder drawer links so we can match pinned ones
+            // Wait, we need to extract exactly 3 links that match the ID, remove them from drawer, and prepend to bottom bar
+            const pinnedElements = [];
+            
+            drawerLinks.forEach(link => {
+                const id = link.getAttribute('data-id');
+                if (pinnedList.includes(id) && pinnedCount < 3) {
+                    pinnedElements.push(link);
+                    pinnedCount++;
+                }
+            });
+
+            // Insert pinned elements into bottom navbar
+            pinnedElements.forEach(link => {
+                // Clone the link to modify for the bottom bar format
+                const bottomLink = document.createElement('a');
+                bottomLink.href = link.href;
+                
+                // Copy classes and active state
+                const isActive = link.classList.contains('bg-blue-600/20') || link.classList.contains('text-blue-400');
+                let colorClass = isActive ? 'text-blue-400 font-bold' : '';
+                
+                bottomLink.className = `no-underline hover:no-underline flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors hover:text-blue-400 ${colorClass}`;
+                
+                // Construct icon and text
+                const iconClass = link.getAttribute('data-icon');
+                const title = link.getAttribute('data-title');
+                
+                bottomLink.innerHTML = `
+                    <i class="${iconClass} text-xl mb-0.5"></i>
+                    <span class="text-[10px] uppercase tracking-wider font-semibold">${title}</span>
+                `;
+                
+                // Insert before the 'More' button
+                bottomBar.insertBefore(bottomLink, bottomBar.lastElementChild);
+                
+                // Hide from drawer
+                link.style.display = 'none';
+            });
+            
+            // Edit Mode Logic
+            const editBtn = document.getElementById('editPinnedBtn');
+            const drawerContainer = document.getElementById('drawerLinksContainer');
+            let isEditMode = false;
+            
+            // Inject checkboxes into every link for edit mode
+            drawerLinks.forEach(link => {
+                const id = link.getAttribute('data-id');
+                const isChecked = pinnedList.includes(id) ? 'checked' : '';
+                link.insertAdjacentHTML('afterbegin', `<input type="checkbox" class="nav-edit-checkbox" value="${id}" ${isChecked}> `);
+            });
+            
+            editBtn.addEventListener('click', () => {
+                isEditMode = !isEditMode;
+                if (isEditMode) {
+                    drawerContainer.classList.add('edit-mode');
+                    editBtn.textContent = 'Save';
+                    editBtn.classList.remove('btn-outline-primary');
+                    editBtn.classList.add('btn-primary');
+                    
+                    // Show all hidden links so they can be un-selected
+                    drawerLinks.forEach(link => link.style.display = 'flex');
+                    // Reset link default actions
+                    drawerLinks.forEach(link => {
+                        link.dataset.href = link.href;
+                        link.removeAttribute('href');
+                    });
+                } else {
+                    // SAVE!
+                    const checkboxes = document.querySelectorAll('.nav-edit-checkbox:checked');
+                    if (checkboxes.length > 3) {
+                        alert('You can only pin up to 3 items!');
+                        isEditMode = true; // revert
+                        return;
+                    }
+                    
+                    editBtn.textContent = 'Saving...';
+                    const selectedIds = Array.from(checkboxes).map(cb => cb.value);
+                    
+                    fetch('/api/preferences/nav-items', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ pinnedItems: selectedIds.join(',') })
+                    }).then(res => {
+                        if (res.ok) {
+                            window.location.reload();
+                        } else {
+                            alert('Error saving preferences');
+                            window.location.reload();
+                        }
+                    });
+                }
+            });
+            
+            // Handle clicking links in edit mode (toggle checkbox instead of navigating)
+            drawerLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    if (isEditMode) {
+                        e.preventDefault();
+                        const checkbox = link.querySelector('.nav-edit-checkbox');
+                        if (e.target !== checkbox) {
+                            checkbox.checked = !checkbox.checked;
+                        }
+                        
+                        // Enforce max 3 logic dynamically
+                        const checkedCount = document.querySelectorAll('.nav-edit-checkbox:checked').length;
+                        if (checkedCount > 3) {
+                            checkbox.checked = false;
+                            alert('You can only pin up to 3 items!');
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+
+</body>
+</html>

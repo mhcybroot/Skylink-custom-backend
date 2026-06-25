@@ -57,3 +57,28 @@ dependencies {
 tasks.named('test') {
     useJUnitPlatform()
 }
+
+// Tailwind CSS Integration
+tasks.register('downloadTailwind', Exec) {
+    group = 'frontend'
+    description = 'Downloads the Standalone Tailwind CSS CLI'
+    commandLine 'bash', './gradle/download-tailwind.sh'
+}
+
+tasks.register('buildTailwind', Exec) {
+    group = 'frontend'
+    description = 'Compiles Tailwind CSS'
+    dependsOn 'downloadTailwind'
+    
+    commandLine './gradle/tailwindcss', '-i', 'src/main/resources/static/css/tailwind-input.css', '-o', 'src/main/resources/static/css/tailwind.css', '--minify'
+    
+    inputs.files(fileTree('src/main/resources/templates'))
+    inputs.file('src/main/resources/static/css/tailwind-input.css')
+    inputs.file('tailwind.config.js')
+    outputs.file('src/main/resources/static/css/tailwind.css')
+}
+
+// Ensure Tailwind runs before resources are packaged
+tasks.named('processResources') {
+    dependsOn 'buildTailwind'
+}

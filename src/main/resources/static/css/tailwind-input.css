@@ -1,0 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+    /* Mappings for future Bootstrap conversions will go here */
+    /* Example:
+       .btn-custom { @apply bg-blue-600 hover:bg-blue-700 text-white rounded-md px-4 py-2; }
+    */
+}
