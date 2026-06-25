@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.bind.support.SessionStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import root.cyb.mh.attendancesystem.dto.ProcessingWorkOrderImportDTO;
 import root.cyb.mh.attendancesystem.dto.ProcessingWorkOrderImportForm;
 import root.cyb.mh.attendancesystem.model.Employee;
@@ -54,6 +55,13 @@ public class ProcessingSheetController {
     @ModelAttribute("importForm")
     public ProcessingWorkOrderImportForm setUpImportForm() {
         return new ProcessingWorkOrderImportForm();
+    }
+
+    @GetMapping("/dashboard")
+    @PreAuthorize("hasRole('ADMIN')")
+    public String processingDashboard(Model model) {
+        model.addAttribute("activeLink", "admin-analyst-dashboard");
+        return "admin-analyst-dashboard";
     }
 
     @GetMapping("/analyst")
