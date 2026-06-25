@@ -74,6 +74,7 @@
                 }
                 .dataTables_wrapper .dataTables_length select {
                     border-radius: 10px; border: 1px solid #e3e6f0; padding: 5px 12px; background-color: #f8f9fc;
+                    -webkit-appearance: none; -moz-appearance: none; appearance: none; text-align: center; background-image: none !important;
                 }
                 
                 /* Premium Status Badges */
@@ -403,7 +404,7 @@
                                     // Remove old popover if any
                                     if(activePopover) activePopover.remove();
                                     
-                                    if(data && data.length > 1) {
+                                    if(data && data.length > 0) {
                                         const popover = document.createElement('div');
                                         popover.className = 'duplicate-popover';
                                         

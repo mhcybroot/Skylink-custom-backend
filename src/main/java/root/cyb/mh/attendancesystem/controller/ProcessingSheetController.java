@@ -430,7 +430,8 @@ public class ProcessingSheetController {
             Map<String, Object> map = new HashMap<>();
             map.put("woNumber", wo.getWoNumber());
             map.put("status", wo.getStatus());
-            map.put("analyst", wo.getAnalyst());
+            map.put("analyst", wo.getAnalyst() != null ? wo.getAnalyst() : "Unassigned");
+            map.put("entryDate", wo.getEntryDate() != null ? wo.getEntryDate().toString() : "");
             return map;
         }).collect(Collectors.toList());
     }
