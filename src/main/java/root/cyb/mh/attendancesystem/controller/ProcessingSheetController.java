@@ -64,6 +64,7 @@ public class ProcessingSheetController {
     public String processingDashboard(
             @RequestParam(required = false, defaultValue = "all") String filter,
             @RequestParam(required = false, defaultValue = "all") String cardFilter,
+            @RequestParam(required = false, defaultValue = "") String analystFilter,
             @RequestParam(required = false) String startDate,
             @RequestParam(required = false) String endDate,
             @RequestParam(required = false) String monthString,
@@ -127,9 +128,34 @@ public class ProcessingSheetController {
             filteredWos = wos.stream().filter(wo -> wo.getStatus() == null || !wo.getStatus().trim().equalsIgnoreCase("Submitted")).collect(Collectors.toList());
         } else if ("unassigned".equalsIgnoreCase(cardFilter)) {
             filteredWos = wos.stream().filter(wo -> wo.getAnalyst() == null || wo.getAnalyst().trim().isEmpty() || wo.getAnalyst().trim().equalsIgnoreCase("Unassigned") || wo.getAnalyst().trim().equalsIgnoreCase("N/A")).collect(Collectors.toList());
+        } else if ("submitted".equalsIgnoreCase(cardFilter)) {
+            filteredWos = wos.stream().filter(wo -> "Submitted".equalsIgnoreCase(wo.getStatus())).collect(Collectors.toList());
+        } else if ("preservation".equalsIgnoreCase(cardFilter)) {
+            filteredWos = wos.stream().filter(wo -> "Submitted".equalsIgnoreCase(wo.getStatus()) && wo.getCategory() != null && wo.getCategory().trim().toLowerCase().contains("preservation")).collect(Collectors.toList());
+        } else if ("maintenance".equalsIgnoreCase(cardFilter)) {
+            filteredWos = wos.stream().filter(wo -> "Submitted".equalsIgnoreCase(wo.getStatus()) && wo.getCategory() != null && wo.getCategory().trim().toLowerCase().contains("maintenance")).collect(Collectors.toList());
+        } else if ("other".equalsIgnoreCase(cardFilter)) {
+            filteredWos = wos.stream().filter(wo -> {
+                if (!"Submitted".equalsIgnoreCase(wo.getStatus())) return false;
+                if (wo.getCategory() == null || wo.getCategory().trim().isEmpty()) return true;
+                String cat = wo.getCategory().trim().toLowerCase();
+                return !cat.contains("preservation") && !cat.contains("maintenance");
+            }).collect(Collectors.toList());
         } else {
             filteredWos = new ArrayList<>(wos);
             cardFilter = "all";
+        }
+        
+        // Apply analyst filter
+        if (analystFilter != null && !analystFilter.trim().isEmpty() && !"all".equalsIgnoreCase(analystFilter)) {
+            final String targetAnalyst = analystFilter.trim();
+            filteredWos = filteredWos.stream().filter(wo -> {
+                String a = wo.getAnalyst();
+                if (targetAnalyst.equalsIgnoreCase("Unassigned")) {
+                    return a == null || a.trim().isEmpty() || a.trim().equalsIgnoreCase("Unassigned") || a.trim().equalsIgnoreCase("N/A");
+                }
+                return a != null && a.trim().equalsIgnoreCase(targetAnalyst);
+            }).collect(Collectors.toList());
         }
 
         // Chart Data: Performance by Analyst
@@ -227,6 +253,7 @@ public class ProcessingSheetController {
         model.addAttribute("wos", filteredWos);
         model.addAttribute("filter", filter);
         model.addAttribute("cardFilter", cardFilter);
+        model.addAttribute("analystFilter", analystFilter);
         model.addAttribute("startDate", startDate);
         model.addAttribute("endDate", endDate);
         model.addAttribute("totalWOs", totalWOs);
