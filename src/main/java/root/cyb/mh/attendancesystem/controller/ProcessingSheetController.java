@@ -141,6 +141,24 @@ public class ProcessingSheetController {
                 String cat = wo.getCategory().trim().toLowerCase();
                 return !cat.contains("preservation") && !cat.contains("maintenance");
             }).collect(Collectors.toList());
+        } else if (!"all".equalsIgnoreCase(cardFilter)) {
+            final String targetCat = cardFilter.trim();
+            filteredWos = wos.stream().filter(wo -> {
+                if (!"Submitted".equalsIgnoreCase(wo.getStatus())) return false;
+                String cat = wo.getCategory();
+                if (cat == null || cat.trim().isEmpty()) return "Others".equalsIgnoreCase(targetCat);
+                String formattedCat = "";
+                if (cat.contains("securering")) cat = cat.replace("securering", "securing");
+                for (String word : cat.split("\\s+")) {
+                    if (!word.isEmpty()) {
+                        formattedCat += Character.toUpperCase(word.charAt(0)) + (word.length() > 1 ? word.substring(1) : "") + " ";
+                    }
+                }
+                formattedCat = formattedCat.trim();
+                if (formattedCat.isEmpty()) formattedCat = "Others";
+                return formattedCat.equalsIgnoreCase(targetCat);
+            }).collect(Collectors.toList());
+            cardFilter = targetCat;
         } else {
             filteredWos = new ArrayList<>(wos);
             cardFilter = "all";

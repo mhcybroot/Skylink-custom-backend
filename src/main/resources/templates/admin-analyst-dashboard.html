@@ -154,6 +154,10 @@
                     Category: Other
                     <a href="#" onclick="document.getElementById('cardFilterInput').value='all'; document.getElementById('filterForm').submit(); return false;" class="text-secondary text-decoration-none"><i class="fas fa-times"></i></a>
                 </span>
+                <span th:if="${cardFilter != null and cardFilter != 'all' and cardFilter != 'duplicates' and cardFilter != 'errors' and cardFilter != 'unassigned' and cardFilter != 'submitted' and cardFilter != 'preservation' and cardFilter != 'maintenance' and cardFilter != 'other'}" class="badge bg-dark bg-opacity-10 text-dark border border-dark px-3 py-2 rounded-pill d-flex align-items-center gap-2 text-uppercase">
+                    Category: <span th:text="${cardFilter}"></span>
+                    <a href="#" onclick="document.getElementById('cardFilterInput').value='all'; document.getElementById('filterForm').submit(); return false;" class="text-dark text-decoration-none"><i class="fas fa-times"></i></a>
+                </span>
                 
                 <span th:if="${analystFilter != null and analystFilter != 'all' and analystFilter != ''}" class="badge bg-primary bg-opacity-10 text-primary border border-primary px-3 py-2 rounded-pill d-flex align-items-center gap-2">
                     Analyst: <span th:text="${analystFilter}"></span>
@@ -289,8 +293,27 @@
                                             <span class="fw-medium text-gray-800" th:text="${entry.analyst}"></span>
                                         </div>
                                     </td>
-                                    <td class="text-center text-secondary" th:each="cat : ${activeCategories}" th:text="${entry.dynamicCategoryCounts.get(cat) ?: 0}"></td>
-                                    <td class="text-center fw-bold text-primary pe-4" th:text="${entry.totalWos}"></td>
+                                    <td class="text-center text-secondary" th:each="cat : ${activeCategories}">
+                                        <a href="#" class="text-decoration-none"
+                                           th:data-analyst="${entry.analyst}"
+                                           th:data-cat="${cat}"
+                                           th:data-active="${analystFilter == entry.analyst and cardFilter == cat}"
+                                           onclick="document.getElementById('analystFilterInput').value = (this.getAttribute('data-active') === 'true' ? 'all' : this.getAttribute('data-analyst')); document.getElementById('cardFilterInput').value = (this.getAttribute('data-active') === 'true' ? 'all' : this.getAttribute('data-cat')); document.getElementById('filterForm').submit(); return false;"
+                                           style="display: block; width: 100%; height: 100%; cursor: pointer;">
+                                            <span class="badge px-2 py-1"
+                                                  th:classappend="${analystFilter == entry.analyst and cardFilter == cat ? 'bg-dark text-white' : 'bg-dark bg-opacity-10 text-dark'}"
+                                                  th:text="${entry.dynamicCategoryCounts.get(cat) ?: 0}">0</span>
+                                        </a>
+                                    </td>
+                                    <td class="text-center fw-bold text-primary pe-4">
+                                        <a href="#" class="text-decoration-none"
+                                           th:data-analyst="${entry.analyst}"
+                                           th:data-active="${analystFilter == entry.analyst and cardFilter == 'submitted'}"
+                                           onclick="document.getElementById('analystFilterInput').value = (this.getAttribute('data-active') === 'true' ? 'all' : this.getAttribute('data-analyst')); document.getElementById('cardFilterInput').value = (this.getAttribute('data-active') === 'true' ? 'all' : 'submitted'); document.getElementById('filterForm').submit(); return false;"
+                                           style="display: block; width: 100%; height: 100%; cursor: pointer;"
+                                           th:classappend="${analystFilter != null and analystFilter == entry.analyst and cardFilter == 'submitted' ? 'text-primary text-decoration-underline' : 'text-primary hover-primary'}"
+                                           th:text="${entry.totalWos}"></a>
+                                    </td>
                                 </tr>
                                 <tr th:if="${#lists.isEmpty(performanceByAnalyst)}">
                                     <td colspan="12" class="text-center text-muted py-4">No data available</td>
@@ -399,7 +422,15 @@
                                         <div class="text-muted" style="font-size: 0.75rem;"><span class="me-1">Inv:</span><span th:text="${'$' + (entry.seriesOthersClientInvoice != null ? #numbers.formatDecimal(entry.seriesOthersClientInvoice, 1, 'COMMA', 2, 'POINT') : '0.00')}"></span></div>
                                         <div style="font-size: 0.75rem;" th:class="${entry.seriesOthersProfit != null and entry.seriesOthersProfit < 0 ? 'text-danger' : (entry.seriesOthersProfit != null and entry.seriesOthersProfit > 0 ? 'text-success' : 'text-muted')}"><span class="me-1">Profit:</span><span th:text="${'$' + (entry.seriesOthersProfit != null ? #numbers.formatDecimal(entry.seriesOthersProfit, 1, 'COMMA', 2, 'POINT') : '0.00')}"></span></div>
                                     </td>
-                                    <td class="text-center fw-bold text-primary pe-4" th:text="${entry.totalWos}"></td>
+                                    <td class="text-center fw-bold text-primary pe-4">
+                                        <a href="#" class="text-decoration-none"
+                                           th:data-analyst="${entry.analyst}"
+                                           th:data-active="${analystFilter == entry.analyst and cardFilter == 'submitted'}"
+                                           onclick="document.getElementById('analystFilterInput').value = (this.getAttribute('data-active') === 'true' ? 'all' : this.getAttribute('data-analyst')); document.getElementById('cardFilterInput').value = (this.getAttribute('data-active') === 'true' ? 'all' : 'submitted'); document.getElementById('filterForm').submit(); return false;"
+                                           style="display: block; width: 100%; height: 100%; cursor: pointer;"
+                                           th:classappend="${analystFilter != null and analystFilter == entry.analyst and cardFilter == 'submitted' ? 'text-primary text-decoration-underline' : 'text-primary hover-primary'}"
+                                           th:text="${entry.totalWos}"></a>
+                                    </td>
                                 </tr>
                                 <tr th:if="${#lists.isEmpty(performanceByAnalyst)}">
                                     <td colspan="12" class="text-center text-muted py-4">No data available</td>
