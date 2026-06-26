@@ -63,6 +63,7 @@ public class ProcessingSheetController {
     @PreAuthorize("hasRole('ADMIN')")
     public String processingDashboard(
             @RequestParam(required = false, defaultValue = "all") String filter,
+            @RequestParam(required = false, defaultValue = "all") String cardFilter,
             @RequestParam(required = false) String startDate,
             @RequestParam(required = false) String endDate,
             @RequestParam(required = false) String monthString,
@@ -118,10 +119,23 @@ public class ProcessingSheetController {
         }
         model.addAttribute("monthString", monthString);
 
+        // Apply card filter to the list for tables and reports
+        List<ProcessingWorkOrder> filteredWos = new ArrayList<>();
+        if ("duplicates".equalsIgnoreCase(cardFilter)) {
+            filteredWos = wos.stream().filter(wo -> wo.getWoNumber() != null && wo.getWoNumber().contains("-DUP")).collect(Collectors.toList());
+        } else if ("errors".equalsIgnoreCase(cardFilter)) {
+            filteredWos = wos.stream().filter(wo -> wo.getStatus() == null || !wo.getStatus().trim().equalsIgnoreCase("Submitted")).collect(Collectors.toList());
+        } else if ("unassigned".equalsIgnoreCase(cardFilter)) {
+            filteredWos = wos.stream().filter(wo -> wo.getAnalyst() == null || wo.getAnalyst().trim().isEmpty() || wo.getAnalyst().trim().equalsIgnoreCase("Unassigned") || wo.getAnalyst().trim().equalsIgnoreCase("N/A")).collect(Collectors.toList());
+        } else {
+            filteredWos = new ArrayList<>(wos);
+            cardFilter = "all";
+        }
+
         // Chart Data: Performance by Analyst
         java.util.Set<String> activeCategories = new java.util.TreeSet<>();
         Map<String, AnalystPerformanceDto> performanceByAnalystMap = new HashMap<>();
-        for (ProcessingWorkOrder wo : wos) {
+        for (ProcessingWorkOrder wo : filteredWos) {
             String analyst = wo.getAnalyst();
             if (analyst != null && !analyst.trim().isEmpty()) {
                 AnalystPerformanceDto dto = performanceByAnalystMap.computeIfAbsent(analyst, k -> {
@@ -188,7 +202,7 @@ public class ProcessingSheetController {
         performanceByAnalyst.sort(Comparator.comparing(AnalystPerformanceDto::getAnalyst));
         
         // Chart Data: WOs by Category
-        Map<String, Long> categoryCounts = wos.stream()
+        Map<String, Long> categoryCounts = filteredWos.stream()
             .filter(wo -> wo.getCategory() != null && !wo.getCategory().trim().isEmpty() && "Submitted".equalsIgnoreCase(wo.getStatus()))
             .collect(Collectors.groupingBy(ProcessingWorkOrder::getCategory, Collectors.counting()));
 
@@ -210,8 +224,9 @@ public class ProcessingSheetController {
         List<Employee> allAnalysts = employeeRepository.findByIsAnalystTrue();
         model.addAttribute("allAnalysts", allAnalysts);
 
-        model.addAttribute("wos", wos);
+        model.addAttribute("wos", filteredWos);
         model.addAttribute("filter", filter);
+        model.addAttribute("cardFilter", cardFilter);
         model.addAttribute("startDate", startDate);
         model.addAttribute("endDate", endDate);
         model.addAttribute("totalWOs", totalWOs);
