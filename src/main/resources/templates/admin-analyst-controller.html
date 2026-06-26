@@ -248,7 +248,18 @@
                                     <td th:text="${wo.category}"></td>
                                     <td class="wo-hover-cell address-hover" th:data-address="${wo.address}" th:text="${wo.address}"></td>
                                     <td th:text="${wo.photoCount}"></td>
-                                    <td th:text="${wo.analyst}"></td>
+                                    <td>
+                                        <select class="form-select form-select-sm border-0 bg-transparent analyst-dropdown" 
+                                                th:data-wo="${wo.woNumber}" 
+                                                style="width: 120px; font-size: 0.85rem; font-weight: 600; color: #5a5c69; cursor: pointer;"
+                                                onchange="updateAnalyst(this)">
+                                            <option value="Unassigned" th:selected="${wo.analyst == null || wo.analyst == 'Unassigned' || wo.analyst == ''}">Unassigned</option>
+                                            <option th:each="emp : ${allAnalysts}" 
+                                                    th:value="${emp.name}" 
+                                                    th:text="${emp.name}"
+                                                    th:selected="${wo.analyst != null and emp.name != null and #strings.equalsIgnoreCase(#strings.trim(wo.analyst), #strings.trim(emp.name))}"></option>
+                                        </select>
+                                    </td>
                                     <td>
                                         <span class="badge rounded-pill badge-premium status-badge" th:classappend="${wo.status == 'NEW' ? 'badge-new' : 'badge-done'}" th:text="${wo.status}"></span>
                                     </td>
@@ -498,6 +509,55 @@
                         }
                     }, 100);
                 }
+                
+                // Global error handler
+                window.addEventListener('error', function(e) {
+                    console.error('Global error caught:', e.error);
+                });
+
+                // Analyst Dropdown Update Logic
+                window.updateAnalyst = async function(selectElement) {
+                    const woNumber = selectElement.getAttribute('data-wo');
+                    const newValue = selectElement.value;
+                    const originalValue = selectElement.getAttribute('data-original') || '';
+                    
+                    // Show loading state
+                    selectElement.disabled = true;
+                    selectElement.style.opacity = '0.5';
+
+                    try {
+                        const response = await fetch('/processing-sheet/api/update-wo', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ woNumber, field: 'analyst', value: newValue })
+                        });
+                        
+                        const result = await response.json();
+                        if (result.success) {
+                            // Visual feedback
+                            selectElement.setAttribute('data-original', newValue);
+                            selectElement.style.backgroundColor = '#e8f5e9'; // light green
+                            setTimeout(() => {
+                                selectElement.style.backgroundColor = 'transparent';
+                            }, 1000);
+                        } else {
+                            alert('Failed to update analyst: ' + (result.message || 'Unknown error'));
+                            selectElement.value = originalValue; // revert
+                        }
+                    } catch (error) {
+                        console.error("Error updating analyst:", error);
+                        alert('Network error while updating analyst.');
+                        selectElement.value = originalValue; // revert
+                    } finally {
+                        selectElement.disabled = false;
+                        selectElement.style.opacity = '1';
+                    }
+                }
+                
+                // Initialize original values
+                document.querySelectorAll('.analyst-dropdown').forEach(select => {
+                    select.setAttribute('data-original', select.value);
+                });
                 
                 // Handle Delete button clicks via Event Delegation
                 document.addEventListener('click', function(e) {

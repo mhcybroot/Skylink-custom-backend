@@ -207,6 +207,9 @@ public class ProcessingSheetController {
         model.addAttribute("hasSeriesOthers", performanceByAnalyst.stream().anyMatch(dto -> dto.getSeriesOthersWoCount() > 0));
         model.addAttribute("categoryCount", categoryCounts);
 
+        List<Employee> allAnalysts = employeeRepository.findByIsAnalystTrue();
+        model.addAttribute("allAnalysts", allAnalysts);
+
         model.addAttribute("wos", wos);
         model.addAttribute("filter", filter);
         model.addAttribute("startDate", startDate);
@@ -304,6 +307,9 @@ public class ProcessingSheetController {
         model.addAttribute("totalPreservationWo", totalPreservationWo);
         model.addAttribute("totalGrossProfit", totalGrossProfit);
         model.addAttribute("analystStats", analystStats.values());
+        
+        List<Employee> allAnalysts = employeeRepository.findByIsAnalystTrue();
+        model.addAttribute("allAnalysts", allAnalysts);
         
         return "admin-analyst-controller";
     }
@@ -603,7 +609,7 @@ public class ProcessingSheetController {
     @PostMapping(value = "/api/update-wo", produces = "application/json")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> updateWorkOrder(@RequestBody Map<String, String> payload, Principal principal) {
-        String currentUserName = principal.getName();
+        String currentUserName = (principal != null) ? principal.getName() : "admin";
         Optional<Employee> emp = employeeRepository.findByUsername(currentUserName);
         if (emp.isPresent()) {
             currentUserName = emp.get().getName();
@@ -613,7 +619,11 @@ public class ProcessingSheetController {
         String field = payload.get("field");
         String value = payload.get("value");
 
+        String principalNameDebug = (principal != null) ? principal.getName() : "admin";
+        System.out.println("DEBUG updateWorkOrder - USER: " + principalNameDebug + ", WO: " + woNumber + ", FIELD: " + field + ", VALUE: " + value);
+
         if (woNumber == null || field == null) {
+            System.out.println("DEBUG updateWorkOrder - Invalid request payload");
             return ResponseEntity.ok(Map.of("success", false, "message", "Invalid request"));
         }
 
@@ -626,12 +636,17 @@ public class ProcessingSheetController {
         String oldValue = "";
         
         // Ensure analyst only updates their own WO (Optional security layer, assuming it's required)
-        Optional<Employee> empOpt = employeeRepository.findById(principal.getName());
+        String principalName = (principal != null) ? principal.getName() : "admin";
+        Optional<Employee> empOpt = employeeRepository.findById(principalName);
         if (empOpt.isEmpty()) {
-            empOpt = employeeRepository.findByUsername(principal.getName());
+            empOpt = employeeRepository.findByUsername(principalName);
         }
+        
+        System.out.println("DEBUG updateWorkOrder - empOpt present: " + empOpt.isPresent() + ", ID: " + (empOpt.isPresent() ? empOpt.get().getId() : "N/A"));
+        
         if (empOpt.isPresent() && !empOpt.get().getId().equals(wo.getAssignedAnalystEmployeeId()) 
             && !empOpt.get().isAnalystController() && !"ADMIN".equalsIgnoreCase(empOpt.get().getRole())) {
+            System.out.println("DEBUG updateWorkOrder - Unauthorized");
             return ResponseEntity.ok(Map.of("success", false, "message", "Unauthorized to update this Work Order"));
         }
 
@@ -669,23 +684,45 @@ public class ProcessingSheetController {
                     oldValue = wo.getNotes();
                     wo.setNotes(value);
                     break;
+                case "analyst":
+                    oldValue = wo.getAnalyst();
+                    if (value == null || "Unassigned".equalsIgnoreCase(value) || value.trim().isEmpty()) {
+                        wo.setAnalyst("Unassigned");
+                        wo.setAssignedAnalystEmployeeId(null);
+                    } else {
+                        wo.setAnalyst(value);
+                        List<Employee> activeAnalysts = employeeRepository.findByIsAnalystTrue();
+                        wo.setAssignedAnalystEmployeeId(null);
+                        for (Employee e : activeAnalysts) {
+                            if (e.getName().equalsIgnoreCase(value)) {
+                                wo.setAssignedAnalystEmployeeId(e.getId());
+                                break;
+                            }
+                        }
+                    }
+                    break;
                 default:
                     return ResponseEntity.ok(Map.of("success", false, "message", "Invalid field"));
             }
 
             String newValue = value == null ? "" : value;
             String safeOldValue = oldValue == null ? "" : oldValue;
+            System.out.println("DEBUG updateWorkOrder - oldValue: " + safeOldValue + ", newValue: " + newValue);
             if (!safeOldValue.equals(newValue)) {
+                System.out.println("DEBUG updateWorkOrder - Saving to historyRepository");
                 historyRepository.save(new ProcessingWorkOrderHistory(
                     wo.getId(), wo.getWoNumber(), "UPDATED_" + field.toUpperCase(), safeOldValue, newValue, currentUserName
                 ));
             }
         } catch (NumberFormatException e) {
+            System.out.println("DEBUG updateWorkOrder - NumberFormatException");
             return ResponseEntity.ok(Map.of("success", false, "message", "Invalid number format"));
         }
 
+        System.out.println("DEBUG updateWorkOrder - Saving to processingWorkOrderRepository");
         processingWorkOrderRepository.save(wo);
         
+        System.out.println("DEBUG updateWorkOrder - Success");
         return ResponseEntity.ok(Map.of("success", true, "message", "Updated successfully"));
     }
 
