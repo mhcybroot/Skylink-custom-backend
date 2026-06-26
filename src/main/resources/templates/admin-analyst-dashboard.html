@@ -1,42 +1,557 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(~{::content}, ~{::scripts}, 'admin-analyst-dashboard')}">
-
+<html xmlns:th="http://www.thymeleaf.org">
 <body>
-    <th:block th:fragment="content">
-        <div class="container-fluid px-4 py-4">
-            
-            <!-- Page Header -->
-            <div class="d-flex justify-content-between align-items-end mb-4">
-                <div>
-                    <h2 class="mb-1 text-dark fw-bold" style="letter-spacing: -0.5px;">Processing Dashboard</h2>
-                    <p class="text-muted mb-0">Overview of processing sheet metrics and statuses.</p>
-                </div>
-            </div>
+    <div th:replace="~{layout :: layout(~{::section}, ~{::script}, 'admin-analyst-dashboard')}">
+        <section>
+    
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 text-gray-800 fw-bold mb-0">Processing Dashboard</h1>
+    </div>
 
-            <!-- Coming Soon State -->
-            <div class="card border-0 shadow-sm rounded-4 overflow-hidden" style="min-height: 400px;">
-                <div class="card-body d-flex flex-column align-items-center justify-content-center text-center p-5">
-                    <div class="bg-primary bg-opacity-10 rounded-circle p-4 mb-4">
-                        <i class="fas fa-chart-pie fa-3x text-primary"></i>
-                    </div>
-                    <h3 class="fw-bold text-dark mb-2">Dashboard Coming Soon</h3>
-                    <p class="text-muted mb-4" style="max-width: 500px;">
-                        We are currently preparing the analytics and data visualizations for this dashboard. 
-                        Soon you will be able to view comprehensive metrics regarding Work Orders and processing statuses.
-                    </p>
-                    <button class="btn btn-primary rounded-pill px-4 shadow-sm" disabled>
-                        <i class="fas fa-magic me-2"></i> Under Construction
+    <!-- Filter Bar -->
+    <div class="card shadow-sm border-0 rounded-4 mb-4">
+        <div class="card-body p-4">
+            <form id="filterForm" class="row g-3 align-items-end" action="/processing-sheet/dashboard" method="get">
+                <div class="col-md-3">
+                    <label class="form-label text-muted small fw-bold">Time Range</label>
+                    <select class="form-select border-0 bg-light" name="filter" id="timeFilter" onchange="toggleCustomDates()">
+                        <option value="monthly" th:selected="${filter == 'monthly'}">By Month</option>
+                        <option value="custom" th:selected="${filter == 'custom'}">Custom Range</option>
+                    </select>
+                </div>
+                
+                <div class="col-md-3 monthly-date-group" style="display: none;">
+                    <label class="form-label text-muted small fw-bold">Select Month</label>
+                    <select class="form-select border-0 bg-light" name="monthString" id="monthString">
+                        <option th:each="m : ${availableMonths}" 
+                                th:value="${m.value}" 
+                                th:text="${m.label}"
+                                th:selected="${m.value == monthString}"></option>
+                    </select>
+                </div>
+                
+                <div class="col-md-3 custom-date-group" style="display: none;">
+                    <label class="form-label text-muted small fw-bold">Start Date</label>
+                    <input type="date" class="form-control border-0 bg-light" name="startDate" id="startDate" th:value="${startDate}">
+                </div>
+                
+                <div class="col-md-3 custom-date-group" style="display: none;">
+                    <label class="form-label text-muted small fw-bold">End Date</label>
+                    <input type="date" class="form-control border-0 bg-light" name="endDate" id="endDate" th:value="${endDate}">
+                </div>
+                
+                <div class="col-md-auto d-flex gap-2">
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-medium">
+                        <i class="fas fa-filter me-2"></i> Apply Filters
                     </button>
+                    <a href="/processing-sheet/dashboard?filter=all" class="btn btn-secondary rounded-pill px-4 fw-medium">
+                        All Time
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Metrics Cards -->
+    <div class="row g-4 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="card shadow-sm border-0 rounded-4 h-100 bg-white">
+                <div class="card-body p-4 d-flex align-items-center">
+                    <div class="rounded-circle bg-primary bg-opacity-10 p-3 me-3">
+                        <i class="fas fa-file-invoice text-primary fs-4"></i>
+                    </div>
+                    <div>
+                        <p class="text-muted small mb-1 fw-bold text-uppercase">Total Work Orders</p>
+                        <h3 class="mb-0 fw-bold" th:text="${totalWOs}">0</h3>
+                    </div>
                 </div>
             </div>
-
         </div>
-    </th:block>
+        <div class="col-xl-3 col-md-6">
+            <div class="card shadow-sm border-0 rounded-4 h-100 bg-white">
+                <div class="card-body p-4 d-flex align-items-center">
+                    <div class="rounded-circle bg-warning bg-opacity-10 p-3 me-3">
+                        <i class="fas fa-copy text-warning fs-4"></i>
+                    </div>
+                    <div>
+                        <p class="text-muted small mb-1 fw-bold text-uppercase">Duplicates Found</p>
+                        <h3 class="mb-0 fw-bold" th:text="${duplicates}">0</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card shadow-sm border-0 rounded-4 h-100 bg-white">
+                <div class="card-body p-4 d-flex align-items-center">
+                    <div class="rounded-circle bg-danger bg-opacity-10 p-3 me-3">
+                        <i class="fas fa-exclamation-triangle text-danger fs-4"></i>
+                    </div>
+                    <div>
+                        <p class="text-muted small mb-1 fw-bold text-uppercase">Action Required / Errors</p>
+                        <h3 class="mb-0 fw-bold" th:text="${errors}">0</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card shadow-sm border-0 rounded-4 h-100 bg-white">
+                <div class="card-body p-4 d-flex align-items-center">
+                    <div class="rounded-circle bg-secondary bg-opacity-10 p-3 me-3">
+                        <i class="fas fa-user-slash text-secondary fs-4"></i>
+                    </div>
+                    <div>
+                        <p class="text-muted small mb-1 fw-bold text-uppercase">Unassigned</p>
+                        <h3 class="mb-0 fw-bold" th:text="${unassigned}">0</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <th:block th:fragment="scripts">
-        <script>
-            // Dashboard specific scripts will go here
+    <!-- Tables Section -->
+    <div class="row g-4 mb-4">
+        <!-- Analyst Performance Table -->
+        <div class="col-12">
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-header bg-white border-0 pt-4 pb-0">
+                    <h6 class="fw-bold text-gray-800 m-0">Performance by Analyst</h6>
+                </div>
+                <div class="card-body p-0 pt-3">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0 text-uppercase" style="font-size: 0.8rem;">
+                            <thead class="table-light text-muted fw-bold" style="font-size: 0.75rem;">
+                                <tr>
+                                    <th class="ps-4 border-0">ANALYST</th>
+                                    <th class="border-0 text-center">Total Assigned (All Status)</th>
+                                    <th class="border-0 text-center">Total BID Submitted</th>
+                                    <th class="border-0 text-center">Total WO Submitted</th>
+                                    <th class="border-0 text-end">BID AMOUNT</th>
+                                    <th class="border-0 text-end">GROSS PROFIT</th>
+                                    <th class="border-0 text-center">Preservation WO</th>
+                                    <th class="border-0 text-center">Maintenance WO</th>
+                                    <th class="border-0 text-center pe-4">Other WO</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="entry : ${performanceByAnalyst}">
+                                    <td class="ps-4">
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-circle bg-primary bg-opacity-10 text-primary me-2 fw-bold" 
+                                                 style="width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px;"
+                                                 th:text="${#strings.substring(entry.analyst, 0, 1)}">A</div>
+                                            <span class="fw-medium text-gray-800" th:text="${entry.analyst}"></span>
+                                        </div>
+                                    </td>
+                                    <td class="text-center fw-bold text-secondary" th:text="${entry.totalAssignedWos}"></td>
+                                    <td class="text-center text-gray-800" th:text="${entry.bidCount}"></td>
+                                    <td class="text-center fw-bold text-primary" th:text="${entry.totalWos}"></td>
+                                    <td class="text-end text-gray-800 fw-medium" th:text="${entry.bidAmount != null ? '$' + #numbers.formatDecimal(entry.bidAmount, 1, 'COMMA', 2, 'POINT') : '$0.00'}"></td>
+                                    <td class="text-end fw-bold" 
+                                        th:classappend="${entry.grossProfit != null and entry.grossProfit > 0 ? 'text-success' : (entry.grossProfit != null and entry.grossProfit < 0 ? 'text-danger' : 'text-success')}"
+                                        th:text="${entry.grossProfit != null ? '$' + #numbers.formatDecimal(entry.grossProfit, 1, 'COMMA', 2, 'POINT') : '$0.00'}"></td>
+                                    <td class="text-center">
+                                        <span class="badge bg-info bg-opacity-10 text-info px-2 py-1" th:text="${entry.preservationWoCount}">0</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-warning bg-opacity-10 text-warning px-2 py-1" th:text="${entry.maintenanceWoCount}">0</span>
+                                    </td>
+                                    <td class="text-center pe-4">
+                                        <span class="badge bg-secondary bg-opacity-10 text-secondary px-2 py-1" th:text="${entry.dynamicCategoryCounts.get('Others') ?: 0}">0</span>
+                                    </td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(performanceByAnalyst)}">
+                                    <td colspan="9" class="text-center text-muted py-4">No data available</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Work Order Submission Table -->
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-header bg-white border-0 pt-4 pb-0">
+                    <h6 class="fw-bold text-gray-800 m-0">Work Order Submission (By Category)</h6>
+                </div>
+                <div class="card-body p-0 pt-3">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0 text-uppercase" style="font-size: 0.8rem;">
+                            <thead class="table-light text-muted fw-bold" style="font-size: 0.75rem;">
+                                <tr>
+                                    <th class="ps-4 border-0">ANALYST</th>
+                                    <th class="border-0 text-center" th:each="cat : ${activeCategories}" th:text="${cat}"></th>
+                                    <th class="border-0 text-center pe-4 text-primary">Total WO</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="entry : ${performanceByAnalyst}">
+                                    <td class="ps-4">
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-circle bg-primary bg-opacity-10 text-primary me-2 fw-bold" 
+                                                 style="width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px;"
+                                                 th:text="${#strings.substring(entry.analyst, 0, 1)}">A</div>
+                                            <span class="fw-medium text-gray-800" th:text="${entry.analyst}"></span>
+                                        </div>
+                                    </td>
+                                    <td class="text-center text-secondary" th:each="cat : ${activeCategories}" th:text="${entry.dynamicCategoryCounts.get(cat) ?: 0}"></td>
+                                    <td class="text-center fw-bold text-primary pe-4" th:text="${entry.totalWos}"></td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(performanceByAnalyst)}">
+                                    <td colspan="12" class="text-center text-muted py-4">No data available</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Work Order Submission (By Series) Table -->
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-header bg-white border-0 pt-4 pb-0">
+                    <h6 class="fw-bold text-gray-800 m-0">Work Order Submission (By Series)</h6>
+                </div>
+                <div class="card-body p-0 pt-3">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0 text-uppercase" style="font-size: 0.8rem;">
+                            <thead class="table-light text-muted fw-bold" style="font-size: 0.75rem;">
+                                <tr>
+                                    <th class="ps-4 border-0">ANALYST</th>
+                                    <th class="border-0 text-center" th:if="${hasSeries100}">100 Series</th>
+                                    <th class="border-0 text-center" th:if="${hasSeries200}">200 Series</th>
+                                    <th class="border-0 text-center" th:if="${hasSeries300}">300 Series</th>
+                                    <th class="border-0 text-center" th:if="${hasSeries400}">400 Series</th>
+                                    <th class="border-0 text-center" th:if="${hasSeries500}">500 Series</th>
+                                    <th class="border-0 text-center" th:if="${hasSeries600}">600 Series</th>
+                                    <th class="border-0 text-center" th:if="${hasSeries700}">700 Series</th>
+                                    <th class="border-0 text-center" th:if="${hasSeries800}">800 Series</th>
+                                    <th class="border-0 text-center" th:if="${hasSeries900}">900 Series</th>
+                                    <th class="border-0 text-center" th:if="${hasSeriesOthers}">Others</th>
+                                    <th class="border-0 text-center pe-4 text-primary">Total WO</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="entry : ${performanceByAnalyst}">
+                                    <td class="ps-4">
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-circle bg-primary bg-opacity-10 text-primary me-2 fw-bold" 
+                                                 style="width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px;"
+                                                 th:text="${#strings.substring(entry.analyst, 0, 1)}">A</div>
+                                            <span class="fw-medium text-gray-800" th:text="${entry.analyst}"></span>
+                                        </div>
+                                    </td>
+                                    <td class="text-center" th:if="${hasSeries100}">
+                                        <div class="fw-medium text-secondary" style="font-size: 0.8rem;"><span class="text-muted me-1">WO:</span><span th:text="${entry.series100WoCount}"></span></div>
+                                        <div class="text-muted" style="font-size: 0.75rem;"><span class="me-1">Bid:</span><span th:text="${'$' + (entry.series100BidAmount != null ? #numbers.formatDecimal(entry.series100BidAmount, 1, 'COMMA', 2, 'POINT') : '0.00')}"></span></div>
+                                        <div class="text-muted" style="font-size: 0.75rem;"><span class="me-1">Inv:</span><span th:text="${'$' + (entry.series100ClientInvoice != null ? #numbers.formatDecimal(entry.series100ClientInvoice, 1, 'COMMA', 2, 'POINT') : '0.00')}"></span></div>
+                                        <div style="font-size: 0.75rem;" th:class="${entry.series100Profit != null and entry.series100Profit < 0 ? 'text-danger' : (entry.series100Profit != null and entry.series100Profit > 0 ? 'text-success' : 'text-muted')}"><span class="me-1">Profit:</span><span th:text="${'$' + (entry.series100Profit != null ? #numbers.formatDecimal(entry.series100Profit, 1, 'COMMA', 2, 'POINT') : '0.00')}"></span></div>
+                                    </td>
+                                    <td class="text-center" th:if="${hasSeries200}">
+                                        <div class="fw-medium text-secondary" style="font-size: 0.8rem;"><span class="text-muted me-1">WO:</span><span th:text="${entry.series200WoCount}"></span></div>
+                                        <div class="text-muted" style="font-size: 0.75rem;"><span class="me-1">Bid:</span><span th:text="${'$' + (entry.series200BidAmount != null ? #numbers.formatDecimal(entry.series200BidAmount, 1, 'COMMA', 2, 'POINT') : '0.00')}"></span></div>
+                                        <div class="text-muted" style="font-size: 0.75rem;"><span class="me-1">Inv:</span><span th:text="${'$' + (entry.series200ClientInvoice != null ? #numbers.formatDecimal(entry.series200ClientInvoice, 1, 'COMMA', 2, 'POINT') : '0.00')}"></span></div>
+                                        <div style="font-size: 0.75rem;" th:class="${entry.series200Profit != null and entry.series200Profit < 0 ? 'text-danger' : (entry.series200Profit != null and entry.series200Profit > 0 ? 'text-success' : 'text-muted')}"><span class="me-1">Profit:</span><span th:text="${'$' + (entry.series200Profit != null ? #numbers.formatDecimal(entry.series200Profit, 1, 'COMMA', 2, 'POINT') : '0.00')}"></span></div>
+                                    </td>
+                                    <td class="text-center" th:if="${hasSeries300}">
+                                        <div class="fw-medium text-secondary" style="font-size: 0.8rem;"><span class="text-muted me-1">WO:</span><span th:text="${entry.series300WoCount}"></span></div>
+                                        <div class="text-muted" style="font-size: 0.75rem;"><span class="me-1">Bid:</span><span th:text="${'$' + (entry.series300BidAmount != null ? #numbers.formatDecimal(entry.series300BidAmount, 1, 'COMMA', 2, 'POINT') : '0.00')}"></span></div>
+                                        <div class="text-muted" style="font-size: 0.75rem;"><span class="me-1">Inv:</span><span th:text="${'$' + (entry.series300ClientInvoice != null ? #numbers.formatDecimal(entry.series300ClientInvoice, 1, 'COMMA', 2, 'POINT') : '0.00')}"></span></div>
+                                        <div style="font-size: 0.75rem;" th:class="${entry.series300Profit != null and entry.series300Profit < 0 ? 'text-danger' : (entry.series300Profit != null and entry.series300Profit > 0 ? 'text-success' : 'text-muted')}"><span class="me-1">Profit:</span><span th:text="${'$' + (entry.series300Profit != null ? #numbers.formatDecimal(entry.series300Profit, 1, 'COMMA', 2, 'POINT') : '0.00')}"></span></div>
+                                    </td>
+                                    <td class="text-center" th:if="${hasSeries400}">
+                                        <div class="fw-medium text-secondary" style="font-size: 0.8rem;"><span class="text-muted me-1">WO:</span><span th:text="${entry.series400WoCount}"></span></div>
+                                        <div class="text-muted" style="font-size: 0.75rem;"><span class="me-1">Bid:</span><span th:text="${'$' + (entry.series400BidAmount != null ? #numbers.formatDecimal(entry.series400BidAmount, 1, 'COMMA', 2, 'POINT') : '0.00')}"></span></div>
+                                        <div class="text-muted" style="font-size: 0.75rem;"><span class="me-1">Inv:</span><span th:text="${'$' + (entry.series400ClientInvoice != null ? #numbers.formatDecimal(entry.series400ClientInvoice, 1, 'COMMA', 2, 'POINT') : '0.00')}"></span></div>
+                                        <div style="font-size: 0.75rem;" th:class="${entry.series400Profit != null and entry.series400Profit < 0 ? 'text-danger' : (entry.series400Profit != null and entry.series400Profit > 0 ? 'text-success' : 'text-muted')}"><span class="me-1">Profit:</span><span th:text="${'$' + (entry.series400Profit != null ? #numbers.formatDecimal(entry.series400Profit, 1, 'COMMA', 2, 'POINT') : '0.00')}"></span></div>
+                                    </td>
+                                    <td class="text-center" th:if="${hasSeries500}">
+                                        <div class="fw-medium text-secondary" style="font-size: 0.8rem;"><span class="text-muted me-1">WO:</span><span th:text="${entry.series500WoCount}"></span></div>
+                                        <div class="text-muted" style="font-size: 0.75rem;"><span class="me-1">Bid:</span><span th:text="${'$' + (entry.series500BidAmount != null ? #numbers.formatDecimal(entry.series500BidAmount, 1, 'COMMA', 2, 'POINT') : '0.00')}"></span></div>
+                                        <div class="text-muted" style="font-size: 0.75rem;"><span class="me-1">Inv:</span><span th:text="${'$' + (entry.series500ClientInvoice != null ? #numbers.formatDecimal(entry.series500ClientInvoice, 1, 'COMMA', 2, 'POINT') : '0.00')}"></span></div>
+                                        <div style="font-size: 0.75rem;" th:class="${entry.series500Profit != null and entry.series500Profit < 0 ? 'text-danger' : (entry.series500Profit != null and entry.series500Profit > 0 ? 'text-success' : 'text-muted')}"><span class="me-1">Profit:</span><span th:text="${'$' + (entry.series500Profit != null ? #numbers.formatDecimal(entry.series500Profit, 1, 'COMMA', 2, 'POINT') : '0.00')}"></span></div>
+                                    </td>
+                                    <td class="text-center" th:if="${hasSeries600}">
+                                        <div class="fw-medium text-secondary" style="font-size: 0.8rem;"><span class="text-muted me-1">WO:</span><span th:text="${entry.series600WoCount}"></span></div>
+                                        <div class="text-muted" style="font-size: 0.75rem;"><span class="me-1">Bid:</span><span th:text="${'$' + (entry.series600BidAmount != null ? #numbers.formatDecimal(entry.series600BidAmount, 1, 'COMMA', 2, 'POINT') : '0.00')}"></span></div>
+                                        <div class="text-muted" style="font-size: 0.75rem;"><span class="me-1">Inv:</span><span th:text="${'$' + (entry.series600ClientInvoice != null ? #numbers.formatDecimal(entry.series600ClientInvoice, 1, 'COMMA', 2, 'POINT') : '0.00')}"></span></div>
+                                        <div style="font-size: 0.75rem;" th:class="${entry.series600Profit != null and entry.series600Profit < 0 ? 'text-danger' : (entry.series600Profit != null and entry.series600Profit > 0 ? 'text-success' : 'text-muted')}"><span class="me-1">Profit:</span><span th:text="${'$' + (entry.series600Profit != null ? #numbers.formatDecimal(entry.series600Profit, 1, 'COMMA', 2, 'POINT') : '0.00')}"></span></div>
+                                    </td>
+                                    <td class="text-center" th:if="${hasSeries700}">
+                                        <div class="fw-medium text-secondary" style="font-size: 0.8rem;"><span class="text-muted me-1">WO:</span><span th:text="${entry.series700WoCount}"></span></div>
+                                        <div class="text-muted" style="font-size: 0.75rem;"><span class="me-1">Bid:</span><span th:text="${'$' + (entry.series700BidAmount != null ? #numbers.formatDecimal(entry.series700BidAmount, 1, 'COMMA', 2, 'POINT') : '0.00')}"></span></div>
+                                        <div class="text-muted" style="font-size: 0.75rem;"><span class="me-1">Inv:</span><span th:text="${'$' + (entry.series700ClientInvoice != null ? #numbers.formatDecimal(entry.series700ClientInvoice, 1, 'COMMA', 2, 'POINT') : '0.00')}"></span></div>
+                                        <div style="font-size: 0.75rem;" th:class="${entry.series700Profit != null and entry.series700Profit < 0 ? 'text-danger' : (entry.series700Profit != null and entry.series700Profit > 0 ? 'text-success' : 'text-muted')}"><span class="me-1">Profit:</span><span th:text="${'$' + (entry.series700Profit != null ? #numbers.formatDecimal(entry.series700Profit, 1, 'COMMA', 2, 'POINT') : '0.00')}"></span></div>
+                                    </td>
+                                    <td class="text-center" th:if="${hasSeries800}">
+                                        <div class="fw-medium text-secondary" style="font-size: 0.8rem;"><span class="text-muted me-1">WO:</span><span th:text="${entry.series800WoCount}"></span></div>
+                                        <div class="text-muted" style="font-size: 0.75rem;"><span class="me-1">Bid:</span><span th:text="${'$' + (entry.series800BidAmount != null ? #numbers.formatDecimal(entry.series800BidAmount, 1, 'COMMA', 2, 'POINT') : '0.00')}"></span></div>
+                                        <div class="text-muted" style="font-size: 0.75rem;"><span class="me-1">Inv:</span><span th:text="${'$' + (entry.series800ClientInvoice != null ? #numbers.formatDecimal(entry.series800ClientInvoice, 1, 'COMMA', 2, 'POINT') : '0.00')}"></span></div>
+                                        <div style="font-size: 0.75rem;" th:class="${entry.series800Profit != null and entry.series800Profit < 0 ? 'text-danger' : (entry.series800Profit != null and entry.series800Profit > 0 ? 'text-success' : 'text-muted')}"><span class="me-1">Profit:</span><span th:text="${'$' + (entry.series800Profit != null ? #numbers.formatDecimal(entry.series800Profit, 1, 'COMMA', 2, 'POINT') : '0.00')}"></span></div>
+                                    </td>
+                                    <td class="text-center" th:if="${hasSeries900}">
+                                        <div class="fw-medium text-secondary" style="font-size: 0.8rem;"><span class="text-muted me-1">WO:</span><span th:text="${entry.series900WoCount}"></span></div>
+                                        <div class="text-muted" style="font-size: 0.75rem;"><span class="me-1">Bid:</span><span th:text="${'$' + (entry.series900BidAmount != null ? #numbers.formatDecimal(entry.series900BidAmount, 1, 'COMMA', 2, 'POINT') : '0.00')}"></span></div>
+                                        <div class="text-muted" style="font-size: 0.75rem;"><span class="me-1">Inv:</span><span th:text="${'$' + (entry.series900ClientInvoice != null ? #numbers.formatDecimal(entry.series900ClientInvoice, 1, 'COMMA', 2, 'POINT') : '0.00')}"></span></div>
+                                        <div style="font-size: 0.75rem;" th:class="${entry.series900Profit != null and entry.series900Profit < 0 ? 'text-danger' : (entry.series900Profit != null and entry.series900Profit > 0 ? 'text-success' : 'text-muted')}"><span class="me-1">Profit:</span><span th:text="${'$' + (entry.series900Profit != null ? #numbers.formatDecimal(entry.series900Profit, 1, 'COMMA', 2, 'POINT') : '0.00')}"></span></div>
+                                    </td>
+                                    <td class="text-center" th:if="${hasSeriesOthers}">
+                                        <div class="fw-medium text-secondary" style="font-size: 0.8rem;"><span class="text-muted me-1">WO:</span><span th:text="${entry.seriesOthersWoCount}"></span></div>
+                                        <div class="text-muted" style="font-size: 0.75rem;"><span class="me-1">Bid:</span><span th:text="${'$' + (entry.seriesOthersBidAmount != null ? #numbers.formatDecimal(entry.seriesOthersBidAmount, 1, 'COMMA', 2, 'POINT') : '0.00')}"></span></div>
+                                        <div class="text-muted" style="font-size: 0.75rem;"><span class="me-1">Inv:</span><span th:text="${'$' + (entry.seriesOthersClientInvoice != null ? #numbers.formatDecimal(entry.seriesOthersClientInvoice, 1, 'COMMA', 2, 'POINT') : '0.00')}"></span></div>
+                                        <div style="font-size: 0.75rem;" th:class="${entry.seriesOthersProfit != null and entry.seriesOthersProfit < 0 ? 'text-danger' : (entry.seriesOthersProfit != null and entry.seriesOthersProfit > 0 ? 'text-success' : 'text-muted')}"><span class="me-1">Profit:</span><span th:text="${'$' + (entry.seriesOthersProfit != null ? #numbers.formatDecimal(entry.seriesOthersProfit, 1, 'COMMA', 2, 'POINT') : '0.00')}"></span></div>
+                                    </td>
+                                    <td class="text-center fw-bold text-primary pe-4" th:text="${entry.totalWos}"></td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(performanceByAnalyst)}">
+                                    <td colspan="12" class="text-center text-muted py-4">No data available</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-header bg-white border-0 pt-4 pb-0">
+            <h6 class="fw-bold text-gray-800 m-0">Work Order Details</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle" id="woTable">
+                    <thead class="table-light text-uppercase fw-bold" style="font-size: 0.75rem;">
+                        <tr>
+                            <th>WO #</th>
+                            <th>Date Due</th>
+                            <th>Client Code</th>
+                            <th>Category</th>
+                            <th>Address</th>
+                            <th>Photos</th>
+                            <th>Analyst</th>
+                            <th>Status</th>
+                            <th>Lifeline</th>
+                            <th>Late Status</th>
+                            <th>BA FROM (W/O)</th>
+                            <th>BA BY (ANALYST)</th>
+                            <th>BID COUNT</th>
+                            <th>BID AMOUNT</th>
+                            <th>CLIENT INVOICE</th>
+                            <th>CREW INVOICE</th>
+                            <th>NOTES</th>
+                        </tr>
+                    </thead>
+                    <tbody style="font-size: 0.85rem;">
+                        <tr th:each="wo : ${wos}" th:id="'wo-' + ${wo.woNumber}">
+                            <td class="wo-hover-cell" th:data-wo="${wo.woNumber}">
+                                <span class="fw-medium text-primary" th:text="${wo.woNumber}"></span>
+                            </td>
+                            <td th:text="${wo.dateDue}"></td>
+                            <td th:text="${wo.clientCode}"></td>
+                            <td>
+                                <span class="badge bg-secondary bg-opacity-10 text-secondary" th:text="${wo.category != null ? wo.category : 'N/A'}"></span>
+                            </td>
+                            <td class="wo-hover-cell address-hover" th:data-address="${wo.address}">
+                                <span class="text-truncate d-inline-block" style="max-width: 200px;" th:title="${wo.address}" th:text="${wo.address}"></span>
+                            </td>
+                            <td th:text="${wo.photoCount}"></td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-circle bg-primary bg-opacity-10 text-primary me-2 fw-bold" 
+                                         style="width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px;"
+                                         th:if="${wo.analyst != null and !wo.analyst.isEmpty()}"
+                                         th:text="${#strings.substring(wo.analyst, 0, 1)}">A</div>
+                                    <span th:text="${wo.analyst != null ? wo.analyst : 'Unassigned'}"></span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge rounded-pill"
+                                      th:classappend="${wo.status == 'COMPLETED' ? 'bg-success' : (wo.status == 'ERROR' or wo.status == 'ACTION_REQUIRED' or wo.status == 'Action Required' or wo.status == 'ACTION REQUIRED' ? 'bg-danger' : (wo.status == 'DUPLICATE' ? 'bg-warning' : 'bg-primary'))}"
+                                      th:text="${wo.status}">
+                                </span>
+                            </td>
+                            <td>
+                                <a th:href="@{/processing-sheet/lifeline/{wo}(wo=${wo.woNumber})}" class="btn btn-sm btn-outline-primary" style="padding: 0.1rem 0.4rem; font-size: 0.8rem;">
+                                    <i class="fas fa-history"></i>
+                                </a>
+                            </td>
+                            <td th:text="${wo.lateStatus}"></td>
+                            <td th:text="${wo.baFromWo}"></td>
+                            <td th:text="${wo.baByAnalyst}"></td>
+                            <td th:text="${wo.bidCount}"></td>
+                            <td th:text="${wo.bidAmount != null ? '$' + wo.bidAmount : ''}"></td>
+                            <td th:text="${wo.clientInvoice != null ? '$' + wo.clientInvoice : ''}"></td>
+                            <td th:text="${wo.crewInvoice != null ? '$' + wo.crewInvoice : ''}"></td>
+                            <td>
+                                <span class="text-truncate d-inline-block" style="max-width: 150px;" th:title="${wo.notes}" th:text="${wo.notes}"></span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load DataTables -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+        </section>
+
+        <!-- Page Scripts -->
+        <script th:inline="javascript">
+            // Data injected from backend
+        const analystLabels = JSON.parse(/*[[${analystLabels}]]*/ '[]');
+        const analystData = JSON.parse(/*[[${analystData}]]*/ '[]');
+        const categoryLabels = JSON.parse(/*[[${categoryLabels}]]*/ '[]');
+        const categoryData = JSON.parse(/*[[${categoryData}]]*/ '[]');
+
+        function toggleCustomDates() {
+            const filter = document.getElementById('timeFilter').value;
+            const customGroups = document.querySelectorAll('.custom-date-group');
+            const monthlyGroups = document.querySelectorAll('.monthly-date-group');
+            
+            if (filter === 'custom') {
+                customGroups.forEach(g => g.style.display = 'block');
+                monthlyGroups.forEach(g => g.style.display = 'none');
+            } else if (filter === 'monthly') {
+                customGroups.forEach(g => g.style.display = 'none');
+                monthlyGroups.forEach(g => g.style.display = 'block');
+            } else {
+                customGroups.forEach(g => g.style.display = 'none');
+                monthlyGroups.forEach(g => g.style.display = 'none');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize visibility
+            toggleCustomDates();
+
+            // Initialize DataTable
+            if($.fn.DataTable) {
+                $('#woTable').DataTable({
+                    "pageLength": 10,
+                    "order": [], // Let backend or natural order decide initially
+                    "language": {
+                        "search": "",
+                        "searchPlaceholder": "Search work orders..."
+                    }
+                });
+            }
+
+            // --- HOVER LOGIC ---
+            const hoverCells = document.querySelectorAll('.wo-hover-cell');
+            let hoverTimeout;
+            let activePopover = null;
+            
+            hoverCells.forEach(cell => {
+                cell.addEventListener('mouseenter', function(e) {
+                    const woNumber = this.getAttribute('data-wo');
+                    const address = this.getAttribute('data-address');
+                    const isAddressHover = this.classList.contains('address-hover');
+                    const cellRect = this.getBoundingClientRect();
+                    
+                    // Clear existing timeout
+                    clearTimeout(hoverTimeout);
+                    
+                    hoverTimeout = setTimeout(() => {
+                        const fetchUrl = isAddressHover 
+                            ? `/processing-sheet/api/address-duplicates?address=${encodeURIComponent(address)}`
+                            : `/processing-sheet/api/duplicates?woNumber=${encodeURIComponent(woNumber)}`;
+                            
+                        fetch(fetchUrl)
+                            .then(response => response.json())
+                            .then(data => {
+                                // Remove old popover if any
+                                if(activePopover) activePopover.remove();
+                                
+                                if(data && data.length > 0) {
+                                    const popover = document.createElement('div');
+                                    popover.className = 'duplicate-popover';
+                                    
+                                    let headerText = isAddressHover ? `Related Work Orders (${data.length})` : `Related Work Orders (${data.length})`;
+                                    let html = `<div class="duplicate-popover-header">${headerText}</div>`;
+                                    html += `<ul class="duplicate-list">`;
+                                    
+                                    data.forEach(wo => {
+                                        const isCurrent = (isAddressHover && wo.address === address) || (!isAddressHover && wo.woNumber === woNumber);
+                                        html += `
+                                            <li>
+                                                <a href="/processing-sheet/analyst?date=${wo.entryDate}#wo-${wo.woNumber}"
+                                                   style="${isCurrent ? 'font-weight: 700; text-decoration: underline;' : ''}">
+                                                   ${wo.woNumber}
+                                                </a>
+                                                <div style="text-align: right;">
+                                                    ${isAddressHover ? `<div style="font-size: 0.65rem; color: var(--color-primary); margin-bottom: 2px;">Analyst: <strong>${wo.analyst}</strong></div>` : ''}
+                                                    <span class="duplicate-status">${wo.status}</span>
+                                                </div>
+                                            </li>
+                                        `;
+                                    });
+                                    
+                                    html += `</ul>`;
+                                    popover.innerHTML = html;
+                                    
+                                    // Append to body to avoid clipping
+                                    document.body.appendChild(popover);
+                                    
+                                    // Position it exactly where the cell is
+                                    popover.style.top = (cellRect.bottom + window.scrollY) + 'px';
+                                    popover.style.left = (cellRect.left + (cellRect.width / 2) + window.scrollX) + 'px';
+                                    
+                                    // Trigger animation
+                                    requestAnimationFrame(() => {
+                                        popover.classList.add('show');
+                                    });
+                                    
+                                    activePopover = popover;
+                                    
+                                    // Close when leaving popover area
+                                    popover.addEventListener('mouseleave', () => {
+                                        popover.classList.remove('show');
+                                        setTimeout(() => popover.remove(), 300);
+                                    });
+                                    
+                                    // Close when leaving cell (but allow moving into popover)
+                                    cell.addEventListener('mouseleave', (e) => {
+                                        // Check if moving to popover
+                                        setTimeout(() => {
+                                            if (!popover.matches(':hover')) {
+                                                popover.classList.remove('show');
+                                                setTimeout(() => popover.remove(), 300);
+                                            }
+                                        }, 100);
+                                    }, { once: true });
+                                }
+                            });
+                    }, 300); // 300ms debounce
+                });
+                
+                cell.addEventListener('mouseleave', function() {
+                    clearTimeout(hoverTimeout);
+                });
+            });
+            
+            // Hide popover if clicking anywhere outside
+            document.addEventListener('click', function(e) {
+                if (activePopover && !e.target.closest('.duplicate-popover') && !e.target.closest('.wo-hover-cell')) {
+                    activePopover.classList.remove('show');
+                    setTimeout(() => activePopover.remove(), 300);
+                }
+            });
+            });
         </script>
-    </th:block>
+    </div>
 </body>
 </html>

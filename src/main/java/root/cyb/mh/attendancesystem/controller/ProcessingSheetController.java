@@ -21,6 +21,8 @@ import root.cyb.mh.attendancesystem.repository.EmployeeRepository;
 import root.cyb.mh.attendancesystem.repository.ProcessingWorkOrderRepository;
 import root.cyb.mh.attendancesystem.repository.ProcessingWorkOrderHistoryRepository;
 import root.cyb.mh.attendancesystem.repository.DeletedProcessingWorkOrderRepository;
+import root.cyb.mh.attendancesystem.dto.AnalystPerformanceDto;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.InputStreamReader;
 import java.io.Reader;
@@ -59,7 +61,161 @@ public class ProcessingSheetController {
 
     @GetMapping("/dashboard")
     @PreAuthorize("hasRole('ADMIN')")
-    public String processingDashboard(Model model) {
+    public String processingDashboard(
+            @RequestParam(required = false, defaultValue = "all") String filter,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
+            @RequestParam(required = false) String monthString,
+            Model model) {
+        
+        List<ProcessingWorkOrder> wos;
+        
+        if ("monthly".equals(filter)) {
+            java.time.YearMonth ym = java.time.YearMonth.now();
+            if (monthString != null && !monthString.trim().isEmpty()) {
+                try {
+                    ym = java.time.YearMonth.parse(monthString);
+                } catch (Exception e) {
+                    // Ignore and use current month
+                }
+            }
+            LocalDate start = ym.atDay(1);
+            LocalDate end = ym.atEndOfMonth();
+            wos = processingWorkOrderRepository.findByEntryDateBetween(start, end);
+            monthString = ym.toString();
+            model.addAttribute("monthString", monthString);
+        } else if ("custom".equals(filter) && startDate != null && endDate != null && !startDate.isEmpty() && !endDate.isEmpty()) {
+            LocalDate start = LocalDate.parse(startDate);
+            LocalDate end = LocalDate.parse(endDate);
+            wos = processingWorkOrderRepository.findByEntryDateBetween(start, end);
+        } else {
+            // all
+            wos = processingWorkOrderRepository.findAllByOrderByCreatedAtDesc();
+            filter = "all"; // Ensure filter matches "all" for UI logic
+        }
+
+        // Metrics
+        long totalWOs = wos.size();
+        long duplicates = wos.stream().filter(wo -> wo.getWoNumber() != null && wo.getWoNumber().contains("-DUP")).count();
+        long errors = wos.stream().filter(wo -> wo.getStatus() != null && (wo.getStatus().equalsIgnoreCase("ERROR") || wo.getStatus().equalsIgnoreCase("ACTION_REQUIRED") || wo.getStatus().equalsIgnoreCase("ACTION REQUIRED") || wo.getStatus().equalsIgnoreCase("ACTION NEEDED"))).count();
+        long unassigned = wos.stream().filter(wo -> wo.getAnalyst() == null || wo.getAnalyst().isEmpty()).count();
+
+        // Generate list of past 24 months for the dropdown
+        List<Map<String, String>> availableMonths = new ArrayList<>();
+        java.time.YearMonth currentMonth = java.time.YearMonth.now();
+        for (int i = 0; i < 24; i++) {
+            java.time.YearMonth ym = currentMonth.minusMonths(i);
+            Map<String, String> monthMap = new HashMap<>();
+            monthMap.put("value", ym.toString());
+            String label = ym.getMonth().name().substring(0, 1) + ym.getMonth().name().substring(1).toLowerCase() + " " + ym.getYear();
+            monthMap.put("label", label);
+            availableMonths.add(monthMap);
+        }
+        model.addAttribute("availableMonths", availableMonths);
+        
+        if (monthString == null || monthString.trim().isEmpty()) {
+            monthString = currentMonth.toString();
+        }
+        model.addAttribute("monthString", monthString);
+
+        // Chart Data: Performance by Analyst
+        java.util.Set<String> activeCategories = new java.util.TreeSet<>();
+        Map<String, AnalystPerformanceDto> performanceByAnalystMap = new HashMap<>();
+        for (ProcessingWorkOrder wo : wos) {
+            String analyst = wo.getAnalyst();
+            if (analyst != null && !analyst.trim().isEmpty()) {
+                AnalystPerformanceDto dto = performanceByAnalystMap.computeIfAbsent(analyst, k -> {
+                    AnalystPerformanceDto newDto = new AnalystPerformanceDto();
+                    newDto.setAnalyst(k);
+                    return newDto;
+                });
+                
+                dto.incrementTotalAssignedWos();
+
+                if ("Submitted".equalsIgnoreCase(wo.getStatus())) {
+                    dto.incrementTotalWos();
+                    dto.addBidCount(wo.getBidCount());
+                    dto.addBidAmount(wo.getBidAmount());
+                    dto.addGrossProfit(wo.getClientInvoice(), wo.getCrewInvoice());
+                    
+                    if (wo.getCategory() != null && !wo.getCategory().trim().isEmpty()) {
+                        String cat = wo.getCategory().trim().toLowerCase();
+                        if (cat.contains("preservation")) {
+                            dto.incrementPreservationWo();
+                        } else if (cat.contains("maintenance")) {
+                            dto.incrementMaintenanceWo();
+                        } else {
+                            dto.incrementOthersWo();
+                        }
+                        
+                        String formattedCat = "";
+                        if (cat.contains("securering")) cat = cat.replace("securering", "securing");
+                        for (String word : cat.split("\\s+")) {
+                            if (!word.isEmpty()) {
+                                formattedCat += Character.toUpperCase(word.charAt(0)) + (word.length() > 1 ? word.substring(1) : "") + " ";
+                            }
+                        }
+                        formattedCat = formattedCat.trim();
+                        if (formattedCat.isEmpty()) formattedCat = "Others";
+                        dto.incrementCategory(formattedCat);
+                        activeCategories.add(formattedCat);
+                    } else {
+                        dto.incrementCategory("Others");
+                        activeCategories.add("Others");
+                        dto.incrementOthersWo();
+                    }
+
+                    if (wo.getClientCode() != null) {
+                        try {
+                            String numStr = wo.getClientCode().replaceAll("[^0-9]", "");
+                            if (!numStr.isEmpty()) {
+                                int code = Integer.parseInt(numStr);
+                                int series = (code / 100) * 100;
+                                dto.incrementSeries(series, wo.getBidAmount(), wo.getClientInvoice(), wo.getCrewInvoice());
+                            } else {
+                                dto.incrementSeries(-1, wo.getBidAmount(), wo.getClientInvoice(), wo.getCrewInvoice());
+                            }
+                        } catch (Exception e) {
+                            dto.incrementSeries(-1, wo.getBidAmount(), wo.getClientInvoice(), wo.getCrewInvoice());
+                        }
+                    } else {
+                        dto.incrementSeries(-1, wo.getBidAmount(), wo.getClientInvoice(), wo.getCrewInvoice());
+                    }
+                }
+            }
+        }
+        List<AnalystPerformanceDto> performanceByAnalyst = new ArrayList<>(performanceByAnalystMap.values());
+        performanceByAnalyst.sort(Comparator.comparing(AnalystPerformanceDto::getAnalyst));
+        
+        // Chart Data: WOs by Category
+        Map<String, Long> categoryCounts = wos.stream()
+            .filter(wo -> wo.getCategory() != null && !wo.getCategory().trim().isEmpty() && "Submitted".equalsIgnoreCase(wo.getStatus()))
+            .collect(Collectors.groupingBy(ProcessingWorkOrder::getCategory, Collectors.counting()));
+
+        model.addAttribute("performanceByAnalyst", performanceByAnalyst);
+        model.addAttribute("activeCategories", activeCategories);
+        
+        model.addAttribute("hasSeries100", performanceByAnalyst.stream().anyMatch(dto -> dto.getSeries100WoCount() > 0));
+        model.addAttribute("hasSeries200", performanceByAnalyst.stream().anyMatch(dto -> dto.getSeries200WoCount() > 0));
+        model.addAttribute("hasSeries300", performanceByAnalyst.stream().anyMatch(dto -> dto.getSeries300WoCount() > 0));
+        model.addAttribute("hasSeries400", performanceByAnalyst.stream().anyMatch(dto -> dto.getSeries400WoCount() > 0));
+        model.addAttribute("hasSeries500", performanceByAnalyst.stream().anyMatch(dto -> dto.getSeries500WoCount() > 0));
+        model.addAttribute("hasSeries600", performanceByAnalyst.stream().anyMatch(dto -> dto.getSeries600WoCount() > 0));
+        model.addAttribute("hasSeries700", performanceByAnalyst.stream().anyMatch(dto -> dto.getSeries700WoCount() > 0));
+        model.addAttribute("hasSeries800", performanceByAnalyst.stream().anyMatch(dto -> dto.getSeries800WoCount() > 0));
+        model.addAttribute("hasSeries900", performanceByAnalyst.stream().anyMatch(dto -> dto.getSeries900WoCount() > 0));
+        model.addAttribute("hasSeriesOthers", performanceByAnalyst.stream().anyMatch(dto -> dto.getSeriesOthersWoCount() > 0));
+        model.addAttribute("categoryCount", categoryCounts);
+
+        model.addAttribute("wos", wos);
+        model.addAttribute("filter", filter);
+        model.addAttribute("startDate", startDate);
+        model.addAttribute("endDate", endDate);
+        model.addAttribute("totalWOs", totalWOs);
+        model.addAttribute("duplicates", duplicates);
+        model.addAttribute("errors", errors);
+        model.addAttribute("unassigned", unassigned);
+
         model.addAttribute("activeLink", "admin-analyst-dashboard");
         return "admin-analyst-dashboard";
     }

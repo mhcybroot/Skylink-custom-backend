@@ -29,6 +29,8 @@ public interface ProcessingWorkOrderRepository
 
     List<ProcessingWorkOrder> findByEntryDate(LocalDate entryDate);
 
+    List<ProcessingWorkOrder> findByEntryDateBetween(LocalDate startDate, LocalDate endDate);
+
     List<ProcessingWorkOrder> findByEntryDateAndAssignedAnalystEmployeeId(LocalDate entryDate, String employeeId);
 
     @Query("""
