@@ -40,6 +40,12 @@ public class PaymentDashboardService {
         BigDecimal pendingAmt = paymentRequestRepository.sumAmountByStatus(RequestStatus.PENDING);
         stats.setPendingAmount(pendingAmt != null ? pendingAmt : BigDecimal.ZERO);
 
+        long hold = paymentRequestRepository.countByStatus(RequestStatus.HOLD);
+        stats.setHoldCount(hold);
+
+        BigDecimal holdAmt = paymentRequestRepository.sumAmountByStatus(RequestStatus.HOLD);
+        stats.setHoldAmount(holdAmt != null ? holdAmt : BigDecimal.ZERO);
+
         long approved = paymentRequestRepository.countByStatus(RequestStatus.APPROVED);
         stats.setTotalApproved(approved);
         stats.setApprovedCount(approved);
@@ -62,7 +68,7 @@ public class PaymentDashboardService {
         stats.setRejectedCount(paymentRequestRepository.countByStatus(RequestStatus.REJECTED));
 
         // Rejection Rate
-        long totalReqs = stats.getApprovedCount() + stats.getRejectedCount() + stats.getPendingCount();
+        long totalReqs = stats.getApprovedCount() + stats.getRejectedCount() + stats.getPendingCount() + stats.getHoldCount();
         stats.setRejectionRate(totalReqs > 0 ? (double) stats.getRejectedCount() / totalReqs * 100 : 0.0);
 
         // Map Data
@@ -159,6 +165,9 @@ public class PaymentDashboardService {
         long pending = paymentRequestRepository.countByCompanyAndStatus(companyId, RequestStatus.PENDING);
         stats.setPendingCount(pending);
 
+        long hold = paymentRequestRepository.countByCompanyAndStatus(companyId, RequestStatus.HOLD);
+        stats.setHoldCount(hold);
+
         long rejected = paymentRequestRepository.countByCompanyAndStatus(companyId, RequestStatus.REJECTED);
         stats.setRejectedCount(rejected);
 
@@ -219,7 +228,7 @@ public class PaymentDashboardService {
         // method soon or just skip for now and do others?
         // Actually, I can use countByCompanyAndStatusAndPriority?
         // Let's approximate Rejection Rate (Insight 5) which is easier.
-        long totalRequests = pending + rejected + approved;
+        long totalRequests = pending + rejected + approved + hold;
         insights.put("rejectionRate", totalRequests > 0 ? (double) rejected / totalRequests * 100 : 0.0);
 
         // 4. Urgent Request Ratio (Simulated based on pending URGENT for now or add

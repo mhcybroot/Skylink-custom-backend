@@ -387,11 +387,11 @@
                                             </span>
                                         </td>
                                         <td>
-                                            <span th:text="${req.status}"
-                                                th:class="${'badge rounded-1 fw-normal ' + 
+                                            <span th:class="${'badge rounded-1 fw-medium px-2 py-1 ' + 
                                                 (req.status.name() == 'APPROVED' ? 'bg-success-subtle text-success border border-success' : 
-                                                (req.status.name() == 'REJECTED' ? 'bg-danger-subtle text-danger border border-danger' : 'bg-warning-subtle text-warning-emphasis border border-warning'))}">
-                                            </span>
+                                                (req.status.name() == 'REJECTED' ? 'bg-danger-subtle text-danger border border-danger' : 
+                                                (req.status.name() == 'HOLD' ? 'bg-secondary-subtle text-secondary border border-secondary' : 'bg-warning-subtle text-warning-emphasis border border-warning')))}"
+                                                th:text="${req.status}"></span>
                                         </td>
                                         <td>
                                             <span th:if="${req.paymentStatus != null}" th:text="${req.paymentStatus}"
