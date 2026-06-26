@@ -97,8 +97,8 @@ public class ProcessingSheetController {
         // Metrics
         long totalWOs = wos.size();
         long duplicates = wos.stream().filter(wo -> wo.getWoNumber() != null && wo.getWoNumber().contains("-DUP")).count();
-        long errors = wos.stream().filter(wo -> wo.getStatus() != null && (wo.getStatus().equalsIgnoreCase("ERROR") || wo.getStatus().equalsIgnoreCase("ACTION_REQUIRED") || wo.getStatus().equalsIgnoreCase("ACTION REQUIRED") || wo.getStatus().equalsIgnoreCase("ACTION NEEDED"))).count();
-        long unassigned = wos.stream().filter(wo -> wo.getAnalyst() == null || wo.getAnalyst().isEmpty()).count();
+        long errors = wos.stream().filter(wo -> wo.getStatus() == null || !wo.getStatus().trim().equalsIgnoreCase("Submitted")).count();
+        long unassigned = wos.stream().filter(wo -> wo.getAnalyst() == null || wo.getAnalyst().trim().isEmpty() || wo.getAnalyst().trim().equalsIgnoreCase("Unassigned") || wo.getAnalyst().trim().equalsIgnoreCase("N/A")).count();
 
         // Generate list of past 24 months for the dropdown
         List<Map<String, String>> availableMonths = new ArrayList<>();
