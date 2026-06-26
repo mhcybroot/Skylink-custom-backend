@@ -229,15 +229,15 @@ public class ProcessingSheetController {
                             if (!numStr.isEmpty()) {
                                 int code = Integer.parseInt(numStr);
                                 int series = (code / 100) * 100;
-                                dto.incrementSeries(series, wo.getBidAmount(), wo.getClientInvoice(), wo.getCrewInvoice());
+                                dto.incrementSeries(series, wo.getBidCount(), wo.getBidAmount(), wo.getClientInvoice(), wo.getCrewInvoice());
                             } else {
-                                dto.incrementSeries(-1, wo.getBidAmount(), wo.getClientInvoice(), wo.getCrewInvoice());
+                                dto.incrementSeries(-1, wo.getBidCount(), wo.getBidAmount(), wo.getClientInvoice(), wo.getCrewInvoice());
                             }
                         } catch (Exception e) {
-                            dto.incrementSeries(-1, wo.getBidAmount(), wo.getClientInvoice(), wo.getCrewInvoice());
+                            dto.incrementSeries(-1, wo.getBidCount(), wo.getBidAmount(), wo.getClientInvoice(), wo.getCrewInvoice());
                         }
                     } else {
-                        dto.incrementSeries(-1, wo.getBidAmount(), wo.getClientInvoice(), wo.getCrewInvoice());
+                        dto.incrementSeries(-1, wo.getBidCount(), wo.getBidAmount(), wo.getClientInvoice(), wo.getCrewInvoice());
                     }
                 }
             }
