@@ -3,6 +3,68 @@
 
 importScripts('env.js');
 
+let browseHistoryBuffer = [];
+let syncIntervalSeconds = 60; // Default
+
+// Fetch settings once on startup
+chrome.storage.local.get(['authHeader'], (data) => {
+    if (data.authHeader) {
+        fetch(`${ENV.BASE_URL}/api/v1/extension/settings`, {
+            headers: { 'Authorization': data.authHeader }
+        })
+        .then(res => res.json())
+        .then(settings => {
+            if (settings.syncInterval) {
+                syncIntervalSeconds = settings.syncInterval;
+                console.log("[Skylink PPW] Sync interval set to", syncIntervalSeconds, "seconds");
+            }
+        })
+        .catch(err => console.error("Failed to fetch settings:", err));
+    }
+});
+
+// To handle dynamic interval updates, a recursive setTimeout is better.
+
+function scheduleNextSync() {
+    setTimeout(() => {
+        if (browseHistoryBuffer.length > 0) {
+            chrome.storage.local.get(['authHeader'], (data) => {
+                if (data.authHeader) {
+                    const payload = [...browseHistoryBuffer];
+                    browseHistoryBuffer = [];
+                    fetch(`${ENV.BASE_URL}/api/v1/extension/browse-history`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': data.authHeader
+                        },
+                        body: JSON.stringify(payload)
+                    }).catch(err => {
+                        browseHistoryBuffer = [...payload, ...browseHistoryBuffer];
+                    });
+                } else {
+                    browseHistoryBuffer = [];
+                }
+            });
+        }
+        scheduleNextSync();
+    }, syncIntervalSeconds * 1000);
+}
+scheduleNextSync();
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    if (changeInfo.status === 'complete' && tab.url) {
+        // Ignore internal chrome pages
+        if (tab.url.startsWith("chrome://") || tab.url.startsWith("chrome-extension://")) return;
+        
+        browseHistoryBuffer.push({
+            url: tab.url,
+            title: tab.title || "",
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "sync_ppw") {
         chrome.storage.local.get(['authHeader'], (data) => {

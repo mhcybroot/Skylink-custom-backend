@@ -24,6 +24,9 @@ public class SettingsController {
     @org.springframework.beans.factory.annotation.Value("${app.demo:false}")
     private boolean isDemoMode;
 
+    @Autowired
+    private root.cyb.mh.attendancesystem.repository.SystemSettingRepository systemSettingRepository;
+
     @GetMapping("/settings")
     public String settings(Model model) {
         model.addAttribute("isDemoMode", isDemoMode);
@@ -35,12 +38,23 @@ public class SettingsController {
         model.addAttribute("schedule", schedule);
         model.addAttribute("holidays",
                 publicHolidayRepository.findAll(org.springframework.data.domain.Sort.by("date")));
+        
+        // System Settings
+        String syncInterval = systemSettingRepository.findById("browse_history_sync_interval")
+                .map(root.cyb.mh.attendancesystem.model.SystemSetting::getValue).orElse("60");
+        String retentionDays = systemSettingRepository.findById("browse_history_retention_days")
+                .map(root.cyb.mh.attendancesystem.model.SystemSetting::getValue).orElse("90");
+        model.addAttribute("syncInterval", syncInterval);
+        model.addAttribute("retentionDays", retentionDays);
+        
         return "settings";
     }
 
     @PostMapping("/settings")
     public String saveSettings(@ModelAttribute WorkSchedule schedule,
-            @RequestParam(required = false) List<Integer> weekendDaysList) {
+            @RequestParam(required = false) List<Integer> weekendDaysList,
+            @RequestParam(required = false) String syncInterval,
+            @RequestParam(required = false) String retentionDays) {
         WorkSchedule existing = workScheduleRepository.findAll().stream().findFirst().orElse(new WorkSchedule());
         if (schedule.getStartTime() != null)
             existing.setStartTime(schedule.getStartTime());
@@ -67,6 +81,15 @@ public class SettingsController {
         existing.setDailyRateFixedValue(schedule.getDailyRateFixedValue());
 
         workScheduleRepository.save(existing);
+        
+        // Save System Settings
+        if (syncInterval != null && !syncInterval.trim().isEmpty()) {
+            systemSettingRepository.save(new root.cyb.mh.attendancesystem.model.SystemSetting("browse_history_sync_interval", syncInterval, "Interval in seconds for extension to sync history"));
+        }
+        if (retentionDays != null && !retentionDays.trim().isEmpty()) {
+            systemSettingRepository.save(new root.cyb.mh.attendancesystem.model.SystemSetting("browse_history_retention_days", retentionDays, "Number of days to keep browse history"));
+        }
+        
         return "redirect:/settings?success";
     }
 

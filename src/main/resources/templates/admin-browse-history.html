@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <title>Employee Browse History</title>
+</head>
+
+<body>
+    <div th:replace="~{layout :: layout(~{::section}, ~{::script}, 'browse-history')}">
+        <section>
+            <div class="row mb-3">
+                <div class="col-12 d-flex justify-content-between align-items-center">
+                    <div>
+                        <h3 class="fw-bold"><i class="fas fa-history text-primary me-2"></i>Employee Browse History</h3>
+                        <p class="text-muted mb-0">View all websites visited by employees while the Skylink Chrome Extension is active.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="ps-4">Employee</th>
+                                    <th>URL</th>
+                                    <th>Page Title</th>
+                                    <th class="text-end pe-4">Date & Time</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="history : ${historyPage.content}">
+                                    <td class="ps-4">
+                                        <div class="fw-bold" th:text="${history.employee.firstName + ' ' + history.employee.lastName}">John Doe</div>
+                                        <div class="small text-muted" th:text="${history.employee.loginId}">EMP001</div>
+                                    </td>
+                                    <td>
+                                        <a th:href="${history.url}" target="_blank" class="text-truncate d-inline-block" style="max-width: 300px;" th:text="${history.url}">https://example.com</a>
+                                    </td>
+                                    <td>
+                                        <span class="text-truncate d-inline-block" style="max-width: 250px;" th:text="${history.pageTitle}">Page Title</span>
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <div class="fw-bold" th:text="${#temporals.format(history.timestamp, 'yyyy-MM-dd')}">Date</div>
+                                        <div class="small text-muted" th:text="${#temporals.format(history.timestamp, 'hh:mm:ss a')}">Time</div>
+                                    </td>
+                                </tr>
+                                <tr th:if="${historyPage.empty}">
+                                    <td colspan="4" class="text-center py-4 text-muted">
+                                        No browsing history found.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- Pagination -->
+                <div class="card-footer bg-white py-3 d-flex justify-content-between align-items-center" th:if="${historyPage.totalPages > 1}">
+                    <span class="text-muted small">
+                        Showing page <span th:text="${historyPage.number + 1}"></span> of <span th:text="${historyPage.totalPages}"></span>
+                    </span>
+                    <nav aria-label="History pagination">
+                        <ul class="pagination pagination-sm mb-0">
+                            <li class="page-item" th:classappend="${historyPage.first ? 'disabled' : ''}">
+                                <a class="page-link" th:href="@{/admin/browse-history(page=${historyPage.number - 1})}">Previous</a>
+                            </li>
+                            <li class="page-item" th:classappend="${historyPage.last ? 'disabled' : ''}">
+                                <a class="page-link" th:href="@{/admin/browse-history(page=${historyPage.number + 1})}">Next</a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </section>
+        
+        <script>
+            // Any specific JS logic for this page can go here
+        </script>
+    </div>
+</body>
+
+</html>

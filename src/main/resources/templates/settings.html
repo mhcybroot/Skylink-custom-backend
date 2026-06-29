@@ -160,7 +160,24 @@
                                 </div>
                             </div>
 
-                            <button type="submit" class="btn btn-primary">Save Settings</button>
+                            <hr>
+                            <h6 class="mb-3">Extension Sync Settings</h6>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Browse History Sync Interval (seconds)</label>
+                                    <input type="number" class="form-control" name="syncInterval"
+                                        th:value="${syncInterval}" min="10" required>
+                                    <div class="form-text">How often the Chrome extension sends history to the server. Default: 60</div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">History Retention (days)</label>
+                                    <input type="number" class="form-control" name="retentionDays"
+                                        th:value="${retentionDays}" min="1" required>
+                                    <div class="form-text">How many days to keep employee browse history. Default: 90</div>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary mt-3">Save Settings</button>
                         </form>
                     </div>
                 </div>
