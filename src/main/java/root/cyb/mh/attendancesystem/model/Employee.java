@@ -49,6 +49,9 @@ public class Employee {
 
     private String avatarPath;
 
+    @jakarta.persistence.Column(columnDefinition = "boolean default false")
+    private boolean extensionForceLogout = false;
+
     // Payroll
     private Double monthlySalary;
     private Double fixedAllowance; // Recurring every month

@@ -6,10 +6,14 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import root.cyb.mh.attendancesystem.model.Employee;
 import root.cyb.mh.attendancesystem.model.SharedResource;
+import root.cyb.mh.attendancesystem.repository.EmployeeRepository;
 import root.cyb.mh.attendancesystem.repository.SharedResourceRepository;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/extension")
@@ -18,20 +22,43 @@ public class ExtensionApiController {
     @Autowired
     private SharedResourceRepository sharedResourceRepository;
 
+    @Autowired
+    private EmployeeRepository employeeRepository;
+
     @GetMapping("/credentials")
     public ResponseEntity<List<SharedResource>> getMyCredentials(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
             return ResponseEntity.status(401).build();
         }
 
-        // For Employees, the principal name is their ID (e.g. EMP001).
-        // For Admins/HR, it is their username. 
-        // SharedResource uses employeeId. If an admin wants to use the extension for testing, 
-        // they might need an employee ID, but typically this is for employees.
         String currentUserId = authentication.getName();
         
         List<SharedResource> resources = sharedResourceRepository.findByEmployeeId(currentUserId);
         
         return ResponseEntity.ok(resources);
+    }
+
+    @GetMapping("/session-status")
+    public ResponseEntity<Map<String, Object>> getSessionStatus(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(401).build();
+        }
+
+        String currentUserId = authentication.getName();
+        Optional<Employee> empOpt = employeeRepository.findById(currentUserId);
+
+        if (empOpt.isEmpty()) {
+            return ResponseEntity.ok(Map.of("active", false));
+        }
+
+        Employee emp = empOpt.get();
+        if (emp.isExtensionForceLogout()) {
+            // Admin requested force-logout: reset flag and tell extension to logout
+            emp.setExtensionForceLogout(false);
+            employeeRepository.save(emp);
+            return ResponseEntity.ok(Map.of("active", false));
+        }
+
+        return ResponseEntity.ok(Map.of("active", true));
     }
 }

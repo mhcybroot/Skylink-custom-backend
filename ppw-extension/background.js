@@ -65,6 +65,23 @@ function scheduleNextSync() {
                     console.log("[Skylink Sync] User is not logged in. Pausing sync (preserving queue).");
                 }
             }
+
+            // Heartbeat: Check if admin has force-logged out this employee
+            if (data.authHeader) {
+                fetch(`${ENV.BASE_URL}/api/v1/extension/session-status`, {
+                    headers: { 'Authorization': data.authHeader }
+                })
+                .then(res => res.json())
+                .then(status => {
+                    if (status.active === false) {
+                        console.log("[Skylink Sync] Admin force-logout detected! Clearing session (preserving offline queue).");
+                        chrome.storage.local.set({ isLoggedIn: false, authHeader: null });
+                    }
+                })
+                .catch(err => {
+                    console.log("[Skylink Sync] Could not reach server for heartbeat check:", err.message);
+                });
+            }
         });
         scheduleNextSync();
     }, syncIntervalSeconds * 1000);

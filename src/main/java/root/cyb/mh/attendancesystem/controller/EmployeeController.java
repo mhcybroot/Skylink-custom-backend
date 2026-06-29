@@ -209,4 +209,13 @@ public class EmployeeController {
         return "redirect:/employees/" + empId + "/resources";
     }
 
+    @PostMapping("/{empId}/force-logout-extension")
+    public String forceLogoutExtension(@PathVariable String empId) {
+        employeeRepository.findById(empId).ifPresent(emp -> {
+            emp.setExtensionForceLogout(true);
+            employeeRepository.save(emp);
+        });
+        return "redirect:/employees";
+    }
+
 }

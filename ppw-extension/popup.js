@@ -6,7 +6,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const submitBtn = document.getElementById('submitBtn');
     const btnText = document.getElementById('btnText');
     const loader = document.getElementById('loader');
-    const logoutBtn = document.getElementById('logoutBtn');
 
     const BASE_URL = ENV.BASE_URL;
 
@@ -59,15 +58,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    logoutBtn.addEventListener('click', async () => {
-        // Clear state locally
-        chrome.storage.local.set({ isLoggedIn: false, authHeader: null }, () => {
-            showLoginForm();
-            document.getElementById('username').value = '';
-            document.getElementById('password').value = '';
-            messageEl.textContent = '';
-        });
-    });
+
+
 
     async function showLoggedIn() {
         loginFormState.style.display = 'none';

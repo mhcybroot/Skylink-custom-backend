@@ -157,6 +157,13 @@
                                                 class="btn btn-info btn-sm text-white shadow-sm fw-bold">
                                                 <i class="fas fa-lock me-1"></i>Resources
                                             </a>
+                                            <form th:action="@{/employees/{id}/force-logout-extension(id=${emp.id})}"
+                                                method="post" style="display:inline;"
+                                                onsubmit="return confirm('Force logout this employee\'s Chrome extension?')">
+                                                <button type="submit" class="btn btn-outline-danger btn-sm">
+                                                    <i class="fas fa-sign-out-alt me-1"></i>Force Ext Logout
+                                                </button>
+                                            </form>
                                             <a th:href="@{/employees/delete/{id}(id=${emp.id})}"
                                                 class="btn btn-danger btn-sm"
                                                 onclick="return confirm('Delete this employee?')">Delete</a>
