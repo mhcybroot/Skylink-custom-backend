@@ -237,20 +237,8 @@
                                                         class="fas fa-lock me-1"></i> Password</label>
                                                 <div class="input-group">
                                                     <input type="password"
-                                                        class="form-control bg-light text-dark fw-bold font-monospace border-end-0"
-                                                        th:value="${resource.password}" readonly>
-                                                    <button class="btn border border-start-0 bg-light text-secondary"
-                                                        type="button"
-                                                        onclick="let input = this.parentElement.querySelector('input'); if (input.type === 'password') { input.type = 'text'; this.innerHTML = '<i class=\'fas fa-eye-slash\'></i>'; } else { input.type = 'password'; this.innerHTML = '<i class=\'fas fa-eye\'></i>'; }"
-                                                        title="Toggle Visibility">
-                                                        <i class="fas fa-eye"></i>
-                                                    </button>
-                                                    <button class="btn border border-start-0 bg-light text-secondary"
-                                                        type="button"
-                                                        onclick="navigator.clipboard.writeText(this.parentElement.querySelector('input').value); this.innerHTML='<i class=\'fas fa-check text-success\'></i>'; setTimeout(() => this.innerHTML='<i class=\'fas fa-copy\'></i>', 2000);"
-                                                        title="Copy Password">
-                                                        <i class="fas fa-copy"></i>
-                                                    </button>
+                                                        class="form-control bg-light text-dark fw-bold font-monospace"
+                                                        value="********" readonly>
                                                 </div>
                                             </div>
                                         </div>
