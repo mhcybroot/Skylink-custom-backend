@@ -82,12 +82,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
             timestamp: new Date().toISOString()
         };
 
-        chrome.storage.local.get(['authHeader', 'offlineHistoryQueue'], (data) => {
-            if (!data.authHeader) {
-                // Privacy: Do not track if logged out
-                return;
-            }
-            
+        chrome.storage.local.get(['offlineHistoryQueue'], (data) => {
             let queue = data.offlineHistoryQueue || [];
             queue.push(newVisit);
             
