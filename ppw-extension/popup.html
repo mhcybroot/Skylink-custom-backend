@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Skylink Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --primary-hover: #4338CA;
+            --bg-color: #F3F4F6;
+            --card-bg: rgba(255, 255, 255, 0.9);
+            --text-color: #1F2937;
+            --text-muted: #6B7280;
+            --error-color: #EF4444;
+            --success-color: #10B981;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #e0e7ff 0%, #ede9fe 100%);
+            margin: 0;
+            padding: 20px;
+            width: 300px;
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            padding: 24px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.05);
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        h2 {
+            margin: 0 0 8px 0;
+            font-size: 20px;
+            font-weight: 600;
+            text-align: center;
+            color: var(--primary);
+        }
+        p.subtitle {
+            margin: 0 0 20px 0;
+            font-size: 13px;
+            color: var(--text-muted);
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 6px;
+        }
+        input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #D1D5DB;
+            border-radius: 8px;
+            font-size: 14px;
+            box-sizing: border-box;
+            transition: all 0.2s;
+            background: #ffffff;
+            font-family: inherit;
+        }
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            font-family: inherit;
+        }
+        button:hover {
+            background: var(--primary-hover);
+        }
+        button:active {
+            transform: translateY(1px);
+        }
+        button:disabled {
+            background: #9CA3AF;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .message {
+            margin-top: 16px;
+            font-size: 13px;
+            text-align: center;
+            font-weight: 500;
+            min-height: 20px;
+        }
+        .error { color: var(--error-color); }
+        .success { color: var(--success-color); }
+        .loader {
+            display: none;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #ffffff;
+            border-bottom-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        #loggedInState {
+            display: none;
+            text-align: center;
+        }
+        .check-icon {
+            width: 48px;
+            height: 48px;
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px auto;
+            font-size: 24px;
+        }
+        #logoutBtn {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid #D1D5DB;
+            margin-top: 20px;
+        }
+        #logoutBtn:hover {
+            background: #F3F4F6;
+            color: var(--text-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <div id="loginFormState">
+            <h2>Skylink Sync</h2>
+            <p class="subtitle">Please login to sync PPW data</p>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Username / ID</label>
+                    <input type="text" id="username" required placeholder="EMP001">
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" required placeholder="••••••••">
+                </div>
+                
+                <button type="submit" id="submitBtn">
+                    <span id="btnText">Login</span>
+                    <div class="loader" id="loader"></div>
+                </button>
+                
+                <div id="message" class="message"></div>
+            </form>
+        </div>
+
+        <div id="loggedInState">
+            <div class="check-icon">✓</div>
+            <h2>Logged In</h2>
+            <p class="subtitle">Background sync is active.</p>
+            <button id="logoutBtn">Logout</button>
+        </div>
+
+    </div>
+    <script src="env.js"></script>
+    <script src="popup.js"></script>
+</body>
+</html>
