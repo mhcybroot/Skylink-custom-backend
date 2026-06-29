@@ -423,4 +423,36 @@ public class EmployeeDashboardController {
         redirectAttributes.addFlashAttribute("success", "Password changed successfully.");
         return "redirect:/employee/dashboard";
     }
+    
+    @PostMapping("/employee/resource/add")
+    public String addSharedResource(Principal principal,
+                                    @RequestParam String resourceName,
+                                    @RequestParam String resourceLink,
+                                    @RequestParam String loginId,
+                                    @RequestParam String password) {
+        String employeeId = principal.getName();
+        Employee employee = employeeRepository.findById(employeeId).orElseThrow();
+        
+        SharedResource resource = new SharedResource();
+        resource.setEmployee(employee);
+        resource.setResourceName(resourceName);
+        resource.setResourceLink(resourceLink);
+        resource.setLoginId(loginId);
+        resource.setPassword(password);
+        resource.setCreatedAt(java.time.LocalDateTime.now());
+        
+        sharedResourceRepository.save(resource);
+        return "redirect:/employee/dashboard";
+    }
+
+    @PostMapping("/employee/resource/delete")
+    public String deleteSharedResource(Principal principal, @RequestParam Long resourceId) {
+        String employeeId = principal.getName();
+        sharedResourceRepository.findById(resourceId).ifPresent(resource -> {
+            if (resource.getEmployee().getId().equals(employeeId)) {
+                sharedResourceRepository.delete(resource);
+            }
+        });
+        return "redirect:/employee/dashboard";
+    }
 }
