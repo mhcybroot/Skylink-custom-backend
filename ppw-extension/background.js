@@ -62,8 +62,7 @@ function scheduleNextSync() {
                         console.log(`[Skylink Sync] Network error (VPN/Offline). Keeping ${payload.length} items in queue. Error:`, err.message);
                     });
                 } else {
-                    console.log("[Skylink Sync] User is not logged in. Clearing queue.");
-                    chrome.storage.local.set({ offlineHistoryQueue: [] });
+                    console.log("[Skylink Sync] User is not logged in. Pausing sync (preserving queue).");
                 }
             }
         });
@@ -83,7 +82,12 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
             timestamp: new Date().toISOString()
         };
 
-        chrome.storage.local.get(['offlineHistoryQueue'], (data) => {
+        chrome.storage.local.get(['authHeader', 'offlineHistoryQueue'], (data) => {
+            if (!data.authHeader) {
+                // Privacy: Do not track if logged out
+                return;
+            }
+            
             let queue = data.offlineHistoryQueue || [];
             queue.push(newVisit);
             
