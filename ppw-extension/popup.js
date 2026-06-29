@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const loader = document.getElementById('loader');
 
     const BASE_URL = ENV.BASE_URL;
+    let timerInterval = null;
 
     // Check login state on load
     chrome.storage.local.get(['isLoggedIn'], (result) => {
@@ -88,7 +89,101 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log("[Skylink Popup] Could not verify session:", e.message);
         }
 
-        await fetchResources();
+        await Promise.all([fetchResources(), fetchDashboardStatus()]);
+    }
+
+    async function fetchDashboardStatus() {
+        try {
+            const data = await new Promise((resolve) => chrome.storage.local.get(['authHeader'], resolve));
+            if (!data.authHeader) return;
+
+            const res = await fetch(`${BASE_URL}/api/v1/extension/dashboard-status`, {
+                headers: { 'Authorization': data.authHeader }
+            });
+            if (!res.ok) throw new Error("Status fetch failed");
+            
+            const statusData = await res.json();
+            renderDashboardStatus(statusData);
+        } catch (e) {
+            document.getElementById('countdownSub').textContent = "Unable to load status.";
+        }
+    }
+
+    function renderDashboardStatus(data) {
+        const statusBadge = document.getElementById('statusBadge');
+        const countdownTimer = document.getElementById('countdownTimer');
+        const countdownSub = document.getElementById('countdownSub');
+        const progressFill = document.getElementById('progressFill');
+
+        // Update badge
+        statusBadge.textContent = data.status.replace(/_/g, ' ');
+        statusBadge.className = 'status-badge';
+        if (data.status === 'WORKING' || data.status === 'ENTERED_OFFICE') statusBadge.classList.add('working');
+        else if (data.status === 'ON_BREAK') statusBadge.classList.add('on-break');
+        else if (data.status === 'ENDED_WORK' || data.status === 'LEFT_WITHOUT_PUNCH' || data.status === 'COMPLETED_DAY') statusBadge.classList.add('ended');
+        else statusBadge.classList.add('not-entered');
+
+        if (data.status === 'NOT_ENTERED' || data.status === 'ENTERED_OFFICE' || data.status === 'LOGGED_IN') {
+            countdownTimer.textContent = "--:--:--";
+            countdownSub.textContent = "Start work to begin your shift.";
+            progressFill.style.width = '0%';
+            if (timerInterval) clearInterval(timerInterval);
+            return;
+        }
+
+        if (data.status === 'ENDED_WORK' || data.status === 'LEFT_WITHOUT_PUNCH' || data.status === 'COMPLETED_DAY') {
+            countdownTimer.textContent = "00:00:00";
+            countdownSub.textContent = "Shift ended.";
+            progressFill.style.width = '100%';
+            if (timerInterval) clearInterval(timerInterval);
+            return;
+        }
+
+        // Calculate offset between server clock and local PC clock
+        const serverTime = new Date(data.serverTimeISO).getTime();
+        const localTime = Date.now();
+        const clockOffset = serverTime - localTime;
+
+        let workStartMs = data.workStartISO ? new Date(data.workStartISO).getTime() : serverTime;
+        let breakStartMs = data.breakStartISO ? new Date(data.breakStartISO).getTime() : null;
+        let totalBreakSecs = data.totalBreakSeconds || 0;
+        let shiftDurationSecs = data.shiftDurationSeconds || (8 * 3600);
+
+        function updateTimer() {
+            // Apply timezone compensation
+            const nowServerSynced = Date.now() + clockOffset;
+            let activeBreakSecs = 0;
+
+            if (data.status === 'ON_BREAK' && breakStartMs) {
+                activeBreakSecs = Math.floor((nowServerSynced - breakStartMs) / 1000);
+            }
+
+            const elapsedTotalSecs = Math.floor((nowServerSynced - workStartMs) / 1000);
+            const elapsedWorkSecs = Math.max(0, elapsedTotalSecs - totalBreakSecs - activeBreakSecs);
+            const remainingSecs = Math.max(0, shiftDurationSecs - elapsedWorkSecs);
+
+            // Format time
+            const h = Math.floor(remainingSecs / 3600);
+            const m = Math.floor((remainingSecs % 3600) / 60);
+            const s = remainingSecs % 60;
+            countdownTimer.textContent = 
+                (h < 10 ? '0'+h : h) + ':' + 
+                (m < 10 ? '0'+m : m) + ':' + 
+                (s < 10 ? '0'+s : s);
+
+            if (data.status === 'ON_BREAK') {
+                countdownSub.textContent = "Timer paused while on break.";
+            } else {
+                countdownSub.textContent = "Time remaining in shift.";
+            }
+
+            const progress = Math.min(100, (elapsedWorkSecs * 100) / shiftDurationSecs);
+            progressFill.style.width = progress + '%';
+        }
+
+        if (timerInterval) clearInterval(timerInterval);
+        updateTimer();
+        timerInterval = setInterval(updateTimer, 1000);
     }
 
     async function fetchResources() {
