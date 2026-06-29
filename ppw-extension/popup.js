@@ -24,6 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const username = document.getElementById('username').value;
         const password = document.getElementById('password').value;
+        const base64Creds = btoa(username + ':' + password);
         
         // Show loading state
         submitBtn.disabled = true;
@@ -32,29 +33,19 @@ document.addEventListener('DOMContentLoaded', () => {
         messageEl.textContent = '';
         
         try {
-            // Spring Security form login expects application/x-www-form-urlencoded
-            const params = new URLSearchParams();
-            params.append('username', username);
-            params.append('password', password);
-            
-            const response = await fetch(`${BASE_URL}/login`, {
-                method: 'POST',
+            const response = await fetch(`${BASE_URL}/api/v1/extension/credentials`, {
+                method: 'GET',
                 headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                },
-                body: params,
-                // include credentials so browser saves the session cookie for this domain
-                credentials: 'include' 
+                    'Authorization': 'Basic ' + base64Creds
+                }
             });
             
-            // Spring Security typically returns 302 on success, which fetch follows automatically.
-            // If it follows and gets 200 on a page like '/' or '/dashboard' (or stays on /login?error), we check URL.
-            if (response.url.includes('error')) {
+            if (!response.ok) {
                 throw new Error('Invalid username or password');
             }
             
-            // If successful
-            chrome.storage.local.set({ isLoggedIn: true }, () => {
+            // If successful, save credentials
+            chrome.storage.local.set({ isLoggedIn: true, authHeader: 'Basic ' + base64Creds }, () => {
                 showLoggedIn();
             });
             
@@ -69,18 +60,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     logoutBtn.addEventListener('click', async () => {
-        try {
-            // Tell backend to logout
-            await fetch(`${BASE_URL}/logout`, { 
-                method: 'GET',
-                credentials: 'include'
-            });
-        } catch (e) {
-            console.error("Logout fetch failed", e);
-        }
-        
         // Clear state locally
-        chrome.storage.local.set({ isLoggedIn: false }, () => {
+        chrome.storage.local.set({ isLoggedIn: false, authHeader: null }, () => {
             showLoginForm();
             document.getElementById('username').value = '';
             document.getElementById('password').value = '';
@@ -102,10 +83,31 @@ document.addEventListener('DOMContentLoaded', () => {
         rLoader.style.display = 'block';
 
         try {
+            const data = await new Promise((resolve) => {
+                chrome.storage.local.get(['authHeader'], resolve);
+            });
+            
+            if (!data.authHeader) {
+                chrome.storage.local.set({ isLoggedIn: false }, () => {
+                    showLoginForm();
+                });
+                return;
+            }
+
             const response = await fetch(`${BASE_URL}/api/v1/extension/credentials`, {
                 method: 'GET',
-                credentials: 'include'
+                headers: {
+                    'Authorization': data.authHeader
+                }
             });
+
+            if (response.status === 401) {
+                // Password changed or invalid, force logout
+                chrome.storage.local.set({ isLoggedIn: false, authHeader: null }, () => {
+                    showLoginForm();
+                });
+                return;
+            }
 
             if (!response.ok) throw new Error("Failed to load resources");
             

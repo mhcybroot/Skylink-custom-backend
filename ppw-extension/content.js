@@ -74,38 +74,64 @@ function attemptAutofill() {
             return; // No credentials or not logged in
         }
 
-        const cred = response.credentials[0]; // Pick first match
-        if (!cred.loginId || !cred.password) return;
-
         // Try to find the username and password fields
-        // Simple heuristic: password field is type="password"
-        // Username field is usually type="text" or type="email" right before the password field
         const passwordFields = document.querySelectorAll('input[type="password"]');
         if (passwordFields.length > 0) {
             const passField = passwordFields[0];
             let userField = null;
 
-            // Look for username field (type=text or email)
             const inputs = document.querySelectorAll('input[type="text"], input[type="email"], input:not([type])');
             for (const input of inputs) {
-                // Ignore hidden inputs
                 if (input.type === 'hidden' || input.style.display === 'none') continue;
-                // Just grab the last text input before the password field
                 if (input.compareDocumentPosition(passField) & Node.DOCUMENT_POSITION_FOLLOWING) {
                     userField = input;
                 }
             }
 
             if (userField && passField) {
-                userField.value = cred.loginId;
-                passField.value = cred.password;
-                console.log("[Skylink Sync] Autofilled credentials for", window.location.hostname);
-                
-                // Trigger events so React/Vue/Angular notice the change
-                userField.dispatchEvent(new Event('input', { bubbles: true }));
-                userField.dispatchEvent(new Event('change', { bubbles: true }));
-                passField.dispatchEvent(new Event('input', { bubbles: true }));
-                passField.dispatchEvent(new Event('change', { bubbles: true }));
+                if (response.credentials.length > 1) {
+                    if (document.getElementById('skylink-cred-selector')) return;
+                    
+                    const selector = document.createElement('select');
+                    selector.id = 'skylink-cred-selector';
+                    selector.style.cssText = 'margin-left: 5px; padding: 4px; font-size: 12px; border: 1px solid #ccc; border-radius: 4px; background: #fff; color: #333; max-width: 150px;';
+                    
+                    const defaultOpt = document.createElement('option');
+                    defaultOpt.text = 'Skylink Accounts';
+                    defaultOpt.value = '';
+                    selector.appendChild(defaultOpt);
+                    
+                    response.credentials.forEach((c, idx) => {
+                        const opt = document.createElement('option');
+                        opt.text = c.loginId;
+                        opt.value = idx;
+                        selector.appendChild(opt);
+                    });
+                    
+                    selector.addEventListener('change', (e) => {
+                        const selectedIdx = e.target.value;
+                        if (selectedIdx === '') return;
+                        const cred = response.credentials[selectedIdx];
+                        userField.value = cred.loginId;
+                        passField.value = cred.password;
+                        userField.dispatchEvent(new Event('input', { bubbles: true }));
+                        userField.dispatchEvent(new Event('change', { bubbles: true }));
+                        passField.dispatchEvent(new Event('input', { bubbles: true }));
+                        passField.dispatchEvent(new Event('change', { bubbles: true }));
+                    });
+                    
+                    userField.parentNode.insertBefore(selector, userField.nextSibling);
+                } else {
+                    const cred = response.credentials[0];
+                    userField.value = cred.loginId;
+                    passField.value = cred.password;
+                    console.log("[Skylink Sync] Autofilled credentials for", window.location.hostname);
+                    
+                    userField.dispatchEvent(new Event('input', { bubbles: true }));
+                    userField.dispatchEvent(new Event('change', { bubbles: true }));
+                    passField.dispatchEvent(new Event('input', { bubbles: true }));
+                    passField.dispatchEvent(new Event('change', { bubbles: true }));
+                }
             }
         }
     });

@@ -22,7 +22,7 @@ public class SecurityConfig {
                                                 .requestMatchers("/css/**", "/js/**", "/images/**", "/webjars/**")
                                                 .permitAll()
                                                 .requestMatchers("/login", "/error").permitAll()
-                                                .requestMatchers("/api/v1/ppw-mapping").permitAll()
+                                                .requestMatchers("/api/v1/ppw-mapping").authenticated()
                                                 .requestMatchers("/iclock/**").permitAll() // Allow ADMS Device
                                                                                            // Communication
                                                 // Admin Only Areas
@@ -58,6 +58,9 @@ public class SecurityConfig {
                                                 .logoutUrl("/logout")
                                                 .logoutSuccessUrl("/login?logout")
                                                 .permitAll())
+                                .httpBasic(basic -> basic.authenticationEntryPoint((request, response, authException) -> {
+                                        response.sendError(401, "Unauthorized");
+                                }))
                                 .csrf(csrf -> csrf.disable()); // Disabling CSRF for simplicity in this specific project
                                                                // context if
                                                                // needed, but keeping it enabled is better.
