@@ -75,7 +75,7 @@ public class BrowseHistoryController {
 
     @GetMapping("/admin/api/browse-history/employee/{id}/dates")
     @org.springframework.web.bind.annotation.ResponseBody
-    public java.util.List<String> getEmployeeHistoryDates(@org.springframework.web.bind.annotation.PathVariable Long id) {
+    public java.util.List<String> getEmployeeHistoryDates(@org.springframework.web.bind.annotation.PathVariable String id) {
         return historyRepository.findDistinctDatesByEmployeeId(id).stream()
                 .map(java.sql.Date::toString)
                 .toList();

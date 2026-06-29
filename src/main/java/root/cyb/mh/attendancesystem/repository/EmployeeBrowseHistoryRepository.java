@@ -25,7 +25,7 @@ public interface EmployeeBrowseHistoryRepository extends JpaRepository<EmployeeB
     List<String> findDistinctUrlsContaining(@org.springframework.data.repository.query.Param("query") String query, Pageable pageable);
 
     @Query(value = "SELECT DISTINCT CAST(timestamp AS DATE) FROM employee_browse_history WHERE employee_id = :employeeId ORDER BY CAST(timestamp AS DATE) DESC", nativeQuery = true)
-    List<java.sql.Date> findDistinctDatesByEmployeeId(@org.springframework.data.repository.query.Param("employeeId") Long employeeId);
+    List<java.sql.Date> findDistinctDatesByEmployeeId(@org.springframework.data.repository.query.Param("employeeId") String employeeId);
 
     @Query(value = "SELECT DISTINCT REPLACE(SUBSTRING(url FROM 'https?://([^/]+)'), 'www.', '') AS domain " +
                    "FROM employee_browse_history " +
