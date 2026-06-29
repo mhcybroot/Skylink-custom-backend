@@ -15,6 +15,7 @@ public class SharedResource {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "employee_id", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private Employee employee;
 
     @Column(nullable = false)
