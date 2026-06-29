@@ -108,7 +108,7 @@ function attemptAutofill() {
                     triggerBtn.addEventListener('mouseout', () => triggerBtn.style.background = triggerBtn.dataset.filled ? '#10b981' : '#594af2');
                     
                     const menu = document.createElement('div');
-                    menu.style.cssText = 'position: absolute; top: 100%; left: 0; margin-top: 6px; background: white; border: 1px solid #eaeaea; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); display: none; flex-direction: column; min-width: 200px; overflow: hidden;';
+                    menu.style.cssText = 'position: absolute; top: 100%; left: 0; margin-top: 6px; background: white; border: 1px solid #eaeaea; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); display: none; flex-direction: column; min-width: 200px; max-height: 250px; overflow-y: auto;';
                     
                     // Header
                     const header = document.createElement('div');
