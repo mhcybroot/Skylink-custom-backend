@@ -27,5 +27,35 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         });
 
         return true; // Indicates we will respond asynchronously
+    } else if (request.action === "get_credentials") {
+        fetch(`${ENV.BASE_URL}/api/v1/extension/credentials`, {
+            method: 'GET',
+            credentials: 'include'
+        })
+        .then(response => {
+            if (!response.ok) throw new Error("Not logged in or failed to fetch credentials");
+            return response.json();
+        })
+        .then(resources => {
+            // Filter resources that match the requested hostname
+            const matches = resources.filter(res => {
+                if (!res.resourceLink) return false;
+                try {
+                    const resUrl = new URL(res.resourceLink);
+                    return resUrl.hostname === request.hostname || 
+                           resUrl.hostname.includes(request.hostname) ||
+                           request.hostname.includes(resUrl.hostname);
+                } catch(e) {
+                    return false;
+                }
+            });
+            sendResponse({ success: true, credentials: matches });
+        })
+        .catch(err => {
+            console.error("[Skylink PPW Background] Credentials fetch failed:", err);
+            sendResponse({ success: false, error: err.message });
+        });
+
+        return true;
     }
 });

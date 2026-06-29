@@ -147,6 +147,41 @@
             background: #F3F4F6;
             color: var(--text-color);
         }
+        .resources-section {
+            margin-top: 20px;
+            text-align: left;
+            border-top: 1px solid #E5E7EB;
+            padding-top: 16px;
+        }
+        .resource-item {
+            background: #ffffff;
+            border: 1px solid #E5E7EB;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 8px;
+        }
+        .resource-name {
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--text-color);
+            margin: 0 0 4px 0;
+        }
+        .resource-login {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin: 0;
+            display: flex;
+            align-items: center;
+        }
+        .resource-login strong {
+            margin-right: 4px;
+        }
+        .empty-state {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-align: center;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
@@ -179,7 +214,14 @@
         <div id="loggedInState">
             <div class="check-icon">✓</div>
             <h2>Logged In</h2>
-            <p class="subtitle">Background sync is active.</p>
+            <p class="subtitle">Background sync & autofill active.</p>
+            
+            <div class="resources-section">
+                <h3 style="font-size: 14px; margin: 0 0 10px 0; color: var(--text-color);">My Shared Resources</h3>
+                <div id="resourcesLoader" class="loader" style="display: none; border-color: var(--primary); border-bottom-color: transparent;"></div>
+                <div id="resourcesList"></div>
+            </div>
+
             <button id="logoutBtn">Logout</button>
         </div>
 

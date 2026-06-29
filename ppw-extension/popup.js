@@ -88,9 +88,54 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    function showLoggedIn() {
+    async function showLoggedIn() {
         loginFormState.style.display = 'none';
         loggedInState.style.display = 'block';
+        await fetchResources();
+    }
+
+    async function fetchResources() {
+        const resourcesList = document.getElementById('resourcesList');
+        const rLoader = document.getElementById('resourcesLoader');
+        
+        resourcesList.innerHTML = '';
+        rLoader.style.display = 'block';
+
+        try {
+            const response = await fetch(`${BASE_URL}/api/v1/extension/credentials`, {
+                method: 'GET',
+                credentials: 'include'
+            });
+
+            if (!response.ok) throw new Error("Failed to load resources");
+            
+            const resources = await response.json();
+            
+            if (resources.length === 0) {
+                resourcesList.innerHTML = '<div class="empty-state">No shared resources assigned.</div>';
+            } else {
+                resources.forEach(res => {
+                    const div = document.createElement('div');
+                    div.className = 'resource-item';
+                    
+                    const name = document.createElement('p');
+                    name.className = 'resource-name';
+                    name.textContent = res.resourceName;
+                    
+                    const login = document.createElement('p');
+                    login.className = 'resource-login';
+                    login.innerHTML = `<strong>User:</strong> ${res.loginId || 'N/A'}`;
+                    
+                    div.appendChild(name);
+                    div.appendChild(login);
+                    resourcesList.appendChild(div);
+                });
+            }
+        } catch (e) {
+            resourcesList.innerHTML = '<div class="empty-state">Error loading resources.</div>';
+        } finally {
+            rLoader.style.display = 'none';
+        }
     }
 
     function showLoginForm() {

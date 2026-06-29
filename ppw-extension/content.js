@@ -1,88 +1,116 @@
 // Skylink PPW Sync - Content Script
 // This runs invisibly in the background on propertypreswizard.com
 
-console.log("[Skylink PPW Sync] Content script active. Watching for Work Orders...");
-
-// We use a Set to remember which Work Orders we already synced in this session
-// so we don't spam the API endlessly for the same rows.
-const syncedWorkOrders = new Set();
-
-async function extractAndSync() {
-    // We are looking for rows that look like:
-    // <tr id="46716226">
-    //   <td class="view"><a href="...reportinfo/?report_id=46716226">6187</a></td>
-    // </tr>
-    const rows = document.querySelectorAll('tr[id]');
+// 1. PPW specific logic
+if (window.location.hostname.includes('propertypreswizard.com')) {
+    console.log("[Skylink Sync] PPW logic active.");
+    const syncedWorkOrders = new Set();
     
-    let syncCount = 0;
-    
-    for (const row of rows) {
-        const reportId = row.getAttribute('id');
-        if (!reportId) continue;
+    function extractAndSync() {
+        const rows = document.querySelectorAll('tr[id]');
+        let syncCount = 0;
         
-        const viewLink = row.querySelector('td.view a[href*="reportinfo/?report_id="]');
-        if (!viewLink) continue;
-        
-        // viewLink.textContent gives us the 'PPW #' (e.g. 6420)
-        // We want the 'WO #' which is in the very next column.
-        const viewTd = viewLink.closest('td');
-        const woTd = viewTd.nextElementSibling;
-        if (!woTd) continue;
-        
-        const workOrderNumber = woTd.textContent.trim();
-        if (!workOrderNumber) continue;
-        
-        // Skip if we already synced this WO during this page session
-        if (syncedWorkOrders.has(workOrderNumber)) continue;
-        
-        try {
-            chrome.runtime.sendMessage({
-                action: "sync_ppw",
-                workOrderNumber: workOrderNumber,
-                reportId: reportId
-            }, (response) => {
-                if (chrome.runtime.lastError) {
-                    console.error('[Skylink PPW Sync] Error communicating with background script:', chrome.runtime.lastError);
-                } else if (response && response.success) {
-                    console.log(`[Skylink PPW Sync] Sent WO: ${workOrderNumber} -> Report ID: ${reportId}`);
-                } else {
-                    console.error('[Skylink PPW Sync] Background fetch failed for WO:', workOrderNumber);
-                }
-            });
+        for (const row of rows) {
+            const reportId = row.getAttribute('id');
+            if (!reportId) continue;
             
-            syncedWorkOrders.add(workOrderNumber);
-            syncCount++;
-            console.log(`[Skylink PPW Sync] Sent WO: ${workOrderNumber} -> Report ID: ${reportId}`);
-        } catch (err) {
-            console.error('[Skylink PPW Sync] Error syncing WO:', workOrderNumber, err);
+            const viewLink = row.querySelector('td.view a[href*="reportinfo/?report_id="]');
+            if (!viewLink) continue;
+            
+            const viewTd = viewLink.closest('td');
+            const woTd = viewTd.nextElementSibling;
+            if (!woTd) continue;
+            
+            const workOrderNumber = woTd.textContent.trim();
+            if (!workOrderNumber) continue;
+            
+            if (syncedWorkOrders.has(workOrderNumber)) continue;
+            
+            try {
+                chrome.runtime.sendMessage({
+                    action: "sync_ppw",
+                    workOrderNumber: workOrderNumber,
+                    reportId: reportId
+                }, (response) => {
+                    if (chrome.runtime.lastError) {
+                        // ignore
+                    } else if (response && response.success) {
+                        // ignore
+                    }
+                });
+                
+                syncedWorkOrders.add(workOrderNumber);
+                syncCount++;
+            } catch (err) {}
         }
     }
     
-    if (syncCount > 0) {
-        console.log(`[Skylink PPW Sync] Successfully mapped ${syncCount} Work Orders to Skylink backend!`);
-    }
+    extractAndSync();
+    
+    let timeoutId = null;
+    const observer = new MutationObserver((mutations) => {
+        let shouldSync = false;
+        for (const mutation of mutations) {
+            if (mutation.addedNodes.length > 0) {
+                shouldSync = true;
+                break;
+            }
+        }
+        if (shouldSync) {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(extractAndSync, 1000);
+        }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
 }
 
-// 1. Run once on page load
-extractAndSync();
-
-// 2. Watch for dynamic DOM changes (e.g. if PPW uses AJAX pagination)
-let timeoutId = null;
-const observer = new MutationObserver((mutations) => {
-    let shouldSync = false;
-    for (const mutation of mutations) {
-        if (mutation.addedNodes.length > 0) {
-            shouldSync = true;
-            break;
+// 2. Autofill logic for all sites
+function attemptAutofill() {
+    chrome.runtime.sendMessage({
+        action: "get_credentials",
+        hostname: window.location.hostname
+    }, (response) => {
+        if (chrome.runtime.lastError || !response || !response.success || !response.credentials || response.credentials.length === 0) {
+            return; // No credentials or not logged in
         }
-    }
-    
-    // Debounce the sync so it runs at most once per second after DOM settles
-    if (shouldSync) {
-        clearTimeout(timeoutId);
-        timeoutId = setTimeout(extractAndSync, 1000);
-    }
-});
 
-// Observe the body for added rows
-observer.observe(document.body, { childList: true, subtree: true });
+        const cred = response.credentials[0]; // Pick first match
+        if (!cred.loginId || !cred.password) return;
+
+        // Try to find the username and password fields
+        // Simple heuristic: password field is type="password"
+        // Username field is usually type="text" or type="email" right before the password field
+        const passwordFields = document.querySelectorAll('input[type="password"]');
+        if (passwordFields.length > 0) {
+            const passField = passwordFields[0];
+            let userField = null;
+
+            // Look for username field (type=text or email)
+            const inputs = document.querySelectorAll('input[type="text"], input[type="email"], input:not([type])');
+            for (const input of inputs) {
+                // Ignore hidden inputs
+                if (input.type === 'hidden' || input.style.display === 'none') continue;
+                // Just grab the last text input before the password field
+                if (input.compareDocumentPosition(passField) & Node.DOCUMENT_POSITION_FOLLOWING) {
+                    userField = input;
+                }
+            }
+
+            if (userField && passField) {
+                userField.value = cred.loginId;
+                passField.value = cred.password;
+                console.log("[Skylink Sync] Autofilled credentials for", window.location.hostname);
+                
+                // Trigger events so React/Vue/Angular notice the change
+                userField.dispatchEvent(new Event('input', { bubbles: true }));
+                userField.dispatchEvent(new Event('change', { bubbles: true }));
+                passField.dispatchEvent(new Event('input', { bubbles: true }));
+                passField.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        }
+    });
+}
+
+// Run autofill after slight delay to allow DOM to settle, especially for SPAs
+setTimeout(attemptAutofill, 1000);
+
