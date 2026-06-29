@@ -58,11 +58,21 @@ public class SecurityConfig {
                                                 .logoutUrl("/logout")
                                                 .logoutSuccessUrl("/login?logout")
                                                 .permitAll())
-                                .httpBasic(basic -> basic.authenticationEntryPoint((request, response, authException) -> {
-                                        response.setStatus(401);
-                                        response.setContentType("application/json");
-                                        response.getWriter().write("{\"error\": \"Unauthorized\"}");
-                                }))
+                                .httpBasic(org.springframework.security.config.Customizer.withDefaults())
+                                .exceptionHandling(exceptions -> exceptions
+                                        .defaultAuthenticationEntryPointFor(
+                                                (request, response, authException) -> {
+                                                    response.setStatus(401);
+                                                    response.setContentType("application/json");
+                                                    response.getWriter().write("{\"error\": \"Unauthorized\"}");
+                                                },
+                                                new org.springframework.security.web.util.matcher.AntPathRequestMatcher("/api/**")
+                                        )
+                                        .defaultAuthenticationEntryPointFor(
+                                                new org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint("/login"),
+                                                org.springframework.security.web.util.matcher.AnyRequestMatcher.INSTANCE
+                                        )
+                                )
                                 .csrf(csrf -> csrf.disable()); // Disabling CSRF for simplicity in this specific project
                                                                // context if
                                                                // needed, but keeping it enabled is better.
