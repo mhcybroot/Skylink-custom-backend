@@ -227,6 +227,53 @@
             background: linear-gradient(90deg, var(--primary), #818CF8);
             transition: width 0.5s ease;
         }
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .stat-card {
+            background: #ffffff;
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            border: 1px solid rgba(0,0,0,0.05);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+        }
+        .stat-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 8px;
+            flex-shrink: 0;
+            font-size: 12px;
+        }
+        .stat-icon.present { background: #E8F5E9; color: #2E7D32; }
+        .stat-icon.late { background: #FFF8E1; color: #F57F17; }
+        .stat-icon.early { background: #FFEBEE; color: #C62828; }
+        .stat-icon.leaves { background: #E1F5FE; color: #0277BD; }
+        .stat-info {
+            display: flex;
+            flex-direction: column;
+        }
+        .stat-label {
+            font-size: 9px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+        .stat-value {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-color);
+            line-height: 1.2;
+        }
     </style>
 </head>
 <body>
@@ -271,6 +318,38 @@
                 </div>
             </div>
             
+            <!-- Monthly Stats Grid -->
+            <div class="stats-grid" id="statsGrid">
+                <div class="stat-card">
+                    <div class="stat-icon present">✓</div>
+                    <div class="stat-info">
+                        <span class="stat-label">Present</span>
+                        <span class="stat-value" id="statPresent">-</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon late">🕒</div>
+                    <div class="stat-info">
+                        <span class="stat-label">Late</span>
+                        <span class="stat-value" id="statLate">-</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon early">🚪</div>
+                    <div class="stat-info">
+                        <span class="stat-label">Early Exit</span>
+                        <span class="stat-value" id="statEarly">-</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon leaves">🗓️</div>
+                    <div class="stat-info">
+                        <span class="stat-label">Leaves</span>
+                        <span class="stat-value" id="statLeaves">-</span>
+                    </div>
+                </div>
+            </div>
+
             <div class="resources-section">
                 <h3 style="font-size: 14px; margin: 0 0 10px 0; color: var(--text-color);">My Shared Resources</h3>
                 <div id="resourcesLoader" class="loader" style="display: none; border-color: var(--primary); border-bottom-color: transparent;"></div>

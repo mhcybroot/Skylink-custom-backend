@@ -9,9 +9,11 @@ import org.springframework.web.bind.annotation.RestController;
 import root.cyb.mh.attendancesystem.model.Employee;
 import root.cyb.mh.attendancesystem.model.EmployeeDailyWorkStatus;
 import root.cyb.mh.attendancesystem.model.SharedResource;
+import root.cyb.mh.attendancesystem.dto.EmployeeMonthlyDetailDto;
 import root.cyb.mh.attendancesystem.repository.EmployeeRepository;
 import root.cyb.mh.attendancesystem.repository.EmployeeDailyWorkStatusRepository;
 import root.cyb.mh.attendancesystem.repository.SharedResourceRepository;
+import root.cyb.mh.attendancesystem.service.ReportService;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -33,6 +35,9 @@ public class ExtensionApiController {
 
     @Autowired
     private EmployeeDailyWorkStatusRepository workStatusRepository;
+
+    @Autowired
+    private ReportService reportService;
 
     @GetMapping("/credentials")
     public ResponseEntity<List<SharedResource>> getMyCredentials(Authentication authentication) {
@@ -123,6 +128,20 @@ public class ExtensionApiController {
             result.put("elapsedWorkSeconds", 0);
             result.put("remainingSeconds", shiftDurationSeconds);
             result.put("progressPercent", 0.0);
+        }
+
+        // Monthly Stats
+        EmployeeMonthlyDetailDto monthlyReport = reportService.getEmployeeMonthlyReport(employeeId, today.getYear(), today.getMonthValue());
+        if (monthlyReport != null) {
+            result.put("daysPresent", monthlyReport.getTotalPresent());
+            result.put("lateCount", monthlyReport.getTotalLates());
+            result.put("earlyCount", monthlyReport.getTotalEarlyLeaves());
+            result.put("leaveCount", monthlyReport.getTotalLeaves());
+        } else {
+            result.put("daysPresent", 0);
+            result.put("lateCount", 0);
+            result.put("earlyCount", 0);
+            result.put("leaveCount", 0);
         }
 
         return ResponseEntity.ok(result);

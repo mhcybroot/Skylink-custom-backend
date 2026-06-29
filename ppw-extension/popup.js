@@ -124,6 +124,12 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (data.status === 'ENDED_WORK' || data.status === 'LEFT_WITHOUT_PUNCH' || data.status === 'COMPLETED_DAY') statusBadge.classList.add('ended');
         else statusBadge.classList.add('not-entered');
 
+        // Update stats grid
+        document.getElementById('statPresent').textContent = data.daysPresent || '0';
+        document.getElementById('statLate').textContent = data.lateCount || '0';
+        document.getElementById('statEarly').textContent = data.earlyCount || '0';
+        document.getElementById('statLeaves').textContent = data.leaveCount || '0';
+
         // Calculate offset between server clock and local PC clock
         const serverTime = new Date(data.serverTimeISO).getTime();
         const localTime = Date.now();
