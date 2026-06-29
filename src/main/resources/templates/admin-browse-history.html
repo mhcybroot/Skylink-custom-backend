@@ -16,17 +16,84 @@
                     </div>
                 </div>
             </div>
+            
+            <!-- Advanced Filters -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white py-3" data-bs-toggle="collapse" data-bs-target="#filterCollapse" style="cursor: pointer;">
+                    <h6 class="mb-0 fw-bold"><i class="fas fa-filter text-muted me-2"></i>Advanced Filters <span class="float-end"><i class="fas fa-chevron-down text-muted"></i></span></h6>
+                </div>
+                <div id="filterCollapse" class="collapse show">
+                    <div class="card-body">
+                        <form th:action="@{/admin/browse-history}" method="get" id="filterForm">
+                            <div class="row g-3">
+                                <div class="col-md-2">
+                                    <label class="form-label small fw-bold">Employee Name/ID</label>
+                                    <input type="text" name="employeeSearch" class="form-control form-control-sm" th:value="${employeeSearch}" placeholder="Search employee...">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small fw-bold">Domain</label>
+                                    <select name="domain" class="form-control form-control-sm select2-domain" data-placeholder="e.g. facebook.com">
+                                        <option th:if="${domainSearch != null and !domainSearch.isEmpty()}" th:value="${domainSearch}" th:text="${domainSearch}" selected></option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small fw-bold">URL Contains</label>
+                                    <select name="url" class="form-control form-control-sm select2-url" data-placeholder="e.g. messages">
+                                        <option th:if="${urlSearch != null and !urlSearch.isEmpty()}" th:value="${urlSearch}" th:text="${urlSearch}" selected></option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small fw-bold">Page Title Contains</label>
+                                    <select name="title" class="form-control form-control-sm select2-title" data-placeholder="e.g. Facebook">
+                                        <option th:if="${titleSearch != null and !titleSearch.isEmpty()}" th:value="${titleSearch}" th:text="${titleSearch}" selected></option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-bold">Date Range</label>
+                                    <div class="input-group input-group-sm">
+                                        <input type="date" name="startDate" class="form-control" th:value="${startDate}">
+                                        <span class="input-group-text bg-light text-muted border-start-0 border-end-0 px-2" style="font-size: 0.75rem;">to</span>
+                                        <input type="date" name="endDate" class="form-control" th:value="${endDate}">
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small fw-bold">Sort By Time</label>
+                                    <select name="sortDirection" class="form-select form-select-sm">
+                                        <option value="DESC" th:selected="${sortDirection == 'DESC'}">Newest First</option>
+                                        <option value="ASC" th:selected="${sortDirection == 'ASC'}">Oldest First</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small fw-bold">Records per Page</label>
+                                    <select name="size" class="form-select form-select-sm">
+                                        <option value="50" th:selected="${size == 50}">50</option>
+                                        <option value="100" th:selected="${size == 100}">100</option>
+                                        <option value="500" th:selected="${size == 500}">500</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 d-flex align-items-end justify-content-end">
+                                    <a th:href="@{/admin/browse-history}" class="btn btn-sm btn-outline-secondary me-2"><i class="fas fa-times me-1"></i>Clear</a>
+                                    <button type="submit" class="btn btn-sm btn-primary"><i class="fas fa-search me-1"></i>Apply Filters</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
 
             <div class="card shadow-sm">
-                <div class="card-body p-0">
+                <div class="card-header bg-white py-3 border-bottom-0 d-flex justify-content-between align-items-center">
+                    <span class="fw-bold text-muted small"><span th:text="${historyPage.totalElements}"></span> results found</span>
+                </div>
+                <div class="card-body p-0 border-top">
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
                             <thead class="bg-light">
                                 <tr>
-                                    <th class="ps-4">Employee</th>
-                                    <th>URL</th>
-                                    <th>Page Title</th>
-                                    <th class="text-end pe-4">Date & Time</th>
+                                    <th class="ps-4 text-nowrap">Employee</th>
+                                    <th class="text-nowrap">URL</th>
+                                    <th class="text-nowrap">Page Title</th>
+                                    <th class="text-end pe-4 text-nowrap">Date & Time</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -36,19 +103,21 @@
                                         <div class="small text-muted" th:text="${history.employee?.id ?: 'Unknown ID'}">EMP001</div>
                                     </td>
                                     <td>
-                                        <a th:href="${history.url}" target="_blank" class="text-truncate d-inline-block" style="max-width: 300px;" th:text="${history.url}">https://example.com</a>
+                                        <a th:href="${history.url}" target="_blank" class="text-truncate d-inline-block" style="max-width: 300px;" th:title="${history.url}" th:text="${history.url}">https://example.com</a>
                                     </td>
                                     <td>
-                                        <span class="text-truncate d-inline-block" style="max-width: 250px;" th:text="${history.pageTitle}">Page Title</span>
+                                        <span class="text-truncate d-inline-block" style="max-width: 250px;" th:title="${history.pageTitle}" th:text="${history.pageTitle}">Page Title</span>
                                     </td>
-                                    <td class="text-end pe-4">
-                                        <div class="fw-bold" th:text="${#temporals.format(history.timestamp, 'yyyy-MM-dd')}">Date</div>
+                                    <td class="text-end pe-4 text-nowrap">
+                                        <div class="fw-bold text-primary" th:text="${#temporals.format(history.timestamp, 'yyyy-MM-dd')}">Date</div>
                                         <div class="small text-muted" th:text="${#temporals.format(history.timestamp, 'hh:mm:ss a')}">Time</div>
                                     </td>
                                 </tr>
                                 <tr th:if="${historyPage.empty}">
-                                    <td colspan="4" class="text-center py-4 text-muted">
-                                        No browsing history found.
+                                    <td colspan="4" class="text-center py-5 text-muted">
+                                        <div class="mb-3"><i class="fas fa-search fa-3x text-light"></i></div>
+                                        <h5 class="fw-bold">No browsing history found</h5>
+                                        <p>Try adjusting your filters or search terms.</p>
                                     </td>
                                 </tr>
                             </tbody>
@@ -63,10 +132,10 @@
                     <nav aria-label="History pagination">
                         <ul class="pagination pagination-sm mb-0">
                             <li class="page-item" th:classappend="${historyPage.first ? 'disabled' : ''}">
-                                <a class="page-link" th:href="@{/admin/browse-history(page=${historyPage.number - 1})}">Previous</a>
+                                <a class="page-link" th:href="@{/admin/browse-history(page=${historyPage.number - 1}, employeeSearch=${employeeSearch}, url=${urlSearch}, title=${titleSearch}, startDate=${startDate}, endDate=${endDate}, sortDirection=${sortDirection}, size=${size})}">Previous</a>
                             </li>
                             <li class="page-item" th:classappend="${historyPage.last ? 'disabled' : ''}">
-                                <a class="page-link" th:href="@{/admin/browse-history(page=${historyPage.number + 1})}">Next</a>
+                                <a class="page-link" th:href="@{/admin/browse-history(page=${historyPage.number + 1}, employeeSearch=${employeeSearch}, url=${urlSearch}, title=${titleSearch}, startDate=${startDate}, endDate=${endDate}, sortDirection=${sortDirection}, size=${size})}">Next</a>
                             </li>
                         </ul>
                     </nav>
@@ -75,7 +144,73 @@
         </section>
         
         <script>
-            // Any specific JS logic for this page can go here
+            $(document).ready(function() {
+                // Initialize Select2 for Domain
+                $('.select2-domain').select2({
+                    theme: 'bootstrap-5',
+                    placeholder: $('.select2-domain').data('placeholder'),
+                    allowClear: true,
+                    tags: true, // Allow users to type custom searches
+                    ajax: {
+                        url: '/admin/api/browse-history/domains',
+                        dataType: 'json',
+                        delay: 250,
+                        data: function (params) {
+                            return {
+                                q: params.term // search term
+                            };
+                        },
+                        processResults: function (data) {
+                            return { results: data };
+                        },
+                        cache: true
+                    }
+                });
+
+                // Initialize Select2 for URL
+                $('.select2-url').select2({
+                    theme: 'bootstrap-5',
+                    placeholder: $('.select2-url').data('placeholder'),
+                    allowClear: true,
+                    tags: true, // Allow users to type custom searches
+                    ajax: {
+                        url: '/admin/api/browse-history/urls',
+                        dataType: 'json',
+                        delay: 250,
+                        data: function (params) {
+                            return {
+                                q: params.term // search term
+                            };
+                        },
+                        processResults: function (data) {
+                            return { results: data };
+                        },
+                        cache: true
+                    }
+                });
+
+                // Initialize Select2 for Title
+                $('.select2-title').select2({
+                    theme: 'bootstrap-5',
+                    placeholder: $('.select2-title').data('placeholder'),
+                    allowClear: true,
+                    tags: true, // Allow users to type custom searches
+                    ajax: {
+                        url: '/admin/api/browse-history/titles',
+                        dataType: 'json',
+                        delay: 250,
+                        data: function (params) {
+                            return {
+                                q: params.term // search term
+                            };
+                        },
+                        processResults: function (data) {
+                            return { results: data };
+                        },
+                        cache: true
+                    }
+                });
+            });
         </script>
     </div>
 </body>
