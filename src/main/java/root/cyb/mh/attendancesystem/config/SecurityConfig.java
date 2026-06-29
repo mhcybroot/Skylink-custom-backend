@@ -59,7 +59,9 @@ public class SecurityConfig {
                                                 .logoutSuccessUrl("/login?logout")
                                                 .permitAll())
                                 .httpBasic(basic -> basic.authenticationEntryPoint((request, response, authException) -> {
-                                        response.sendError(401, "Unauthorized");
+                                        response.setStatus(401);
+                                        response.setContentType("application/json");
+                                        response.getWriter().write("{\"error\": \"Unauthorized\"}");
                                 }))
                                 .csrf(csrf -> csrf.disable()); // Disabling CSRF for simplicity in this specific project
                                                                // context if

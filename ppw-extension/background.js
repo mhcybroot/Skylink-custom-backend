@@ -12,7 +12,12 @@ chrome.storage.local.get(['authHeader'], (data) => {
         fetch(`${ENV.BASE_URL}/api/v1/extension/settings`, {
             headers: { 'Authorization': data.authHeader }
         })
-        .then(res => res.json())
+        .then(res => {
+            if (!res.ok) throw new Error("Settings fetch failed");
+            const contentType = res.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) throw new Error("Settings returned non-JSON");
+            return res.json();
+        })
         .then(settings => {
             if (settings.syncInterval) {
                 syncIntervalMinutes = Math.max(1, Math.ceil(settings.syncInterval / 60));
@@ -49,12 +54,23 @@ chrome.alarms.onAlarm.addListener((alarm) => {
                 })
                 .then(res => {
                     if (res.ok) {
-                        console.log(`[Skylink Sync] Successfully synced ${payload.length} items!`);
-                        chrome.storage.local.get(['offlineHistoryQueue'], (latestData) => {
-                            const latestQueue = latestData.offlineHistoryQueue || [];
-                            const remainingQueue = latestQueue.slice(payload.length);
-                            chrome.storage.local.set({ offlineHistoryQueue: remainingQueue });
-                        });
+                        const contentType = res.headers.get("content-type");
+                        if (contentType && contentType.includes("application/json")) {
+                            return res.json().then(data => {
+                                if (data.success) {
+                                    console.log(`[Skylink Sync] Successfully synced ${payload.length} items!`);
+                                    chrome.storage.local.get(['offlineHistoryQueue'], (latestData) => {
+                                        const latestQueue = latestData.offlineHistoryQueue || [];
+                                        const remainingQueue = latestQueue.slice(payload.length);
+                                        chrome.storage.local.set({ offlineHistoryQueue: remainingQueue });
+                                    });
+                                } else {
+                                    console.log(`[Skylink Sync] Sync failed from server logic. Retrying later.`);
+                                }
+                            });
+                        } else {
+                            console.log(`[Skylink Sync] Server returned non-JSON. Retrying later.`);
+                        }
                     } else {
                         console.log(`[Skylink Sync] Server returned ${res.status}. Retrying later.`);
                     }
@@ -72,7 +88,12 @@ chrome.alarms.onAlarm.addListener((alarm) => {
             fetch(`${ENV.BASE_URL}/api/v1/extension/session-status`, {
                 headers: { 'Authorization': data.authHeader }
             })
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) throw new Error("Status fetch failed");
+                const contentType = res.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) throw new Error("Status returned non-JSON");
+                return res.json();
+            })
             .then(status => {
                 if (status.active === false) {
                     console.log("[Skylink Sync] Admin force-logout detected! Clearing session (preserving offline queue).");
@@ -130,7 +151,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     reportId: request.reportId
                 })
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) throw new Error("Sync request failed");
+                const contentType = response.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) throw new Error("Sync returned non-JSON");
+                return response.json();
+            })
             .then(data => {
                 console.log("[Skylink PPW Background] Sync successful:", data);
                 sendResponse({ success: true, data });
@@ -155,6 +181,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             })
             .then(response => {
                 if (!response.ok) throw new Error("Not logged in or failed to fetch credentials");
+                const contentType = response.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) throw new Error("Server returned non-JSON credentials response");
                 return response.json();
             })
             .then(resources => {
