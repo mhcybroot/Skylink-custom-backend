@@ -108,17 +108,21 @@ function attemptAutofill() {
                     triggerBtn.addEventListener('mouseout', () => triggerBtn.style.background = triggerBtn.dataset.filled ? '#10b981' : '#594af2');
                     
                     const menu = document.createElement('div');
-                    menu.style.cssText = 'position: absolute; top: 100%; left: 0; margin-top: 6px; background: white; border: 1px solid #eaeaea; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); display: none; flex-direction: column; min-width: 200px; max-height: 250px; overflow-y: auto;';
+                    menu.style.cssText = 'position: absolute; top: 100%; left: 0; margin-top: 6px; background: white; border: 1px solid #eaeaea; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); display: none; flex-direction: column; min-width: 200px; overflow: hidden; z-index: 100000;';
                     
                     // Header
                     const header = document.createElement('div');
-                    header.style.cssText = 'padding: 8px 16px; background: #f8f9fa; font-size: 11px; font-weight: 600; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #eaeaea;';
+                    header.style.cssText = 'padding: 8px 16px; background: #f8f9fa; font-size: 11px; font-weight: 600; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #eaeaea; flex-shrink: 0;';
                     header.textContent = 'Select an account';
                     menu.appendChild(header);
 
+                    const itemsContainer = document.createElement('div');
+                    itemsContainer.style.cssText = 'max-height: 200px; overflow-y: auto; display: flex; flex-direction: column;';
+                    menu.appendChild(itemsContainer);
+
                     response.credentials.forEach((c) => {
                         const item = document.createElement('div');
-                        item.style.cssText = 'padding: 12px 16px; font-size: 13px; font-weight: 500; color: #333; cursor: pointer; transition: background 0.2s; border-bottom: 1px solid #f5f5f5; text-align: left; display: flex; align-items: center; gap: 8px;';
+                        item.style.cssText = 'padding: 12px 16px; font-size: 13px; font-weight: 500; color: #333; cursor: pointer; transition: background 0.2s; border-bottom: 1px solid #f5f5f5; text-align: left; display: flex; align-items: center; gap: 8px; flex-shrink: 0;';
                         
                         item.innerHTML = `
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6c757d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
@@ -150,10 +154,10 @@ function attemptAutofill() {
                             triggerBtn.style.background = '#10b981';
                         });
                         
-                        menu.appendChild(item);
+                        itemsContainer.appendChild(item);
                     });
                     
-                    if(menu.lastChild) menu.lastChild.style.borderBottom = 'none';
+                    if(itemsContainer.lastChild) itemsContainer.lastChild.style.borderBottom = 'none';
                     
                     triggerBtn.addEventListener('click', (e) => {
                         e.preventDefault();
