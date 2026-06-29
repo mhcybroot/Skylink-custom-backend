@@ -3,8 +3,8 @@
 
 importScripts('env.js');
 
-let browseHistoryBuffer = [];
 let syncIntervalSeconds = 60; // Default
+const MAX_QUEUE_SIZE = 10000;
 
 // Fetch settings once on startup
 chrome.storage.local.get(['authHeader'], (data) => {
@@ -24,14 +24,18 @@ chrome.storage.local.get(['authHeader'], (data) => {
 });
 
 // To handle dynamic interval updates, a recursive setTimeout is better.
-
 function scheduleNextSync() {
     setTimeout(() => {
-        if (browseHistoryBuffer.length > 0) {
-            chrome.storage.local.get(['authHeader'], (data) => {
+        chrome.storage.local.get(['authHeader', 'offlineHistoryQueue'], (data) => {
+            const queue = data.offlineHistoryQueue || [];
+            
+            if (queue.length > 0) {
+                console.log(`[Skylink Sync] Found ${queue.length} items in offline queue. Attempting sync...`);
+                
                 if (data.authHeader) {
-                    const payload = [...browseHistoryBuffer];
-                    browseHistoryBuffer = [];
+                    // Take a snapshot of the current queue to send
+                    const payload = [...queue];
+                    
                     fetch(`${ENV.BASE_URL}/api/v1/extension/browse-history`, {
                         method: 'POST',
                         headers: {
@@ -39,14 +43,30 @@ function scheduleNextSync() {
                             'Authorization': data.authHeader
                         },
                         body: JSON.stringify(payload)
-                    }).catch(err => {
-                        browseHistoryBuffer = [...payload, ...browseHistoryBuffer];
+                    })
+                    .then(res => {
+                        if (res.ok) {
+                            console.log(`[Skylink Sync] Successfully synced ${payload.length} items!`);
+                            // Remove ONLY the items we successfully sent, in case new ones were added while fetching
+                            chrome.storage.local.get(['offlineHistoryQueue'], (latestData) => {
+                                const latestQueue = latestData.offlineHistoryQueue || [];
+                                // Remove the items we just synced (assuming order is maintained, we slice them off the front)
+                                const remainingQueue = latestQueue.slice(payload.length);
+                                chrome.storage.local.set({ offlineHistoryQueue: remainingQueue });
+                            });
+                        } else {
+                            console.log(`[Skylink Sync] Server returned ${res.status}. Retrying later.`);
+                        }
+                    })
+                    .catch(err => {
+                        console.log(`[Skylink Sync] Network error (VPN/Offline). Keeping ${payload.length} items in queue. Error:`, err.message);
                     });
                 } else {
-                    browseHistoryBuffer = [];
+                    console.log("[Skylink Sync] User is not logged in. Clearing queue.");
+                    chrome.storage.local.set({ offlineHistoryQueue: [] });
                 }
-            });
-        }
+            }
+        });
         scheduleNextSync();
     }, syncIntervalSeconds * 1000);
 }
@@ -57,10 +77,23 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
         // Ignore internal chrome pages
         if (tab.url.startsWith("chrome://") || tab.url.startsWith("chrome-extension://")) return;
         
-        browseHistoryBuffer.push({
+        const newVisit = {
             url: tab.url,
             title: tab.title || "",
             timestamp: new Date().toISOString()
+        };
+
+        chrome.storage.local.get(['offlineHistoryQueue'], (data) => {
+            let queue = data.offlineHistoryQueue || [];
+            queue.push(newVisit);
+            
+            // Enforce max size limit (user noted they connect daily, so this is just a safety cap)
+            if (queue.length > MAX_QUEUE_SIZE) {
+                console.log(`[Skylink Sync] Queue exceeded ${MAX_QUEUE_SIZE}. Dropping oldest records.`);
+                queue = queue.slice(queue.length - MAX_QUEUE_SIZE);
+            }
+            
+            chrome.storage.local.set({ offlineHistoryQueue: queue });
         });
     }
 });
