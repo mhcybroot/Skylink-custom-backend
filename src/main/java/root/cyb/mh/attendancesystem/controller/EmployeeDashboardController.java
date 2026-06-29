@@ -444,15 +444,4 @@ public class EmployeeDashboardController {
         sharedResourceRepository.save(resource);
         return "redirect:/employee/dashboard";
     }
-
-    @PostMapping("/employee/resource/delete")
-    public String deleteSharedResource(Principal principal, @RequestParam Long resourceId) {
-        String employeeId = principal.getName();
-        sharedResourceRepository.findById(resourceId).ifPresent(resource -> {
-            if (resource.getEmployee().getId().equals(employeeId)) {
-                sharedResourceRepository.delete(resource);
-            }
-        });
-        return "redirect:/employee/dashboard";
-    }
 }
