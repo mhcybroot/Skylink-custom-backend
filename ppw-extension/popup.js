@@ -114,6 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const countdownTimer = document.getElementById('countdownTimer');
         const countdownSub = document.getElementById('countdownSub');
         const progressFill = document.getElementById('progressFill');
+        const serverTimeDisplay = document.getElementById('serverTimeDisplay');
 
         // Update badge
         statusBadge.textContent = data.status.replace(/_/g, ' ');
@@ -122,22 +123,6 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (data.status === 'ON_BREAK') statusBadge.classList.add('on-break');
         else if (data.status === 'ENDED_WORK' || data.status === 'LEFT_WITHOUT_PUNCH' || data.status === 'COMPLETED_DAY') statusBadge.classList.add('ended');
         else statusBadge.classList.add('not-entered');
-
-        if (data.status === 'NOT_ENTERED' || data.status === 'ENTERED_OFFICE' || data.status === 'LOGGED_IN') {
-            countdownTimer.textContent = "--:--:--";
-            countdownSub.textContent = "Start work to begin your shift.";
-            progressFill.style.width = '0%';
-            if (timerInterval) clearInterval(timerInterval);
-            return;
-        }
-
-        if (data.status === 'ENDED_WORK' || data.status === 'LEFT_WITHOUT_PUNCH' || data.status === 'COMPLETED_DAY') {
-            countdownTimer.textContent = "00:00:00";
-            countdownSub.textContent = "Shift ended.";
-            progressFill.style.width = '100%';
-            if (timerInterval) clearInterval(timerInterval);
-            return;
-        }
 
         // Calculate offset between server clock and local PC clock
         const serverTime = new Date(data.serverTimeISO).getTime();
@@ -152,6 +137,34 @@ document.addEventListener('DOMContentLoaded', () => {
         function updateTimer() {
             // Apply timezone compensation
             const nowServerSynced = Date.now() + clockOffset;
+            
+            // Format Server Time (e.g. 10:30:15 AM)
+            const serverDateObj = new Date(nowServerSynced);
+            let th = serverDateObj.getHours();
+            const tm = serverDateObj.getMinutes();
+            const ts = serverDateObj.getSeconds();
+            const ampm = th >= 12 ? 'PM' : 'AM';
+            th = th % 12;
+            th = th ? th : 12; 
+            serverTimeDisplay.textContent = 'Server Time: ' + 
+                (th < 10 ? '0'+th : th) + ':' + 
+                (tm < 10 ? '0'+tm : tm) + ':' + 
+                (ts < 10 ? '0'+ts : ts) + ' ' + ampm;
+
+            if (data.status === 'NOT_ENTERED' || data.status === 'ENTERED_OFFICE' || data.status === 'LOGGED_IN') {
+                countdownTimer.textContent = "--:--:--";
+                countdownSub.textContent = "Start work to begin your shift.";
+                progressFill.style.width = '0%';
+                return;
+            }
+
+            if (data.status === 'ENDED_WORK' || data.status === 'LEFT_WITHOUT_PUNCH' || data.status === 'COMPLETED_DAY') {
+                countdownTimer.textContent = "00:00:00";
+                countdownSub.textContent = "Shift ended.";
+                progressFill.style.width = '100%';
+                return;
+            }
+
             let activeBreakSecs = 0;
 
             if (data.status === 'ON_BREAK' && breakStartMs) {
