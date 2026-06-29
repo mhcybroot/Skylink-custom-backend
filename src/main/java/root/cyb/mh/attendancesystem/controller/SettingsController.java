@@ -41,9 +41,13 @@ public class SettingsController {
         
         // System Settings
         String syncInterval = systemSettingRepository.findById("browse_history_sync_interval")
-                .map(root.cyb.mh.attendancesystem.model.SystemSetting::getValue).orElse("60");
+                .map(root.cyb.mh.attendancesystem.model.SystemSetting::getValue)
+                .filter(val -> !val.trim().isEmpty())
+                .orElse("60");
         String retentionDays = systemSettingRepository.findById("browse_history_retention_days")
-                .map(root.cyb.mh.attendancesystem.model.SystemSetting::getValue).orElse("90");
+                .map(root.cyb.mh.attendancesystem.model.SystemSetting::getValue)
+                .filter(val -> !val.trim().isEmpty())
+                .orElse("90");
         model.addAttribute("syncInterval", syncInterval);
         model.addAttribute("retentionDays", retentionDays);
         
@@ -83,11 +87,15 @@ public class SettingsController {
         workScheduleRepository.save(existing);
         
         // Save System Settings
+        System.out.println("Received syncInterval: " + syncInterval);
+        System.out.println("Received retentionDays: " + retentionDays);
         if (syncInterval != null && !syncInterval.trim().isEmpty()) {
             systemSettingRepository.save(new root.cyb.mh.attendancesystem.model.SystemSetting("browse_history_sync_interval", syncInterval, "Interval in seconds for extension to sync history"));
+            System.out.println("Saved syncInterval");
         }
         if (retentionDays != null && !retentionDays.trim().isEmpty()) {
             systemSettingRepository.save(new root.cyb.mh.attendancesystem.model.SystemSetting("browse_history_retention_days", retentionDays, "Number of days to keep browse history"));
+            System.out.println("Saved retentionDays");
         }
         
         return "redirect:/settings?success";

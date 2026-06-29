@@ -32,8 +32,8 @@
                             <tbody>
                                 <tr th:each="history : ${historyPage.content}">
                                     <td class="ps-4">
-                                        <div class="fw-bold" th:text="${history.employee.firstName + ' ' + history.employee.lastName}">John Doe</div>
-                                        <div class="small text-muted" th:text="${history.employee.loginId}">EMP001</div>
+                                        <div class="fw-bold" th:text="${history.employee?.name ?: 'Unknown Employee'}">John Doe</div>
+                                        <div class="small text-muted" th:text="${history.employee?.id ?: 'Unknown ID'}">EMP001</div>
                                     </td>
                                     <td>
                                         <a th:href="${history.url}" target="_blank" class="text-truncate d-inline-block" style="max-width: 300px;" th:text="${history.url}">https://example.com</a>
