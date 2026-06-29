@@ -90,37 +90,86 @@ function attemptAutofill() {
 
             if (userField && passField) {
                 if (response.credentials.length > 1) {
-                    if (document.getElementById('skylink-cred-selector')) return;
+                    if (document.getElementById('skylink-cred-wrapper')) return;
                     
-                    const selector = document.createElement('select');
-                    selector.id = 'skylink-cred-selector';
-                    selector.style.cssText = 'margin-left: 5px; padding: 4px; font-size: 12px; border: 1px solid #ccc; border-radius: 4px; background: #fff; color: #333; max-width: 150px;';
+                    const wrapper = document.createElement('div');
+                    wrapper.id = 'skylink-cred-wrapper';
+                    wrapper.style.cssText = 'position: relative; display: inline-block; margin-left: 8px; vertical-align: middle; z-index: 99999; font-family: system-ui, -apple-system, sans-serif;';
                     
-                    const defaultOpt = document.createElement('option');
-                    defaultOpt.text = 'Skylink Accounts';
-                    defaultOpt.value = '';
-                    selector.appendChild(defaultOpt);
+                    const triggerBtn = document.createElement('button');
+                    triggerBtn.type = 'button';
+                    triggerBtn.style.cssText = 'background: #594af2; color: white; border: none; border-radius: 20px; padding: 5px 12px; font-size: 13px; font-weight: 500; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 6px; transition: background 0.2s; line-height: 1.5; outline: none;';
+                    triggerBtn.innerHTML = `
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+                        Skylink Accounts
+                    `;
                     
-                    response.credentials.forEach((c, idx) => {
-                        const opt = document.createElement('option');
-                        opt.text = c.loginId;
-                        opt.value = idx;
-                        selector.appendChild(opt);
+                    triggerBtn.addEventListener('mouseover', () => triggerBtn.style.background = '#4537d1');
+                    triggerBtn.addEventListener('mouseout', () => triggerBtn.style.background = triggerBtn.dataset.filled ? '#10b981' : '#594af2');
+                    
+                    const menu = document.createElement('div');
+                    menu.style.cssText = 'position: absolute; top: 100%; left: 0; margin-top: 6px; background: white; border: 1px solid #eaeaea; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); display: none; flex-direction: column; min-width: 200px; overflow: hidden;';
+                    
+                    // Header
+                    const header = document.createElement('div');
+                    header.style.cssText = 'padding: 8px 16px; background: #f8f9fa; font-size: 11px; font-weight: 600; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #eaeaea;';
+                    header.textContent = 'Select an account';
+                    menu.appendChild(header);
+
+                    response.credentials.forEach((c) => {
+                        const item = document.createElement('div');
+                        item.style.cssText = 'padding: 12px 16px; font-size: 13px; font-weight: 500; color: #333; cursor: pointer; transition: background 0.2s; border-bottom: 1px solid #f5f5f5; text-align: left; display: flex; align-items: center; gap: 8px;';
+                        
+                        item.innerHTML = `
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6c757d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                            ${c.loginId}
+                        `;
+                        
+                        item.addEventListener('mouseover', () => {
+                            item.style.background = '#f4f2ff';
+                            item.style.color = '#594af2';
+                            item.querySelector('svg').style.stroke = '#594af2';
+                        });
+                        item.addEventListener('mouseout', () => {
+                            item.style.background = 'white';
+                            item.style.color = '#333';
+                            item.querySelector('svg').style.stroke = '#6c757d';
+                        });
+                        
+                        item.addEventListener('click', () => {
+                            userField.value = c.loginId;
+                            passField.value = c.password;
+                            userField.dispatchEvent(new Event('input', { bubbles: true }));
+                            userField.dispatchEvent(new Event('change', { bubbles: true }));
+                            passField.dispatchEvent(new Event('input', { bubbles: true }));
+                            passField.dispatchEvent(new Event('change', { bubbles: true }));
+                            
+                            menu.style.display = 'none';
+                            triggerBtn.dataset.filled = 'true';
+                            triggerBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Autofilled`;
+                            triggerBtn.style.background = '#10b981';
+                        });
+                        
+                        menu.appendChild(item);
                     });
                     
-                    selector.addEventListener('change', (e) => {
-                        const selectedIdx = e.target.value;
-                        if (selectedIdx === '') return;
-                        const cred = response.credentials[selectedIdx];
-                        userField.value = cred.loginId;
-                        passField.value = cred.password;
-                        userField.dispatchEvent(new Event('input', { bubbles: true }));
-                        userField.dispatchEvent(new Event('change', { bubbles: true }));
-                        passField.dispatchEvent(new Event('input', { bubbles: true }));
-                        passField.dispatchEvent(new Event('change', { bubbles: true }));
+                    if(menu.lastChild) menu.lastChild.style.borderBottom = 'none';
+                    
+                    triggerBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        menu.style.display = menu.style.display === 'none' ? 'flex' : 'none';
                     });
                     
-                    userField.parentNode.insertBefore(selector, userField.nextSibling);
+                    document.addEventListener('click', (e) => {
+                        if (!wrapper.contains(e.target)) {
+                            menu.style.display = 'none';
+                        }
+                    });
+                    
+                    wrapper.appendChild(triggerBtn);
+                    wrapper.appendChild(menu);
+                    
+                    userField.parentNode.insertBefore(wrapper, userField.nextSibling);
                 } else {
                     const cred = response.credentials[0];
                     userField.value = cred.loginId;
