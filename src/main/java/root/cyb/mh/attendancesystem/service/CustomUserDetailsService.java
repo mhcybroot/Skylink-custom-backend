@@ -42,10 +42,16 @@ public class CustomUserDetailsService implements UserDetailsService {
             if (emp.getUsername() == null) {
                 throw new UsernameNotFoundException("Employee has no login configured");
             }
+            java.util.List<SimpleGrantedAuthority> authorities = new java.util.ArrayList<>();
+            authorities.add(new SimpleGrantedAuthority("ROLE_EMPLOYEE"));
+            if ("CT".equalsIgnoreCase(emp.getRole())) {
+                authorities.add(new SimpleGrantedAuthority("ROLE_CT"));
+            }
+            
             return new org.springframework.security.core.userdetails.User(
                     emp.getId(), // Principal Name is ID
                     emp.getUsername(), // Password is the hashed 'username' field
-                    Collections.singletonList(new SimpleGrantedAuthority("ROLE_EMPLOYEE")));
+                    authorities);
         }
 
         throw new UsernameNotFoundException("User/Employee not found: " + usernameOrId);
