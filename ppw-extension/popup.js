@@ -64,6 +64,30 @@ document.addEventListener('DOMContentLoaded', () => {
     async function showLoggedIn() {
         loginFormState.style.display = 'none';
         loggedInState.style.display = 'block';
+
+        // Immediately verify session with server (catches admin force-logout)
+        try {
+            const storageData = await new Promise((resolve) => {
+                chrome.storage.local.get(['authHeader'], resolve);
+            });
+            if (storageData.authHeader) {
+                const statusRes = await fetch(`${BASE_URL}/api/v1/extension/session-status`, {
+                    headers: { 'Authorization': storageData.authHeader }
+                });
+                const status = await statusRes.json();
+                if (status.active === false) {
+                    console.log("[Skylink Popup] Admin force-logout detected!");
+                    chrome.storage.local.set({ isLoggedIn: false, authHeader: null }, () => {
+                        showLoginForm();
+                    });
+                    return;
+                }
+            }
+        } catch (e) {
+            // Server unreachable — just show logged in state as usual
+            console.log("[Skylink Popup] Could not verify session:", e.message);
+        }
+
         await fetchResources();
     }
 

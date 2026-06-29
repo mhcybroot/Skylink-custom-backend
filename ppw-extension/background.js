@@ -3,7 +3,7 @@
 
 importScripts('env.js');
 
-let syncIntervalSeconds = 60; // Default
+let syncIntervalMinutes = 1; // Default (chrome.alarms minimum is 1 minute)
 const MAX_QUEUE_SIZE = 10000;
 
 // Fetch settings once on startup
@@ -15,78 +15,76 @@ chrome.storage.local.get(['authHeader'], (data) => {
         .then(res => res.json())
         .then(settings => {
             if (settings.syncInterval) {
-                syncIntervalSeconds = settings.syncInterval;
-                console.log("[Skylink PPW] Sync interval set to", syncIntervalSeconds, "seconds");
+                syncIntervalMinutes = Math.max(1, Math.ceil(settings.syncInterval / 60));
+                console.log("[Skylink PPW] Sync interval set to", syncIntervalMinutes, "minute(s)");
             }
         })
         .catch(err => console.error("Failed to fetch settings:", err));
     }
 });
 
-// To handle dynamic interval updates, a recursive setTimeout is better.
-function scheduleNextSync() {
-    setTimeout(() => {
-        chrome.storage.local.get(['authHeader', 'offlineHistoryQueue'], (data) => {
-            const queue = data.offlineHistoryQueue || [];
-            
-            if (queue.length > 0) {
-                console.log(`[Skylink Sync] Found ${queue.length} items in offline queue. Attempting sync...`);
-                
-                if (data.authHeader) {
-                    // Take a snapshot of the current queue to send
-                    const payload = [...queue];
-                    
-                    fetch(`${ENV.BASE_URL}/api/v1/extension/browse-history`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': data.authHeader
-                        },
-                        body: JSON.stringify(payload)
-                    })
-                    .then(res => {
-                        if (res.ok) {
-                            console.log(`[Skylink Sync] Successfully synced ${payload.length} items!`);
-                            // Remove ONLY the items we successfully sent, in case new ones were added while fetching
-                            chrome.storage.local.get(['offlineHistoryQueue'], (latestData) => {
-                                const latestQueue = latestData.offlineHistoryQueue || [];
-                                // Remove the items we just synced (assuming order is maintained, we slice them off the front)
-                                const remainingQueue = latestQueue.slice(payload.length);
-                                chrome.storage.local.set({ offlineHistoryQueue: remainingQueue });
-                            });
-                        } else {
-                            console.log(`[Skylink Sync] Server returned ${res.status}. Retrying later.`);
-                        }
-                    })
-                    .catch(err => {
-                        console.log(`[Skylink Sync] Network error (VPN/Offline). Keeping ${payload.length} items in queue. Error:`, err.message);
-                    });
-                } else {
-                    console.log("[Skylink Sync] User is not logged in. Pausing sync (preserving queue).");
-                }
-            }
+// Use chrome.alarms for reliable periodic sync (works even when service worker is suspended)
+chrome.alarms.create('skylink-sync', { periodInMinutes: 1 });
 
-            // Heartbeat: Check if admin has force-logged out this employee
+chrome.alarms.onAlarm.addListener((alarm) => {
+    if (alarm.name !== 'skylink-sync') return;
+
+    chrome.storage.local.get(['authHeader', 'offlineHistoryQueue'], (data) => {
+        const queue = data.offlineHistoryQueue || [];
+
+        // 1. Sync offline queue
+        if (queue.length > 0) {
+            console.log(`[Skylink Sync] Found ${queue.length} items in offline queue. Attempting sync...`);
+
             if (data.authHeader) {
-                fetch(`${ENV.BASE_URL}/api/v1/extension/session-status`, {
-                    headers: { 'Authorization': data.authHeader }
+                const payload = [...queue];
+
+                fetch(`${ENV.BASE_URL}/api/v1/extension/browse-history`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': data.authHeader
+                    },
+                    body: JSON.stringify(payload)
                 })
-                .then(res => res.json())
-                .then(status => {
-                    if (status.active === false) {
-                        console.log("[Skylink Sync] Admin force-logout detected! Clearing session (preserving offline queue).");
-                        chrome.storage.local.set({ isLoggedIn: false, authHeader: null });
+                .then(res => {
+                    if (res.ok) {
+                        console.log(`[Skylink Sync] Successfully synced ${payload.length} items!`);
+                        chrome.storage.local.get(['offlineHistoryQueue'], (latestData) => {
+                            const latestQueue = latestData.offlineHistoryQueue || [];
+                            const remainingQueue = latestQueue.slice(payload.length);
+                            chrome.storage.local.set({ offlineHistoryQueue: remainingQueue });
+                        });
+                    } else {
+                        console.log(`[Skylink Sync] Server returned ${res.status}. Retrying later.`);
                     }
                 })
                 .catch(err => {
-                    console.log("[Skylink Sync] Could not reach server for heartbeat check:", err.message);
+                    console.log(`[Skylink Sync] Network error (VPN/Offline). Keeping ${payload.length} items in queue. Error:`, err.message);
                 });
+            } else {
+                console.log("[Skylink Sync] User is not logged in. Pausing sync (preserving queue).");
             }
-        });
-        scheduleNextSync();
-    }, syncIntervalSeconds * 1000);
-}
-scheduleNextSync();
+        }
+
+        // 2. Heartbeat: Check if admin has force-logged out this employee
+        if (data.authHeader) {
+            fetch(`${ENV.BASE_URL}/api/v1/extension/session-status`, {
+                headers: { 'Authorization': data.authHeader }
+            })
+            .then(res => res.json())
+            .then(status => {
+                if (status.active === false) {
+                    console.log("[Skylink Sync] Admin force-logout detected! Clearing session (preserving offline queue).");
+                    chrome.storage.local.set({ isLoggedIn: false, authHeader: null });
+                }
+            })
+            .catch(err => {
+                console.log("[Skylink Sync] Could not reach server for heartbeat check:", err.message);
+            });
+        }
+    });
+});
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     if (changeInfo.status === 'complete' && tab.url) {

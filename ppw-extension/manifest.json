@@ -3,7 +3,7 @@
   "name": "Skylink PPW Sync",
   "version": "1.0",
   "description": "Automatically syncs PPW report IDs with the Skylink backend for 1-click access.",
-  "permissions": ["storage", "tabs"],
+  "permissions": ["storage", "tabs", "alarms"],
   "host_permissions": [
     "http://76.13.221.43:8083/*",
     "http://localhost:8083/*"
