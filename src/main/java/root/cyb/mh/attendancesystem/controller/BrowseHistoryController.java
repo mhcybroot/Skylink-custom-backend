@@ -25,6 +25,9 @@ public class BrowseHistoryController {
     @Autowired
     private EmployeeBrowseHistoryRepository historyRepository;
 
+    @Autowired
+    private root.cyb.mh.attendancesystem.repository.EmployeeRepository employeeRepository;
+
     @GetMapping("/admin/browse-history")
     public String getBrowseHistory(
             @RequestParam(required = false) String employeeSearch,
@@ -55,6 +58,7 @@ public class BrowseHistoryController {
 
         model.addAttribute("historyPage", historyPage);
         model.addAttribute("activeLink", "browse-history");
+        model.addAttribute("employees", employeeRepository.findAll());
         
         // Return filter values to the view
         model.addAttribute("employeeSearch", employeeSearch);
@@ -67,6 +71,14 @@ public class BrowseHistoryController {
         model.addAttribute("size", size);
         
         return "admin-browse-history";
+    }
+
+    @GetMapping("/admin/api/browse-history/employee/{id}/dates")
+    @org.springframework.web.bind.annotation.ResponseBody
+    public java.util.List<String> getEmployeeHistoryDates(@org.springframework.web.bind.annotation.PathVariable Long id) {
+        return historyRepository.findDistinctDatesByEmployeeId(id).stream()
+                .map(java.sql.Date::toString)
+                .toList();
     }
 
     @GetMapping("/admin/api/browse-history/domains")
