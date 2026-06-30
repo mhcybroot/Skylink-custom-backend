@@ -1,55 +1,351 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout}">
 <head>
-    <title>Live Monitor</title>
+    <title>Live Monitor Control Room</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
-        .monitor-container {
+        :root {
+            --bg-color: #0f172a;
+            --glass-bg: rgba(30, 41, 59, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --accent-blue: #0ea5e9;
+            --accent-blue-hover: #0284c7;
+            --accent-red: #ef4444;
+            --accent-red-hover: #dc2626;
+            --accent-green: #10b981;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+        
+        /* Layout overrides for this specific page to ensure full dark mode */
+        body {
+            background-color: var(--bg-color) !important;
+            color: var(--text-main) !important;
+            font-family: 'Inter', sans-serif !important;
+        }
+        
+        .monitor-page-wrapper {
+            padding: 20px;
+            max-width: 1920px;
+            margin: 0 auto;
+        }
+
+        .header-title {
+            font-weight: 600;
+            font-size: 1.75rem;
+            margin-bottom: 1.5rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-title::before {
+            content: '';
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            background-color: var(--accent-blue);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--accent-blue);
+        }
+
+        /* Glassmorphic Control Bar */
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .control-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding-right: 24px;
+            border-right: 1px solid rgba(255,255,255,0.05);
+        }
+        .control-group:last-child {
+            border-right: none;
+            padding-right: 0;
+        }
+
+        .control-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 500;
+        }
+
+        /* Custom Inputs & Buttons */
+        .glass-input {
+            background: rgba(15, 23, 42, 0.6) !important;
+            border: 1px solid var(--glass-border) !important;
+            color: var(--text-main) !important;
+            border-radius: 8px !important;
+            padding: 10px 14px !important;
+            transition: all 0.2s ease;
+        }
+        .glass-input:focus {
+            outline: none;
+            border-color: var(--accent-blue) !important;
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2) !important;
+        }
+        .glass-input:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-glass {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            color: white;
+        }
+        .btn-glass:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .btn-primary-glass {
+            background: var(--accent-blue);
+            box-shadow: 0 4px 15px rgba(14, 165, 233, 0.4);
+        }
+        .btn-primary-glass:hover:not(:disabled) {
+            background: var(--accent-blue-hover);
+            transform: translateY(-1px);
+        }
+        .btn-success-glass {
+            background: var(--accent-green);
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+        }
+        .btn-success-glass:hover:not(:disabled) {
+            filter: brightness(1.1);
+            transform: translateY(-1px);
+        }
+        .btn-danger-glass {
+            background: var(--accent-red);
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+        }
+        .btn-danger-glass:hover:not(:disabled) {
+            background: var(--accent-red-hover);
+            transform: translateY(-1px);
+        }
+
+        /* Custom Range Sliders */
+        .range-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .range-value {
+            min-width: 45px;
+            text-align: right;
+            font-weight: 600;
+            color: var(--accent-blue);
+        }
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 18px;
+            width: 18px;
+            border-radius: 50%;
+            background: var(--accent-blue);
+            cursor: pointer;
+            margin-top: -6px;
+            box-shadow: 0 0 10px rgba(14, 165, 233, 0.5);
+            transition: transform 0.1s ease;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+        input[type=range]:disabled::-webkit-slider-thumb { background: var(--text-muted); box-shadow: none; cursor: not-allowed; }
+        input[type=range]:disabled::-webkit-slider-runnable-track { cursor: not-allowed; }
+
+        /* Status Indicator */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        .status-disconnected .status-dot { background: var(--accent-red); box-shadow: 0 0 8px var(--accent-red); }
+        .status-connected .status-dot { background: var(--accent-blue); animation: pulse-blue 1.5s infinite; }
+        .status-streaming .status-dot { background: var(--accent-green); animation: pulse-green 1.5s infinite; }
+
+        @keyframes pulse-blue { 0% { box-shadow: 0 0 0 0 rgba(14,165,233,0.7); } 70% { box-shadow: 0 0 0 10px rgba(14,165,233,0); } 100% { box-shadow: 0 0 0 0 rgba(14,165,233,0); } }
+        @keyframes pulse-green { 0% { box-shadow: 0 0 0 0 rgba(16,185,129,0.7); } 70% { box-shadow: 0 0 0 10px rgba(16,185,129,0); } 100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); } }
+
+        /* Canvas Area */
+        .monitor-viewport {
+            background: var(--glass-bg);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 20px;
+            overflow-x: auto;
+            overflow-y: auto;
+            text-align: center;
+            min-height: 600px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #monitor-canvas {
+            background-color: #000;
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+            transition: width 0.1s ease;
+            display: none; /* Hidden until stream starts */
+        }
+
+        .no-signal {
+            position: absolute;
             display: flex;
             flex-direction: column;
             align-items: center;
-            margin-top: 20px;
+            justify-content: center;
+            color: var(--text-muted);
+            opacity: 0.6;
+            animation: float 4s ease-in-out infinite;
         }
-        #monitor-canvas {
-            border: 2px solid #ccc;
-            background-color: #000;
-            max-width: 100%;
-            height: auto;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        .no-signal svg { width: 64px; height: 64px; margin-bottom: 16px; }
+        
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
         }
-        .controls {
-            margin-bottom: 15px;
-        }
-        .status {
-            margin-left: 15px;
-            font-weight: bold;
-        }
-        .status.connected { color: green; }
-        .status.disconnected { color: red; }
+        
+        /* Flex rows for inputs */
+        .input-row { display: flex; gap: 12px; align-items: center; }
+
     </style>
 </head>
 <body>
 <div layout:fragment="content">
-    <div class="container-fluid">
-        <h2 class="mb-4">Live Screen Monitor</h2>
-        <div class="card">
-            <div class="card-body monitor-container">
-                <div class="controls">
-                    <input type="text" id="employeeId" placeholder="Employee ID" th:value="${targetEmployeeId}" class="form-control d-inline-block w-auto mb-2">
-                    <button id="startBtn" class="btn btn-success mb-2">Start Watching</button>
-                    <button id="stopBtn" class="btn btn-danger mb-2" disabled>Stop</button>
-                    <span id="statusText" class="status disconnected mb-2">Disconnected</span>
-                    <br/>
-                    <select id="resolutionSelect" class="form-select d-inline-block w-auto mb-2" disabled>
-                        <option value="1280x720">Low (720p)</option>
-                        <option value="1920x1080">Medium (1080p)</option>
-                        <option value="0x0">High (Source)</option>
-                    </select>
-                    <label class="ms-2">Quality: <span id="qualityVal">50</span>%</label>
-                    <input type="range" id="qualitySlider" class="form-range d-inline-block w-auto ms-1 align-middle mb-2" min="10" max="100" value="50" disabled>
-                    <button id="screenshotBtn" class="btn btn-primary ms-3 mb-2" disabled>Take Screenshot</button>
+    <div class="monitor-page-wrapper">
+        <div class="header-title">Live Screen Monitor</div>
+        
+        <!-- Premium Control Panel -->
+        <div class="glass-panel">
+            <div class="control-grid">
+                
+                <!-- Connection Group -->
+                <div class="control-group">
+                    <div class="control-label">Target Employee</div>
+                    <div class="input-row">
+                        <input type="text" id="employeeId" placeholder="Enter Employee ID" th:value="${targetEmployeeId}" class="form-control glass-input" style="flex:1;">
+                        <div id="statusBadge" class="status-badge status-disconnected">
+                            <div class="status-dot"></div>
+                            <span id="statusText">Offline</span>
+                        </div>
+                    </div>
+                    <div class="input-row">
+                        <button id="startBtn" class="btn-glass btn-success-glass" style="flex:1;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z"/></svg>
+                            Connect
+                        </button>
+                        <button id="stopBtn" class="btn-glass btn-danger-glass" style="flex:1;" disabled>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M5 3.5h6A1.5 1.5 0 0 1 12.5 5v6a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 11V5A1.5 1.5 0 0 1 5 3.5z"/></svg>
+                            Stop
+                        </button>
+                    </div>
                 </div>
-                <canvas id="monitor-canvas" width="1920" height="1080"></canvas>
+
+                <!-- Stream Settings Group -->
+                <div class="control-group">
+                    <div class="control-label">Stream Configuration</div>
+                    <select id="resolutionSelect" class="form-select glass-input" disabled>
+                        <option value="1280x720">Bandwidth Saver (720p)</option>
+                        <option value="1920x1080">Balanced (1080p)</option>
+                        <option value="0x0">Full Source (Max Res)</option>
+                    </select>
+                    
+                    <div class="range-wrapper">
+                        <div style="flex:1;">
+                            <div class="control-label" style="font-size:0.75rem; margin-bottom:4px;">JPEG Quality</div>
+                            <input type="range" id="qualitySlider" min="10" max="100" value="50" disabled>
+                        </div>
+                        <div class="range-value"><span id="qualityVal">50</span>%</div>
+                    </div>
+                </div>
+
+                <!-- View & Capture Group -->
+                <div class="control-group">
+                    <div class="control-label">Display & Capture</div>
+                    <div class="range-wrapper">
+                        <div style="flex:1;">
+                            <div class="control-label" style="font-size:0.75rem; margin-bottom:4px;">Zoom Size</div>
+                            <input type="range" id="displaySlider" min="10" max="200" value="100">
+                        </div>
+                        <div class="range-value"><span id="displayVal">100</span>%</div>
+                    </div>
+                    
+                    <button id="screenshotBtn" class="btn-glass btn-primary-glass" style="width:100%; margin-top:4px;" disabled>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M15 12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h1.172a3 3 0 0 0 2.12-.879l.83-.828A1 1 0 0 1 6.827 3h2.344a1 1 0 0 1 .707.293l.828.828A3 3 0 0 0 12.828 5H14a1 1 0 0 1 1 1v6zM2 4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1.172a2 2 0 0 1-1.414-.586l-.828-.828A2 2 0 0 0 9.172 2H6.828a2 2 0 0 0-1.414.586l-.828.828A2 2 0 0 1 3.172 4H2z"/><path d="M8 11a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5zm0 1a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM3 6.5a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0z"/></svg>
+                        Capture Full-Res Screenshot
+                    </button>
+                </div>
+
             </div>
+        </div>
+
+        <!-- Canvas Viewport -->
+        <div class="monitor-viewport">
+            <div id="noSignal" class="no-signal">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 8.25V18a2.25 2.25 0 002.25 2.25h13.5A2.25 2.25 0 0021 18V8.25m-18 0V6a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 6v2.25m-18 0h18M5.25 6h.008v.008H5.25V6zM7.5 6h.008v.008H7.5V6zm2.25 0h.008v.008H9.75V6z" />
+                </svg>
+                <h4 style="margin:0;">AWAITING CONNECTION</h4>
+                <p style="font-size:0.85rem; margin-top:8px;">Enter an employee ID and connect to view live feed.</p>
+            </div>
+            
+            <canvas id="monitor-canvas" width="1920" height="1080"></canvas>
         </div>
     </div>
 
@@ -57,15 +353,31 @@
         let ws = null;
         const canvas = document.getElementById('monitor-canvas');
         const ctx = canvas.getContext('2d');
+        const noSignal = document.getElementById('noSignal');
+        
         const startBtn = document.getElementById('startBtn');
         const stopBtn = document.getElementById('stopBtn');
+        const statusBadge = document.getElementById('statusBadge');
         const statusText = document.getElementById('statusText');
         const empInput = document.getElementById('employeeId');
         
         const resolutionSelect = document.getElementById('resolutionSelect');
         const qualitySlider = document.getElementById('qualitySlider');
         const qualityVal = document.getElementById('qualityVal');
+        
         const screenshotBtn = document.getElementById('screenshotBtn');
+        const displaySlider = document.getElementById('displaySlider');
+        const displayVal = document.getElementById('displayVal');
+
+        function setStatus(state, text) {
+            statusBadge.className = 'status-badge status-' + state;
+            statusText.textContent = text;
+        }
+
+        displaySlider.addEventListener('input', function() {
+            displayVal.textContent = this.value;
+            canvas.style.width = this.value + '%';
+        });
 
         function sendConfig() {
             if (!ws || ws.readyState !== WebSocket.OPEN) return;
@@ -77,14 +389,19 @@
         }
 
         resolutionSelect.addEventListener('change', sendConfig);
-        qualitySlider.addEventListener('input', function() {
-            qualityVal.textContent = this.value;
+        qualitySlider.addEventListener('input', function() { 
+            qualityVal.textContent = this.value; 
+            sendConfig();
         });
-        qualitySlider.addEventListener('change', sendConfig);
 
         screenshotBtn.addEventListener('click', function() {
             if (!ws || ws.readyState !== WebSocket.OPEN) return;
             ws.send(JSON.stringify({ type: 'TAKE_SCREENSHOT' }));
+            
+            // Visual feedback on button
+            const originalText = this.innerHTML;
+            this.innerHTML = 'Capturing...';
+            setTimeout(() => this.innerHTML = originalText, 1500);
         });
 
         function connect() {
@@ -98,16 +415,16 @@
             ws.binaryType = 'arraybuffer';
 
             ws.onopen = function() {
-                statusText.textContent = 'Connected & Buffering...';
-                statusText.className = 'status connected';
+                setStatus('connected', 'Buffering...');
                 startBtn.disabled = true;
                 stopBtn.disabled = false;
                 empInput.disabled = true;
                 resolutionSelect.disabled = false;
                 qualitySlider.disabled = false;
                 screenshotBtn.disabled = false;
+                noSignal.style.display = 'none';
+                canvas.style.display = 'block';
                 
-                // Send initial config
                 setTimeout(sendConfig, 500);
             };
 
@@ -122,16 +439,18 @@
                     const url = URL.createObjectURL(blob);
 
                     if (frameType === 0x00) {
-                        // Live Stream
-                        statusText.textContent = 'Streaming Live';
+                        setStatus('streaming', 'Live Stream');
                         const img = new Image();
                         img.onload = function() {
+                            if (canvas.width !== img.width || canvas.height !== img.height) {
+                                canvas.width = img.width;
+                                canvas.height = img.height;
+                            }
                             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                             URL.revokeObjectURL(url);
                         };
                         img.src = url;
                     } else if (frameType === 0x01) {
-                        // Screenshot
                         const a = document.createElement('a');
                         a.href = url;
                         a.download = 'screenshot_' + empId + '_' + new Date().getTime() + '.jpg';
@@ -144,31 +463,29 @@
             };
 
             ws.onclose = function() {
-                statusText.textContent = 'Disconnected';
-                statusText.className = 'status disconnected';
+                setStatus('disconnected', 'Offline');
                 startBtn.disabled = false;
                 stopBtn.disabled = true;
                 empInput.disabled = false;
                 resolutionSelect.disabled = true;
                 qualitySlider.disabled = true;
                 screenshotBtn.disabled = true;
+                noSignal.style.display = 'flex';
+                canvas.style.display = 'none';
                 ws = null;
-                // Clear canvas
+                
                 ctx.fillStyle = 'black';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
             };
         }
 
         function disconnect() {
-            if (ws) {
-                ws.close();
-            }
+            if (ws) { ws.close(); }
         }
 
         startBtn.addEventListener('click', connect);
         stopBtn.addEventListener('click', disconnect);
 
-        // Auto-start if employee ID was passed in URL
         if (empInput.value.trim()) {
             connect();
         }
