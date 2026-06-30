@@ -10,8 +10,13 @@ import root.cyb.mh.attendancesystem.model.Employee;
 import root.cyb.mh.attendancesystem.model.EmployeeDailyWorkStatus;
 import root.cyb.mh.attendancesystem.model.SharedResource;
 import root.cyb.mh.attendancesystem.dto.EmployeeMonthlyDetailDto;
+import root.cyb.mh.attendancesystem.dto.ExtensionVaultDto;
+import root.cyb.mh.attendancesystem.dto.ExtensionVaultDto.FolderDto;
+import root.cyb.mh.attendancesystem.dto.ExtensionVaultDto.ResourceDto;
+import root.cyb.mh.attendancesystem.model.ResourceFolder;
 import root.cyb.mh.attendancesystem.repository.EmployeeRepository;
 import root.cyb.mh.attendancesystem.repository.EmployeeDailyWorkStatusRepository;
+import root.cyb.mh.attendancesystem.repository.ResourceFolderRepository;
 import root.cyb.mh.attendancesystem.repository.SharedResourceRepository;
 import root.cyb.mh.attendancesystem.service.ReportService;
 
@@ -42,6 +47,9 @@ public class ExtensionApiController {
     @Autowired
     private root.cyb.mh.attendancesystem.service.ResourceFolderService resourceFolderService;
 
+    @Autowired
+    private ResourceFolderRepository resourceFolderRepository;
+
     @GetMapping("/credentials")
     public ResponseEntity<List<SharedResource>> getMyCredentials(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
@@ -63,6 +71,52 @@ public class ExtensionApiController {
         }
         
         return ResponseEntity.ok(resources);
+    }
+
+    @GetMapping("/vault")
+    public ResponseEntity<ExtensionVaultDto> getVault(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(401).build();
+        }
+
+        String currentUserId = authentication.getName();
+        Optional<Employee> empOpt = employeeRepository.findById(currentUserId);
+        if (empOpt.isEmpty()) {
+            return ResponseEntity.status(401).build();
+        }
+
+        List<Long> folderIds = resourceFolderService.getAllAccessibleFolderIdsForEmployee(empOpt.get());
+        List<SharedResource> resources;
+        if (folderIds.isEmpty()) {
+            resources = sharedResourceRepository.findByEmployeeId(currentUserId);
+        } else {
+            resources = sharedResourceRepository.findByEmployeeIdOrFolderIdIn(currentUserId, folderIds);
+        }
+
+        List<FolderDto> folderDtos = new ArrayList<>();
+        if (!folderIds.isEmpty()) {
+            List<ResourceFolder> folders = resourceFolderRepository.findAllById(folderIds);
+            for (ResourceFolder folder : folders) {
+                Long parentId = (folder.getParentFolder() != null) ? folder.getParentFolder().getId() : null;
+                folderDtos.add(new FolderDto(folder.getId(), folder.getName(), parentId));
+            }
+        }
+
+        List<ResourceDto> resourceDtos = new ArrayList<>();
+        for (SharedResource resource : resources) {
+            Long folderId = (resource.getFolder() != null) ? resource.getFolder().getId() : null;
+            resourceDtos.add(new ResourceDto(
+                resource.getId(),
+                resource.getResourceName(),
+                resource.getResourceLink(),
+                resource.getLoginId(),
+                resource.getPassword(),
+                folderId
+            ));
+        }
+
+        ExtensionVaultDto dto = new ExtensionVaultDto(folderDtos, resourceDtos);
+        return ResponseEntity.ok(dto);
     }
 
     @GetMapping("/session-status")

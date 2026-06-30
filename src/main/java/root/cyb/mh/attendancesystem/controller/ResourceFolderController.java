@@ -111,6 +111,27 @@ public class ResourceFolderController {
         return "redirect:/admin/resource-folders?folderId=" + folderId;
     }
 
+    @PostMapping("/resources/edit")
+    public String editResource(@ModelAttribute SharedResource updatedResource, 
+                               @RequestParam Long resourceId, 
+                               @RequestParam Long folderId, 
+                               RedirectAttributes redirectAttributes) {
+        try {
+            SharedResource existing = sharedResourceRepository.findById(resourceId).orElse(null);
+            if (existing != null) {
+                existing.setResourceName(updatedResource.getResourceName());
+                existing.setResourceLink(updatedResource.getResourceLink());
+                existing.setLoginId(updatedResource.getLoginId());
+                existing.setPassword(updatedResource.getPassword());
+                sharedResourceRepository.save(existing);
+                redirectAttributes.addFlashAttribute("successMessage", "Resource updated successfully.");
+            }
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Error updating resource.");
+        }
+        return "redirect:/admin/resource-folders?folderId=" + folderId;
+    }
+
     @PostMapping("/{folderId}/assign")
     public String assignEmployee(@PathVariable Long folderId, 
                                  @RequestParam String employeeId, 

@@ -9,7 +9,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const BASE_URL = ENV.BASE_URL;
     let timerInterval = null;
-    let allResources = [];
+    let vaultData = { folders: [], resources: [] };
+    let currentFolderId = null;
 
     // Check login state on load
     chrome.storage.local.get(['isLoggedIn'], (result) => {
@@ -210,9 +211,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const resourcesList = document.getElementById('resourcesList');
         const rLoader = document.getElementById('resourcesLoader');
         const searchInput = document.getElementById('resourceSearch');
+        const folderNav = document.getElementById('folderNav');
         
         resourcesList.innerHTML = '';
         searchInput.style.display = 'none';
+        folderNav.style.display = 'none';
         rLoader.style.display = 'block';
 
         try {
@@ -227,7 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            const response = await fetch(`${BASE_URL}/api/v1/extension/credentials`, {
+            const response = await fetch(`${BASE_URL}/api/v1/extension/vault`, {
                 method: 'GET',
                 headers: {
                     'Authorization': data.authHeader
@@ -235,7 +238,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (response.status === 401) {
-                // Password changed or invalid, force logout
                 chrome.storage.local.set({ isLoggedIn: false, authHeader: null }, () => {
                     showLoginForm();
                 });
@@ -244,14 +246,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!response.ok) throw new Error("Failed to load resources");
             
-            const resources = await response.json();
+            vaultData = await response.json();
             
-            if (resources.length === 0) {
+            if (vaultData.folders.length === 0 && vaultData.resources.length === 0) {
                 resourcesList.innerHTML = '<div class="empty-state">No shared resources assigned.</div>';
             } else {
-                allResources = resources;
                 searchInput.style.display = 'block';
-                renderResourcesList(allResources);
+                currentFolderId = null;
+                renderVault();
             }
         } catch (e) {
             resourcesList.innerHTML = '<div class="empty-state">Error loading resources.</div>';
@@ -265,16 +267,55 @@ document.addEventListener('DOMContentLoaded', () => {
         loggedInState.style.display = 'none';
     }
 
-    function renderResourcesList(resources) {
+    function renderVault() {
         const resourcesList = document.getElementById('resourcesList');
+        const folderNav = document.getElementById('folderNav');
+        const searchInput = document.getElementById('resourceSearch');
         resourcesList.innerHTML = '';
-        
-        if (resources.length === 0) {
-            resourcesList.innerHTML = '<div class="empty-state">No matching resources found.</div>';
+
+        if (currentFolderId) {
+            folderNav.style.display = 'flex';
+        } else {
+            folderNav.style.display = 'none';
+        }
+
+        // Determine accessible folders map for "root" checking
+        const accessibleFolderIds = new Set(vaultData.folders.map(f => f.id));
+
+        const displayFolders = vaultData.folders.filter(f => {
+            if (currentFolderId == null) {
+                return f.parentId == null || !accessibleFolderIds.has(f.parentId);
+            }
+            return f.parentId === currentFolderId;
+        });
+
+        const displayResources = vaultData.resources.filter(r => r.folderId === currentFolderId);
+
+        if (displayFolders.length === 0 && displayResources.length === 0) {
+            resourcesList.innerHTML = '<div class="empty-state">This folder is empty.</div>';
             return;
         }
-        
-        resources.forEach(res => {
+
+        displayFolders.forEach(folder => {
+            const div = document.createElement('div');
+            div.className = 'resource-item';
+            div.title = "Click to open folder";
+            
+            div.addEventListener('click', () => {
+                currentFolderId = folder.id;
+                searchInput.value = ''; // Clear search when navigating
+                renderVault();
+            });
+            
+            const name = document.createElement('p');
+            name.className = 'resource-name';
+            name.innerHTML = `📁 ${folder.name}`;
+            
+            div.appendChild(name);
+            resourcesList.appendChild(div);
+        });
+
+        displayResources.forEach(res => {
             const div = document.createElement('div');
             div.className = 'resource-item';
             div.title = "Click to open login page";
@@ -287,7 +328,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const name = document.createElement('p');
             name.className = 'resource-name';
-            name.textContent = res.resourceName;
+            name.innerHTML = `🔗 ${res.resourceName}`;
             
             const login = document.createElement('p');
             login.className = 'resource-login';
@@ -299,14 +340,72 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    document.getElementById('folderNav').addEventListener('click', () => {
+        if (currentFolderId) {
+            // Find parent
+            const currentFolder = vaultData.folders.find(f => f.id === currentFolderId);
+            if (currentFolder && currentFolder.parentId) {
+                const accessibleFolderIds = new Set(vaultData.folders.map(f => f.id));
+                if (accessibleFolderIds.has(currentFolder.parentId)) {
+                    currentFolderId = currentFolder.parentId;
+                } else {
+                    currentFolderId = null;
+                }
+            } else {
+                currentFolderId = null;
+            }
+            document.getElementById('resourceSearch').value = '';
+            renderVault();
+        }
+    });
+
     document.getElementById('resourceSearch').addEventListener('input', (e) => {
         const query = e.target.value.toLowerCase();
-        const filtered = allResources.filter(res => {
+        
+        if (!query) {
+            renderVault();
+            return;
+        }
+        
+        // Flattened Search View
+        document.getElementById('folderNav').style.display = 'none';
+        const resourcesList = document.getElementById('resourcesList');
+        resourcesList.innerHTML = '';
+        
+        const filtered = vaultData.resources.filter(res => {
             const nameMatch = (res.resourceName || '').toLowerCase().includes(query);
             const userMatch = (res.loginId || '').toLowerCase().includes(query);
             const linkMatch = (res.resourceLink || '').toLowerCase().includes(query);
             return nameMatch || userMatch || linkMatch;
         });
-        renderResourcesList(filtered);
+        
+        if (filtered.length === 0) {
+            resourcesList.innerHTML = '<div class="empty-state">No matching resources found.</div>';
+            return;
+        }
+
+        filtered.forEach(res => {
+            const div = document.createElement('div');
+            div.className = 'resource-item';
+            div.title = "Click to open login page";
+            
+            div.addEventListener('click', () => {
+                if (res.resourceLink) {
+                    chrome.tabs.create({ url: res.resourceLink });
+                }
+            });
+            
+            const name = document.createElement('p');
+            name.className = 'resource-name';
+            name.innerHTML = `🔗 ${res.resourceName}`;
+            
+            const login = document.createElement('p');
+            login.className = 'resource-login';
+            login.innerHTML = `<strong>User:</strong> ${res.loginId || 'N/A'}`;
+            
+            div.appendChild(name);
+            div.appendChild(login);
+            resourcesList.appendChild(div);
+        });
     });
 });
