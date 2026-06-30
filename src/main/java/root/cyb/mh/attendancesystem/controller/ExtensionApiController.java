@@ -213,4 +213,67 @@ public class ExtensionApiController {
 
         return ResponseEntity.ok(result);
     }
+    @GetMapping("/attendance-history")
+    public ResponseEntity<?> getAttendanceHistory(
+            @org.springframework.web.bind.annotation.RequestParam(name = "year", required = false) Integer year,
+            @org.springframework.web.bind.annotation.RequestParam(name = "month", required = false) Integer month,
+            Authentication authentication) {
+        
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(401).build();
+        }
+
+        String employeeId = authentication.getName();
+        LocalDate now = LocalDate.now();
+
+        if (year == null) year = now.getYear();
+        if (month == null) month = now.getMonthValue();
+
+        LocalDate startDate = LocalDate.of(year, month, 1);
+        LocalDate endDate = startDate.withDayOfMonth(startDate.lengthOfMonth());
+
+        root.cyb.mh.attendancesystem.dto.EmployeeRangeReportDto rangeData = reportService
+                .getEmployeeRangeReport(employeeId, startDate, endDate);
+
+        return ResponseEntity.ok(rangeData);
+    }
+
+    @Autowired
+    private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+
+    @org.springframework.web.bind.annotation.PostMapping("/change-password")
+    public ResponseEntity<?> changePassword(
+            @org.springframework.web.bind.annotation.RequestBody Map<String, String> payload,
+            Authentication authentication) {
+        
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(401).build();
+        }
+
+        String oldPassword = payload.get("oldPassword");
+        String newPassword = payload.get("newPassword");
+
+        if (oldPassword == null || newPassword == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Missing fields"));
+        }
+
+        String employeeId = authentication.getName();
+        Optional<Employee> employeeOpt = employeeRepository.findById(employeeId);
+
+        if (employeeOpt.isEmpty()) {
+            return ResponseEntity.status(401).build();
+        }
+
+        Employee employee = employeeOpt.get();
+
+        if (!passwordEncoder.matches(oldPassword, employee.getUsername())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Incorrect old password"));
+        }
+
+        employee.setUsername(passwordEncoder.encode(newPassword));
+        employeeRepository.save(employee);
+
+        return ResponseEntity.ok(Map.of("success", true));
+    }
 }
+
