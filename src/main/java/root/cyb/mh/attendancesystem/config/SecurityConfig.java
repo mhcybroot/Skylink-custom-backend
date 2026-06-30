@@ -22,6 +22,7 @@ public class SecurityConfig {
                                                 .requestMatchers("/css/**", "/js/**", "/images/**", "/webjars/**")
                                                 .permitAll()
                                                 .requestMatchers("/login", "/error").permitAll()
+                                                .requestMatchers("/api/v1/monitor/**").permitAll() // Allow monitor endpoints
                                                 .requestMatchers("/api/v1/ppw-mapping").authenticated()
                                                 .requestMatchers("/iclock/**").permitAll() // Allow ADMS Device
                                                                                            // Communication

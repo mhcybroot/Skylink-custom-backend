@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout}">
+<head>
+    <title>Live Monitor</title>
+    <style>
+        .monitor-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+        }
+        #monitor-canvas {
+            border: 2px solid #ccc;
+            background-color: #000;
+            max-width: 100%;
+            height: auto;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .controls {
+            margin-bottom: 15px;
+        }
+        .status {
+            margin-left: 15px;
+            font-weight: bold;
+        }
+        .status.connected { color: green; }
+        .status.disconnected { color: red; }
+    </style>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="container-fluid">
+        <h2 class="mb-4">Live Screen Monitor</h2>
+        <div class="card">
+            <div class="card-body monitor-container">
+                <div class="controls">
+                    <input type="text" id="employeeId" placeholder="Employee ID" th:value="${targetEmployeeId}" class="form-control d-inline-block w-auto mb-2">
+                    <button id="startBtn" class="btn btn-success mb-2">Start Watching</button>
+                    <button id="stopBtn" class="btn btn-danger mb-2" disabled>Stop</button>
+                    <span id="statusText" class="status disconnected mb-2">Disconnected</span>
+                    <br/>
+                    <select id="resolutionSelect" class="form-select d-inline-block w-auto mb-2" disabled>
+                        <option value="1280x720">Low (720p)</option>
+                        <option value="1920x1080">Medium (1080p)</option>
+                        <option value="0x0">High (Source)</option>
+                    </select>
+                    <label class="ms-2">Quality: <span id="qualityVal">50</span>%</label>
+                    <input type="range" id="qualitySlider" class="form-range d-inline-block w-auto ms-1 align-middle mb-2" min="10" max="100" value="50" disabled>
+                    <button id="screenshotBtn" class="btn btn-primary ms-3 mb-2" disabled>Take Screenshot</button>
+                </div>
+                <canvas id="monitor-canvas" width="1920" height="1080"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        let ws = null;
+        const canvas = document.getElementById('monitor-canvas');
+        const ctx = canvas.getContext('2d');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const statusText = document.getElementById('statusText');
+        const empInput = document.getElementById('employeeId');
+        
+        const resolutionSelect = document.getElementById('resolutionSelect');
+        const qualitySlider = document.getElementById('qualitySlider');
+        const qualityVal = document.getElementById('qualityVal');
+        const screenshotBtn = document.getElementById('screenshotBtn');
+
+        function sendConfig() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) return;
+            const res = resolutionSelect.value.split('x');
+            const w = parseInt(res[0]);
+            const h = parseInt(res[1]);
+            const q = parseInt(qualitySlider.value);
+            ws.send(JSON.stringify({ type: 'SET_CONFIG', width: w, height: h, quality: q }));
+        }
+
+        resolutionSelect.addEventListener('change', sendConfig);
+        qualitySlider.addEventListener('input', function() {
+            qualityVal.textContent = this.value;
+        });
+        qualitySlider.addEventListener('change', sendConfig);
+
+        screenshotBtn.addEventListener('click', function() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) return;
+            ws.send(JSON.stringify({ type: 'TAKE_SCREENSHOT' }));
+        });
+
+        function connect() {
+            const empId = empInput.value.trim();
+            if (!empId) { alert('Please enter an employee ID'); return; }
+
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = protocol + '//' + window.location.host + '/api/v1/monitor/ws?token=admin_' + empId;
+            
+            ws = new WebSocket(wsUrl);
+            ws.binaryType = 'arraybuffer';
+
+            ws.onopen = function() {
+                statusText.textContent = 'Connected & Buffering...';
+                statusText.className = 'status connected';
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+                empInput.disabled = true;
+                resolutionSelect.disabled = false;
+                qualitySlider.disabled = false;
+                screenshotBtn.disabled = false;
+                
+                // Send initial config
+                setTimeout(sendConfig, 500);
+            };
+
+            ws.onmessage = function(event) {
+                if (event.data instanceof ArrayBuffer) {
+                    const dataView = new Uint8Array(event.data);
+                    if (dataView.length === 0) return;
+                    
+                    const frameType = dataView[0];
+                    const imgData = event.data.slice(1);
+                    const blob = new Blob([imgData], { type: 'image/jpeg' });
+                    const url = URL.createObjectURL(blob);
+
+                    if (frameType === 0x00) {
+                        // Live Stream
+                        statusText.textContent = 'Streaming Live';
+                        const img = new Image();
+                        img.onload = function() {
+                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                            URL.revokeObjectURL(url);
+                        };
+                        img.src = url;
+                    } else if (frameType === 0x01) {
+                        // Screenshot
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'screenshot_' + empId + '_' + new Date().getTime() + '.jpg';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    }
+                }
+            };
+
+            ws.onclose = function() {
+                statusText.textContent = 'Disconnected';
+                statusText.className = 'status disconnected';
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+                empInput.disabled = false;
+                resolutionSelect.disabled = true;
+                qualitySlider.disabled = true;
+                screenshotBtn.disabled = true;
+                ws = null;
+                // Clear canvas
+                ctx.fillStyle = 'black';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            };
+        }
+
+        function disconnect() {
+            if (ws) {
+                ws.close();
+            }
+        }
+
+        startBtn.addEventListener('click', connect);
+        stopBtn.addEventListener('click', disconnect);
+
+        // Auto-start if employee ID was passed in URL
+        if (empInput.value.trim()) {
+            connect();
+        }
+    </script>
+</div>
+</body>
+</html>
