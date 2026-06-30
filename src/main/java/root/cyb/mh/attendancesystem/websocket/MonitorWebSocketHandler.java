@@ -47,14 +47,25 @@ public class MonitorWebSocketHandler extends BinaryWebSocketHandler {
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) {
         String token = getToken(session);
-        if (token != null && token.startsWith("admin_")) {
-            String targetEmployeeId = token.replace("admin_", "");
-            WebSocketSession empSession = employeeSessions.get(targetEmployeeId);
-            if (empSession != null && empSession.isOpen()) {
-                try {
-                    empSession.sendMessage(message);
-                } catch (Exception e) {
-                    e.printStackTrace();
+        if (token != null) {
+            if (token.startsWith("admin_")) {
+                String targetEmployeeId = token.replace("admin_", "");
+                WebSocketSession empSession = employeeSessions.get(targetEmployeeId);
+                if (empSession != null && empSession.isOpen()) {
+                    try {
+                        empSession.sendMessage(message);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            } else {
+                WebSocketSession adminSession = adminSessions.get(token);
+                if (adminSession != null && adminSession.isOpen()) {
+                    try {
+                        adminSession.sendMessage(message);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 }
             }
         }
