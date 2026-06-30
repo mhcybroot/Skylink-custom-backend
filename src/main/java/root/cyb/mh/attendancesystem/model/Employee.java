@@ -10,9 +10,11 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@lombok.EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Employee {
 
     @Id
+    @lombok.EqualsAndHashCode.Include
     private String id; // Corresponds to ZK User ID
 
     private String name;

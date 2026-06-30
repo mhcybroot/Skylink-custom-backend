@@ -159,6 +159,12 @@
             border-radius: 8px;
             padding: 10px;
             margin-bottom: 8px;
+            cursor: pointer;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .resource-item:hover {
+            border-color: var(--primary);
+            box-shadow: 0 2px 4px rgba(79, 70, 229, 0.1);
         }
         .resource-name {
             font-weight: 600;
@@ -352,6 +358,7 @@
 
             <div class="resources-section">
                 <h3 style="font-size: 14px; margin: 0 0 10px 0; color: var(--text-color);">My Shared Resources</h3>
+                <input type="text" id="resourceSearch" placeholder="Search resources..." style="margin-bottom: 12px; font-size: 13px; padding: 8px 12px; display: none;">
                 <div id="resourcesLoader" class="loader" style="display: none; border-color: var(--primary); border-bottom-color: transparent;"></div>
                 <div id="resourcesList"></div>
             </div>

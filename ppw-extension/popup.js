@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const BASE_URL = ENV.BASE_URL;
     let timerInterval = null;
+    let allResources = [];
 
     // Check login state on load
     chrome.storage.local.get(['isLoggedIn'], (result) => {
@@ -208,8 +209,10 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchResources() {
         const resourcesList = document.getElementById('resourcesList');
         const rLoader = document.getElementById('resourcesLoader');
+        const searchInput = document.getElementById('resourceSearch');
         
         resourcesList.innerHTML = '';
+        searchInput.style.display = 'none';
         rLoader.style.display = 'block';
 
         try {
@@ -246,22 +249,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (resources.length === 0) {
                 resourcesList.innerHTML = '<div class="empty-state">No shared resources assigned.</div>';
             } else {
-                resources.forEach(res => {
-                    const div = document.createElement('div');
-                    div.className = 'resource-item';
-                    
-                    const name = document.createElement('p');
-                    name.className = 'resource-name';
-                    name.textContent = res.resourceName;
-                    
-                    const login = document.createElement('p');
-                    login.className = 'resource-login';
-                    login.innerHTML = `<strong>User:</strong> ${res.loginId || 'N/A'}`;
-                    
-                    div.appendChild(name);
-                    div.appendChild(login);
-                    resourcesList.appendChild(div);
-                });
+                allResources = resources;
+                searchInput.style.display = 'block';
+                renderResourcesList(allResources);
             }
         } catch (e) {
             resourcesList.innerHTML = '<div class="empty-state">Error loading resources.</div>';
@@ -274,4 +264,49 @@ document.addEventListener('DOMContentLoaded', () => {
         loginFormState.style.display = 'block';
         loggedInState.style.display = 'none';
     }
+
+    function renderResourcesList(resources) {
+        const resourcesList = document.getElementById('resourcesList');
+        resourcesList.innerHTML = '';
+        
+        if (resources.length === 0) {
+            resourcesList.innerHTML = '<div class="empty-state">No matching resources found.</div>';
+            return;
+        }
+        
+        resources.forEach(res => {
+            const div = document.createElement('div');
+            div.className = 'resource-item';
+            div.title = "Click to open login page";
+            
+            div.addEventListener('click', () => {
+                if (res.resourceLink) {
+                    chrome.tabs.create({ url: res.resourceLink });
+                }
+            });
+            
+            const name = document.createElement('p');
+            name.className = 'resource-name';
+            name.textContent = res.resourceName;
+            
+            const login = document.createElement('p');
+            login.className = 'resource-login';
+            login.innerHTML = `<strong>User:</strong> ${res.loginId || 'N/A'}`;
+            
+            div.appendChild(name);
+            div.appendChild(login);
+            resourcesList.appendChild(div);
+        });
+    }
+
+    document.getElementById('resourceSearch').addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase();
+        const filtered = allResources.filter(res => {
+            const nameMatch = (res.resourceName || '').toLowerCase().includes(query);
+            const userMatch = (res.loginId || '').toLowerCase().includes(query);
+            const linkMatch = (res.resourceLink || '').toLowerCase().includes(query);
+            return nameMatch || userMatch || linkMatch;
+        });
+        renderResourcesList(filtered);
+    });
 });

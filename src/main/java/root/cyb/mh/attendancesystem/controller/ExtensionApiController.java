@@ -39,6 +39,9 @@ public class ExtensionApiController {
     @Autowired
     private ReportService reportService;
 
+    @Autowired
+    private root.cyb.mh.attendancesystem.service.ResourceFolderService resourceFolderService;
+
     @GetMapping("/credentials")
     public ResponseEntity<List<SharedResource>> getMyCredentials(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
@@ -46,8 +49,18 @@ public class ExtensionApiController {
         }
 
         String currentUserId = authentication.getName();
+        Optional<Employee> empOpt = employeeRepository.findById(currentUserId);
+        if (empOpt.isEmpty()) {
+            return ResponseEntity.status(401).build();
+        }
         
-        List<SharedResource> resources = sharedResourceRepository.findByEmployeeId(currentUserId);
+        List<Long> folderIds = resourceFolderService.getAllAccessibleFolderIdsForEmployee(empOpt.get());
+        List<SharedResource> resources;
+        if (folderIds.isEmpty()) {
+            resources = sharedResourceRepository.findByEmployeeId(currentUserId);
+        } else {
+            resources = sharedResourceRepository.findByEmployeeIdOrFolderIdIn(currentUserId, folderIds);
+        }
         
         return ResponseEntity.ok(resources);
     }

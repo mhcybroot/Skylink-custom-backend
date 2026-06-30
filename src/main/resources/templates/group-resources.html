@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <title>Resource Vault - Skylink</title>
+</head>
+
+<body>
+    <div th:replace="~{layout :: layout(~{::section}, ~{::script}, 'resource-folders')}">
+        <section>
+            <style>
+                .folder-card {
+                    transition: all 0.2s ease;
+                    cursor: pointer;
+                    text-decoration: none;
+                    color: inherit;
+                }
+                .folder-card:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 .5rem 1rem rgba(0,0,0,.08)!important;
+                    border-color: #0d6efd !important;
+                }
+                .breadcrumb-item a {
+                    text-decoration: none;
+                }
+            </style>
+
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h2 class="h3 mb-2 text-gray-800"><i class="fas fa-folder-open text-primary me-2"></i>Resource Vault</h2>
+                    
+                    <!-- Breadcrumbs -->
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0 bg-transparent p-0">
+                            <li class="breadcrumb-item">
+                                <a th:href="@{/admin/resource-folders}"><i class="fas fa-home"></i> Root</a>
+                            </li>
+                            <li class="breadcrumb-item" th:each="bc : ${breadcrumbs}">
+                                <a th:href="@{/admin/resource-folders(folderId=${bc.id})}" th:text="${bc.name}"></a>
+                            </li>
+                            <li class="breadcrumb-item active" aria-current="page" th:if="${currentFolder != null}" th:text="${currentFolder.name}"></li>
+                        </ol>
+                    </nav>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div>
+                    <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#createFolderModal" th:attr="data-parent-id=${currentFolder != null ? currentFolder.id : ''}">
+                        <i class="fas fa-folder-plus me-1"></i> <span th:text="${currentFolder == null ? 'New Root Folder' : 'New Subfolder'}"></span>
+                    </button>
+                    <th:block th:if="${currentFolder != null}">
+                        <button class="btn btn-outline-primary ms-2" data-bs-toggle="modal" data-bs-target="#addResourceModal" th:attr="data-folder-id=${currentFolder.id}">
+                            <i class="fas fa-key me-1"></i> Add Resource
+                        </button>
+                        <button class="btn btn-outline-info ms-2" data-bs-toggle="modal" data-bs-target="#manageAccessModal" th:attr="data-folder-id=${currentFolder.id}">
+                            <i class="fas fa-users me-1"></i> Manage Access
+                        </button>
+                    </th:block>
+                </div>
+            </div>
+
+            <!-- Folders Grid -->
+            <h5 class="mt-4 mb-3" th:if="${not #lists.isEmpty(currentFolders)}">Folders</h5>
+            <div class="row g-3 mb-4">
+                <div class="col-12 col-sm-6 col-md-4 col-lg-3" th:each="folder : ${currentFolders}">
+                    <div class="card h-100 shadow-sm border folder-card position-relative">
+                        <a th:href="@{/admin/resource-folders(folderId=${folder.id})}" class="stretched-link"></a>
+                        <div class="card-body d-flex align-items-center p-3">
+                            <i class="fas fa-folder text-warning fs-3 me-3"></i>
+                            <div class="text-truncate fw-bold flex-grow-1" th:text="${folder.name}">Folder Name</div>
+                            
+                            <!-- Delete Button -->
+                            <form th:action="@{/admin/resource-folders/delete}" method="post" class="d-inline position-relative" style="z-index: 2;" onsubmit="return confirm('Delete this folder? It must be empty.');">
+                                <input type="hidden" name="id" th:value="${folder.id}">
+                                <input type="hidden" name="parentId" th:value="${currentFolder != null ? currentFolder.id : ''}">
+                                <button type="submit" class="btn btn-sm btn-link text-danger p-0" title="Delete Folder">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12" th:if="${#lists.isEmpty(currentFolders) && currentFolder == null}">
+                    <div class="text-center text-muted py-5 border rounded bg-white shadow-sm">
+                        <i class="fas fa-folder-open fa-3x mb-3 text-light"></i>
+                        <p>No root folders found. Create one to get started.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resources Table -->
+            <th:block th:if="${currentFolder != null}">
+                <h5 class="mt-4 mb-3">Resources</h5>
+                <div class="card shadow-sm border-0">
+                    <div class="card-body p-0">
+                        <div th:if="${#lists.isEmpty(currentResources)}" class="text-center text-muted py-4">
+                            <p class="mb-0">This folder has no resources yet.</p>
+                        </div>
+                        
+                        <table class="table table-hover mb-0" th:unless="${#lists.isEmpty(currentResources)}">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">Resource Name</th>
+                                    <th>Link</th>
+                                    <th>Login ID</th>
+                                    <th>Password</th>
+                                    <th class="text-end pe-4">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="res : ${currentResources}">
+                                    <td class="ps-4 fw-medium" th:text="${res.resourceName}">Name</td>
+                                    <td>
+                                        <a th:href="${res.resourceLink}" target="_blank" class="text-decoration-none">
+                                            <i class="fas fa-external-link-alt small me-1"></i><span th:text="${res.resourceLink}"></span>
+                                        </a>
+                                    </td>
+                                    <td th:text="${res.loginId}">ID</td>
+                                    <td>
+                                        <div class="input-group input-group-sm" style="width: 150px;">
+                                            <input type="password" class="form-control bg-white" th:value="${res.password}" readonly>
+                                            <button class="btn btn-outline-secondary toggle-password" type="button"><i class="fas fa-eye"></i></button>
+                                        </div>
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <form th:action="@{/admin/resource-folders/resources/delete}" method="post" class="d-inline" onsubmit="return confirm('Delete this resource?');">
+                                            <input type="hidden" name="resourceId" th:value="${res.id}">
+                                            <input type="hidden" name="folderId" th:value="${currentFolder.id}">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </th:block>
+
+            <!-- Create Folder Modal -->
+            <div class="modal fade" id="createFolderModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <form th:action="@{/admin/resource-folders/create}" method="post">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Create Folder</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <input type="hidden" name="parentId" id="createFolderParentId">
+                                <div class="mb-3">
+                                    <label class="form-label">Folder Name</label>
+                                    <input type="text" class="form-control" name="name" required>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn btn-primary">Create Folder</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Resource Modal -->
+            <div class="modal fade" id="addResourceModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <form method="post" id="addResourceForm">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Add Resource to Folder</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <label class="form-label">Resource Name</label>
+                                    <input type="text" class="form-control" name="resourceName" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Login Link</label>
+                                    <input type="url" class="form-control" name="resourceLink" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Login ID / Username</label>
+                                    <input type="text" class="form-control" name="loginId" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Password</label>
+                                    <input type="text" class="form-control" name="password" required>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn btn-primary">Add Resource</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Manage Access Modal -->
+            <div class="modal fade" id="manageAccessModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Assign Folder Access</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p class="text-muted small">Assign an employee to grant them access to this folder and its subfolders.</p>
+                            <form method="post" id="assignEmployeeForm" class="mb-4">
+                                <div class="input-group">
+                                    <select class="form-select" name="employeeId" required>
+                                        <option value="">Select Employee...</option>
+                                        <option th:each="emp : ${employees}" th:value="${emp.id}" th:text="${emp.name} + ' (' + ${emp.id} + ')'"></option>
+                                    </select>
+                                    <button type="submit" class="btn btn-success">Assign</button>
+                                </div>
+                            </form>
+                            
+                            <hr>
+                            <h6 class="mb-3">Currently Assigned</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover align-middle">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Employee</th>
+                                            <th>ID</th>
+                                            <th class="text-end">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr th:if="${#lists.isEmpty(assignedEmployees)}">
+                                            <td colspan="3" class="text-center text-muted py-3">No employees directly assigned to this folder.</td>
+                                        </tr>
+                                        <tr th:each="emp : ${assignedEmployees}">
+                                            <td class="fw-medium" th:text="${emp.name}">Name</td>
+                                            <td class="text-muted small" th:text="${emp.id}">ID</td>
+                                            <td class="text-end">
+                                                <form method="post" th:action="@{/admin/resource-folders/{folderId}/remove-employee(folderId=${currentFolder.id})}" onsubmit="return confirm('Remove access for this employee?');">
+                                                    <input type="hidden" name="employeeId" th:value="${emp.id}">
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-user-minus"></i> Remove</button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <h6 class="mb-3 mt-4">Inherited Access</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover align-middle">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Employee</th>
+                                            <th>ID</th>
+                                            <th class="text-end">Inherited From</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr th:if="${#maps.isEmpty(inheritedEmployees)}">
+                                            <td colspan="3" class="text-center text-muted py-3">No inherited access.</td>
+                                        </tr>
+                                        <tr th:each="entry : ${inheritedEmployees}">
+                                            <td class="fw-medium" th:text="${entry.key.name}">Name</td>
+                                            <td class="text-muted small" th:text="${entry.key.id}">ID</td>
+                                            <td class="text-end">
+                                                <a th:href="@{/admin/resource-folders(folderId=${entry.value.id})}" class="badge bg-secondary text-decoration-none">
+                                                    <i class="fas fa-folder me-1"></i> <span th:text="${entry.value.name}">Folder</span>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                var createFolderModal = document.getElementById('createFolderModal');
+                if (createFolderModal) {
+                    createFolderModal.addEventListener('show.bs.modal', function (event) {
+                        var button = event.relatedTarget;
+                        var parentId = button.getAttribute('data-parent-id');
+                        var input = document.getElementById('createFolderParentId');
+                        input.value = parentId || '';
+                    });
+                }
+
+                var addResourceModal = document.getElementById('addResourceModal');
+                if (addResourceModal) {
+                    addResourceModal.addEventListener('show.bs.modal', function (event) {
+                        var button = event.relatedTarget;
+                        var folderId = button.getAttribute('data-folder-id');
+                        var form = document.getElementById('addResourceForm');
+                        form.action = '/admin/resource-folders/' + folderId + '/resources/add';
+                    });
+                }
+                
+                var manageAccessModal = document.getElementById('manageAccessModal');
+                if (manageAccessModal) {
+                    manageAccessModal.addEventListener('show.bs.modal', function (event) {
+                        var button = event.relatedTarget;
+                        var folderId = button.getAttribute('data-folder-id');
+                        var form = document.getElementById('assignEmployeeForm');
+                        form.action = '/admin/resource-folders/' + folderId + '/assign';
+                    });
+                }
+
+                // Password toggle logic
+                document.querySelectorAll('.toggle-password').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        let input = this.previousElementSibling;
+                        let icon = this.querySelector('i');
+                        if (input.type === 'password') {
+                            input.type = 'text';
+                            icon.classList.remove('fa-eye');
+                            icon.classList.add('fa-eye-slash');
+                        } else {
+                            input.type = 'password';
+                            icon.classList.remove('fa-eye-slash');
+                            icon.classList.add('fa-eye');
+                        }
+                    });
+                });
+            });
+        </script>
+    </div>
+</body>
+</html>

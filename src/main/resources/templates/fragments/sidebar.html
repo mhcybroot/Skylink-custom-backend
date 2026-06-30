@@ -198,15 +198,18 @@
             <div sec:authorize="hasAnyRole('ADMIN', 'HR')" class="nav-item-wrapper mb-1">
                 <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center rounded-3 category-link"
                     data-bs-toggle="collapse" href="#collapseSystem" role="button" aria-expanded="false"
-                    th:classappend="${#lists.contains({'work-orders', 'import-history', 'browse-history', 'devices', 'settings', 'users'}, activeLink)} ? 'category-active'">
+                    th:classappend="${#lists.contains({'work-orders', 'import-history', 'browse-history', 'devices', 'settings', 'users', 'resource-folders'}, activeLink)} ? 'category-active'">
                     <div><i class="fas fa-cogs menu-icon"></i> <span class="menu-text">System Data</span></div>
                     <i class="fas fa-chevron-down accordion-icon"></i>
                 </a>
                 <div class="collapse" id="collapseSystem" data-bs-parent="#sidebarAccordion"
-                    th:classappend="${#lists.contains({'work-orders', 'import-history', 'browse-history', 'devices', 'settings', 'users'}, activeLink)} ? 'show'">
+                    th:classappend="${#lists.contains({'work-orders', 'import-history', 'browse-history', 'devices', 'settings', 'users', 'resource-folders'}, activeLink)} ? 'show'">
                     <ul class="nav flex-column submenu-list ps-4 pt-1 pb-2">
                         <div class="text-white-50 small text-uppercase fw-bold ps-3 mt-1 mb-1"
-                            style="font-size: 0.65rem;">Data Management</div>
+                             style="font-size: 0.65rem;">Data Management</div>
+                        <li sec:authorize="hasRole('ADMIN')" class="nav-item">
+                            <a href="/admin/resource-folders" class="nav-link py-1" th:classappend="${activeLink == 'resource-folders'} ? 'active'">Resource Vault</a>
+                        </li>
                         <!-- Grouped next to each other as requested -->
                         <li sec:authorize="hasRole('ADMIN')" class="nav-item"><a href="/admin/work-orders"
                                 class="nav-link py-1" th:classappend="${activeLink == 'work-orders'} ? 'active'">Work
