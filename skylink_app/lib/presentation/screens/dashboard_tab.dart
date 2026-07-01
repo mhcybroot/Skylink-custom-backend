@@ -75,7 +75,13 @@ class _DashboardTabState extends State<DashboardTab> {
 
   Widget _buildStatusCard(BuildContext context, Map<String, dynamic> data) {
     final status = data['status'] ?? 'UNKNOWN';
-    final elapsed = data['timeElapsed'] ?? '00:00:00';
+    final elapsedWorkSeconds = data['elapsedWorkSeconds'] ?? 0;
+    
+    // Format seconds into HH:mm:ss
+    int hours = elapsedWorkSeconds ~/ 3600;
+    int minutes = (elapsedWorkSeconds % 3600) ~/ 60;
+    int seconds = elapsedWorkSeconds % 60;
+    final elapsed = '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
     
     return Card(
       child: Padding(
@@ -172,10 +178,10 @@ class _DashboardTabState extends State<DashboardTab> {
       crossAxisSpacing: 16,
       childAspectRatio: 1.5,
       children: [
-        _buildStatBox('Days Present', '${data['presentDays'] ?? 0}', Colors.green),
-        _buildStatBox('Days Late', '${data['lateDays'] ?? 0}', Colors.red),
-        _buildStatBox('Leaves Taken', '${data['leaveTaken'] ?? 0}', Colors.purple),
-        _buildStatBox('Early Exit', '${data['earlyExitDays'] ?? 0}', Colors.orange),
+        _buildStatBox('Days Present', '${data['daysPresent'] ?? 0}', Colors.green),
+        _buildStatBox('Days Late', '${data['lateCount'] ?? 0}', Colors.red),
+        _buildStatBox('Leaves Taken', '${data['leaveCount'] ?? 0}', Colors.purple),
+        _buildStatBox('Early Exit', '${data['earlyCount'] ?? 0}', Colors.orange),
       ],
     );
   }
