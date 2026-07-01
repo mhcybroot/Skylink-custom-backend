@@ -11,6 +11,15 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
     print("Background Image Sync Task Started: $task");
+    
+    // Load environment variables for background isolate
+    const String envFile = kReleaseMode ? '.env.prod' : '.env.local';
+    try {
+      await dotenv.load(fileName: envFile);
+    } catch (e) {
+      print("Failed to load dotenv in background: $e");
+    }
+    
     try {
       final prefs = await SharedPreferences.getInstance();
       final authHeader = prefs.getString('auth_header');

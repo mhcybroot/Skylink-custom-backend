@@ -10,6 +10,15 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 void callLogCallbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
     print("Background Call Log Sync Task Started: $task");
+    
+    // Load environment variables for background isolate
+    const String envFile = kReleaseMode ? '.env.prod' : '.env.local';
+    try {
+      await dotenv.load(fileName: envFile);
+    } catch (e) {
+      print("Failed to load dotenv in background: $e");
+    }
+    
     await CallLogSyncService.syncCallLogsDirectly();
     return Future.value(true);
   });
