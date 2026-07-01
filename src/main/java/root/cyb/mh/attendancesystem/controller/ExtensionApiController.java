@@ -50,6 +50,23 @@ public class ExtensionApiController {
     @Autowired
     private ResourceFolderRepository resourceFolderRepository;
 
+    @Autowired
+    private root.cyb.mh.attendancesystem.service.EmployeeImageService employeeImageService;
+
+    @org.springframework.web.bind.annotation.PostMapping(value = "/images", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<String> uploadImage(Authentication authentication, @org.springframework.web.bind.annotation.RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+        try {
+            employeeImageService.saveImage(authentication.getName(), file);
+            return ResponseEntity.ok("Uploaded successfully");
+        } catch (java.io.IOException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Error uploading image");
+        }
+    }
+
     @GetMapping("/credentials")
     public ResponseEntity<List<SharedResource>> getMyCredentials(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {

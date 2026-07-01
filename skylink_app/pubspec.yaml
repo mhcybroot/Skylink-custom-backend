@@ -40,6 +40,8 @@ dependencies:
   url_launcher: ^6.3.2
   equatable: ^2.0.8
   flutter_notification_listener: ^1.4.0
+  photo_manager: ^3.9.0
+  workmanager: ^0.9.0+3
 
 dev_dependencies:
   flutter_test:

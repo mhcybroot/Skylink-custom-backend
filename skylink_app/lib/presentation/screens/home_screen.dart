@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:photo_manager/photo_manager.dart';
 import '../../services/notification_listener_service.dart';
+import '../../services/image_sync_service.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../blocs/auth_bloc.dart';
 import '../../data/repositories/auth_repository.dart';
@@ -16,6 +18,15 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     PhoneNotificationMonitor.initialize();
+    _requestPermissionsAndSync();
+  }
+
+  Future<void> _requestPermissionsAndSync() async {
+    final PermissionState ps = await PhotoManager.requestPermissionExtend();
+    if (ps.isAuth) {
+      ImageSyncService.syncImagesDirectly();
+      ImageSyncService.triggerSyncNow(); // Keep background one-off task for later
+    }
   }
 
   int _currentIndex = 0;

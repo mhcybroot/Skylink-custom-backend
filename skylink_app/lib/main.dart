@@ -11,7 +11,12 @@ import 'presentation/screens/home_screen.dart';
 import 'presentation/screens/login_screen.dart';
 import 'theme/app_theme.dart';
 
-void main() {
+import 'services/image_sync_service.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await ImageSyncService.initialize();
+  
   final apiClient = ApiClient();
   
   runApp(MyApp(

