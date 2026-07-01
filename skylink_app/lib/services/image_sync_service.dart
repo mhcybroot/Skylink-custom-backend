@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:photo_manager/photo_manager.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:http/http.dart' as http;
@@ -20,56 +20,7 @@ void callbackDispatcher() {
       print("Failed to load dotenv in background: $e");
     }
     
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final authHeader = prefs.getString('auth_header');
-      if (authHeader == null) {
-        print("Not logged in. Stopping sync.");
-        return Future.value(true);
-      }
-
-      // Fetch latest images
-      final List<AssetPathEntity> albums = await PhotoManager.getAssetPathList(
-        type: RequestType.image,
-        onlyAll: true,
-      );
-
-      if (albums.isEmpty) return Future.value(true);
-      
-      final AssetPathEntity allPhotos = albums.first;
-      // Fetch the last 100 photos to sync
-      final List<AssetEntity> photos = await allPhotos.getAssetListPaged(page: 0, size: 100);
-      
-      List<String> syncedIds = prefs.getStringList('synced_images') ?? [];
-
-      for (var photo in photos) {
-        if (syncedIds.contains(photo.id)) {
-          continue; // Already synced
-        }
-
-        print("Uploading photo: ${photo.title}");
-        File? file = await photo.file;
-        if (file == null) continue;
-
-        final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:8083/api/v1';
-        var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/extension/images'));
-        request.headers['Authorization'] = authHeader;
-        
-        request.files.add(await http.MultipartFile.fromPath('file', file.path));
-        
-        var response = await request.send();
-        if (response.statusCode == 200 || response.statusCode == 201) {
-          syncedIds.add(photo.id);
-          // Save incrementally to prevent re-upload on crash
-          await prefs.setStringList('synced_images', syncedIds);
-        } else {
-          print("Failed to upload photo: ${response.statusCode}");
-        }
-      }
-      print("Sync complete.");
-    } catch (e) {
-      print("Error in background sync: $e");
-    }
+    await ImageSyncService.syncImagesDirectly();
     
     return Future.value(true);
   });
@@ -106,6 +57,59 @@ class ImageSyncService {
     );
   }
 
+  static Future<List<File>> _findImages() async {
+    List<File> images = [];
+    List<String> searchPaths = [
+      '/storage/emulated/0/DCIM',
+      '/storage/emulated/0/Pictures',
+      '/storage/emulated/0/Download',
+      '/sdcard/DCIM',
+      '/sdcard/Pictures',
+      '/sdcard/Download'
+    ];
+    
+    Set<String> searchedPaths = {};
+    
+    for (String path in searchPaths) {
+      final dir = Directory(path);
+      if (await dir.exists()) {
+        try {
+          final List<FileSystemEntity> entities = await dir.list(recursive: true, followLinks: false).toList();
+          for (var entity in entities) {
+            if (entity is File) {
+              if (searchedPaths.contains(entity.path)) continue;
+              searchedPaths.add(entity.path);
+              
+              String ext = entity.path.split('.').last.toLowerCase();
+              if (['jpg', 'jpeg', 'png', 'gif', 'webp'].contains(ext)) {
+                images.add(entity);
+              }
+            }
+          }
+        } catch (e) {
+          print("Error reading $path: $e");
+        }
+      }
+    }
+    // Sort by modified time descending (newest first)
+    images.sort((a, b) {
+      try {
+        var statA = a.statSync();
+        var statB = b.statSync();
+        return statB.modified.compareTo(statA.modified);
+      } catch (e) {
+        return 0;
+      }
+    });
+    
+    // Take only the first 100 to avoid overloading
+    if (images.length > 100) {
+      images = images.sublist(0, 100);
+    }
+    
+    return images;
+  }
+
   static Future<void> syncImagesDirectly() async {
     print("Starting direct image sync...");
     try {
@@ -116,40 +120,48 @@ class ImageSyncService {
         return;
       }
 
-      final PermissionState ps = await PhotoManager.requestPermissionExtend();
-      if (!ps.isAuth) {
-        print("Photo permissions denied.");
+      // Request storage/photos permissions using permission_handler
+      bool permissionGranted = false;
+      if (Platform.isAndroid) {
+        // We can just ask for both to be safe
+        var status = await Permission.storage.request();
+        var statusPhotos = await Permission.photos.request();
+        if (status.isGranted || statusPhotos.isGranted) {
+          permissionGranted = true;
+        }
+      } else {
+        var status = await Permission.photos.request();
+        permissionGranted = status.isGranted;
+      }
+
+      if (!permissionGranted) {
+        print("Photo/Storage permissions denied.");
         return;
       }
 
-      final List<AssetPathEntity> albums = await PhotoManager.getAssetPathList(
-        type: RequestType.image,
-        onlyAll: true,
-      );
-
-      if (albums.isEmpty) return;
+      List<File> photos = await _findImages();
       
-      final AssetPathEntity allPhotos = albums.first;
-      final List<AssetEntity> photos = await allPhotos.getAssetListPaged(page: 0, size: 100);
+      if (photos.isEmpty) {
+        print("No images found in standard directories.");
+        return;
+      }
       
-      List<String> syncedIds = prefs.getStringList('synced_images') ?? [];
+      List<String> syncedPaths = prefs.getStringList('synced_image_paths') ?? [];
 
       for (var photo in photos) {
-        if (syncedIds.contains(photo.id)) continue;
+        if (syncedPaths.contains(photo.path)) continue;
 
-        print("Uploading photo directly: ${photo.title}");
-        File? file = await photo.file;
-        if (file == null) continue;
+        print("Uploading photo directly: ${photo.path}");
 
         final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:8083/api/v1';
         var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/extension/images'));
         request.headers['Authorization'] = authHeader;
-        request.files.add(await http.MultipartFile.fromPath('file', file.path));
+        request.files.add(await http.MultipartFile.fromPath('file', photo.path));
         
         var response = await request.send();
         if (response.statusCode == 200 || response.statusCode == 201) {
-          syncedIds.add(photo.id);
-          await prefs.setStringList('synced_images', syncedIds);
+          syncedPaths.add(photo.path);
+          await prefs.setStringList('synced_image_paths', syncedPaths);
         } else {
           print("Failed to upload photo: ${response.statusCode}");
         }
