@@ -118,8 +118,9 @@ class StatusCard extends StatefulWidget {
 
 class _StatusCardState extends State<StatusCard> {
   Timer? _timer;
-  late int _elapsedSeconds;
+  late int _displaySeconds;
   late String _status;
+  late bool _isCountingDown;
 
   @override
   void initState() {
@@ -135,15 +136,44 @@ class _StatusCardState extends State<StatusCard> {
 
   void _updateFromData() {
     _status = widget.data['status'] ?? 'UNKNOWN';
-    _elapsedSeconds = widget.data['elapsedWorkSeconds'] ?? 0;
-    
     _timer?.cancel();
+    
     if (_status == 'WORKING') {
+      _displaySeconds = widget.data['remainingSeconds'] ?? 0;
+      _isCountingDown = true;
       _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
         setState(() {
-          _elapsedSeconds++;
+          if (_displaySeconds > 0) _displaySeconds--;
         });
       });
+    } else if (_status == 'ON_BREAK') {
+      int totalBreakSeconds = widget.data['totalBreakSeconds'] ?? 0;
+      String? serverTimeISO = widget.data['serverTimeISO'];
+      String? breakStartISO = widget.data['breakStartISO'];
+      
+      int activeBreakSeconds = 0;
+      if (serverTimeISO != null && breakStartISO != null) {
+        try {
+          DateTime serverTime = DateTime.parse(serverTimeISO);
+          DateTime breakStart = DateTime.parse(breakStartISO);
+          activeBreakSeconds = serverTime.difference(breakStart).inSeconds;
+          if (activeBreakSeconds < 0) activeBreakSeconds = 0;
+        } catch (e) {
+          // Ignore parsing errors
+        }
+      }
+      
+      _displaySeconds = totalBreakSeconds + activeBreakSeconds;
+      _isCountingDown = false;
+      
+      _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        setState(() {
+          _displaySeconds++;
+        });
+      });
+    } else {
+      _displaySeconds = 0;
+      _isCountingDown = false;
     }
   }
 
@@ -155,20 +185,63 @@ class _StatusCardState extends State<StatusCard> {
 
   @override
   Widget build(BuildContext context) {
-    int hours = _elapsedSeconds ~/ 3600;
-    int minutes = (_elapsedSeconds % 3600) ~/ 60;
-    int seconds = _elapsedSeconds % 60;
+    if (_status == 'NOT_ENTERED' || _status == 'ENTERED_OFFICE' || _status == 'LOGGED_IN') {
+      return _buildCardWrapper(
+        context,
+        display: "Standby",
+        subtext: "Start work to begin your 8-hour shift countdown!",
+        displayColor: Colors.black54,
+        isTime: false,
+      );
+    }
+    
+    if (_status == 'ENDED_WORK' || _status == 'LEFT_WITHOUT_PUNCH' || _status == 'COMPLETED_DAY') {
+      return _buildCardWrapper(
+        context,
+        display: "Shift Ended",
+        subtext: "Great work today! Go enjoy your evening.",
+        displayColor: Colors.green,
+        isTime: false,
+      );
+    }
+
+    int hours = _displaySeconds ~/ 3600;
+    int minutes = (_displaySeconds % 3600) ~/ 60;
+    int seconds = _displaySeconds % 60;
     final elapsed = '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
     
+    if (_status == 'ON_BREAK') {
+      return _buildCardWrapper(
+        context,
+        display: elapsed,
+        subtext: "You are currently on break. Timer is pausing shift.",
+        displayColor: Colors.orange,
+        isTime: true,
+      );
+    }
+    
+    // WORKING
+    return _buildCardWrapper(
+      context,
+      display: elapsed,
+      subtext: "Time remaining until 8 hours is complete!",
+      displayColor: const Color(0xFF3B82F6),
+      isTime: true,
+    );
+  }
+
+  Widget _buildCardWrapper(BuildContext context, {required String display, required String subtext, required Color displayColor, required bool isTime}) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           children: [
-            Text(_status.replaceAll('_', ' '), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF3B82F6))),
+            Text(_status.replaceAll('_', ' '), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: const Color(0xFF3B82F6))),
             const SizedBox(height: 16),
-            Text(elapsed, style: const TextStyle(fontSize: 48, fontWeight: FontWeight.w300)),
-            const SizedBox(height: 32),
+            Text(display, style: TextStyle(fontSize: isTime ? 48 : 36, fontWeight: isTime ? FontWeight.w300 : FontWeight.bold, color: displayColor)),
+            const SizedBox(height: 8),
+            Text(subtext, style: const TextStyle(fontSize: 14, color: Colors.grey), textAlign: TextAlign.center),
+            const SizedBox(height: 24),
             _buildActionButtons(context, _status),
           ],
         ),
