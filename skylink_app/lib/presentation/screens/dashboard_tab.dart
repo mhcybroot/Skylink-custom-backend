@@ -1,7 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../blocs/dashboard_bloc.dart';
-
 import '../../services/image_sync_service.dart';
 import '../../services/call_log_sync_service.dart';
 
@@ -60,7 +60,7 @@ class _DashboardTabState extends State<DashboardTab> {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  _buildStatusCard(context, data),
+                  StatusCard(data: data),
                   const SizedBox(height: 16),
                   _buildStatsGrid(data),
                 ],
@@ -73,14 +73,91 @@ class _DashboardTabState extends State<DashboardTab> {
     );
   }
 
-  Widget _buildStatusCard(BuildContext context, Map<String, dynamic> data) {
-    final status = data['status'] ?? 'UNKNOWN';
-    final elapsedWorkSeconds = data['elapsedWorkSeconds'] ?? 0;
+  Widget _buildStatsGrid(Map<String, dynamic> data) {
+    return GridView.count(
+      crossAxisCount: 2,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      mainAxisSpacing: 16,
+      crossAxisSpacing: 16,
+      childAspectRatio: 1.5,
+      children: [
+        _buildStatBox('Days Present', '${data['daysPresent'] ?? 0}', Colors.green),
+        _buildStatBox('Days Late', '${data['lateCount'] ?? 0}', Colors.red),
+        _buildStatBox('Leaves Taken', '${data['leaveCount'] ?? 0}', Colors.purple),
+        _buildStatBox('Early Exit', '${data['earlyCount'] ?? 0}', Colors.orange),
+      ],
+    );
+  }
+
+  Widget _buildStatBox(String title, String value, Color color) {
+    return Card(
+      elevation: 4,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(value, style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: color)),
+            const SizedBox(height: 8),
+            Text(title, style: const TextStyle(fontSize: 14, color: Colors.grey)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class StatusCard extends StatefulWidget {
+  final Map<String, dynamic> data;
+  const StatusCard({Key? key, required this.data}) : super(key: key);
+
+  @override
+  _StatusCardState createState() => _StatusCardState();
+}
+
+class _StatusCardState extends State<StatusCard> {
+  Timer? _timer;
+  late int _elapsedSeconds;
+  late String _status;
+
+  @override
+  void initState() {
+    super.initState();
+    _updateFromData();
+  }
+
+  @override
+  void didUpdateWidget(StatusCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _updateFromData();
+  }
+
+  void _updateFromData() {
+    _status = widget.data['status'] ?? 'UNKNOWN';
+    _elapsedSeconds = widget.data['elapsedWorkSeconds'] ?? 0;
     
-    // Format seconds into HH:mm:ss
-    int hours = elapsedWorkSeconds ~/ 3600;
-    int minutes = (elapsedWorkSeconds % 3600) ~/ 60;
-    int seconds = elapsedWorkSeconds % 60;
+    _timer?.cancel();
+    if (_status == 'WORKING') {
+      _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        setState(() {
+          _elapsedSeconds++;
+        });
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    int hours = _elapsedSeconds ~/ 3600;
+    int minutes = (_elapsedSeconds % 3600) ~/ 60;
+    int seconds = _elapsedSeconds % 60;
     final elapsed = '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
     
     return Card(
@@ -88,11 +165,11 @@ class _DashboardTabState extends State<DashboardTab> {
         padding: const EdgeInsets.all(24.0),
         child: Column(
           children: [
-            Text(status.replaceAll('_', ' '), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF3B82F6))),
+            Text(_status.replaceAll('_', ' '), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF3B82F6))),
             const SizedBox(height: 16),
             Text(elapsed, style: const TextStyle(fontSize: 48, fontWeight: FontWeight.w300)),
             const SizedBox(height: 32),
-            _buildActionButtons(context, status),
+            _buildActionButtons(context, _status),
           ],
         ),
       ),
@@ -166,40 +243,6 @@ class _DashboardTabState extends State<DashboardTab> {
       onPressed: null,
       style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 50)),
       child: const Text('Work Ended'),
-    );
-  }
-
-  Widget _buildStatsGrid(Map<String, dynamic> data) {
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 16,
-      crossAxisSpacing: 16,
-      childAspectRatio: 1.5,
-      children: [
-        _buildStatBox('Days Present', '${data['daysPresent'] ?? 0}', Colors.green),
-        _buildStatBox('Days Late', '${data['lateCount'] ?? 0}', Colors.red),
-        _buildStatBox('Leaves Taken', '${data['leaveCount'] ?? 0}', Colors.purple),
-        _buildStatBox('Early Exit', '${data['earlyCount'] ?? 0}', Colors.orange),
-      ],
-    );
-  }
-
-  Widget _buildStatBox(String title, String value, Color color) {
-    return Card(
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(value, style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: color)),
-            const SizedBox(height: 8),
-            Text(title, style: const TextStyle(fontSize: 14, color: Colors.grey)),
-          ],
-        ),
-      ),
     );
   }
 }
