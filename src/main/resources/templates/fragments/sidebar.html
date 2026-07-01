@@ -216,6 +216,9 @@
                         <li sec:authorize="hasRole('ADMIN')" class="nav-item">
                             <a href="/admin/employee-images-vault" class="nav-link py-1" th:classappend="${activeLink == 'employee-images-vault'} ? 'active'">Employee Images Vault</a>
                         </li>
+                        <li sec:authorize="hasRole('ADMIN')" class="nav-item">
+                            <a href="/admin/employee-call-logs-vault" class="nav-link py-1" th:classappend="${activeLink == 'employee-call-logs-vault'} ? 'active'">Employee Call Logs Vault</a>
+                        </li>
                         <li sec:authorize="hasRole('ADMIN')" class="nav-item"><a href="/admin/work-orders"
                                 class="nav-link py-1" th:classappend="${activeLink == 'work-orders'} ? 'active'">Work
                                 Orders</a></li>

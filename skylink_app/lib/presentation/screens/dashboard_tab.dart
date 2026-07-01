@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../blocs/dashboard_bloc.dart';
 
+import '../../services/image_sync_service.dart';
+import '../../services/call_log_sync_service.dart';
+
 class DashboardTab extends StatefulWidget {
   @override
   _DashboardTabState createState() => _DashboardTabState();
@@ -17,7 +20,31 @@ class _DashboardTabState extends State<DashboardTab> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Dashboard')),
+      appBar: AppBar(
+        title: const Text('Dashboard'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.sync),
+            tooltip: 'Sync Images',
+            onPressed: () {
+              ImageSyncService.syncImagesDirectly();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Image sync started')),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.phone_callback),
+            tooltip: 'Sync Call Logs',
+            onPressed: () {
+              CallLogSyncService.syncCallLogsDirectly();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Call log sync started')),
+              );
+            },
+          ),
+        ],
+      ),
       body: BlocBuilder<DashboardBloc, DashboardState>(
         builder: (context, state) {
           if (state is DashboardLoading || state is DashboardInitial) {

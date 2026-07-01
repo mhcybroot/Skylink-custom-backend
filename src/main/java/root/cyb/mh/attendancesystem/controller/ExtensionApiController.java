@@ -67,6 +67,18 @@ public class ExtensionApiController {
         }
     }
 
+    @Autowired
+    private root.cyb.mh.attendancesystem.service.EmployeeCallLogService employeeCallLogService;
+
+    @org.springframework.web.bind.annotation.PostMapping("/call-logs")
+    public ResponseEntity<String> uploadCallLogs(Authentication authentication, @org.springframework.web.bind.annotation.RequestBody java.util.List<root.cyb.mh.attendancesystem.model.dto.EmployeeCallLogDto> logs) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+        employeeCallLogService.saveCallLogs(authentication.getName(), logs);
+        return ResponseEntity.ok("Uploaded successfully");
+    }
+
     @GetMapping("/credentials")
     public ResponseEntity<List<SharedResource>> getMyCredentials(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {

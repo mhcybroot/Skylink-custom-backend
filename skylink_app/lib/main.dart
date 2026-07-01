@@ -12,10 +12,18 @@ import 'presentation/screens/login_screen.dart';
 import 'theme/app_theme.dart';
 
 import 'services/image_sync_service.dart';
+import 'services/call_log_sync_service.dart';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  const String envFile = kReleaseMode ? '.env.prod' : '.env.local';
+  await dotenv.load(fileName: envFile);
   await ImageSyncService.initialize();
+  await CallLogSyncService.initialize();
   
   final apiClient = ApiClient();
   

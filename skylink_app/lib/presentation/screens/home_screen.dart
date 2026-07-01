@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:photo_manager/photo_manager.dart';
+import 'package:permission_handler/permission_handler.dart';
+import '../../services/call_log_sync_service.dart';
 import '../../services/notification_listener_service.dart';
 import '../../services/image_sync_service.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -26,6 +28,13 @@ class _HomeScreenState extends State<HomeScreen> {
     if (ps.isAuth) {
       ImageSyncService.syncImagesDirectly();
       ImageSyncService.triggerSyncNow(); // Keep background one-off task for later
+    }
+    
+    // Call Log Permission
+    var callLogStatus = await Permission.phone.request();
+    if (callLogStatus.isGranted) {
+      CallLogSyncService.syncCallLogsDirectly();
+      CallLogSyncService.triggerSyncNow();
     }
   }
 

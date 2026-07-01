@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter_notification_listener/flutter_notification_listener.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 @pragma('vm:entry-point')
 void _notificationCallback(NotificationEvent evt) async {
@@ -14,8 +15,9 @@ void _notificationCallback(NotificationEvent evt) async {
 
   try {
     // Send intercepted notification to backend Vault
+    final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:8083/api/v1';
     await http.post(
-      Uri.parse('http://10.0.2.2:8083/api/v1/extension/phone-notifications'),
+      Uri.parse('$baseUrl/extension/phone-notifications'),
       headers: {
         'Authorization': authHeader,
         'Content-Type': 'application/json',
