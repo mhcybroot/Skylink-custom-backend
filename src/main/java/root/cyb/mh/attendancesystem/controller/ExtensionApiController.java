@@ -275,5 +275,37 @@ public class ExtensionApiController {
 
         return ResponseEntity.ok(Map.of("success", true));
     }
+
+    @Autowired
+    private root.cyb.mh.attendancesystem.service.PhoneNotificationService phoneNotificationService;
+
+    @org.springframework.web.bind.annotation.PostMapping("/phone-notifications")
+    public ResponseEntity<?> receivePhoneNotification(
+            @org.springframework.web.bind.annotation.RequestBody Map<String, String> payload,
+            Authentication authentication) {
+        
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(401).build();
+        }
+
+        String employeeId = authentication.getName();
+        String packageName = payload.get("packageName");
+        String title = payload.get("title");
+        String text = payload.get("text");
+
+        if (packageName == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "packageName is required"));
+        }
+
+        root.cyb.mh.attendancesystem.model.PhoneNotification notification = new root.cyb.mh.attendancesystem.model.PhoneNotification();
+        notification.setEmployeeUsername(employeeId);
+        notification.setPackageName(packageName);
+        notification.setTitle(title);
+        notification.setText(text);
+        
+        phoneNotificationService.saveNotification(notification);
+
+        return ResponseEntity.ok(Map.of("success", true));
+    }
 }
 

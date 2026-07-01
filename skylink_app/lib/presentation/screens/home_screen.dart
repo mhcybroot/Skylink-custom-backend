@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/notification_listener_service.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../blocs/auth_bloc.dart';
 import '../../data/repositories/auth_repository.dart';
@@ -11,6 +12,12 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    PhoneNotificationMonitor.initialize();
+  }
+
   int _currentIndex = 0;
 
   final List<Widget> _tabs = [
