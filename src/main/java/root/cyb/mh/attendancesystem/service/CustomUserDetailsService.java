@@ -44,8 +44,17 @@ public class CustomUserDetailsService implements UserDetailsService {
             }
             java.util.List<SimpleGrantedAuthority> authorities = new java.util.ArrayList<>();
             authorities.add(new SimpleGrantedAuthority("ROLE_EMPLOYEE"));
-            if ("CT".equalsIgnoreCase(emp.getRole())) {
+            if (emp.isCt()) {
                 authorities.add(new SimpleGrantedAuthority("ROLE_CT"));
+            }
+            if (emp.isAnalyst()) {
+                authorities.add(new SimpleGrantedAuthority("ROLE_ANALYST"));
+            }
+            if (emp.isAnalystController()) {
+                authorities.add(new SimpleGrantedAuthority("ROLE_ANALYST_CONTROLLER"));
+            }
+            if (emp.isRvm()) {
+                authorities.add(new SimpleGrantedAuthority("ROLE_RVM"));
             }
             
             return new org.springframework.security.core.userdetails.User(

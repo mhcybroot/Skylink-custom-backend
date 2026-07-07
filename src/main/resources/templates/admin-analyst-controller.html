@@ -237,7 +237,7 @@
                                     <th>CLIENT INVOICE</th>
                                     <th>CREW INVOICE</th>
                                     <th>NOTES</th>
-                                    <th>ACTIONS</th>
+                                    <th sec:authorize="hasAnyRole('ADMIN', 'HR', 'ANALYST_CONTROLLER')">ACTIONS</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -249,16 +249,22 @@
                                     <td class="wo-hover-cell address-hover" th:data-address="${wo.address}" th:text="${wo.address}"></td>
                                     <td th:text="${wo.photoCount}"></td>
                                     <td>
-                                        <select class="form-select form-select-sm border-0 bg-transparent analyst-dropdown" 
-                                                th:data-wo="${wo.woNumber}" 
-                                                style="width: 120px; font-size: 0.85rem; font-weight: 600; color: #5a5c69; cursor: pointer;"
-                                                onchange="updateAnalyst(this)">
-                                            <option value="Unassigned" th:selected="${wo.analyst == null || wo.analyst == 'Unassigned' || wo.analyst == ''}">Unassigned</option>
-                                            <option th:each="emp : ${allAnalysts}" 
-                                                    th:value="${emp.name}" 
-                                                    th:text="${emp.name}"
-                                                    th:selected="${wo.analyst != null and emp.name != null and #strings.equalsIgnoreCase(#strings.trim(wo.analyst), #strings.trim(emp.name))}"></option>
-                                        </select>
+                                        <div sec:authorize="hasAnyRole('ADMIN', 'HR', 'ANALYST_CONTROLLER')">
+                                            <select class="form-select form-select-sm border-0 bg-transparent analyst-dropdown" 
+                                                    th:data-wo="${wo.woNumber}" 
+                                                    style="width: 120px; font-size: 0.85rem; font-weight: 600; color: #5a5c69; cursor: pointer;"
+                                                    onchange="updateAnalyst(this)">
+                                                <option value="Unassigned" th:selected="${wo.analyst == null || wo.analyst == 'Unassigned' || wo.analyst == ''}">Unassigned</option>
+                                                <option th:each="emp : ${allAnalysts}" 
+                                                        th:value="${emp.name}" 
+                                                        th:text="${emp.name}"
+                                                        th:selected="${wo.analyst != null and emp.name != null and #strings.equalsIgnoreCase(#strings.trim(wo.analyst), #strings.trim(emp.name))}"></option>
+                                            </select>
+                                        </div>
+                                        <div sec:authorize="hasRole('CT') and !hasAnyRole('ADMIN', 'HR', 'ANALYST_CONTROLLER')" 
+                                             style="width: 120px; font-size: 0.85rem; font-weight: 600; color: #5a5c69; padding-left: 0.5rem;"
+                                             th:text="${wo.analyst == null || wo.analyst == '' ? 'Unassigned' : wo.analyst}">
+                                        </div>
                                     </td>
                                     <td>
                                         <span class="badge rounded-pill badge-premium status-badge" th:classappend="${wo.status == 'NEW' ? 'badge-new' : 'badge-done'}" th:text="${wo.status}"></span>
@@ -276,7 +282,7 @@
                                     <td th:text="${wo.clientInvoice != null ? '$' + wo.clientInvoice : ''}"></td>
                                     <td th:text="${wo.crewInvoice != null ? '$' + wo.crewInvoice : ''}"></td>
                                     <td th:text="${wo.notes}"></td>
-                                    <td class="text-nowrap">
+                                    <td class="text-nowrap" sec:authorize="hasAnyRole('ADMIN', 'HR', 'ANALYST_CONTROLLER')">
                                         <button class="btn btn-sm btn-outline-danger delete-wo-btn" th:data-wo="${wo.woNumber}">
                                             <i class="fas fa-trash"></i>
                                         </button>

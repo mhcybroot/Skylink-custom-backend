@@ -307,6 +307,7 @@ public class ProcessingSheetController {
     }
 
     @GetMapping("/analyst-controller")
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR', 'ANALYST_CONTROLLER', 'CT')")
     public String analystControllerDashboard(@RequestParam(required = false) String date, Model model) {
         LocalDate entryDate = (date != null && !date.isEmpty()) ? LocalDate.parse(date) : LocalDate.now();
         model.addAttribute("currentDate", entryDate);
@@ -801,19 +802,15 @@ public class ProcessingSheetController {
         ProcessingWorkOrder wo = existingWOs.get(0);
 
         String currentUserName = principal.getName();
-        String currentUserId = "";
+        String currentUserId = principal.getName();
         Optional<Employee> emp = employeeRepository.findByUsername(currentUserName);
         boolean isAdmin = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equalsIgnoreCase("ROLE_ADMIN"));
-        boolean isAnalystController = false;
+        boolean isAnalystController = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equalsIgnoreCase("ROLE_ANALYST_CONTROLLER"));
 
         if (emp.isPresent()) {
             Employee currentEmp = emp.get();
             currentUserName = currentEmp.getName();
             currentUserId = currentEmp.getId();
-            isAnalystController = currentEmp.isAnalystController();
-            if ("ADMIN".equalsIgnoreCase(currentEmp.getRole()) || "ROLE_ADMIN".equalsIgnoreCase(currentEmp.getRole())) {
-                isAdmin = true;
-            }
         } else {
             // Fallback: check if the user is an Employee via ID
             emp = employeeRepository.findById(currentUserName);
@@ -821,12 +818,6 @@ public class ProcessingSheetController {
                 Employee currentEmp = emp.get();
                 currentUserName = currentEmp.getName();
                 currentUserId = currentEmp.getId();
-                isAnalystController = currentEmp.isAnalystController();
-                if ("ADMIN".equalsIgnoreCase(currentEmp.getRole()) || "ROLE_ADMIN".equalsIgnoreCase(currentEmp.getRole())) {
-                    isAdmin = true;
-                }
-            } else {
-                currentUserId = principal.getName(); // Fallback to principal name
             }
         }
 

@@ -115,6 +115,7 @@
                                             <span th:text="${emp.name}">John Doe</span>
                                             <span th:if="${emp.isGuest}"
                                                 class="badge bg-info text-dark ms-1">Guest</span>
+                                            <span th:if="${emp.ct}" class="badge bg-primary ms-1">CT</span>
                                         </td>
                                         <td th:text="${emp.department != null ? emp.department.name : 'Unassigned'}">
                                             Engineering
@@ -153,6 +154,8 @@
                                                 th:data-is-guest="${emp.isGuest}"
                                                 th:data-is-analyst="${emp.isAnalyst}"
                                                 th:data-is-analyst-controller="${emp.isAnalystController}"
+                                                th:data-is-rvm="${emp.isRvm}"
+                                                th:data-is-ct="${emp.ct}"
                                                 onclick="editEmployee(this)">
                                                 <i class="fas fa-edit fa-sm"></i>
                                             </button>
@@ -216,11 +219,7 @@
                                     <div class="mb-3">
                                         <label class="form-label">Role</label>
                                         <input type="text" class="form-control" id="empRole" name="role"
-                                            list="roleOptions" placeholder="Staff">
-                                        <datalist id="roleOptions">
-                                            <option value="EMPLOYEE">
-                                            <option value="CT">
-                                        </datalist>
+                                            placeholder="Staff">
                                         <div class="col-md-6">
                                             <div class="form-check form-switch mt-4">
                                                 <input class="form-check-input" type="checkbox" id="empIsGuest"
@@ -234,6 +233,14 @@
                                             <div class="form-check form-switch mt-2">
                                                 <input class="form-check-input" type="checkbox" id="empIsAnalystController" name="analystController">
                                                 <label class="form-check-label" for="empIsAnalystController">Is Analyst Controller?</label>
+                                            </div>
+                                            <div class="form-check form-switch mb-2">
+                                                <input class="form-check-input" type="checkbox" id="empIsRvm" name="rvm">
+                                                <label class="form-check-label" for="empIsRvm">Is RVM?</label>
+                                            </div>
+                                            <div class="form-check form-switch mt-2">
+                                                <input class="form-check-input" type="checkbox" id="empIsCt" name="ct">
+                                                <label class="form-check-label" for="empIsCt">Is CT?</label>
                                             </div>
                                         </div>
                                         <label class="form-label">Email</label>
@@ -377,6 +384,8 @@
                 document.getElementById('empIsGuest').checked = btn.getAttribute('data-is-guest') === 'true';
                 document.getElementById('empIsAnalyst').checked = btn.getAttribute('data-is-analyst') === 'true';
                 document.getElementById('empIsAnalystController').checked = btn.getAttribute('data-is-analyst-controller') === 'true';
+                document.getElementById('empIsRvm').checked = btn.getAttribute('data-is-rvm') === 'true';
+                document.getElementById('empIsCt').checked = btn.getAttribute('data-is-ct') === 'true';
                 document.getElementById('empModalTitle').innerText = 'Edit Employee';
                 new bootstrap.Modal(document.getElementById('addEmployeeModal')).show();
             }
@@ -394,6 +403,8 @@
                 document.getElementById('empIsGuest').checked = false;
                 document.getElementById('empIsAnalyst').checked = false;
                 document.getElementById('empIsAnalystController').checked = false;
+                document.getElementById('empIsRvm').checked = false;
+                document.getElementById('empIsCt').checked = false;
                 document.getElementById('empQuota').value = '';
                 document.getElementById('monthlySalary').value = '';
                 document.getElementById('fixedAllowance').value = '';
