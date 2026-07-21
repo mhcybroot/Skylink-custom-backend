@@ -150,7 +150,9 @@
                                                 th:data-designation="${emp.designation}"
                                                 th:data-reports-to-id="${emp.reportsTo != null ? emp.reportsTo.id : ''}"
                                                 th:data-reports-to-assistant-id="${emp.reportsToAssistant != null ? emp.reportsToAssistant.id : ''}"
-                                                th:data-joining-date="${emp.joiningDate}" onclick="editEmployee(this)">
+                                                th:data-joining-date="${emp.joiningDate}" 
+                                                th:data-date-of-birth="${emp.dateOfBirth}"
+                                                onclick="editEmployee(this)">
                                                 Edit
                                             </button>
                                             <a th:href="@{/employees/{id}/resources(id=${emp.id})}"
@@ -293,9 +295,15 @@
                                                 id="accountNumber" placeholder="Account No.">
                                         </div>
                                     </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Joining Date</label>
-                                        <input type="date" class="form-control" id="empJoiningDate" name="joiningDate">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Joining Date</label>
+                                            <input type="date" class="form-control" id="empJoiningDate" name="joiningDate">
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Date of Birth</label>
+                                            <input type="date" class="form-control" id="empDateOfBirth" name="dateOfBirth">
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="modal-footer">
@@ -354,6 +362,7 @@
                 var username = btn.getAttribute('data-username'); // If available
                 var isGuest = btn.getAttribute('data-is-guest') === 'true';
                 var joiningDate = btn.getAttribute('data-joining-date');
+                var dateOfBirth = btn.getAttribute('data-date-of-birth');
                 var designation = btn.getAttribute('data-designation');
                 var reportsToId = btn.getAttribute('data-reports-to-id');
                 var reportsToAssistantId = btn.getAttribute('data-reports-to-assistant-id');
@@ -371,6 +380,7 @@
                 document.getElementById('accountNumber').value = accNum;
                 document.getElementById('empIsGuest').checked = isGuest;
                 document.getElementById('empJoiningDate').value = joiningDate;
+                document.getElementById('empDateOfBirth').value = dateOfBirth;
                 document.getElementById('empDesignation').value = designation;
                 document.getElementById('empReportsTo').value = reportsToId;
                 document.getElementById('empReportsToAssistant').value = reportsToAssistantId;
@@ -394,6 +404,7 @@
                 document.getElementById('bankName').value = '';
                 document.getElementById('accountNumber').value = '';
                 document.getElementById('empJoiningDate').value = '';
+                document.getElementById('empDateOfBirth').value = '';
                 document.getElementById('empUsername').value = ''; // Clear username
             });
             document.getElementById('empModalTitle').innerText = 'Add Employee';

@@ -170,6 +170,19 @@ public class EmployeeDashboardController {
         List<String> guestIds = allEmployees.stream().filter(Employee::isGuest).map(Employee::getId)
                 .collect(Collectors.toList());
 
+        // Employee Dashboard Birthday Counter
+        root.cyb.mh.attendancesystem.controller.DashboardController.BirthdayDto nextBirthday = allEmployees.stream()
+                .filter(e -> e.getDateOfBirth() != null)
+                .map(e -> new root.cyb.mh.attendancesystem.controller.DashboardController.BirthdayDto(e.getName(), e.getDateOfBirth(), today))
+                .min(Comparator.comparing(root.cyb.mh.attendancesystem.controller.DashboardController.BirthdayDto::getNextBirthday))
+                .orElse(null);
+
+        model.addAttribute("nextBirthday", nextBirthday);
+        if (nextBirthday != null) {
+            long daysUntilBirthday = java.time.temporal.ChronoUnit.DAYS.between(today, nextBirthday.getNextBirthday());
+            model.addAttribute("daysUntilBirthday", daysUntilBirthday);
+        }
+
         // Daily Report for Global Stats
         List<DailyAttendanceDto> dailyReport = reportService
                 .getDailyReport(now, null, null, org.springframework.data.domain.PageRequest.of(0, 5000)).getContent();

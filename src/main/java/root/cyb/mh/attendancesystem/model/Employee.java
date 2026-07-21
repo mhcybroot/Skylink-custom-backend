@@ -48,6 +48,7 @@ public class Employee {
     private boolean isGuest = false;
 
     private java.time.LocalDate joiningDate;
+    private java.time.LocalDate dateOfBirth;
 
     private String avatarPath;
 

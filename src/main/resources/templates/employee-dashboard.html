@@ -378,10 +378,11 @@
                 // ... existing script ...
             </script>
 
-            <!-- Holiday Countdown Widget -->
-            <div class="row mb-4" th:if="${nextHoliday != null}">
-                <div class="col-12">
-                    <div class="card text-white shadow-sm border-0 position-relative overflow-hidden"
+            <!-- Holiday & Birthday Widget Row -->
+            <div class="row mb-4">
+                <!-- Holiday Widget -->
+                <div th:class="${nextBirthday != null} ? 'col-md-6 mb-3 mb-md-0' : 'col-12'" th:if="${nextHoliday != null}">
+                    <div class="card text-white shadow-sm border-0 position-relative overflow-hidden h-100"
                         style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
                         <div class="card-body text-center p-4">
                             <div class="d-flex justify-content-center align-items-center mb-2">
@@ -394,6 +395,27 @@
                                 until <span th:text="${nextHoliday.name}">New Year</span>
                                 <small class="d-block mt-1" style="font-size: 0.8rem;"
                                     th:text="${#temporals.format(nextHoliday.date, 'EEEE, dd MMMM yyyy')}">Monday, 01
+                                    January 2024</small>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Next Birthday Widget -->
+                <div th:class="${nextHoliday != null} ? 'col-md-6' : 'col-12'" th:if="${nextBirthday != null}">
+                    <div class="card shadow-sm border-0 position-relative overflow-hidden h-100"
+                        th:style="${nextBirthday.isToday} ? 'background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%); color: white;' : 'background: linear-gradient(135deg, #fff9e6 0%, #fff2cc 100%); color: #333;'">
+                        <div class="card-body text-center p-4">
+                            <div class="d-flex justify-content-center align-items-center mb-2">
+                                <i class="fas fa-birthday-cake fa-2x me-3" th:classappend="${nextBirthday.isToday ? 'text-white' : 'text-danger'}"></i>
+                                <h5 class="text-uppercase fw-bold mb-0">Next Birthday</h5>
+                            </div>
+
+                            <h5 class="fw-bold my-2" th:text="${nextBirthday.isToday ? 'TODAY!' : daysUntilBirthday + ' Days'}">5 Days</h5>
+                            <p class="mb-0" th:classappend="${nextBirthday.isToday ? 'opacity-100' : 'opacity-75'}">
+                                <span class="fw-bold" th:text="${nextBirthday.employeeName}">John Doe</span> is turning <span class="fw-bold" th:text="${nextBirthday.turningAge}">30</span>
+                                <small class="d-block mt-1 fw-bold" style="font-size: 0.8rem;"
+                                    th:text="${#temporals.format(nextBirthday.nextBirthday, 'EEEE, dd MMMM yyyy')}">Monday, 01
                                     January 2024</small>
                             </p>
                         </div>
@@ -1003,6 +1025,67 @@
             </div>
         </div>
     </div>
+
+    <!-- Birthday Reminder Modal -->
+    <div th:if="${nextBirthday != null && nextBirthday.isToday}" class="modal fade" id="birthdayReminderModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg text-center p-4" style="background: linear-gradient(135deg, #fff9e6 0%, #fff2cc 100%); border-radius: 20px;">
+                <div class="modal-header border-0 pb-0 justify-content-end">
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body pt-0">
+                    <div style="font-size: 4rem; animation: bounce 2s infinite;" class="mb-3">🎂</div>
+                    <h3 class="fw-bold text-dark mb-3">It's <span th:text="${nextBirthday.employeeName}">John Doe</span>'s Birthday!</h3>
+                    <p class="text-muted fs-5 mb-4">They are turning <span class="fw-bold text-primary" th:text="${nextBirthday.turningAge}">30</span> today. Don't forget to wish them a very Happy Birthday! 🎉</p>
+                    <button type="button" class="btn btn-warning btn-lg rounded-pill fw-bold text-dark px-5 shadow-sm" data-bs-dismiss="modal">Got it!</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script th:inline="javascript">
+        document.addEventListener("DOMContentLoaded", function() {
+            /*[[${nextBirthday != null && nextBirthday.isToday}]]*/
+            var isBirthdayToday = /*[[${nextBirthday != null && nextBirthday.isToday}]]*/ false;
+            
+            if (isBirthdayToday) {
+                var employeeName = /*[[${nextBirthday != null ? nextBirthday.employeeName : ''}]]*/ '';
+                var storageKey = 'birthday_shown_' + employeeName.replace(/\s+/g, '_') + '_' + new Date().toLocaleDateString();
+                
+                if (!localStorage.getItem(storageKey)) {
+                    var birthdayModal = new bootstrap.Modal(document.getElementById('birthdayReminderModal'));
+                    birthdayModal.show();
+                    localStorage.setItem(storageKey, 'true');
+                    
+                    // Confetti Animation
+                    var duration = 3 * 1000;
+                    var end = Date.now() + duration;
+
+                    (function frame() {
+                        confetti({
+                            particleCount: 5,
+                            angle: 60,
+                            spread: 55,
+                            origin: { x: 0 },
+                            colors: ['#ffc107', '#ff9800', '#dc3545', '#0d6efd', '#20c997']
+                        });
+                        confetti({
+                            particleCount: 5,
+                            angle: 120,
+                            spread: 55,
+                            origin: { x: 1 },
+                            colors: ['#ffc107', '#ff9800', '#dc3545', '#0d6efd', '#20c997']
+                        });
+
+                        if (Date.now() < end) {
+                            requestAnimationFrame(frame);
+                        }
+                    }());
+                }
+            }
+        });
+    </script>
 </body>
 
 </html>
