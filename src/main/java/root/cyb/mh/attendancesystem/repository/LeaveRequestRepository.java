@@ -30,4 +30,8 @@ public interface LeaveRequestRepository extends JpaRepository<LeaveRequest, Long
         // Find approved leaves for a specific date (for Dashboard filtering)
         List<LeaveRequest> findByStartDateLessThanEqualAndEndDateGreaterThanEqualAndStatus(java.time.LocalDate date1,
                         java.time.LocalDate date2, LeaveRequest.Status status);
+
+        // Fetch all approved leaves that fall within a specific year
+        @org.springframework.data.jpa.repository.Query("SELECT l FROM LeaveRequest l WHERE l.status = 'APPROVED' AND l.startDate <= :endOfYear AND l.endDate >= :startOfYear")
+        List<LeaveRequest> findApprovedLeavesInYear(@org.springframework.data.repository.query.Param("startOfYear") java.time.LocalDate startOfYear, @org.springframework.data.repository.query.Param("endOfYear") java.time.LocalDate endOfYear);
 }

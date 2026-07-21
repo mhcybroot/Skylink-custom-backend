@@ -35,6 +35,9 @@ public class DashboardController {
         private root.cyb.mh.attendancesystem.repository.LeaveRequestRepository leaveRequestRepository;
 
         @Autowired
+        private root.cyb.mh.attendancesystem.repository.WorkScheduleRepository workScheduleRepository;
+
+        @Autowired
         private ReportService reportService;
 
         @GetMapping("/")
@@ -238,6 +241,67 @@ public class DashboardController {
                 model.addAttribute("employeeMap", allEmployees.stream()
                                 .collect(Collectors.toMap(root.cyb.mh.attendancesystem.model.Employee::getId,
                                                 root.cyb.mh.attendancesystem.model.Employee::getName)));
+
+                // --- Annual Leave Quotas (Optimized Single Query) ---
+                root.cyb.mh.attendancesystem.model.WorkSchedule globalSchedule = workScheduleRepository.findAll().stream().findFirst().orElse(new root.cyb.mh.attendancesystem.model.WorkSchedule());
+                int defaultQuota = globalSchedule.getDefaultAnnualLeaveQuota() != null ? globalSchedule.getDefaultAnnualLeaveQuota() : 12;
+
+                LocalDate startOfYear = LocalDate.of(today.getYear(), 1, 1);
+                LocalDate endOfYear = LocalDate.of(today.getYear(), 12, 31);
+
+                List<root.cyb.mh.attendancesystem.model.LeaveRequest> allApprovedLeavesThisYear = leaveRequestRepository.findApprovedLeavesInYear(startOfYear, endOfYear);
+
+                // Group leaves by employee ID
+                Map<String, List<root.cyb.mh.attendancesystem.model.LeaveRequest>> leavesByEmployee = allApprovedLeavesThisYear.stream()
+                        .collect(Collectors.groupingBy(l -> l.getEmployee().getId()));
+
+                List<root.cyb.mh.attendancesystem.dto.EmployeeLeaveQuotaDto> employeeQuotas = allEmployees.stream()
+                        .filter(e -> !e.isGuest())
+                        .map(emp -> {
+                            int effectiveQuota = emp.getEffectiveQuota(defaultQuota);
+                            List<root.cyb.mh.attendancesystem.model.LeaveRequest> empLeaves = leavesByEmployee.getOrDefault(emp.getId(), java.util.Collections.emptyList());
+                            
+                            int totalTaken = 0, sickTaken = 0, casualTaken = 0, otherTaken = 0;
+                            
+                            for (root.cyb.mh.attendancesystem.model.LeaveRequest req : empLeaves) {
+                                // Cap to current year only
+                                LocalDate start = req.getStartDate().isBefore(startOfYear) ? startOfYear : req.getStartDate();
+                                LocalDate end = req.getEndDate().isAfter(endOfYear) ? endOfYear : req.getEndDate();
+                                
+                                int days = (int) java.time.temporal.ChronoUnit.DAYS.between(start, end) + 1;
+                                totalTaken += days;
+                                
+                                String type = req.getLeaveType() != null ? req.getLeaveType().toLowerCase() : "";
+                                if (type.contains("sick")) {
+                                    sickTaken += days;
+                                } else if (type.contains("casual")) {
+                                    casualTaken += days;
+                                } else {
+                                    otherTaken += days;
+                                }
+                            }
+                            
+                            int paidTaken = Math.min(totalTaken, effectiveQuota);
+                            int unpaidTaken = Math.max(0, totalTaken - effectiveQuota);
+                            double percentage = effectiveQuota > 0 ? (totalTaken * 100.0 / effectiveQuota) : 0;
+                            
+                            return new root.cyb.mh.attendancesystem.dto.EmployeeLeaveQuotaDto(
+                                emp.getId(),
+                                emp.getName(),
+                                effectiveQuota,
+                                totalTaken,
+                                paidTaken,
+                                unpaidTaken,
+                                sickTaken,
+                                casualTaken,
+                                otherTaken,
+                                percentage
+                            );
+                        })
+                        .sorted(Comparator.comparing(root.cyb.mh.attendancesystem.dto.EmployeeLeaveQuotaDto::getUsagePercentage).reversed())
+                        .collect(Collectors.toList());
+                        
+                model.addAttribute("employeeQuotas", employeeQuotas);
 
                 return "dashboard";
         }
