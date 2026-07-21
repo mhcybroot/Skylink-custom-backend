@@ -14,6 +14,7 @@ public class EmployeeLeaveQuotaDto {
     private int yearlyLeavesTaken;
     private int paidLeavesTaken;
     private int unpaidLeavesTaken;
+    private int absentDays;
     private int sickLeavesTaken;
     private int casualLeavesTaken;
     private int otherLeavesTaken;

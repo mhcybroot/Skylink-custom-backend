@@ -327,8 +327,9 @@
                     
                     <!-- Annual Leave Quotas Sidebar -->
                     <div class="card shadow-sm border-0 mt-3 mb-3">
-                        <div class="card-header bg-white border-0 py-3">
+                        <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
                             <h6 class="mb-0 fw-bold text-dark"><i class="fas fa-umbrella-beach text-warning me-2"></i> Annual Leave Quotas</h6>
+                            <a href="/leave-quotas" class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm">Show All <i class="fas fa-arrow-right ms-1"></i></a>
                         </div>
                         <div class="card-body p-0" style="max-height: 400px; overflow-y: auto;">
                             <ul class="list-group list-group-flush">
@@ -347,7 +348,8 @@
                                     </div>
                                     <div class="d-flex justify-content-between mb-1">
                                         <small class="text-muted" style="font-size: 0.75rem;">Paid: <span class="text-success fw-bold" th:text="${emp.paidLeavesTaken}">0</span></small>
-                                        <small class="text-muted" style="font-size: 0.75rem;">Unpaid: <span class="text-danger fw-bold" th:text="${emp.unpaidLeavesTaken}">0</span></small>
+                                        <small class="text-muted" style="font-size: 0.75rem;">Unpaid: <span class="text-warning fw-bold" th:text="${emp.unpaidLeavesTaken}">0</span></small>
+                                        <small class="text-muted" style="font-size: 0.75rem;">Absent: <span class="text-danger fw-bold" th:text="${emp.absentDays}">0</span></small>
                                     </div>
                                     <div class="d-flex justify-content-between">
                                         <span class="badge bg-info text-dark" style="font-size: 0.65rem;">Sick: <span th:text="${emp.sickLeavesTaken}"></span></span>
@@ -1061,8 +1063,10 @@
 
         </script>
     </div>
-    <!-- Import Work Order Modal -->
-    <div class="modal fade" id="importWorkOrderModal" tabindex="-1">
+
+
+    <!-- Modals for Event Creation/Editing -->
+    <div class="modal fade" id="addEventModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border rounded-1 shadow">
                 <div class="modal-header bg-dark text-white py-3 rounded-top-1">

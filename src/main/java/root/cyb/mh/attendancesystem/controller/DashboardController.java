@@ -16,6 +16,7 @@ import java.time.LocalTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import root.cyb.mh.attendancesystem.dto.MonthlySummaryDto;
 
@@ -38,7 +39,16 @@ public class DashboardController {
         private root.cyb.mh.attendancesystem.repository.WorkScheduleRepository workScheduleRepository;
 
         @Autowired
+        private root.cyb.mh.attendancesystem.repository.EmployeeDailyWorkStatusRepository employeeDailyWorkStatusRepository;
+
+        @Autowired
+        private root.cyb.mh.attendancesystem.repository.PublicHolidayRepository publicHolidayRepository;
+
+        @Autowired
         private ReportService reportService;
+
+        @Autowired
+        private root.cyb.mh.attendancesystem.service.LeaveService leaveService;
 
         @GetMapping("/")
         public String root(org.springframework.security.core.Authentication authentication) {
@@ -243,67 +253,46 @@ public class DashboardController {
                                                 root.cyb.mh.attendancesystem.model.Employee::getName)));
 
                 // --- Annual Leave Quotas (Optimized Single Query) ---
-                root.cyb.mh.attendancesystem.model.WorkSchedule globalSchedule = workScheduleRepository.findAll().stream().findFirst().orElse(new root.cyb.mh.attendancesystem.model.WorkSchedule());
-                int defaultQuota = globalSchedule.getDefaultAnnualLeaveQuota() != null ? globalSchedule.getDefaultAnnualLeaveQuota() : 12;
-
-                LocalDate startOfYear = LocalDate.of(today.getYear(), 1, 1);
-                LocalDate endOfYear = LocalDate.of(today.getYear(), 12, 31);
-
-                List<root.cyb.mh.attendancesystem.model.LeaveRequest> allApprovedLeavesThisYear = leaveRequestRepository.findApprovedLeavesInYear(startOfYear, endOfYear);
-
-                // Group leaves by employee ID
-                Map<String, List<root.cyb.mh.attendancesystem.model.LeaveRequest>> leavesByEmployee = allApprovedLeavesThisYear.stream()
-                        .collect(Collectors.groupingBy(l -> l.getEmployee().getId()));
-
-                List<root.cyb.mh.attendancesystem.dto.EmployeeLeaveQuotaDto> employeeQuotas = allEmployees.stream()
-                        .filter(e -> !e.isGuest())
-                        .map(emp -> {
-                            int effectiveQuota = emp.getEffectiveQuota(defaultQuota);
-                            List<root.cyb.mh.attendancesystem.model.LeaveRequest> empLeaves = leavesByEmployee.getOrDefault(emp.getId(), java.util.Collections.emptyList());
-                            
-                            int totalTaken = 0, sickTaken = 0, casualTaken = 0, otherTaken = 0;
-                            
-                            for (root.cyb.mh.attendancesystem.model.LeaveRequest req : empLeaves) {
-                                // Cap to current year only
-                                LocalDate start = req.getStartDate().isBefore(startOfYear) ? startOfYear : req.getStartDate();
-                                LocalDate end = req.getEndDate().isAfter(endOfYear) ? endOfYear : req.getEndDate();
-                                
-                                int days = (int) java.time.temporal.ChronoUnit.DAYS.between(start, end) + 1;
-                                totalTaken += days;
-                                
-                                String type = req.getLeaveType() != null ? req.getLeaveType().toLowerCase() : "";
-                                if (type.contains("sick")) {
-                                    sickTaken += days;
-                                } else if (type.contains("casual")) {
-                                    casualTaken += days;
-                                } else {
-                                    otherTaken += days;
-                                }
-                            }
-                            
-                            int paidTaken = Math.min(totalTaken, effectiveQuota);
-                            int unpaidTaken = Math.max(0, totalTaken - effectiveQuota);
-                            double percentage = effectiveQuota > 0 ? (totalTaken * 100.0 / effectiveQuota) : 0;
-                            
-                            return new root.cyb.mh.attendancesystem.dto.EmployeeLeaveQuotaDto(
-                                emp.getId(),
-                                emp.getName(),
-                                effectiveQuota,
-                                totalTaken,
-                                paidTaken,
-                                unpaidTaken,
-                                sickTaken,
-                                casualTaken,
-                                otherTaken,
-                                percentage
-                            );
-                        })
-                        .sorted(Comparator.comparing(root.cyb.mh.attendancesystem.dto.EmployeeLeaveQuotaDto::getUsagePercentage).reversed())
+                List<root.cyb.mh.attendancesystem.dto.EmployeeLeaveQuotaDto> employeeQuotas = 
+                    leaveService.calculateAllEmployeeLeaveQuotas(today, allEmployees);
+                        
+                // For the dashboard, we only show the top 5 highest usage
+                List<root.cyb.mh.attendancesystem.dto.EmployeeLeaveQuotaDto> topQuotas = employeeQuotas.stream()
+                        .limit(5)
                         .collect(Collectors.toList());
                         
-                model.addAttribute("employeeQuotas", employeeQuotas);
+                model.addAttribute("employeeQuotas", topQuotas);
 
                 return "dashboard";
+        }
+
+        @GetMapping("/leave-quotas")
+        public String leaveQuotas(Model model) {
+                LocalDate today = LocalDate.now();
+                List<root.cyb.mh.attendancesystem.model.Employee> allEmployees = employeeRepository.findAll();
+                
+                List<root.cyb.mh.attendancesystem.dto.EmployeeLeaveQuotaDto> employeeQuotas = 
+                    leaveService.calculateAllEmployeeLeaveQuotas(today, allEmployees);
+                
+                model.addAttribute("employeeQuotas", employeeQuotas);
+                
+                return "leave-quotas";
+        }
+
+        @GetMapping("/leave-quotas/employee/{id}")
+        public String employeeLeaveDetails(@org.springframework.web.bind.annotation.PathVariable String id, Model model) {
+                root.cyb.mh.attendancesystem.model.Employee employee = employeeRepository.findById(id)
+                        .orElseThrow(() -> new IllegalArgumentException("Invalid employee Id:" + id));
+                        
+                LocalDate today = LocalDate.now();
+                List<root.cyb.mh.attendancesystem.dto.MonthlyLeaveBreakdownDto> breakdown = 
+                    leaveService.calculateMonthlyBreakdown(employee, today.getYear());
+                    
+                model.addAttribute("employee", employee);
+                model.addAttribute("breakdown", breakdown);
+                model.addAttribute("year", today.getYear());
+                
+                return "employee-leave-details";
         }
 
         @GetMapping("/api/dashboard/live-status")

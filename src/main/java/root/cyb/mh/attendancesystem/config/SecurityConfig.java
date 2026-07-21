@@ -43,6 +43,7 @@ public class SecurityConfig {
                                                 .requestMatchers("/employee/**").hasRole("EMPLOYEE")
                                                 // Dashboard restricted to Admin/HR
                                                 .requestMatchers("/dashboard").hasAnyRole("ADMIN", "HR")
+                                                .requestMatchers("/leave-quotas/**").hasAnyRole("ADMIN", "HR")
                                                 // Leave Management
                                                 .requestMatchers("/leave/manage/**")
                                                 .hasAnyRole("ADMIN", "HR", "EMPLOYEE")
