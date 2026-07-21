@@ -43,7 +43,15 @@ public class SecurityConfig {
                                                 .requestMatchers("/employee/**").hasRole("EMPLOYEE")
                                                 // Dashboard restricted to Admin/HR
                                                 .requestMatchers("/dashboard").hasAnyRole("ADMIN", "HR")
-                                                .requestMatchers("/leave-quotas/**").hasAnyRole("ADMIN", "HR")
+                                                .requestMatchers("/leave-quotas/**", "/birthdays/**").hasAnyRole("ADMIN", "HR")
+                                                // Secure newly identified exposed routes
+                                                .requestMatchers("/admin/**", "/api/admin/**").hasAnyRole("ADMIN", "HR")
+                                                .requestMatchers("/payroll/**").hasAnyRole("ADMIN", "HR")
+                                                .requestMatchers("/reports/**").hasAnyRole("ADMIN", "HR")
+                                                .requestMatchers("/data/**").hasRole("ADMIN")
+                                                .requestMatchers("/payment-requests/**").hasAnyRole("ADMIN", "HR", "EMPLOYEE")
+                                                .requestMatchers("/attendance", "/attendance-history", "/sync").hasAnyRole("ADMIN", "HR")
+                                                .requestMatchers("/supervisor/**").hasAnyRole("ADMIN", "HR", "SUPERVISOR")
                                                 // Leave Management
                                                 .requestMatchers("/leave/manage/**")
                                                 .hasAnyRole("ADMIN", "HR", "EMPLOYEE")
