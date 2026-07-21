@@ -27,10 +27,12 @@ public class EmployeeDailyWorkStatus {
 
     private int totalBreakMinutes = 0;
 
-    @Column(columnDefinition = "integer default 0")
+    @org.hibernate.annotations.ColumnDefault("0")
+    @Column(columnDefinition = "integer")
     private int totalBreakSeconds = 0;
 
-    @Column(columnDefinition = "numeric(5,2) default 0")
+    @org.hibernate.annotations.ColumnDefault("0.0")
+    @Column(columnDefinition = "numeric(5,2)")
     private Double completedWorkCount = 0.0;
 
     public int getTotalBreakSeconds() {
