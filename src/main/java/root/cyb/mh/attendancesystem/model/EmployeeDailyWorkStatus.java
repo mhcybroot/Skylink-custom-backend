@@ -32,7 +32,7 @@ public class EmployeeDailyWorkStatus {
     private int totalBreakSeconds = 0;
 
     @org.hibernate.annotations.ColumnDefault("0.0")
-    @Column(columnDefinition = "numeric(5,2)")
+    @Column(columnDefinition = "double precision")
     private Double completedWorkCount = 0.0;
 
     public int getTotalBreakSeconds() {
