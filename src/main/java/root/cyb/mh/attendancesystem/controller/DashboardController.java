@@ -221,6 +221,15 @@ public class DashboardController {
                 model.addAttribute("lateCount", lateCount);
                 model.addAttribute("recentLogs", recentLogs);
 
+                // Upcoming Birthdays
+                List<BirthdayDto> upcomingBirthdays = allEmployees.stream()
+                        .filter(e -> e.getDateOfBirth() != null)
+                        .map(e -> new BirthdayDto(e.getName(), e.getDateOfBirth(), today))
+                        .sorted(Comparator.comparing(BirthdayDto::getNextBirthday))
+                        .limit(5)
+                        .collect(Collectors.toList());
+                model.addAttribute("upcomingBirthdays", upcomingBirthdays);
+
                 // Chart 1: Today's Status (Donut)
                 java.util.List<Long> statusChartData = java.util.Arrays.asList(presentCount, leaveCount,
                                 absentCount);
@@ -278,6 +287,21 @@ public class DashboardController {
                                 .collect(Collectors.toList());
         }
 
+        @GetMapping("/birthdays")
+        public String allBirthdays(Model model) {
+                LocalDate today = LocalDate.now();
+                List<root.cyb.mh.attendancesystem.model.Employee> allEmployees = employeeRepository.findAll();
+                
+                List<BirthdayDto> allUpcomingBirthdays = allEmployees.stream()
+                        .filter(e -> e.getDateOfBirth() != null)
+                        .map(e -> new BirthdayDto(e.getName(), e.getDateOfBirth(), today))
+                        .sorted(Comparator.comparing(BirthdayDto::getNextBirthday))
+                        .collect(Collectors.toList());
+                        
+                model.addAttribute("allBirthdays", allUpcomingBirthdays);
+                return "birthdays";
+        }
+
         // Inner DTO
         public static class LiveStatusDto {
                 private String id;
@@ -287,53 +311,42 @@ public class DashboardController {
                 private String time;
                 private String photoUrl;
 
-                // Getters and Setters
-                public String getId() {
-                        return id;
+                public String getId() { return id; }
+                public void setId(String id) { this.id = id; }
+                public String getName() { return name; }
+                public void setName(String name) { this.name = name; }
+                public String getDepartment() { return department; }
+                public void setDepartment(String department) { this.department = department; }
+                public String getStatus() { return status; }
+                public void setStatus(String status) { this.status = status; }
+                public String getTime() { return time; }
+                public void setTime(String time) { this.time = time; }
+                public String getPhotoUrl() { return photoUrl; }
+                public void setPhotoUrl(String photoUrl) { this.photoUrl = photoUrl; }
+        }
+
+        public static class BirthdayDto {
+                private String employeeName;
+                private LocalDate nextBirthday;
+                private int turningAge;
+                private boolean isToday;
+
+                public BirthdayDto(String employeeName, LocalDate dateOfBirth, LocalDate today) {
+                        this.employeeName = employeeName;
+                        LocalDate birthdayThisYear = dateOfBirth.withYear(today.getYear());
+                        if (birthdayThisYear.isBefore(today)) {
+                                this.nextBirthday = birthdayThisYear.plusYears(1);
+                                this.turningAge = today.getYear() + 1 - dateOfBirth.getYear();
+                        } else {
+                                this.nextBirthday = birthdayThisYear;
+                                this.turningAge = today.getYear() - dateOfBirth.getYear();
+                        }
+                        this.isToday = this.nextBirthday.equals(today);
                 }
 
-                public void setId(String id) {
-                        this.id = id;
-                }
-
-                public String getName() {
-                        return name;
-                }
-
-                public void setName(String name) {
-                        this.name = name;
-                }
-
-                public String getDepartment() {
-                        return department;
-                }
-
-                public void setDepartment(String department) {
-                        this.department = department;
-                }
-
-                public String getStatus() {
-                        return status;
-                }
-
-                public void setStatus(String status) {
-                        this.status = status;
-                }
-
-                public String getTime() {
-                        return time;
-                }
-
-                public void setTime(String time) {
-                        this.time = time;
-                }
-
-                public String getPhotoUrl() {
-                        return photoUrl;
-                }
-
-                public void setPhotoUrl(String photoUrl) {
-                        this.photoUrl = photoUrl;
-                }
+                public String getEmployeeName() { return employeeName; }
+                public LocalDate getNextBirthday() { return nextBirthday; }
+                public int getTurningAge() { return turningAge; }
+                public boolean getIsToday() { return isToday; }
         }
 }
