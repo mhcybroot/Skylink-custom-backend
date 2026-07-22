@@ -142,6 +142,9 @@ public class EmployeeDashboardController {
         model.addAttribute("paidLeavesTaken", paidTaken);
         model.addAttribute("unpaidLeavesTaken", unpaidTaken);
 
+        List<LeaveRequest> recentLeaves = leaveRequestRepository.findByEmployeeIdOrderByCreatedAtDesc(employeeId);
+        model.addAttribute("recentLeaves", recentLeaves);
+
         // 6. Next Holiday Countdown
         java.time.LocalDate today = java.time.LocalDate.now();
         java.util.Optional<root.cyb.mh.attendancesystem.model.PublicHoliday> nextHoliday = publicHolidayRepository

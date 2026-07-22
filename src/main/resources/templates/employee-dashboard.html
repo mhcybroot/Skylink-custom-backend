@@ -903,6 +903,34 @@
 
                     </div>
                 </div>
+
+                <!-- Recent Leaves & HR Actions -->
+                <div class="card shadow-sm border-0 mt-3" th:if="${recentLeaves != null and !recentLeaves.isEmpty()}">
+                    <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold"><i class="fas fa-calendar-check text-primary me-2"></i> Recent Leaves & HR Actions</h6>
+                        <a href="/leave/employee" class="btn btn-sm btn-link text-decoration-none">View All</a>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush">
+                            <li th:each="req, reqStat : ${recentLeaves}" class="list-group-item p-3" th:if="${reqStat.index < 5}">
+                                <div class="d-flex justify-content-between align-items-start mb-1">
+                                    <div>
+                                        <span class="badge" th:classappend="${req.isHrAction or (req.leaveType != null and req.leaveType.contains('Force Leave')) ? 'bg-danger' : 'bg-primary'}" th:text="${req.leaveType}">Sick</span>
+                                        <span th:if="${req.isHrAction}" class="badge bg-warning text-dark ms-1">HR Action Force Leave Deduction</span>
+                                    </div>
+                                    <span class="badge" th:classappend="${req.status.name() == 'APPROVED' ? 'bg-success' : (req.status.name() == 'REJECTED' ? 'bg-danger' : 'bg-warning text-dark')}" th:text="${req.status}">APPROVED</span>
+                                </div>
+                                <div class="small fw-medium text-dark">
+                                    <i class="far fa-calendar me-1"></i> <span th:text="${req.startDate}"></span> to <span th:text="${req.endDate}"></span>
+                                </div>
+                                <div class="small text-muted text-truncate mt-1" style="max-width: 280px;" th:text="${req.reason}">Reason</div>
+                                <div th:if="${req.reviewedBy != null}" class="small text-muted mt-1" style="font-size: 0.75rem;">
+                                    <i class="fas fa-user-check me-1"></i> Approver/Creator: <span th:text="${req.reviewedBy}">HR Admin</span>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
             </div>
     </div>
     </section>

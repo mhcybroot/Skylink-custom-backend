@@ -42,6 +42,9 @@ public class LeaveService {
     @Autowired
     private root.cyb.mh.attendancesystem.repository.EmployeeDailyWorkStatusRepository employeeDailyWorkStatusRepository;
 
+    @Autowired
+    private root.cyb.mh.attendancesystem.repository.EmployeeRepository employeeRepository;
+
     public LeaveRequest createRequest(Employee employee, LeaveRequest request) {
         request.setEmployee(employee);
         request.setStatus(LeaveRequest.Status.PENDING);
@@ -381,5 +384,43 @@ public class LeaveService {
         }
         
         return breakdown;
+    }
+
+    public LeaveRequest createHrForceLeave(String targetEmployeeId, LocalDate startDate, LocalDate endDate,
+            String leaveType, String reason, LeaveRequest.Status status, String creatorUsername, String creatorRole) {
+        Employee employee = employeeRepository.findById(targetEmployeeId)
+                .orElseThrow(() -> new IllegalArgumentException("Employee not found with ID: " + targetEmployeeId));
+
+        LeaveRequest request = new LeaveRequest();
+        request.setEmployee(employee);
+        request.setStartDate(startDate);
+        request.setEndDate(endDate);
+        request.setLeaveType(leaveType != null && !leaveType.isBlank() ? leaveType : "Force Leave Deduction By HR");
+        request.setReason(reason);
+        request.setStatus(status != null ? status : LeaveRequest.Status.APPROVED);
+        request.setReviewedBy(creatorUsername + " (" + creatorRole + ")");
+        request.setAdminComment("Assigned by " + creatorRole + " (" + creatorUsername + ")");
+        request.setIsHrAction(true);
+
+        LeaveRequest savedRequest = leaveRequestRepository.save(request);
+
+        // Notify Employee
+        String title = "HR Action: Force Leave Deduction";
+        String message = String.format("A leave (%s) has been assigned to you from %s to %s by %s.",
+                savedRequest.getLeaveType(), startDate, endDate, creatorUsername);
+        String link = "/employee/dashboard";
+
+        try {
+            notificationService.sendNotification(
+                    employee.getId(),
+                    title,
+                    message,
+                    "LEAVE_FORCE",
+                    link);
+        } catch (Exception e) {
+            System.err.println("Failed to send notification for force leave: " + e.getMessage());
+        }
+
+        return savedRequest;
     }
 }
