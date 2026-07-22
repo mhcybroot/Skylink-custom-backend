@@ -38,7 +38,7 @@ public class SecurityConfig {
                                                 .requestMatchers("/master-data/**", "/admin/work-orders/**")
                                                 .hasRole("ADMIN")
                                                 .requestMatchers("/departments/**")
-                                                .hasRole("ADMIN")
+                                                .hasAnyRole("ADMIN", "HR")
                                                 // Employee Area
                                                 .requestMatchers("/employee/**").hasRole("EMPLOYEE")
                                                 // Dashboard restricted to Admin/HR
