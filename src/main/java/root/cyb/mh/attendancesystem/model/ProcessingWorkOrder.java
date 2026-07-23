@@ -75,7 +75,16 @@ public class ProcessingWorkOrder {
 
     private String analyst;
 
-    private String status;
+    private String status = "NEW";
+
+    @Column(name = "date_due")
+    private LocalDate dateDue;
+
+    @Column(name = "entry_date")
+    private LocalDate entryDate;
+
+    @Column(name = "notes", columnDefinition = "TEXT")
+    private String notes;
 
     @Column(name = "ba_from_wo")
     private String baFromWo;

@@ -142,18 +142,22 @@
                                                 th:data-role="${emp.role}" th:data-email="${emp.email}"
                                                 th:data-dept-id="${emp.department != null ? emp.department.id : ''}"
                                                 th:data-quota="${emp.annualLeaveQuota}"
-                                                th:data-salary="${emp.monthlySalary}" th:data-is-guest="${emp.isGuest}"
+                                                th:data-salary="${emp.monthlySalary}"
                                                 th:data-allowance="${emp.fixedAllowance}"
                                                 th:data-bank-name="${emp.bankName}"
                                                 th:data-account-number="${emp.accountNumber}"
                                                 th:data-username="${emp.username}"
                                                 th:data-designation="${emp.designation}"
                                                 th:data-reports-to-id="${emp.reportsTo != null ? emp.reportsTo.id : ''}"
+                                                th:data-reports-to-assistant="${emp.reportsToAssistant != null ? emp.reportsToAssistant.id : ''}"
                                                 th:data-reports-to-assistant-id="${emp.reportsToAssistant != null ? emp.reportsToAssistant.id : ''}"
-                                                th:data-joining-date="${emp.joiningDate}" 
+                                                th:data-joining-date="${emp.joiningDate}"
                                                 th:data-date-of-birth="${emp.dateOfBirth}"
+                                                th:data-is-guest="${emp.isGuest}"
+                                                th:data-is-analyst="${emp.isAnalyst}"
+                                                th:data-is-analyst-controller="${emp.isAnalystController}"
                                                 onclick="editEmployee(this)">
-                                                Edit
+                                                <i class="fas fa-edit fa-sm"></i>
                                             </button>
                                             <a th:href="@{/employees/{id}/resources(id=${emp.id})}"
                                                 class="btn btn-info btn-sm text-white shadow-sm fw-bold">
@@ -229,12 +233,21 @@
                                         <label class="form-label">Role</label>
                                         <input type="text" class="form-control" id="empRole" name="role"
                                             placeholder="Staff">
-                                    </div>
-                                    <div class="mb-3 form-check">
-                                        <input type="checkbox" class="form-check-input" id="empIsGuest" name="guest">
-                                        <label class="form-check-label" for="empIsGuest">Is Guest</label>
-                                    </div>
-                                    <div class="mb-3">
+                                        <div class="col-md-6">
+                                            <div class="form-check form-switch mt-4">
+                                                <input class="form-check-input" type="checkbox" id="empIsGuest"
+                                                    name="guest">
+                                                <label class="form-check-label" for="empIsGuest">Is Guest Account?</label>
+                                            </div>
+                                            <div class="form-check form-switch mt-2">
+                                                <input class="form-check-input" type="checkbox" id="empIsAnalyst" name="analyst">
+                                                <label class="form-check-label" for="empIsAnalyst">Is Analyst?</label>
+                                            </div>
+                                            <div class="form-check form-switch mt-2">
+                                                <input class="form-check-input" type="checkbox" id="empIsAnalystController" name="analystController">
+                                                <label class="form-check-label" for="empIsAnalystController">Is Analyst Controller?</label>
+                                            </div>
+                                        </div>
                                         <label class="form-label">Email</label>
                                         <input type="email" class="form-control" id="empEmail" name="email"
                                             placeholder="john@example.com">
@@ -359,16 +372,14 @@
                 var allowance = btn.getAttribute('data-allowance');
                 var bankName = btn.getAttribute('data-bank-name');
                 var accNum = btn.getAttribute('data-account-number');
-                var username = btn.getAttribute('data-username'); // If available
-                var isGuest = btn.getAttribute('data-is-guest') === 'true';
+                var username = btn.getAttribute('data-username');
                 var joiningDate = btn.getAttribute('data-joining-date');
                 var dateOfBirth = btn.getAttribute('data-date-of-birth');
                 var designation = btn.getAttribute('data-designation');
                 var reportsToId = btn.getAttribute('data-reports-to-id');
-                var reportsToAssistantId = btn.getAttribute('data-reports-to-assistant-id');
 
                 document.getElementById('empId').value = id;
-                document.getElementById('empId').readOnly = true; // Cannot change ID
+                document.getElementById('empId').readOnly = true;
                 document.getElementById('empName').value = name;
                 document.getElementById('empRole').value = role;
                 document.getElementById('empEmail').value = email;
@@ -378,26 +389,31 @@
                 document.getElementById('fixedAllowance').value = allowance;
                 document.getElementById('bankName').value = bankName;
                 document.getElementById('accountNumber').value = accNum;
-                document.getElementById('empIsGuest').checked = isGuest;
                 document.getElementById('empJoiningDate').value = joiningDate;
                 document.getElementById('empDateOfBirth').value = dateOfBirth;
                 document.getElementById('empDesignation').value = designation;
                 document.getElementById('empReportsTo').value = reportsToId;
-                document.getElementById('empReportsToAssistant').value = reportsToAssistantId;
+                document.getElementById('empReportsToAssistant').value = btn.getAttribute('data-reports-to-assistant') || '';
+                document.getElementById('empIsGuest').checked = btn.getAttribute('data-is-guest') === 'true';
+                document.getElementById('empIsAnalyst').checked = btn.getAttribute('data-is-analyst') === 'true';
+                document.getElementById('empIsAnalystController').checked = btn.getAttribute('data-is-analyst-controller') === 'true';
                 document.getElementById('empModalTitle').innerText = 'Edit Employee';
                 new bootstrap.Modal(document.getElementById('addEmployeeModal')).show();
             }
 
-            // Reset check (optional, or just rely on manual clear)
             document.getElementById('addEmployeeModal').addEventListener('hidden.bs.modal', function () {
                 document.getElementById('empModalTitle').innerText = 'Add Employee';
                 document.getElementById('empId').readOnly = false;
                 document.getElementById('empId').value = '';
                 document.getElementById('empName').value = '';
-                document.getElementById('empRole').value = '';
                 document.getElementById('empEmail').value = '';
+                document.getElementById('empRole').value = 'EMPLOYEE';
                 document.getElementById('empDept').value = '';
+                document.getElementById('empReportsTo').value = '';
+                document.getElementById('empReportsToAssistant').value = '';
                 document.getElementById('empIsGuest').checked = false;
+                document.getElementById('empIsAnalyst').checked = false;
+                document.getElementById('empIsAnalystController').checked = false;
                 document.getElementById('empQuota').value = '';
                 document.getElementById('monthlySalary').value = '';
                 document.getElementById('fixedAllowance').value = '';

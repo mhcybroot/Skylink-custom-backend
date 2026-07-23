@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Analyst Controller Dashboard</title>
+</head>
+<body>
+    <div th:replace="~{layout :: layout(~{::section}, ~{::script}, 'admin-analyst-controller')}">
+        <section>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0 text-gray-800">Processing Sheet: Delete History</h1>
+                <a href="/processing-sheet/analyst-controller" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i> Back to Analyst Controller</a>
+            </div>
+
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-danger">Deleted Work Orders</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover" id="dataTable" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>WO #</th>
+                                    <th>Deleted At</th>
+                                    <th>Client Code</th>
+                                    <th>Category</th>
+                                    <th>Address</th>
+                                    <th>Photos</th>
+                                    <th>Analyst</th>
+                                    <th>Deleted By</th>
+                                    <th>Lifeline</th>
+                                    <th>Late Status</th>
+                                    <th>BA FROM (W/O)</th>
+                                    <th>BA BY (ANALYST)</th>
+                                    <th>BID COUNT</th>
+                                    <th>BID AMOUNT</th>
+                                    <th>CLIENT INVOICE</th>
+                                    <th>CREW INVOICE</th>
+                                    <th>NOTES</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="wo : ${workOrders}" th:id="'wo-' + ${wo.woNumber}">
+                                    <td class="wo-hover-cell" th:data-wo="${wo.woNumber}" th:text="${wo.woNumber}"></td>
+                                    <td th:text="${#temporals.format(wo.deletedAt, 'yyyy-MM-dd HH:mm')}"></td>
+                                    <td th:text="${wo.clientCode}"></td>
+                                    <td th:text="${wo.category}"></td>
+                                    <td class="wo-hover-cell address-hover" th:data-address="${wo.address}" th:text="${wo.address}"></td>
+                                    <td th:text="${wo.photoCount}"></td>
+                                    <td th:text="${wo.analyst}"></td>
+                                    <td>
+                                        <span class="badge bg-danger status-badge" th:text="${wo.deletedByName}"></span>
+                                    </td>
+                                    <td>
+                                        <a th:href="@{/processing-sheet/lifeline/{wo}(wo=${wo.woNumber})}" class="btn btn-sm btn-outline-primary lifeline-btn" th:data-wo="${wo.woNumber}">
+                                            <i class="fas fa-history"></i>
+                                        </a>
+                                    </td>
+                                    <td th:text="${wo.lateStatus}"></td>
+                                    <td th:text="${wo.baFromWo}"></td>
+                                    <td th:text="${wo.baByAnalyst}"></td>
+                                    <td th:text="${wo.bidCount}"></td>
+                                    <td th:text="${wo.bidAmount != null ? '$' + wo.bidAmount : ''}"></td>
+                                    <td th:text="${wo.clientInvoice != null ? '$' + wo.clientInvoice : ''}"></td>
+                                    <td th:text="${wo.crewInvoice != null ? '$' + wo.crewInvoice : ''}"></td>
+                                    <td th:text="${wo.notes}"></td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(workOrders)}">
+                                    <td colspan="17" class="text-center text-muted">No deleted Work Orders found.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                let lifelineHoverTimeout;
+                let activeLifelinePopover = null;
+                
+                document.addEventListener('mouseover', function(e) {
+                    const btn = e.target.closest('.lifeline-btn');
+                    if (btn) {
+                        if (btn.dataset.hovering === 'true') return;
+                        btn.dataset.hovering = 'true';
+                        
+                        const woNumber = btn.getAttribute('data-wo');
+                        const btnRect = btn.getBoundingClientRect();
+                        
+                        clearTimeout(lifelineHoverTimeout);
+                        lifelineHoverTimeout = setTimeout(() => {
+                            fetch(`/processing-sheet/api/lifeline?woNumber=${encodeURIComponent(woNumber)}`)
+                                .then(res => res.json())
+                                .then(data => {
+                                    if(activeLifelinePopover) activeLifelinePopover.remove();
+                                    
+                                    const popover = document.createElement('div');
+                                    popover.className = 'lifeline-popover';
+                                    
+                                    let html = `
+                                        <div class="lifeline-popover-header">
+                                            <span>Lifeline: ${woNumber}</span>
+                                            <i class="fas fa-history text-primary"></i>
+                                        </div>
+                                        <div class="lifeline-popover-content">
+                                            <ul class="lifeline-timeline">
+                                    `;
+                                    
+                                    if (data && data.length > 0) {
+                                        data.forEach(log => {
+                                            let date = new Date(log.changedAt).toLocaleString();
+                                            let details = '';
+                                            if (log.actionType === 'IMPORTED' || log.actionType.includes('DUPLICATE')) {
+                                                details = `Imported by ${log.changedByName}`;
+                                            } else {
+                                                details = `Changed from <strong>${log.oldValue || 'empty'}</strong> to <strong>${log.newValue || 'empty'}</strong>`;
+                                            }
+                                            html += `
+                                                <li>
+                                                    <div class="time">${date} &bull; ${log.changedByName}</div>
+                                                    <div class="action">${log.actionType.replace('UPDATED_', 'Updated ')}</div>
+                                                    <div class="details">${details}</div>
+                                                </li>
+                                            `;
+                                        });
+                                    } else {
+                                        html += `<li><div class="text-muted text-center py-3">No history found.</div></li>`;
+                                    }
+                                    
+                                    html += `</ul></div>`;
+                                    popover.innerHTML = html;
+                                    
+                                    document.body.appendChild(popover);
+                                    
+                                    // Position below the button
+                                    popover.style.top = (btnRect.bottom + window.scrollY) + 'px';
+                                    popover.style.left = (btnRect.left + (btnRect.width / 2) + window.scrollX) + 'px';
+                                    
+                                    requestAnimationFrame(() => popover.classList.add('show'));
+                                    activeLifelinePopover = popover;
+                                    
+                                    popover.addEventListener('mouseleave', () => {
+                                        popover.classList.remove('show');
+                                        setTimeout(() => popover.remove(), 300);
+                                    });
+                                    
+                                    const leaveHandler = () => {
+                                        btn.dataset.hovering = 'false';
+                                        setTimeout(() => {
+                                            if (popover && !popover.matches(':hover')) {
+                                                popover.classList.remove('show');
+                                                setTimeout(() => popover.remove(), 300);
+                                            }
+                                        }, 100);
+                                        btn.removeEventListener('mouseleave', leaveHandler);
+                                    };
+                                    btn.addEventListener('mouseleave', leaveHandler);
+                                })
+                                .catch(err => console.error('Error fetching lifeline', err));
+                        }, 300);
+                        
+                        const earlyLeaveHandler = () => {
+                            btn.dataset.hovering = 'false';
+                            clearTimeout(lifelineHoverTimeout);
+                            btn.removeEventListener('mouseleave', earlyLeaveHandler);
+                        };
+                        btn.addEventListener('mouseleave', earlyLeaveHandler);
+                    }
+                });
+            });
+        </script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const hoverCells = document.querySelectorAll('.wo-hover-cell');
+                let hoverTimeout;
+                let activePopover = null;
+                
+                hoverCells.forEach(cell => {
+                    cell.addEventListener('mouseenter', function(e) {
+                        const woNumber = this.getAttribute('data-wo');
+                        const address = this.getAttribute('data-address');
+                        const isAddressHover = this.classList.contains('address-hover');
+                        const cellRect = this.getBoundingClientRect();
+                        
+                        // Clear existing timeout
+                        clearTimeout(hoverTimeout);
+                        
+                        hoverTimeout = setTimeout(() => {
+                            const fetchUrl = isAddressHover 
+                                ? `/processing-sheet/api/address-duplicates?address=${encodeURIComponent(address)}`
+                                : `/processing-sheet/api/duplicates?woNumber=${encodeURIComponent(woNumber)}`;
+                                
+                            fetch(fetchUrl)
+                                .then(response => response.json())
+                                .then(data => {
+                                    // Remove old popover if any
+                                    if(activePopover) activePopover.remove();
+                                    
+                                    if(data && data.length > 0) {
+                                        const popover = document.createElement('div');
+                                        popover.className = 'duplicate-popover';
+                                        
+                                        let headerText = isAddressHover ? `Related Work Orders (${data.length})` : `Related Work Orders (${data.length})`;
+                                        let html = `<div class="duplicate-popover-header">${headerText}</div>`;
+                                        html += `<ul class="duplicate-list">`;
+                                        
+                                        data.forEach(wo => {
+                                            const isCurrent = (isAddressHover && wo.address === address) || (!isAddressHover && wo.woNumber === woNumber);
+                                            html += `
+                                                <li>
+                                                    <a href="/processing-sheet/analyst-controller?date=${wo.entryDate}#wo-${wo.woNumber}"
+                                                       style="${isCurrent ? 'font-weight: 700; text-decoration: underline;' : ''}">
+                                                       ${wo.woNumber}
+                                                    </a>
+                                                    <div style="text-align: right;">
+                                                        ${isAddressHover ? `<div style="font-size: 0.65rem; color: var(--color-primary); margin-bottom: 2px;">Analyst: <strong>${wo.analyst}</strong></div>` : ''}
+                                                        <span class="duplicate-status">${wo.status}</span>
+                                                    </div>
+                                                </li>
+                                            `;
+                                        });
+                                        
+                                        html += `</ul>`;
+                                        popover.innerHTML = html;
+                                        
+                                        // Append to body to avoid clipping
+                                        document.body.appendChild(popover);
+                                        
+                                        // Position it exactly where the cell is
+                                        popover.style.top = (cellRect.bottom + window.scrollY) + 'px';
+                                        popover.style.left = (cellRect.left + (cellRect.width / 2) + window.scrollX) + 'px';
+                                        
+                                        // Trigger animation
+                                        requestAnimationFrame(() => {
+                                            popover.classList.add('show');
+                                        });
+                                        
+                                        activePopover = popover;
+                                        
+                                        // Close when leaving popover area
+                                        popover.addEventListener('mouseleave', () => {
+                                            popover.classList.remove('show');
+                                            setTimeout(() => popover.remove(), 300);
+                                        });
+                                        
+                                        // Close when leaving cell (but allow moving into popover)
+                                        cell.addEventListener('mouseleave', (e) => {
+                                            // Check if moving to popover
+                                            setTimeout(() => {
+                                                if (!popover.matches(':hover')) {
+                                                    popover.classList.remove('show');
+                                                    setTimeout(() => popover.remove(), 300);
+                                                }
+                                            }, 100);
+                                        }, { once: true });
+                                    }
+                                });
+                        }, 300); // 300ms debounce
+                    });
+                    
+                    cell.addEventListener('mouseleave', function() {
+                        clearTimeout(hoverTimeout);
+                    });
+                });
+                
+                // Hide popover if clicking anywhere outside
+                document.addEventListener('click', function(e) {
+                    if (activePopover && !e.target.closest('.duplicate-popover') && !e.target.closest('.wo-hover-cell')) {
+                        activePopover.classList.remove('show');
+                        setTimeout(() => activePopover.remove(), 300);
+                    }
+                });
+                
+                // Scroll into view if hash exists
+                if (window.location.hash) {
+                    setTimeout(() => {
+                        const target = document.querySelector(window.location.hash);
+                        if (target) {
+                            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            target.style.transition = 'background-color 1s ease';
+                            target.style.backgroundColor = 'rgba(59, 130, 246, 0.2)';
+                            setTimeout(() => {
+                                target.style.backgroundColor = '';
+                            }, 2000);
+                        }
+                    }, 100);
+                }
+                
+                // Handle Delete button clicks
+                document.querySelectorAll('.delete-wo-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const woNumber = this.getAttribute('data-wo');
+                        if (confirm('Are you sure you want to delete Work Order ' + woNumber + '?')) {
+                            fetch('/processing-sheet/api/delete-wo', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({ woNumber: woNumber })
+                            })
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data.success) {
+                                    alert('Work Order deleted successfully.');
+                                    window.location.reload();
+                                } else {
+                                    alert('Failed to delete: ' + (data.message || 'Unknown error'));
+                                }
+                            })
+                            .catch(err => {
+                                console.error('Error deleting WO:', err);
+                                alert('Error deleting work order. Check console.');
+                            });
+                        }
+                    });
+                });
+            });
+        </script>
+    </div>
+</body>
+</html>

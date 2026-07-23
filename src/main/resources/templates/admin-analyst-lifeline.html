@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Work Order Lifeline</title>
+    <style>
+        .timeline {
+            position: relative;
+            padding: 20px 0;
+            list-style: none;
+        }
+        .timeline:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 40px;
+            width: 2px;
+            background: #e3e6f0;
+        }
+        .timeline-item {
+            position: relative;
+            margin-bottom: 30px;
+            padding-left: 80px;
+        }
+        .timeline-item:last-child {
+            margin-bottom: 0;
+        }
+        .timeline-badge {
+            position: absolute;
+            top: 0;
+            left: 20px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #4e73df;
+            color: #fff;
+            text-align: center;
+            line-height: 40px;
+            font-size: 1.2rem;
+            z-index: 1;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+        }
+        .timeline-panel {
+            position: relative;
+            padding: 20px;
+            background: #fff;
+            border-radius: 0.35rem;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+            border: 1px solid #e3e6f0;
+        }
+        .timeline-panel:before {
+            content: '';
+            position: absolute;
+            top: 15px;
+            left: -10px;
+            width: 0;
+            height: 0;
+            border-top: 10px solid transparent;
+            border-bottom: 10px solid transparent;
+            border-right: 10px solid #e3e6f0;
+        }
+        .timeline-panel:after {
+            content: '';
+            position: absolute;
+            top: 16px;
+            left: -9px;
+            width: 0;
+            height: 0;
+            border-top: 9px solid transparent;
+            border-bottom: 9px solid transparent;
+            border-right: 9px solid #fff;
+        }
+    </style>
+</head>
+<body>
+    <div th:replace="~{layout :: layout(~{::section}, ~{::script}, 'admin-analyst-controller')}">
+        <section>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0 text-gray-800">Lifeline: <span class="text-primary" th:text="${woNumber}"></span></h1>
+                <a href="javascript:history.back()" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i> Back</a>
+            </div>
+
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Complete History of Work Order <span th:text="${woNumber}"></span></h6>
+                </div>
+                <div class="card-body">
+                    <ul class="timeline" th:if="${history != null and !history.isEmpty()}">
+                        <li class="timeline-item" th:each="log : ${history}">
+                            <div class="timeline-badge" th:classappend="${log.actionType == 'IMPORTED' or #strings.contains(log.actionType, 'DUPLICATE') ? 'bg-success' : (log.actionType == 'DELETED' ? 'bg-danger' : 'bg-primary')}">
+                                <i th:class="${log.actionType == 'IMPORTED' or #strings.contains(log.actionType, 'DUPLICATE') ? 'fas fa-plus' : (log.actionType == 'DELETED' ? 'fas fa-trash' : 'fas fa-edit')}"></i>
+                            </div>
+                            <div class="timeline-panel">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h6 class="m-0 font-weight-bold" th:text="${#strings.replace(log.actionType, 'UPDATED_', 'Updated ')}">Action Type</h6>
+                                    <small class="text-muted"><i class="fas fa-clock me-1"></i> <span th:text="${#temporals.format(log.changedAt, 'dd MMM yyyy, hh:mm a')}">Date</span></small>
+                                </div>
+                                <div class="mb-2">
+                                    <strong>By:</strong> <span th:text="${log.changedByName}">User</span>
+                                </div>
+                                <div>
+                                    <span th:if="${log.actionType == 'IMPORTED' or #strings.contains(log.actionType, 'DUPLICATE')}">
+                                        Imported by <strong th:text="${log.changedByName}">User</strong>
+                                    </span>
+                                    <span th:if="${log.actionType == 'DELETED'}">
+                                        Deleted by <strong th:text="${log.changedByName}">User</strong>
+                                    </span>
+                                    <span th:if="${log.actionType != 'IMPORTED' and !#strings.contains(log.actionType, 'DUPLICATE') and log.actionType != 'DELETED'}">
+                                        Changed from <strong th:text="${log.oldValue ?: 'empty'}"></strong> to <strong th:text="${log.newValue ?: 'empty'}"></strong>
+                                    </span>
+                                </div>
+                            </div>
+                        </li>
+                    </ul>
+                    <div th:if="${history == null or history.isEmpty()}" class="text-center text-muted py-5">
+                        <i class="fas fa-history fa-3x mb-3 text-gray-300"></i>
+                        <h5>No history found for this Work Order.</h5>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <script>
+            // Any specific JS for lifeline page
+        </script>
+    </div>
+</body>
+</html>

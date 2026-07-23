@@ -21,6 +21,18 @@ public interface ProcessingWorkOrderRepository
 
     Optional<ProcessingWorkOrder> findById(Long id);
 
+    List<ProcessingWorkOrder> findByWoNumber(String woNumber);
+    
+    List<ProcessingWorkOrder> findByWoNumberStartingWith(String baseWoNumber);
+    
+    List<ProcessingWorkOrder> findByAddress(String address);
+
+    List<ProcessingWorkOrder> findByEntryDate(LocalDate entryDate);
+
+    List<ProcessingWorkOrder> findByEntryDateBetween(LocalDate startDate, LocalDate endDate);
+
+    List<ProcessingWorkOrder> findByEntryDateAndAssignedAnalystEmployeeId(LocalDate entryDate, String employeeId);
+
     @Query("""
             SELECT pwo
             FROM ProcessingWorkOrder pwo

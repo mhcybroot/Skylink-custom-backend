@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Assign Analysts</title>
+</head>
+<body>
+    <div th:replace="~{layout :: layout(~{::section}, ~{::script}, 'admin-analyst-controller')}">
+        <section>
+            <!-- Page Title -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4 class="mb-0 text-dark fw-bold">Import Bulk WO: Step 3 (Assign Analysts)</h4>
+            </div>
+
+            <form th:action="@{|/processing-sheet/import/confirm|}" th:object="${importForm}" method="post">
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 text-primary fw-bold">Assign Analysts to Work Orders</h6>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-arrow-right-circle me-1"></i> Next: Review & Confirm
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Row #</th>
+                                        <th>WO #</th>
+                                        <th>Client</th>
+                                        <th>Category</th>
+                                        <th>Action/Resolution</th>
+                                        <th>Assign To Analyst</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="row, stat : *{rows}" th:if="${importForm.skippedCategories == null or !importForm.skippedCategories.contains(row.category)}">
+                                        <!-- Keep non-duplicate fields in form so they don't get lost -->
+                                        <input type="hidden" th:field="*{rows[__${stat.index}__].woNumber}" />
+                                        <input type="hidden" th:field="*{rows[__${stat.index}__].status}" />
+                                        <input type="hidden" th:field="*{rows[__${stat.index}__].dateDue}" />
+                                        <input type="hidden" th:field="*{rows[__${stat.index}__].clientCode}" />
+                                        <input type="hidden" th:field="*{rows[__${stat.index}__].category}" />
+                                        <input type="hidden" th:field="*{rows[__${stat.index}__].address}" />
+                                        <input type="hidden" th:field="*{rows[__${stat.index}__].city}" />
+                                        <input type="hidden" th:field="*{rows[__${stat.index}__].state}" />
+                                        <input type="hidden" th:field="*{rows[__${stat.index}__].zip}" />
+                                        <input type="hidden" th:field="*{rows[__${stat.index}__].contractor}" />
+                                        <input type="hidden" th:field="*{rows[__${stat.index}__].admin}" />
+                                        <input type="hidden" th:field="*{rows[__${stat.index}__].icons}" />
+                                        <input type="hidden" th:field="*{rows[__${stat.index}__].workType}" />
+                                        <input type="hidden" th:field="*{rows[__${stat.index}__].photoCount}" />
+                                        <input type="hidden" th:field="*{rows[__${stat.index}__].exists}" />
+                                        <input type="hidden" th:field="*{rows[__${stat.index}__].resolution}" />
+                                        
+                                        <div th:if="${row.resolution != 'SKIP'}">
+                                            <td th:text="${stat.count}"></td>
+                                            <td th:text="${row.woNumber}"></td>
+                                            <td th:text="${row.clientCode}"></td>
+                                            <td th:text="${row.category}"></td>
+                                            <td>
+                                                <span class="badge bg-info" th:if="${row.resolution == 'UPDATE'}">Update</span>
+                                                <span class="badge bg-warning" th:if="${row.resolution == 'DUPLICATE'}">Duplicate</span>
+                                                <span class="badge bg-success" th:if="${!row.exists}">New</span>
+                                            </td>
+                                            <td>
+                                                <select th:field="*{rows[__${stat.index}__].assignedAnalystEmployeeId}" class="form-select form-select-sm">
+                                                    <option value="">-- Select Analyst --</option>
+                                                    <option th:each="a : ${analysts}" th:value="${a.id}" th:text="${a.name}"></option>
+                                                </select>
+                                            </td>
+                                        </div>
+                                    </tr>
+                                    
+                                    <!-- We must iterate again and output completely hidden rows for those we skip to keep indexing correct -->
+                                    <tr th:each="row, stat : *{rows}" th:unless="${importForm.skippedCategories == null or !importForm.skippedCategories.contains(row.category)}">
+                                        <input type="hidden" th:field="*{rows[__${stat.index}__].woNumber}" />
+                                        <input type="hidden" th:field="*{rows[__${stat.index}__].status}" />
+                                        <input type="hidden" th:field="*{rows[__${stat.index}__].dateDue}" />
+                                        <input type="hidden" th:field="*{rows[__${stat.index}__].clientCode}" />
+                                        <input type="hidden" th:field="*{rows[__${stat.index}__].category}" />
+                                        <input type="hidden" th:field="*{rows[__${stat.index}__].address}" />
+                                        <input type="hidden" th:field="*{rows[__${stat.index}__].city}" />
+                                        <input type="hidden" th:field="*{rows[__${stat.index}__].state}" />
+                                        <input type="hidden" th:field="*{rows[__${stat.index}__].zip}" />
+                                        <input type="hidden" th:field="*{rows[__${stat.index}__].contractor}" />
+                                        <input type="hidden" th:field="*{rows[__${stat.index}__].admin}" />
+                                        <input type="hidden" th:field="*{rows[__${stat.index}__].icons}" />
+                                        <input type="hidden" th:field="*{rows[__${stat.index}__].workType}" />
+                                        <input type="hidden" th:field="*{rows[__${stat.index}__].photoCount}" />
+                                        <input type="hidden" th:field="*{rows[__${stat.index}__].exists}" />
+                                        <input type="hidden" th:field="*{rows[__${stat.index}__].resolution}" />
+                                        <input type="hidden" th:field="*{rows[__${stat.index}__].assignedAnalystEmployeeId}" />
+                                    </tr>
+                                    
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </section>
+        <script>
+        </script>
+    </div>
+</body>
+</html>

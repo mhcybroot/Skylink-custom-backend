@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Analyst Controller Dashboard</title>
+</head>
+<body>
+    <div th:replace="~{layout :: layout(~{::section}, ~{::script}, 'admin-analyst-controller')}">
+        <section>
+            <!-- DataTables CSS -->
+            <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+            <!-- Flatpickr CSS -->
+            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+            <link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/airbnb.css">
+            
+            <style>
+                /* Premium Dashboard Styling */
+                .premium-card {
+                    border: none;
+                    border-radius: 16px;
+                    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+                    color: white;
+                    overflow: hidden;
+                    position: relative;
+                }
+                .premium-card:hover {
+                    transform: translateY(-5px);
+                    box-shadow: 0 15px 30px rgba(0,0,0,0.1) !important;
+                }
+                .premium-card::after {
+                    content: '';
+                    position: absolute;
+                    top: 0; right: 0; bottom: 0; left: 0;
+                    background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 100%);
+                    pointer-events: none;
+                }
+                .grad-primary { background: linear-gradient(135deg, #4e73df 0%, #224abe 100%); }
+                .grad-success { background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%); }
+                .grad-info { background: linear-gradient(135deg, #36b9cc 0%, #258391 100%); }
+                .grad-warning { background: linear-gradient(135deg, #f6c23e 0%, #dda20a 100%); }
+                .grad-purple { background: linear-gradient(135deg, #6f42c1 0%, #462a7a 100%); }
+                
+                .premium-card .text-value { color: white !important; text-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+                .premium-card .text-label { color: rgba(255,255,255,0.9) !important; letter-spacing: 0.5px; }
+                .premium-card .fa-2x { color: rgba(255,255,255,0.25) !important; transition: all 0.3s; }
+                .premium-card:hover .fa-2x { transform: scale(1.1); color: rgba(255,255,255,0.4) !important; }
+
+                /* Modern Table Styling */
+                .card.shadow { border-radius: 16px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.05) !important; overflow: hidden; }
+                .card-header { background-color: #fff; border-bottom: 1px solid #f1f3f9; border-radius: 16px 16px 0 0 !important; }
+                .table-hover tbody tr:hover { background-color: #f8f9fc; transform: scale(1.001); transition: all 0.2s; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
+                #dataTable { border-collapse: separate; border-spacing: 0; }
+                #dataTable thead th { border-bottom: 2px solid #e3e6f0; background-color: #f8f9fc; color: #4e73df; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; padding: 16px; }
+                #dataTable tbody td { border-bottom: 1px solid #f1f3f9; padding: 14px 16px; vertical-align: middle; font-size: 0.9rem; }
+                
+                /* Report Table Enhancements */
+                .table-sm thead th { background-color: #f8f9fc !important; border: none; color: #5a5c69 !important; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; }
+                .table-sm tbody td { padding: 12px; font-size: 0.95rem; }
+
+                /* DataTables Premium Controls */
+                .dataTables_wrapper .dataTables_paginate .paginate_button.page-item .page-link {
+                    border-radius: 50px; margin: 0 4px; border: none; font-weight: 500; color: #5a5c69; background-color: #f8f9fc; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+                }
+                .dataTables_wrapper .dataTables_paginate .paginate_button.page-item:not(.active) .page-link:hover {
+                    background-color: #eaecf4; color: #4e73df; transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+                }
+                .dataTables_wrapper .dataTables_paginate .paginate_button.page-item.active .page-link {
+                    background: linear-gradient(135deg, #4e73df 0%, #224abe 100%); color: white; box-shadow: 0 4px 10px rgba(78, 115, 223, 0.4);
+                }
+                .dataTables_wrapper .dataTables_filter input {
+                    border-radius: 50px; border: 1px solid #e3e6f0; padding: 6px 16px; background-color: #f8f9fc; outline: none; transition: all 0.3s;
+                }
+                .dataTables_wrapper .dataTables_filter input:focus {
+                    background-color: #fff; box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25); border-color: #bac8f3;
+                }
+                .dataTables_wrapper .dataTables_length select {
+                    border-radius: 10px; border: 1px solid #e3e6f0; padding: 5px 12px; background-color: #f8f9fc;
+                    -webkit-appearance: none; -moz-appearance: none; appearance: none; text-align: center; background-image: none !important;
+                }
+                
+                /* Premium Status Badges */
+                .badge-premium { padding: 6px 12px; font-weight: 600; font-size: 0.75rem; letter-spacing: 0.5px; border: none; }
+                .badge-new { background-color: #e3f2fd; color: #0d47a1; }
+                .badge-done { background-color: #e8f5e9; color: #1b5e20; }
+                
+                /* Flatpickr Customization */
+                .date-picker-wrapper { position: relative; display: inline-flex; align-items: center; background: #f8f9fc; border: 1px solid #e3e6f0; border-radius: 50px; padding: 4px 14px; transition: all 0.3s; }
+                .date-picker-wrapper:hover { box-shadow: 0 4px 10px rgba(0,0,0,0.05); background: #fff; }
+                .date-picker-wrapper i { color: #4e73df; font-size: 1.1rem; }
+                .flatpickr-input { background: transparent !important; border: none !important; font-weight: 600; color: #5a5c69; width: 110px; padding: 4px 8px; outline: none !important; box-shadow: none !important; cursor: pointer; }
+            </style>
+            
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0 text-gray-800 fw-bold">Processing Sheet: Analyst Controller</h1>
+                <div class="d-flex align-items-center">
+                    <a href="/processing-sheet/delete-history" class="btn btn-outline-danger btn-sm me-3 rounded-pill px-3 shadow-sm"><i class="fas fa-trash-alt me-1"></i> Delete History</a>
+                    <form action="/processing-sheet/import/upload" method="post" enctype="multipart/form-data" class="d-flex align-items-center bg-white p-1 rounded-pill shadow-sm">
+                        <input type="file" name="file" class="form-control form-control-sm border-0 bg-transparent me-2" accept=".csv" required style="width: 200px;">
+                        <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4 shadow-sm"><i class="fas fa-upload me-1"></i> Import</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Dashboard Stats -->
+            <div class="row mb-4">
+                <!-- Total WO Submitted -->
+                <div class="col-xl col-md-6 mb-4">
+                    <div class="card premium-card grad-primary h-100 py-3">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-label text-uppercase mb-1">Total WO Submitted</div>
+                                    <div class="h3 mb-0 font-weight-bold text-value" th:text="${totalWo}">0</div>
+                                </div>
+                                <div class="col-auto"><i class="fas fa-clipboard-list fa-2x"></i></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Total Bids Submitted -->
+                <div class="col-xl col-md-6 mb-4">
+                    <div class="card premium-card grad-success h-100 py-3">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-label text-uppercase mb-1">Total Bids Submitted</div>
+                                    <div class="h3 mb-0 font-weight-bold text-value" th:text="${totalBidSubmitted}">0</div>
+                                </div>
+                                <div class="col-auto"><i class="fas fa-dollar-sign fa-2x"></i></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Total Maintenance WO -->
+                <div class="col-xl col-md-6 mb-4">
+                    <div class="card premium-card grad-info h-100 py-3">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-label text-uppercase mb-1">Maintenance WOs</div>
+                                    <div class="h3 mb-0 font-weight-bold text-value" th:text="${totalMaintenanceWo}">0</div>
+                                </div>
+                                <div class="col-auto"><i class="fas fa-wrench fa-2x"></i></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Total Preservation WO -->
+                <div class="col-xl col-md-6 mb-4">
+                    <div class="card premium-card grad-warning h-100 py-3">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-label text-uppercase mb-1">Preservation WOs</div>
+                                    <div class="h3 mb-0 font-weight-bold text-value" th:text="${totalPreservationWo}">0</div>
+                                </div>
+                                <div class="col-auto"><i class="fas fa-home fa-2x"></i></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Total Gross Profit -->
+                <div class="col-xl col-md-6 mb-4">
+                    <div class="card premium-card grad-purple h-100 py-3">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-label text-uppercase mb-1">Total Gross Profit</div>
+                                    <div class="h4 mb-0 font-weight-bold text-value" th:text="${totalGrossProfit != null ? '$' + #numbers.formatDecimal(totalGrossProfit, 1, 'COMMA', 2, 'POINT') : '$0.00'}">$0.00</div>
+                                </div>
+                                <div class="col-auto"><i class="fas fa-chart-pie fa-2x"></i></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Report by Analyst -->
+            <div class="card shadow mb-4">
+                <a href="#collapseReportAnalyst" class="d-block card-header py-3" data-bs-toggle="collapse" role="button" aria-expanded="true" aria-controls="collapseReportAnalyst">
+                    <h6 class="m-0 font-weight-bold text-primary">Report by Analyst</h6>
+                </a>
+                <div class="collapse show" id="collapseReportAnalyst">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-sm" width="100%" cellspacing="0">
+                                <thead>
+                                    <tr class="table-primary text-dark">
+                                        <th>Analyst</th>
+                                        <th>Bid Count</th>
+                                        <th>Bid Amount</th>
+                                        <th>Gross Profit (Client Inv - Crew Inv)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="stat : ${analystStats}">
+                                        <td class="font-weight-bold" th:text="${stat.name}"></td>
+                                        <td th:text="${stat.bidCount}"></td>
+                                        <td th:text="${stat.bidAmount != null ? '$' + #numbers.formatDecimal(stat.bidAmount, 1, 'COMMA', 2, 'POINT') : '$0.00'}"></td>
+                                        <td th:classappend="${stat.grossProfit < 0 ? 'text-danger' : 'text-success'}" th:text="${stat.grossProfit != null ? '$' + #numbers.formatDecimal(stat.grossProfit, 1, 'COMMA', 2, 'POINT') : '$0.00'}"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">Work Orders by Entry Date</h6>
+                    <form method="get" action="/processing-sheet/analyst-controller" class="d-flex align-items-center">
+                        <label class="me-3 mb-0 fw-bold text-gray-800 text-uppercase" style="font-size: 0.8rem; letter-spacing: 0.5px;">Entry Date:</label>
+                        <div class="date-picker-wrapper">
+                            <i class="far fa-calendar-alt"></i>
+                            <input type="text" name="date" id="entryDateFlatpickr" class="flatpickr-input" th:value="${currentDate}">
+                        </div>
+                    </form>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover" id="dataTable" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>WO #</th>
+                                    <th>Date Due</th>
+                                    <th>Client Code</th>
+                                    <th>Category</th>
+                                    <th>Address</th>
+                                    <th>Photos</th>
+                                    <th>Analyst</th>
+                                    <th>Status</th>
+                                    <th>Lifeline</th>
+                                    <th>Late Status</th>
+                                    <th>BA FROM (W/O)</th>
+                                    <th>BA BY (ANALYST)</th>
+                                    <th>BID COUNT</th>
+                                    <th>BID AMOUNT</th>
+                                    <th>CLIENT INVOICE</th>
+                                    <th>CREW INVOICE</th>
+                                    <th>NOTES</th>
+                                    <th>ACTIONS</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="wo : ${workOrders}" th:id="'wo-' + ${wo.woNumber}">
+                                    <td class="wo-hover-cell" th:data-wo="${wo.woNumber}" th:text="${wo.woNumber}"></td>
+                                    <td th:text="${wo.dateDue}"></td>
+                                    <td th:text="${wo.clientCode}"></td>
+                                    <td th:text="${wo.category}"></td>
+                                    <td class="wo-hover-cell address-hover" th:data-address="${wo.address}" th:text="${wo.address}"></td>
+                                    <td th:text="${wo.photoCount}"></td>
+                                    <td>
+                                        <select class="form-select form-select-sm border-0 bg-transparent analyst-dropdown" 
+                                                th:data-wo="${wo.woNumber}" 
+                                                style="width: 120px; font-size: 0.85rem; font-weight: 600; color: #5a5c69; cursor: pointer;"
+                                                onchange="updateAnalyst(this)">
+                                            <option value="Unassigned" th:selected="${wo.analyst == null || wo.analyst == 'Unassigned' || wo.analyst == ''}">Unassigned</option>
+                                            <option th:each="emp : ${allAnalysts}" 
+                                                    th:value="${emp.name}" 
+                                                    th:text="${emp.name}"
+                                                    th:selected="${wo.analyst != null and emp.name != null and #strings.equalsIgnoreCase(#strings.trim(wo.analyst), #strings.trim(emp.name))}"></option>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <span class="badge rounded-pill badge-premium status-badge" th:classappend="${wo.status == 'NEW' ? 'badge-new' : 'badge-done'}" th:text="${wo.status}"></span>
+                                    </td>
+                                    <td>
+                                        <a th:href="@{/processing-sheet/lifeline/{wo}(wo=${wo.woNumber})}" class="btn btn-sm btn-outline-primary lifeline-btn" th:data-wo="${wo.woNumber}">
+                                            <i class="fas fa-history"></i>
+                                        </a>
+                                    </td>
+                                    <td th:text="${wo.lateStatus}"></td>
+                                    <td th:text="${wo.baFromWo}"></td>
+                                    <td th:text="${wo.baByAnalyst}"></td>
+                                    <td th:text="${wo.bidCount}"></td>
+                                    <td th:text="${wo.bidAmount != null ? '$' + wo.bidAmount : ''}"></td>
+                                    <td th:text="${wo.clientInvoice != null ? '$' + wo.clientInvoice : ''}"></td>
+                                    <td th:text="${wo.crewInvoice != null ? '$' + wo.crewInvoice : ''}"></td>
+                                    <td th:text="${wo.notes}"></td>
+                                    <td class="text-nowrap">
+                                        <button class="btn btn-sm btn-outline-danger delete-wo-btn" th:data-wo="${wo.woNumber}">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(workOrders)}">
+                                    <td colspan="18" class="text-center text-muted">No Work Orders found for this date.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                let lifelineHoverTimeout;
+                let activeLifelinePopover = null;
+                
+                document.addEventListener('mouseover', function(e) {
+                    const btn = e.target.closest('.lifeline-btn');
+                    if (btn) {
+                        if (btn.dataset.hovering === 'true') return;
+                        btn.dataset.hovering = 'true';
+                        
+                        const woNumber = btn.getAttribute('data-wo');
+                        const btnRect = btn.getBoundingClientRect();
+                        
+                        clearTimeout(lifelineHoverTimeout);
+                        lifelineHoverTimeout = setTimeout(() => {
+                            fetch(`/processing-sheet/api/lifeline?woNumber=${encodeURIComponent(woNumber)}`)
+                                .then(res => res.json())
+                                .then(data => {
+                                    if(activeLifelinePopover) activeLifelinePopover.remove();
+                                    
+                                    const popover = document.createElement('div');
+                                    popover.className = 'lifeline-popover';
+                                    
+                                    let html = `
+                                        <div class="lifeline-popover-header">
+                                            <span>Lifeline: ${woNumber}</span>
+                                            <i class="fas fa-history text-primary"></i>
+                                        </div>
+                                        <div class="lifeline-popover-content">
+                                            <ul class="lifeline-timeline">
+                                    `;
+                                    
+                                    if (data && data.length > 0) {
+                                        data.forEach(log => {
+                                            let date = new Date(log.changedAt).toLocaleString();
+                                            let details = '';
+                                            if (log.actionType === 'IMPORTED' || log.actionType.includes('DUPLICATE')) {
+                                                details = `Imported by ${log.changedByName}`;
+                                            } else {
+                                                details = `Changed from <strong>${log.oldValue || 'empty'}</strong> to <strong>${log.newValue || 'empty'}</strong>`;
+                                            }
+                                            html += `
+                                                <li>
+                                                    <div class="time">${date} &bull; ${log.changedByName}</div>
+                                                    <div class="action">${log.actionType.replace('UPDATED_', 'Updated ')}</div>
+                                                    <div class="details">${details}</div>
+                                                </li>
+                                            `;
+                                        });
+                                    } else {
+                                        html += `<li><div class="text-muted text-center py-3">No history found.</div></li>`;
+                                    }
+                                    
+                                    html += `</ul></div>`;
+                                    popover.innerHTML = html;
+                                    
+                                    document.body.appendChild(popover);
+                                    
+                                    // Position below the button
+                                    popover.style.top = (btnRect.bottom + window.scrollY) + 'px';
+                                    popover.style.left = (btnRect.left + (btnRect.width / 2) + window.scrollX) + 'px';
+                                    
+                                    requestAnimationFrame(() => popover.classList.add('show'));
+                                    activeLifelinePopover = popover;
+                                    
+                                    popover.addEventListener('mouseleave', () => {
+                                        popover.classList.remove('show');
+                                        setTimeout(() => popover.remove(), 300);
+                                    });
+                                    
+                                    const leaveHandler = () => {
+                                        btn.dataset.hovering = 'false';
+                                        setTimeout(() => {
+                                            if (popover && !popover.matches(':hover')) {
+                                                popover.classList.remove('show');
+                                                setTimeout(() => popover.remove(), 300);
+                                            }
+                                        }, 100);
+                                        btn.removeEventListener('mouseleave', leaveHandler);
+                                    };
+                                    btn.addEventListener('mouseleave', leaveHandler);
+                                })
+                                .catch(err => console.error('Error fetching lifeline', err));
+                        }, 300);
+                        
+                        const earlyLeaveHandler = () => {
+                            btn.dataset.hovering = 'false';
+                            clearTimeout(lifelineHoverTimeout);
+                            btn.removeEventListener('mouseleave', earlyLeaveHandler);
+                        };
+                        btn.addEventListener('mouseleave', earlyLeaveHandler);
+                    }
+                });
+            });
+        </script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const hoverCells = document.querySelectorAll('.wo-hover-cell');
+                let hoverTimeout;
+                let activePopover = null;
+                
+                hoverCells.forEach(cell => {
+                    cell.addEventListener('mouseenter', function(e) {
+                        const woNumber = this.getAttribute('data-wo');
+                        const address = this.getAttribute('data-address');
+                        const isAddressHover = this.classList.contains('address-hover');
+                        const cellRect = this.getBoundingClientRect();
+                        
+                        // Clear existing timeout
+                        clearTimeout(hoverTimeout);
+                        
+                        hoverTimeout = setTimeout(() => {
+                            const fetchUrl = isAddressHover 
+                                ? `/processing-sheet/api/address-duplicates?address=${encodeURIComponent(address)}`
+                                : `/processing-sheet/api/duplicates?woNumber=${encodeURIComponent(woNumber)}`;
+                                
+                            fetch(fetchUrl)
+                                .then(response => response.json())
+                                .then(data => {
+                                    // Remove old popover if any
+                                    if(activePopover) activePopover.remove();
+                                    
+                                    if(data && data.length > 0) {
+                                        const popover = document.createElement('div');
+                                        popover.className = 'duplicate-popover';
+                                        
+                                        let headerText = isAddressHover ? `Related Work Orders (${data.length})` : `Related Work Orders (${data.length})`;
+                                        let html = `<div class="duplicate-popover-header">${headerText}</div>`;
+                                        html += `<ul class="duplicate-list">`;
+                                        
+                                        data.forEach(wo => {
+                                            const isCurrent = (isAddressHover && wo.address === address) || (!isAddressHover && wo.woNumber === woNumber);
+                                            html += `
+                                                <li>
+                                                    <a href="/processing-sheet/analyst-controller?date=${wo.entryDate}#wo-${wo.woNumber}"
+                                                       style="${isCurrent ? 'font-weight: 700; text-decoration: underline;' : ''}">
+                                                       ${wo.woNumber}
+                                                    </a>
+                                                    <div style="text-align: right;">
+                                                        ${isAddressHover ? `<div style="font-size: 0.65rem; color: var(--color-primary); margin-bottom: 2px;">Analyst: <strong>${wo.analyst}</strong></div>` : ''}
+                                                        <span class="duplicate-status">${wo.status}</span>
+                                                    </div>
+                                                </li>
+                                            `;
+                                        });
+                                        
+                                        html += `</ul>`;
+                                        popover.innerHTML = html;
+                                        
+                                        // Append to body to avoid clipping
+                                        document.body.appendChild(popover);
+                                        
+                                        // Position it exactly where the cell is
+                                        popover.style.top = (cellRect.bottom + window.scrollY) + 'px';
+                                        popover.style.left = (cellRect.left + (cellRect.width / 2) + window.scrollX) + 'px';
+                                        
+                                        // Trigger animation
+                                        requestAnimationFrame(() => {
+                                            popover.classList.add('show');
+                                        });
+                                        
+                                        activePopover = popover;
+                                        
+                                        // Close when leaving popover area
+                                        popover.addEventListener('mouseleave', () => {
+                                            popover.classList.remove('show');
+                                            setTimeout(() => popover.remove(), 300);
+                                        });
+                                        
+                                        // Close when leaving cell (but allow moving into popover)
+                                        cell.addEventListener('mouseleave', (e) => {
+                                            // Check if moving to popover
+                                            setTimeout(() => {
+                                                if (!popover.matches(':hover')) {
+                                                    popover.classList.remove('show');
+                                                    setTimeout(() => popover.remove(), 300);
+                                                }
+                                            }, 100);
+                                        }, { once: true });
+                                    }
+                                });
+                        }, 300); // 300ms debounce
+                    });
+                    
+                    cell.addEventListener('mouseleave', function() {
+                        clearTimeout(hoverTimeout);
+                    });
+                });
+                
+                // Hide popovers if clicking anywhere outside
+                document.addEventListener('click', function(e) {
+                    if (activePopover && !e.target.closest('.duplicate-popover') && !e.target.closest('.wo-hover-cell')) {
+                        activePopover.classList.remove('show');
+                        setTimeout(() => { if (activePopover) activePopover.remove(); }, 300);
+                    }
+                    const activeLifeline = document.querySelector('.lifeline-popover.show');
+                    if (activeLifeline && !e.target.closest('.lifeline-popover') && !e.target.closest('.lifeline-btn')) {
+                        activeLifeline.classList.remove('show');
+                        setTimeout(() => activeLifeline.remove(), 300);
+                    }
+                });
+                
+                // Scroll into view if hash exists
+                if (window.location.hash) {
+                    setTimeout(() => {
+                        const target = document.querySelector(window.location.hash);
+                        if (target) {
+                            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            target.style.transition = 'background-color 1s ease';
+                            target.style.backgroundColor = 'rgba(59, 130, 246, 0.2)';
+                            setTimeout(() => {
+                                target.style.backgroundColor = '';
+                            }, 2000);
+                        }
+                    }, 100);
+                }
+                
+                // Global error handler
+                window.addEventListener('error', function(e) {
+                    console.error('Global error caught:', e.error);
+                });
+
+                // Analyst Dropdown Update Logic
+                window.updateAnalyst = async function(selectElement) {
+                    const woNumber = selectElement.getAttribute('data-wo');
+                    const newValue = selectElement.value;
+                    const originalValue = selectElement.getAttribute('data-original') || '';
+                    
+                    // Show loading state
+                    selectElement.disabled = true;
+                    selectElement.style.opacity = '0.5';
+
+                    try {
+                        const response = await fetch('/processing-sheet/api/update-wo', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ woNumber, field: 'analyst', value: newValue })
+                        });
+                        
+                        const result = await response.json();
+                        if (result.success) {
+                            // Visual feedback
+                            selectElement.setAttribute('data-original', newValue);
+                            selectElement.style.backgroundColor = '#e8f5e9'; // light green
+                            setTimeout(() => {
+                                selectElement.style.backgroundColor = 'transparent';
+                            }, 1000);
+                        } else {
+                            alert('Failed to update analyst: ' + (result.message || 'Unknown error'));
+                            selectElement.value = originalValue; // revert
+                        }
+                    } catch (error) {
+                        console.error("Error updating analyst:", error);
+                        alert('Network error while updating analyst.');
+                        selectElement.value = originalValue; // revert
+                    } finally {
+                        selectElement.disabled = false;
+                        selectElement.style.opacity = '1';
+                    }
+                }
+                
+                // Initialize original values
+                document.querySelectorAll('.analyst-dropdown').forEach(select => {
+                    select.setAttribute('data-original', select.value);
+                });
+                
+                // Handle Delete button clicks via Event Delegation
+                document.addEventListener('click', function(e) {
+                    console.log('Document clicked! Target:', e.target);
+                    const btn = e.target.closest('.delete-wo-btn');
+                    console.log('Button matched?', btn);
+                    if (btn) {
+                        const woNumber = btn.getAttribute('data-wo');
+                        if (confirm('Are you sure you want to delete Work Order ' + woNumber + '?')) {
+                            fetch('/processing-sheet/api/delete-wo', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({ woNumber: woNumber })
+                            })
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data.success) {
+                                    alert('Work Order deleted successfully.');
+                                    window.location.reload();
+                                } else {
+                                    alert('Failed to delete: ' + (data.message || 'Unknown error'));
+                                }
+                            })
+                            .catch(err => {
+                                console.error('Error deleting WO:', err);
+                                alert('Error deleting work order. Check console.');
+                            });
+                        }
+                    }
+                });
+
+                // Load Flatpickr
+                $.getScript("https://cdn.jsdelivr.net/npm/flatpickr", function() {
+                    flatpickr("#entryDateFlatpickr", {
+                        dateFormat: "Y-m-d",
+                        onChange: function(selectedDates, dateStr, instance) {
+                            instance.element.form.submit();
+                        }
+                    });
+                });
+
+                // Load DataTables dynamically
+                $.getScript("https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js", function() {
+                    $.getScript("https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js", function() {
+                        if (!$.fn.DataTable.isDataTable('#dataTable')) {
+                            $('#dataTable').DataTable({
+                                pageLength: 50,
+                                order: [], // Preserve backend sorting initially
+                                responsive: true,
+                                language: {
+                                    search: "",
+                                    searchPlaceholder: "Search records..."
+                                },
+                                drawCallback: function() {
+                                    // Make sure paginate buttons get classes correctly
+                                    $('.paginate_button').addClass('page-item');
+                                }
+                            });
+                        }
+                    });
+                });
+            });
+        </script>
+    </div>
+</body>
+</html>
