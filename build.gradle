@@ -48,6 +48,8 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok'
     implementation 'nl.martijndwars:web-push:5.1.1'
     implementation 'org.bouncycastle:bcprov-jdk15on:1.70'
+    implementation 'org.apache.commons:commons-imaging:1.0.0-alpha5'
+    implementation 'com.drewnoakes:metadata-extractor:2.19.0'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
