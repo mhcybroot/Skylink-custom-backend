@@ -53,6 +53,7 @@ public class SecurityConfig {
                                                 .requestMatchers("/attendance", "/attendance-history", "/sync").hasAnyRole("ADMIN", "HR")
                                                 .requestMatchers("/supervisor/**").hasAnyRole("ADMIN", "HR", "SUPERVISOR")
                                                 .requestMatchers("/tools/photo-metadata/**", "/api/photo-metadata/**").hasAnyRole("ADMIN", "HR", "EMPLOYEE")
+                                                .requestMatchers("/rtv-sheet/**", "/api/rtv-sheet/**").hasAnyRole("ADMIN", "HR", "EMPLOYEE")
                                                 // Leave Management
                                                 .requestMatchers("/leave/manage/**")
                                                 .hasAnyRole("ADMIN", "HR", "EMPLOYEE")

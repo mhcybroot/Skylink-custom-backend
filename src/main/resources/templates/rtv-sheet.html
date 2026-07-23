@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head>
+    <title>RTV Sheet - Skylink Attendance System</title>
+</head>
+
+<body>
+    <div th:replace="~{layout :: layout(~{::section}, ~{::script}, 'rtv-sheet')}">
+        <section>
+            <style>
+                .badge-status-solved {
+                    background-color: #dcfce7;
+                    color: #15803d;
+                    border: 1px solid #bbf7d0;
+                }
+
+                .badge-status-followup {
+                    background-color: #fef3c7;
+                    color: #b45309;
+                    border: 1px solid #fde68a;
+                }
+
+                .badge-status-waiting {
+                    background-color: #e0f2fe;
+                    color: #0369a1;
+                    border: 1px solid #bae6fd;
+                }
+
+                .badge-status-process {
+                    background-color: #e0e7ff;
+                    color: #4338ca;
+                    border: 1px solid #c7d2fe;
+                }
+
+                .badge-issue-from {
+                    background-color: #f1f5f9;
+                    color: #475569;
+                    border: 1px solid #e2e8f0;
+                    font-size: 0.75rem;
+                }
+
+                /* Timeline CSS */
+                .timeline {
+                    position: relative;
+                    padding-left: 2rem;
+                    margin-top: 1rem;
+                }
+
+                .timeline::before {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    bottom: 0;
+                    left: 0.75rem;
+                    width: 2px;
+                    background: #cbd5e1;
+                }
+
+                .timeline-item {
+                    position: relative;
+                    margin-bottom: 1.5rem;
+                }
+
+                .timeline-icon {
+                    position: absolute;
+                    left: -2rem;
+                    top: 0;
+                    width: 28px;
+                    height: 28px;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 0.75rem;
+                    color: white;
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                }
+
+                .timeline-card {
+                    background: #f8fafc;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 8px;
+                    padding: 0.85rem 1rem;
+                }
+            </style>
+
+            <!-- Page Header Card -->
+            <div class="border-0 shadow-sm rounded-3 mb-4 p-4 text-white" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                        <h3 class="fw-bold mb-1 text-white"><i class="fas fa-clipboard-list text-warning me-2"></i>RTV Sheet</h3>
+                        <p class="text-white-50 small mb-0">Return to Vendor Tracking with Complete Lifecycle Audit History</p>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline-light fw-bold rounded-3 px-3 shadow-sm" onclick="exportToCsv()">
+                            <i class="fas fa-file-csv text-success me-1"></i> Export CSV
+                        </button>
+                        <button class="btn btn-warning fw-bold rounded-3 px-3 shadow-sm" onclick="openAddRtvModal()">
+                            <i class="fas fa-plus me-1"></i> Add RTV Record
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary Stat Cards -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-2 col-sm-6">
+                    <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100">
+                        <span class="text-muted small fw-bold text-uppercase d-block mb-1">Total RTVs</span>
+                        <h3 class="fw-bold mb-0 text-dark" id="statTotal">0</h3>
+                    </div>
+                </div>
+                <div class="col-md-2 col-sm-6">
+                    <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100">
+                        <span class="text-muted small fw-bold text-uppercase d-block mb-1">Solved</span>
+                        <h3 class="fw-bold mb-0 text-success" id="statSolved">0</h3>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100">
+                        <span class="text-muted small fw-bold text-uppercase d-block mb-1">Follow Up</span>
+                        <h3 class="fw-bold mb-0 text-warning" id="statFollowUp">0</h3>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100">
+                        <span class="text-muted small fw-bold text-uppercase d-block mb-1">Waiting For Update</span>
+                        <h3 class="fw-bold mb-0 text-info" id="statWaiting">0</h3>
+                    </div>
+                </div>
+                <div class="col-md-2 col-sm-6">
+                    <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100">
+                        <span class="text-muted small fw-bold text-uppercase d-block mb-1">On Process</span>
+                        <h3 class="fw-bold mb-0 text-primary" id="statOnProcess">0</h3>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters & Search Bar -->
+            <div class="card border-0 shadow-sm rounded-3 mb-4 p-3 bg-white">
+                <div class="row g-2 align-items-center mb-2">
+                    <div class="col-md-3">
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+                            <input type="text" id="searchInput" class="form-control border-start-0" placeholder="Search WO, Client, Details..." onkeyup="filterRtvRecords()">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <select id="statusFilter" class="form-select" onchange="filterRtvRecords()">
+                            <option value="">-- All Statuses --</option>
+                            <option value="SOLVED">SOLVED</option>
+                            <option value="FOLLOW_UP">FOLLOW_UP</option>
+                            <option value="WAITING_FOR_UPDATE">WAITING_FOR_UPDATE</option>
+                            <option value="ON_PROCESS">ON_PROCESS</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select id="issueFromFilter" class="form-select" onchange="filterRtvRecords()">
+                            <option value="">-- All Issue Sources --</option>
+                            <option value="CLIENT">CLIENT</option>
+                            <option value="RVM">RVM</option>
+                            <option value="CT">CT</option>
+                            <option value="PROCESSOR">PROCESSOR</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2.5 col-md-2">
+                        <select id="processorFilter" class="form-select" onchange="filterRtvRecords()">
+                            <option value="">-- All Processors --</option>
+                            <option th:each="emp : ${employees}" th:value="${emp.id}" th:text="${emp.name}"></option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select id="solvedByFilter" class="form-select" onchange="filterRtvRecords()">
+                            <option value="">-- All Solved By --</option>
+                            <option th:each="emp : ${employees}" th:value="${emp.id}" th:text="${emp.name}"></option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row g-2 align-items-center">
+                    <div class="col-md-4">
+                        <div class="input-group">
+                            <span class="input-group-text bg-light text-muted small fw-bold"><i class="far fa-calendar-alt me-1"></i>From Date</span>
+                            <input type="date" id="startDateFilter" class="form-control" onchange="filterRtvRecords()">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="input-group">
+                            <span class="input-group-text bg-light text-muted small fw-bold"><i class="far fa-calendar-alt me-1"></i>To Date</span>
+                            <input type="date" id="endDateFilter" class="form-control" onchange="filterRtvRecords()">
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <button class="btn btn-outline-secondary w-100" onclick="resetFilters()">
+                            <i class="fas fa-redo me-1"></i> Reset Filters
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RTV Data Table -->
+            <div class="card border-0 shadow-sm rounded-3 overflow-hidden bg-white">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" id="rtvTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-3" data-sort="woNumber" onclick="sortTable('woNumber')" style="cursor: pointer; user-select: none;">
+                                    WO Number <i class="fas fa-sort sort-icon text-muted opacity-50 ms-1"></i>
+                                </th>
+                                <th data-sort="clientCode" onclick="sortTable('clientCode')" style="cursor: pointer; user-select: none;">
+                                    Client Code <i class="fas fa-sort sort-icon text-muted opacity-50 ms-1"></i>
+                                </th>
+                                <th data-sort="originalProcessor" onclick="sortTable('originalProcessor')" style="cursor: pointer; user-select: none;">
+                                    Original Processor <i class="fas fa-sort sort-icon text-muted opacity-50 ms-1"></i>
+                                </th>
+                                <th data-sort="rtvSolvedBy" onclick="sortTable('rtvSolvedBy')" style="cursor: pointer; user-select: none;">
+                                    RTV Solved By <i class="fas fa-sort sort-icon text-muted opacity-50 ms-1"></i>
+                                </th>
+                                <th data-sort="issueFrom" onclick="sortTable('issueFrom')" style="cursor: pointer; user-select: none;">
+                                    Issue From <i class="fas fa-sort sort-icon text-muted opacity-50 ms-1"></i>
+                                </th>
+                                <th data-sort="rtvStatus" onclick="sortTable('rtvStatus')" style="cursor: pointer; user-select: none;">
+                                    Status <i class="fas fa-sort sort-icon text-muted opacity-50 ms-1"></i>
+                                </th>
+                                <th data-sort="createdAt" onclick="sortTable('createdAt')" style="cursor: pointer; user-select: none;">
+                                    Created Date <i class="fas fa-sort-down sort-icon text-primary ms-1"></i>
+                                </th>
+                                <th data-sort="details" onclick="sortTable('details')" style="cursor: pointer; user-select: none;">
+                                    Details <i class="fas fa-sort sort-icon text-muted opacity-50 ms-1"></i>
+                                </th>
+                                <th data-sort="notes" onclick="sortTable('notes')" style="cursor: pointer; user-select: none;">
+                                    Notes <i class="fas fa-sort sort-icon text-muted opacity-50 ms-1"></i>
+                                </th>
+                                <th class="text-end pe-3">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rtvTableBody">
+                            <tr>
+                                <td colspan="10" class="text-center py-4 text-muted">
+                                    <i class="fas fa-spinner fa-spin me-2"></i>Loading RTV records...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Add / Edit RTV Modal -->
+            <div class="modal fade" id="rtvModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-lg modal-dialog-centered">
+                    <div class="modal-content border-0 shadow">
+                        <div class="modal-header bg-light">
+                            <h5 class="modal-title fw-bold" id="rtvModalTitle"><i class="fas fa-plus-circle me-2 text-primary"></i>Add RTV Record</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body p-4">
+                            <input type="hidden" id="rtvId">
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold">WO Number <span class="text-danger">*</span></label>
+                                    <input type="text" id="woNumber" class="form-control" placeholder="e.g. WO-99482" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold">Client Code <span class="text-danger">*</span></label>
+                                    <input type="text" id="clientCode" class="form-control" placeholder="e.g. SK-CLIENT-101" required>
+                                </div>
+                            </div>
+
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold">Original Processor <span class="text-danger">*</span></label>
+                                    <select id="originalProcessorId" class="form-select" required>
+                                        <option value="">-- Select Employee --</option>
+                                        <option th:each="emp : ${employees}" th:value="${emp.id}" th:text="${emp.name + ' (' + emp.id + ')'}"></option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold">RTV Solved By</label>
+                                    <select id="rtvSolvedById" class="form-select">
+                                        <option value="">-- Select Employee --</option>
+                                        <option th:each="emp : ${employees}" th:value="${emp.id}" th:text="${emp.name + ' (' + emp.id + ')'}"></option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold">Issue From <span class="text-danger">*</span></label>
+                                    <select id="issueFrom" class="form-select" required>
+                                        <option value="CLIENT">CLIENT</option>
+                                        <option value="RVM">RVM</option>
+                                        <option value="CT">CT</option>
+                                        <option value="PROCESSOR">PROCESSOR</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold">RTV Status</label>
+                                    <select id="rtvStatus" class="form-select">
+                                        <option value="ON_PROCESS">ON_PROCESS</option>
+                                        <option value="WAITING_FOR_UPDATE">WAITING_FOR_UPDATE</option>
+                                        <option value="FOLLOW_UP">FOLLOW_UP</option>
+                                        <option value="SOLVED">SOLVED</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Details <span class="text-danger">*</span></label>
+                                <textarea id="details" class="form-control" rows="3" placeholder="Enter issue details or root cause description..." required></textarea>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Notes</label>
+                                <textarea id="notes" class="form-control" rows="2" placeholder="Additional notes or action steps..."></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer bg-light">
+                            <button type="button" class="btn btn-secondary px-3" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-primary px-4" onclick="saveRtvRecord()"><i class="fas fa-save me-1"></i> Save RTV Record</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lifecycle History Modal -->
+            <div class="modal fade" id="historyModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                    <div class="modal-content border-0 shadow">
+                        <div class="modal-header bg-light">
+                            <h5 class="modal-title fw-bold" id="historyModalTitle"><i class="fas fa-history me-2 text-info"></i>RTV Lifecycle Audit Trail</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body p-4">
+                            <div id="historyTimelineContainer">
+                                <!-- Populated dynamically via JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <script>
+            let allRecords = [];
+            let rtvModal, historyModal;
+            let currentSortColumn = 'createdAt';
+            let currentSortDirection = 'desc';
+
+            document.addEventListener('DOMContentLoaded', () => {
+                rtvModal = new bootstrap.Modal(document.getElementById('rtvModal'));
+                historyModal = new bootstrap.Modal(document.getElementById('historyModal'));
+                loadRtvRecords();
+            });
+
+            function loadRtvRecords() {
+                fetch('/api/rtv-sheet')
+                    .then(res => res.json())
+                    .then(data => {
+                        allRecords = data;
+                        updateStats();
+                        filterRtvRecords();
+                    })
+                    .catch(err => {
+                        console.error("Error loading RTV records:", err);
+                        document.getElementById('rtvTableBody').innerHTML = `
+                            <tr><td colspan="10" class="text-center py-4 text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Failed to load RTV records</td></tr>
+                        `;
+                    });
+            }
+
+            function updateStats() {
+                document.getElementById('statTotal').innerText = allRecords.length;
+                document.getElementById('statSolved').innerText = allRecords.filter(r => r.rtvStatus === 'SOLVED').length;
+                document.getElementById('statFollowUp').innerText = allRecords.filter(r => r.rtvStatus === 'FOLLOW_UP').length;
+                document.getElementById('statWaiting').innerText = allRecords.filter(r => r.rtvStatus === 'WAITING_FOR_UPDATE').length;
+                document.getElementById('statOnProcess').innerText = allRecords.filter(r => r.rtvStatus === 'ON_PROCESS').length;
+            }
+
+            function sortTable(columnKey) {
+                if (currentSortColumn === columnKey) {
+                    currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+                } else {
+                    currentSortColumn = columnKey;
+                    currentSortDirection = 'asc';
+                }
+                updateHeaderSortIcons();
+                filterRtvRecords();
+            }
+
+            function updateHeaderSortIcons() {
+                const headers = document.querySelectorAll('#rtvTable th[data-sort]');
+                headers.forEach(th => {
+                    const key = th.getAttribute('data-sort');
+                    const icon = th.querySelector('.sort-icon');
+                    if (!icon) return;
+
+                    if (key === currentSortColumn) {
+                        icon.className = `fas fa-sort-${currentSortDirection === 'asc' ? 'up' : 'down'} sort-icon text-primary ms-1`;
+                    } else {
+                        icon.className = 'fas fa-sort sort-icon text-muted opacity-50 ms-1';
+                    }
+                });
+            }
+
+            function getSortedRecords(records) {
+                return [...records].sort((a, b) => {
+                    let valA = getFieldValue(a, currentSortColumn);
+                    let valB = getFieldValue(b, currentSortColumn);
+
+                    if (valA == null) valA = '';
+                    if (valB == null) valB = '';
+
+                    let comparison = 0;
+                    if (typeof valA === 'string' && typeof valB === 'string') {
+                        comparison = valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' });
+                    } else {
+                        comparison = valA < valB ? -1 : (valA > valB ? 1 : 0);
+                    }
+
+                    return currentSortDirection === 'asc' ? comparison : -comparison;
+                });
+            }
+
+            function getFieldValue(item, key) {
+                switch (key) {
+                    case 'woNumber': return item.woNumber || '';
+                    case 'clientCode': return item.clientCode || '';
+                    case 'originalProcessor': return item.originalProcessor ? item.originalProcessor.name : '';
+                    case 'rtvSolvedBy': return item.rtvSolvedBy ? item.rtvSolvedBy.name : '';
+                    case 'issueFrom': return item.issueFrom || '';
+                    case 'rtvStatus': return item.rtvStatus || '';
+                    case 'createdAt': return item.createdAt ? new Date(item.createdAt).getTime() : 0;
+                    case 'details': return item.details || '';
+                    case 'notes': return item.notes || '';
+                    default: return '';
+                }
+            }
+
+            function renderTable(records) {
+                const tbody = document.getElementById('rtvTableBody');
+                if (records.length === 0) {
+                    tbody.innerHTML = `
+                        <tr><td colspan="10" class="text-center py-4 text-muted"><i class="fas fa-inbox fa-2x d-block mb-2 text-black-50"></i>No RTV records found</td></tr>
+                    `;
+                    return;
+                }
+
+                tbody.innerHTML = records.map(r => {
+                    const statusBadge = getStatusBadge(r.rtvStatus);
+                    const procName = r.originalProcessor ? r.originalProcessor.name : '<span class="text-muted fst-italic">Unassigned</span>';
+                    const solvedName = r.rtvSolvedBy ? r.rtvSolvedBy.name : '<span class="text-muted fst-italic">Unassigned</span>';
+                    const createdDate = r.createdAt ? new Date(r.createdAt).toLocaleString() : 'N/A';
+
+                    return `
+                        <tr>
+                            <td class="ps-3 fw-bold text-primary">${escapeHtml(r.woNumber)}</td>
+                            <td><span class="badge bg-light text-dark border">${escapeHtml(r.clientCode)}</span></td>
+                            <td>${procName}</td>
+                            <td>${solvedName}</td>
+                            <td><span class="badge badge-issue-from">${r.issueFrom}</span></td>
+                            <td>${statusBadge}</td>
+                            <td><small class="text-muted"><i class="far fa-calendar-alt me-1"></i>${createdDate}</small></td>
+                            <td style="min-width: 180px; max-width: 320px;">
+                                <div style="white-space: normal; word-break: break-word;">
+                                    ${escapeHtml(r.details || 'No details')}
+                                </div>
+                            </td>
+                            <td style="min-width: 150px; max-width: 250px;">
+                                <div class="text-secondary" style="white-space: normal; word-break: break-word;">
+                                    ${r.notes ? escapeHtml(r.notes) : '<span class="text-muted fst-italic">None</span>'}
+                                </div>
+                            </td>
+                            <td class="text-end pe-3">
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-info" onclick="viewLifecycleHistory(${r.id})" title="View Lifecycle History">
+                                        <i class="fas fa-history"></i>
+                                    </button>
+                                    <button class="btn btn-outline-primary" onclick="openEditRtvModal(${r.id})" title="Edit RTV">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger" onclick="deleteRtvRecord(${r.id})" title="Delete RTV">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            function getStatusBadge(status) {
+                switch (status) {
+                    case 'SOLVED':
+                        return '<span class="badge badge-status-solved px-2 py-1"><i class="fas fa-check-circle me-1"></i>SOLVED</span>';
+                    case 'FOLLOW_UP':
+                        return '<span class="badge badge-status-followup px-2 py-1"><i class="fas fa-clock me-1"></i>FOLLOW UP</span>';
+                    case 'WAITING_FOR_UPDATE':
+                        return '<span class="badge badge-status-waiting px-2 py-1"><i class="fas fa-spinner me-1"></i>WAITING FOR UPDATE</span>';
+                    case 'ON_PROCESS':
+                    default:
+                        return '<span class="badge badge-status-process px-2 py-1"><i class="fas fa-cog fa-spin me-1"></i>ON PROCESS</span>';
+                }
+            }
+
+            function filterRtvRecords() {
+                const query = document.getElementById('searchInput').value.toLowerCase();
+                const status = document.getElementById('statusFilter').value;
+                const issue = document.getElementById('issueFromFilter').value;
+                const processorId = document.getElementById('processorFilter').value;
+                const solvedById = document.getElementById('solvedByFilter').value;
+                const startDate = document.getElementById('startDateFilter').value;
+                const endDate = document.getElementById('endDateFilter').value;
+
+                const filtered = allRecords.filter(r => {
+                    const matchesQuery = !query || 
+                        (r.woNumber && r.woNumber.toLowerCase().includes(query)) ||
+                        (r.clientCode && r.clientCode.toLowerCase().includes(query)) ||
+                        (r.details && r.details.toLowerCase().includes(query)) ||
+                        (r.notes && r.notes.toLowerCase().includes(query)) ||
+                        (r.originalProcessor && r.originalProcessor.name.toLowerCase().includes(query)) ||
+                        (r.rtvSolvedBy && r.rtvSolvedBy.name.toLowerCase().includes(query));
+
+                    const matchesStatus = !status || r.rtvStatus === status;
+                    const matchesIssue = !issue || r.issueFrom === issue;
+                    const matchesProcessor = !processorId || (r.originalProcessor && String(r.originalProcessor.id) === String(processorId));
+                    const matchesSolvedBy = !solvedById || (r.rtvSolvedBy && String(r.rtvSolvedBy.id) === String(solvedById));
+
+                    let matchesDateRange = true;
+                    if (r.createdAt) {
+                        const recordDate = new Date(r.createdAt);
+                        if (startDate) {
+                            const start = new Date(startDate + 'T00:00:00');
+                            if (recordDate < start) matchesDateRange = false;
+                        }
+                        if (endDate) {
+                            const end = new Date(endDate + 'T23:59:59');
+                            if (recordDate > end) matchesDateRange = false;
+                        }
+                    } else if (startDate || endDate) {
+                        matchesDateRange = false;
+                    }
+
+                    return matchesQuery && matchesStatus && matchesIssue && matchesProcessor && matchesSolvedBy && matchesDateRange;
+                });
+
+                const sorted = getSortedRecords(filtered);
+                renderTable(sorted);
+            }
+
+            function resetFilters() {
+                document.getElementById('searchInput').value = '';
+                document.getElementById('statusFilter').value = '';
+                document.getElementById('issueFromFilter').value = '';
+                document.getElementById('processorFilter').value = '';
+                document.getElementById('solvedByFilter').value = '';
+                document.getElementById('startDateFilter').value = '';
+                document.getElementById('endDateFilter').value = '';
+                filterRtvRecords();
+            }
+
+            function getActiveFilteredRecords() {
+                const query = document.getElementById('searchInput').value.toLowerCase();
+                const status = document.getElementById('statusFilter').value;
+                const issue = document.getElementById('issueFromFilter').value;
+                const processorId = document.getElementById('processorFilter').value;
+                const solvedById = document.getElementById('solvedByFilter').value;
+                const startDate = document.getElementById('startDateFilter').value;
+                const endDate = document.getElementById('endDateFilter').value;
+
+                const filtered = allRecords.filter(r => {
+                    const matchesQuery = !query || 
+                        (r.woNumber && r.woNumber.toLowerCase().includes(query)) ||
+                        (r.clientCode && r.clientCode.toLowerCase().includes(query)) ||
+                        (r.details && r.details.toLowerCase().includes(query)) ||
+                        (r.notes && r.notes.toLowerCase().includes(query)) ||
+                        (r.originalProcessor && r.originalProcessor.name.toLowerCase().includes(query)) ||
+                        (r.rtvSolvedBy && r.rtvSolvedBy.name.toLowerCase().includes(query));
+
+                    const matchesStatus = !status || r.rtvStatus === status;
+                    const matchesIssue = !issue || r.issueFrom === issue;
+                    const matchesProcessor = !processorId || (r.originalProcessor && String(r.originalProcessor.id) === String(processorId));
+                    const matchesSolvedBy = !solvedById || (r.rtvSolvedBy && String(r.rtvSolvedBy.id) === String(solvedById));
+
+                    let matchesDateRange = true;
+                    if (r.createdAt) {
+                        const recordDate = new Date(r.createdAt);
+                        if (startDate) {
+                            const start = new Date(startDate + 'T00:00:00');
+                            if (recordDate < start) matchesDateRange = false;
+                        }
+                        if (endDate) {
+                            const end = new Date(endDate + 'T23:59:59');
+                            if (recordDate > end) matchesDateRange = false;
+                        }
+                    } else if (startDate || endDate) {
+                        matchesDateRange = false;
+                    }
+
+                    return matchesQuery && matchesStatus && matchesIssue && matchesProcessor && matchesSolvedBy && matchesDateRange;
+                });
+
+                return getSortedRecords(filtered);
+            }
+
+            function exportToCsv() {
+                const records = getActiveFilteredRecords();
+                if (!records || records.length === 0) {
+                    alert("No RTV records available to export!");
+                    return;
+                }
+
+                const headers = ["Record ID", "WO Number", "Client Code", "Original Processor", "RTV Solved By", "Issue From", "RTV Status", "Created Date", "Details", "Notes"];
+                const csvRows = [];
+                csvRows.push(headers.map(h => escapeCsv(h)).join(","));
+
+                records.forEach(r => {
+                    const procName = r.originalProcessor ? r.originalProcessor.name : '';
+                    const solvedName = r.rtvSolvedBy ? r.rtvSolvedBy.name : '';
+                    const createdDate = r.createdAt ? new Date(r.createdAt).toLocaleString() : '';
+
+                    const row = [
+                        r.id,
+                        r.woNumber || '',
+                        r.clientCode || '',
+                        procName,
+                        solvedName,
+                        r.issueFrom || '',
+                        r.rtvStatus || '',
+                        createdDate,
+                        r.details || '',
+                        r.notes || ''
+                    ];
+
+                    csvRows.push(row.map(val => escapeCsv(val)).join(","));
+                });
+
+                const csvString = csvRows.join("\n");
+                const blob = new Blob(["\ufeff" + csvString], { type: "text/csv;charset=utf-8;" });
+                const url = URL.createObjectURL(blob);
+
+                const now = new Date();
+                const dateStr = now.toISOString().slice(0, 10);
+                const timeStr = now.toTimeString().slice(0, 5).replace(':', '');
+                const filename = `RTV_Sheet_Export_${dateStr}_${timeStr}.csv`;
+
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+
+            function escapeCsv(str) {
+                if (str == null) return '""';
+                const stringVal = String(str);
+                const escaped = stringVal.replace(/"/g, '""');
+                return `"${escaped}"`;
+            }
+
+            function openAddRtvModal() {
+                document.getElementById('rtvId').value = '';
+                document.getElementById('woNumber').value = '';
+                document.getElementById('clientCode').value = '';
+                document.getElementById('originalProcessorId').value = '';
+                document.getElementById('rtvSolvedById').value = '';
+                document.getElementById('issueFrom').value = 'CLIENT';
+                document.getElementById('rtvStatus').value = 'ON_PROCESS';
+                document.getElementById('details').value = '';
+                document.getElementById('notes').value = '';
+
+                document.getElementById('rtvModalTitle').innerHTML = '<i class="fas fa-plus-circle me-2 text-primary"></i>Add RTV Record';
+                rtvModal.show();
+            }
+
+            function openEditRtvModal(id) {
+                const record = allRecords.find(r => r.id === id);
+                if (!record) return;
+
+                document.getElementById('rtvId').value = record.id;
+                document.getElementById('woNumber').value = record.woNumber || '';
+                document.getElementById('clientCode').value = record.clientCode || '';
+                document.getElementById('originalProcessorId').value = record.originalProcessor ? record.originalProcessor.id : '';
+                document.getElementById('rtvSolvedById').value = record.rtvSolvedBy ? record.rtvSolvedBy.id : '';
+                document.getElementById('issueFrom').value = record.issueFrom || 'CLIENT';
+                document.getElementById('rtvStatus').value = record.rtvStatus || 'ON_PROCESS';
+                document.getElementById('details').value = record.details || '';
+                document.getElementById('notes').value = record.notes || '';
+
+                document.getElementById('rtvModalTitle').innerHTML = '<i class="fas fa-edit me-2 text-primary"></i>Edit RTV Record';
+                rtvModal.show();
+            }
+
+            function saveRtvRecord() {
+                const id = document.getElementById('rtvId').value;
+                const payload = {
+                    woNumber: document.getElementById('woNumber').value.trim(),
+                    clientCode: document.getElementById('clientCode').value.trim(),
+                    originalProcessorId: document.getElementById('originalProcessorId').value,
+                    rtvSolvedById: document.getElementById('rtvSolvedById').value,
+                    issueFrom: document.getElementById('issueFrom').value,
+                    rtvStatus: document.getElementById('rtvStatus').value,
+                    details: document.getElementById('details').value.trim(),
+                    notes: document.getElementById('notes').value.trim()
+                };
+
+                if (!payload.woNumber || !payload.clientCode || !payload.originalProcessorId || !payload.issueFrom || !payload.details) {
+                    alert("Please fill in all mandatory fields: WO Number, Client Code, Original Processor, Issue From, and Details.");
+                    return;
+                }
+
+                const method = id ? 'PUT' : 'POST';
+                const url = id ? `/api/rtv-sheet/${id}` : '/api/rtv-sheet';
+
+                fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                })
+                .then(res => {
+                    if (!res.ok) throw new Error("Failed to save RTV record");
+                    return res.json();
+                })
+                .then(() => {
+                    rtvModal.hide();
+                    loadRtvRecords();
+                })
+                .catch(err => alert("Error: " + err.message));
+            }
+
+            function deleteRtvRecord(id) {
+                if (!confirm("Are you sure you want to delete this RTV record? This action will be logged in the audit trail.")) return;
+
+                fetch(`/api/rtv-sheet/${id}`, { method: 'DELETE' })
+                    .then(res => {
+                        if (!res.ok) throw new Error("Failed to delete record");
+                        loadRtvRecords();
+                    })
+                    .catch(err => alert("Error: " + err.message));
+            }
+
+            function viewLifecycleHistory(id) {
+                const record = allRecords.find(r => r.id === id);
+                const container = document.getElementById('historyTimelineContainer');
+                container.innerHTML = `<div class="text-center py-4"><i class="fas fa-spinner fa-spin me-2"></i>Loading history...</div>`;
+                
+                document.getElementById('historyModalTitle').innerHTML = `
+                    <i class="fas fa-history me-2 text-info"></i>Lifecycle History: <span class="text-primary">${record ? escapeHtml(record.woNumber) : ''}</span>
+                `;
+                historyModal.show();
+
+                fetch(`/api/rtv-sheet/${id}/history`)
+                    .then(res => res.json())
+                    .then(logs => {
+                        if (logs.length === 0) {
+                            container.innerHTML = `<div class="text-muted text-center py-4">No audit logs recorded for this record.</div>`;
+                            return;
+                        }
+
+                        container.innerHTML = `
+                            <div class="timeline">
+                                ${logs.map(log => {
+                                    const badgeClass = getActionBadgeClass(log.actionType);
+                                    const iconClass = getActionIcon(log.actionType);
+                                    const formattedTime = new Date(log.timestamp).toLocaleString();
+
+                                    return `
+                                        <div class="timeline-item">
+                                            <div class="timeline-icon ${badgeClass}">
+                                                <i class="fas ${iconClass}"></i>
+                                            </div>
+                                            <div class="timeline-card">
+                                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                                    <span class="badge ${badgeClass}">${log.actionType}</span>
+                                                    <small class="text-muted"><i class="far fa-clock me-1"></i>${formattedTime}</small>
+                                                </div>
+                                                <div class="fw-bold text-dark small mb-1">
+                                                    <i class="fas fa-user-circle text-secondary me-1"></i>${escapeHtml(log.actorFullName || log.actorUsername)}
+                                                </div>
+                                                <p class="mb-1 text-secondary small">${escapeHtml(log.changeDescription || '')}</p>
+                                                ${log.fieldName && log.fieldName !== 'RECORD' ? `
+                                                    <div class="mt-2 pt-2 border-top small bg-white p-2 rounded">
+                                                        <span class="fw-bold text-dark">${escapeHtml(log.fieldName)}:</span>
+                                                        <span class="text-danger text-decoration-line-through me-2">${escapeHtml(log.oldValue || 'Empty')}</span>
+                                                        <i class="fas fa-arrow-right text-muted me-2" style="font-size: 0.75rem;"></i>
+                                                        <span class="text-success fw-bold">${escapeHtml(log.newValue || 'Empty')}</span>
+                                                    </div>
+                                                ` : ''}
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        `;
+                    })
+                    .catch(err => {
+                        container.innerHTML = `<div class="text-danger text-center py-4">Failed to load history: ${err.message}</div>`;
+                    });
+            }
+
+            function getActionBadgeClass(action) {
+                switch (action) {
+                    case 'CREATED': return 'bg-success text-white';
+                    case 'STATUS_CHANGED': return 'bg-warning text-dark';
+                    case 'DELETED': return 'bg-danger text-white';
+                    case 'UPDATED':
+                    default: return 'bg-primary text-white';
+                }
+            }
+
+            function getActionIcon(action) {
+                switch (action) {
+                    case 'CREATED': return 'fa-plus';
+                    case 'STATUS_CHANGED': return 'fa-exchange-alt';
+                    case 'DELETED': return 'fa-trash';
+                    case 'UPDATED':
+                    default: return 'fa-edit';
+                }
+            }
+
+            function escapeHtml(str) {
+                if (!str) return '';
+                return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+            }
+        </script>
+    </div>
+</body>
+
+</html>
