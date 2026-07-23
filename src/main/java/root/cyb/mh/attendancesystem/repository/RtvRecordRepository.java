@@ -13,4 +13,6 @@ public interface RtvRecordRepository extends JpaRepository<RtvRecord, Long> {
     List<RtvRecord> findByIsDeletedFalseOrderByCreatedAtDesc();
 
     List<RtvRecord> findByIsDeletedFalseAndRtvStatusOrderByCreatedAtDesc(RtvStatusEnum rtvStatus);
+
+    List<RtvRecord> findByIsDeletedTrueOrderByUpdatedAtDesc();
 }

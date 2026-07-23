@@ -4,5 +4,6 @@ public enum RtvActionTypeEnum {
     CREATED,
     UPDATED,
     STATUS_CHANGED,
-    DELETED
+    DELETED,
+    RESTORED
 }

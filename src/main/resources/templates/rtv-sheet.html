@@ -96,6 +96,9 @@
                         <button class="btn btn-outline-light fw-bold rounded-3 px-3 shadow-sm" onclick="exportToCsv()">
                             <i class="fas fa-file-csv text-success me-1"></i> Export CSV
                         </button>
+                        <button class="btn btn-outline-danger fw-bold rounded-3 px-3 shadow-sm" onclick="openDeletedHistoryModal()">
+                            <i class="fas fa-trash-restore me-1"></i> Deleted History
+                        </button>
                         <button class="btn btn-warning fw-bold rounded-3 px-3 shadow-sm" onclick="openAddRtvModal()">
                             <i class="fas fa-plus me-1"></i> Add RTV Record
                         </button>
@@ -339,17 +342,43 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Deleted History Modal -->
+            <div class="modal fade" id="deletedHistoryModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                    <div class="modal-content border-0 shadow">
+                        <div class="modal-header" style="background: linear-gradient(135deg, #7f1d1d 0%, #450a0a 100%);">
+                            <h5 class="modal-title fw-bold text-white">
+                                <i class="fas fa-trash-restore me-2 text-danger"></i>Deleted RTV Records History
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body p-0">
+                            <div id="deletedHistoryContainer" class="p-3">
+                                <div class="text-center py-4 text-muted">
+                                    <i class="fas fa-spinner fa-spin me-2"></i>Loading deleted records...
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer bg-light">
+                            <small class="text-muted me-auto"><i class="fas fa-info-circle me-1"></i>Restored records will reappear in the main RTV table.</small>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </section>
 
         <script>
             let allRecords = [];
-            let rtvModal, historyModal;
+            let rtvModal, historyModal, deletedHistoryModal;
             let currentSortColumn = 'createdAt';
             let currentSortDirection = 'desc';
 
             document.addEventListener('DOMContentLoaded', () => {
                 rtvModal = new bootstrap.Modal(document.getElementById('rtvModal'));
                 historyModal = new bootstrap.Modal(document.getElementById('historyModal'));
+                deletedHistoryModal = new bootstrap.Modal(document.getElementById('deletedHistoryModal'));
                 loadRtvRecords();
             });
 
@@ -805,6 +834,7 @@
                     case 'CREATED': return 'bg-success text-white';
                     case 'STATUS_CHANGED': return 'bg-warning text-dark';
                     case 'DELETED': return 'bg-danger text-white';
+                    case 'RESTORED': return 'bg-teal text-white';
                     case 'UPDATED':
                     default: return 'bg-primary text-white';
                 }
@@ -815,9 +845,90 @@
                     case 'CREATED': return 'fa-plus';
                     case 'STATUS_CHANGED': return 'fa-exchange-alt';
                     case 'DELETED': return 'fa-trash';
+                    case 'RESTORED': return 'fa-trash-restore';
                     case 'UPDATED':
                     default: return 'fa-edit';
                 }
+            }
+
+            function openDeletedHistoryModal() {
+                const container = document.getElementById('deletedHistoryContainer');
+                container.innerHTML = `<div class="text-center py-4 text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Loading deleted records...</div>`;
+                deletedHistoryModal.show();
+
+                fetch('/api/rtv-sheet/deleted')
+                    .then(res => res.json())
+                    .then(records => renderDeletedHistory(records))
+                    .catch(err => {
+                        container.innerHTML = `<div class="text-danger text-center py-4"><i class="fas fa-exclamation-triangle me-2"></i>Failed to load deleted records: ${escapeHtml(err.message)}</div>`;
+                    });
+            }
+
+            function renderDeletedHistory(records) {
+                const container = document.getElementById('deletedHistoryContainer');
+                if (!records || records.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-5 text-muted">
+                            <i class="fas fa-trash fa-3x d-block mb-3 opacity-25"></i>
+                            <p class="fw-bold">No deleted records found.</p>
+                            <small>All RTV records are currently active.</small>
+                        </div>`;
+                    return;
+                }
+
+                container.innerHTML = `
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-danger">
+                                <tr>
+                                    <th class="ps-3">WO Number</th>
+                                    <th>Client Code</th>
+                                    <th>Original Processor</th>
+                                    <th>Issue From</th>
+                                    <th>Status</th>
+                                    <th>Deleted At</th>
+                                    <th>Details</th>
+                                    <th class="text-end pe-3">Restore</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${records.map(r => {
+                                    const procName = r.originalProcessor ? escapeHtml(r.originalProcessor.name) : '<span class="text-muted fst-italic">Unassigned</span>';
+                                    const deletedAt = r.updatedAt ? new Date(r.updatedAt).toLocaleString() : 'N/A';
+                                    const statusBadge = getStatusBadge(r.rtvStatus);
+                                    return `
+                                        <tr>
+                                            <td class="ps-3 fw-bold text-danger">${escapeHtml(r.woNumber)}</td>
+                                            <td><span class="badge bg-light text-dark border">${escapeHtml(r.clientCode)}</span></td>
+                                            <td>${procName}</td>
+                                            <td><span class="badge badge-issue-from">${escapeHtml(r.issueFrom)}</span></td>
+                                            <td>${statusBadge}</td>
+                                            <td><small class="text-muted"><i class="far fa-calendar-alt me-1"></i>${deletedAt}</small></td>
+                                            <td style="max-width: 220px;"><div style="white-space: normal; word-break: break-word;">${escapeHtml(r.details || '')}</div></td>
+                                            <td class="text-end pe-3">
+                                                <button class="btn btn-sm btn-success" onclick="restoreRtvRecord(${r.id})" title="Restore this record">
+                                                    <i class="fas fa-trash-restore me-1"></i>Restore
+                                                </button>
+                                            </td>
+                                        </tr>`;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>`;
+            }
+
+            function restoreRtvRecord(id) {
+                if (!confirm("Restore this RTV record? It will reappear in the active table.")) return;
+                fetch(`/api/rtv-sheet/${id}/restore`, { method: 'POST' })
+                    .then(res => {
+                        if (!res.ok) throw new Error("Failed to restore record");
+                        return res.json();
+                    })
+                    .then(() => {
+                        loadRtvRecords();
+                        openDeletedHistoryModal(); // Refresh deleted list
+                    })
+                    .catch(err => alert("Error: " + err.message));
             }
 
             function escapeHtml(str) {

@@ -127,6 +127,26 @@ public class RtvSheetService {
                 "RECORD", record.getWoNumber(), "DELETED", "RTV Record for WO " + record.getWoNumber() + " was deleted");
     }
 
+    public List<RtvRecord> getDeletedRecords() {
+        return rtvRecordRepository.findByIsDeletedTrueOrderByUpdatedAtDesc();
+    }
+
+    @Transactional
+    public RtvRecord restoreRecord(Long id, String username) {
+        RtvRecord record = rtvRecordRepository.findById(id)
+                .filter(r -> Boolean.TRUE.equals(r.getIsDeleted()))
+                .orElseThrow(() -> new RuntimeException("Deleted RTV Record not found with ID: " + id));
+
+        record.setIsDeleted(false);
+        RtvRecord restored = rtvRecordRepository.save(record);
+
+        String actorName = resolveActorName(username);
+        createAuditLog(id, record.getWoNumber(), RtvActionTypeEnum.RESTORED, username, actorName,
+                "RECORD", "DELETED", record.getWoNumber(), "RTV Record for WO " + record.getWoNumber() + " was restored");
+
+        return restored;
+    }
+
     public List<RtvAuditLog> getLifecycleHistory(Long rtvId) {
         return rtvAuditLogRepository.findByRtvIdOrderByTimestampDesc(rtvId);
     }

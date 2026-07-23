@@ -72,4 +72,19 @@ public class RtvSheetController {
     public ResponseEntity<List<RtvAuditLog>> getLifecycleHistory(@PathVariable Long id) {
         return ResponseEntity.ok(rtvSheetService.getLifecycleHistory(id));
     }
+
+    @GetMapping("/api/rtv-sheet/deleted")
+    @ResponseBody
+    @PreAuthorize("hasAnyRole('EMPLOYEE', 'HR', 'ADMIN')")
+    public ResponseEntity<List<RtvRecord>> getDeletedRecords() {
+        return ResponseEntity.ok(rtvSheetService.getDeletedRecords());
+    }
+
+    @PostMapping("/api/rtv-sheet/{id}/restore")
+    @ResponseBody
+    @PreAuthorize("hasAnyRole('EMPLOYEE', 'HR', 'ADMIN')")
+    public ResponseEntity<RtvRecord> restoreRecord(@PathVariable Long id, Principal principal) {
+        String username = (principal != null) ? principal.getName() : "system";
+        return ResponseEntity.ok(rtvSheetService.restoreRecord(id, username));
+    }
 }
