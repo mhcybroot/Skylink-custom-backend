@@ -29,6 +29,8 @@ public class DashboardStatsDTO {
     private long approvedCount;
     private long rejectedCount;
     private long pendingCount;
+    private long holdCount;
+    private BigDecimal holdAmount;
 
     // [NEW] Trends & Analysis
     private Map<String, BigDecimal> monthlySpendingTrend; // Month -> Amount

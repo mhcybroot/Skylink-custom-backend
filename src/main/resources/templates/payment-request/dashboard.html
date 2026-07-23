@@ -94,9 +94,9 @@
                     </div>
                 </div>
 
-                <!-- Row 1.5: Financial Deep Dive (4 Widgets) -->
+                <!-- Row 1.5: Financial Deep Dive (5 Widgets) -->
                 <div class="row g-4 mb-4 fade-in-up" style="animation-delay: 0.15s;">
-                    <div class="col-md-6 col-xl-3">
+                    <div class="col-md-6 col-lg">
                         <div class="card border-0 shadow-sm h-100">
                             <div class="card-body">
                                 <h6 class="text-uppercase text-muted small fw-bold">Paid This Month</h6>
@@ -105,7 +105,16 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-6 col-xl-3">
+                    <div class="col-md-6 col-lg">
+                        <div class="card border-0 shadow-sm h-100 border-start border-4 border-secondary">
+                            <div class="card-body">
+                                <h6 class="text-uppercase text-muted small fw-bold">Total On Hold</h6>
+                                <h4 class="fw-bold text-secondary mb-0" th:text="${stats.holdCount}">0</h4>
+                                <small class="text-secondary" th:text="${'Total: $' + stats.holdAmount}">Total: $0.00</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg">
                         <div class="card border-0 shadow-sm h-100">
                             <div class="card-body">
                                 <h6 class="text-uppercase text-muted small fw-bold">Avg Request Size</h6>
@@ -115,7 +124,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-6 col-xl-3">
+                    <div class="col-md-6 col-lg">
                         <div class="card border-0 shadow-sm h-100">
                             <div class="card-body">
                                 <h6 class="text-uppercase text-muted small fw-bold">Approved Liability</h6>
@@ -125,7 +134,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-6 col-xl-3">
+                    <div class="col-md-6 col-lg">
                         <div class="card border-0 shadow-sm h-100">
                             <div class="card-body">
                                 <div class="d-flex justify-content-between">
@@ -347,11 +356,11 @@
                                         </td>
                                         <td class="fw-bold text-dark" th:text="${'$' + req.amount}"></td>
                                         <td>
-                                            <span th:text="${req.status}"
-                                                th:class="${'badge rounded-pill ' + 
+                                            <span th:class="${'badge rounded-1 fw-medium px-2 py-1 ' + 
                                                 (req.status.name() == 'APPROVED' ? 'bg-success' : 
-                                                (req.status.name() == 'REJECTED' ? 'bg-danger' : 'bg-warning text-dark'))}">
-                                            </span>
+                                                (req.status.name() == 'REJECTED' ? 'bg-danger' : 
+                                                (req.status.name() == 'HOLD' ? 'bg-secondary' : 'bg-warning text-dark')))}"
+                                                th:text="${req.status}"></span>
                                         </td>
                                         <td class="text-end pe-4">
                                             <a th:href="@{/payment-requests/{id}(id=${req.id})}"

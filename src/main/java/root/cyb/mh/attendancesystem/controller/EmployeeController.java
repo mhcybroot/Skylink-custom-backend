@@ -84,7 +84,7 @@ public class EmployeeController {
                 existing.setAnalystController(employee.isAnalystController());
                 existing.setAnnualLeaveQuota(employee.getAnnualLeaveQuota()); // Update Quota
                 existing.setJoiningDate(employee.getJoiningDate()); // Update Joining Date
-                existing.setJoiningDate(employee.getJoiningDate()); // Update Joining Date
+                existing.setDateOfBirth(employee.getDateOfBirth()); // Update Date of Birth
                 existing.setMonthlySalary(employee.getMonthlySalary()); // Update Monthly Salary
                 existing.setFixedAllowance(employee.getFixedAllowance()); // Update Fixed Allowance
                 existing.setBankName(employee.getBankName()); // Update Bank Name
@@ -209,6 +209,15 @@ public class EmployeeController {
     public String deleteEmployeeResource(@PathVariable String empId, @PathVariable Long resourceId) {
         sharedResourceRepository.deleteById(resourceId);
         return "redirect:/employees/" + empId + "/resources";
+    }
+
+    @PostMapping("/{empId}/force-logout-extension")
+    public String forceLogoutExtension(@PathVariable String empId) {
+        employeeRepository.findById(empId).ifPresent(emp -> {
+            emp.setExtensionForceLogout(true);
+            employeeRepository.save(emp);
+        });
+        return "redirect:/employees";
     }
 
 }

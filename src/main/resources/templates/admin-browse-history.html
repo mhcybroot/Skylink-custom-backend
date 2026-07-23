@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <title>Employee Browse History</title>
+</head>
+
+<body>
+    <div th:replace="~{layout :: layout(~{::section}, ~{::script}, 'browse-history')}">
+        <section>
+            <div class="row mb-3">
+                <div class="col-12 d-flex justify-content-between align-items-center">
+                    <div>
+                        <h3 class="fw-bold"><i class="fas fa-history text-primary me-2"></i>Employee Browse History</h3>
+                        <p class="text-muted mb-0">View timeline of websites visited by employees.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- LEFT PANEL: TREE VIEW -->
+                <div class="col-md-3">
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-white py-3 border-bottom-0">
+                            <h6 class="mb-0 fw-bold"><i class="fas fa-users text-muted me-2"></i>Employees</h6>
+                        </div>
+                        <div class="card-body p-0">
+                            <!-- Simple accordion for employees -->
+                            <div class="accordion accordion-flush" id="employeeTree" style="max-height: 700px; overflow-y: auto;">
+                                <div class="accordion-item" th:each="emp : ${employees}">
+                                    <h2 class="accordion-header" th:id="'heading' + ${emp.id}">
+                                        <button class="accordion-button collapsed py-2 px-3 employee-tree-btn" type="button" 
+                                                data-bs-toggle="collapse" 
+                                                th:data-bs-target="'#collapse' + ${emp.id}" 
+                                                aria-expanded="false" 
+                                                th:aria-controls="'collapse' + ${emp.id}"
+                                                th:data-employee-id="${emp.id}"
+                                                th:data-employee-name="${emp.name}">
+                                            <i class="fas fa-user-circle text-secondary me-2"></i>
+                                            <span th:text="${emp.name}">Employee</span>
+                                        </button>
+                                    </h2>
+                                    <div th:id="'collapse' + ${emp.id}" class="accordion-collapse collapse" 
+                                         th:aria-labelledby="'heading' + ${emp.id}" 
+                                         data-bs-parent="#employeeTree">
+                                        <div class="accordion-body p-0 bg-light">
+                                            <!-- Dates will be loaded here via AJAX -->
+                                            <div class="text-center p-3 small text-muted loading-spinner" style="display:none;">
+                                                <div class="spinner-border spinner-border-sm" role="status"></div> Loading dates...
+                                            </div>
+                                            <ul class="list-group list-group-flush dates-list" style="font-size: 0.85rem;">
+                                                <!-- Dynamic items -->
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RIGHT PANEL: TIMELINE & FILTERS -->
+                <div class="col-md-9">
+                    <!-- Advanced Filters -->
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-white py-3" data-bs-toggle="collapse" data-bs-target="#filterCollapse" style="cursor: pointer;">
+                            <h6 class="mb-0 fw-bold"><i class="fas fa-filter text-muted me-2"></i>Timeline Filters <span class="float-end"><i class="fas fa-chevron-down text-muted"></i></span></h6>
+                        </div>
+                        <div id="filterCollapse" class="collapse show">
+                            <div class="card-body">
+                                <form th:action="@{/admin/browse-history}" method="get" id="filterForm">
+                                    <!-- Keep hidden employeeSearch if someone clicked the tree -->
+                                    <input type="hidden" name="employeeSearch" th:value="${employeeSearch}">
+                                    <input type="hidden" name="startDate" th:value="${startDate}">
+                                    <input type="hidden" name="endDate" th:value="${endDate}">
+
+                                    <div class="row g-3">
+                                        <div class="col-md-3">
+                                            <label class="form-label small fw-bold">Domain</label>
+                                            <select name="domain" class="form-control form-control-sm select2-domain" data-placeholder="e.g. facebook.com">
+                                                <option th:if="${domainSearch != null and !domainSearch.isEmpty()}" th:value="${domainSearch}" th:text="${domainSearch}" selected></option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label small fw-bold">URL Contains</label>
+                                            <select name="url" class="form-control form-control-sm select2-url" data-placeholder="e.g. messages">
+                                                <option th:if="${urlSearch != null and !urlSearch.isEmpty()}" th:value="${urlSearch}" th:text="${urlSearch}" selected></option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label small fw-bold">Page Title Contains</label>
+                                            <select name="title" class="form-control form-control-sm select2-title" data-placeholder="e.g. Facebook">
+                                                <option th:if="${titleSearch != null and !titleSearch.isEmpty()}" th:value="${titleSearch}" th:text="${titleSearch}" selected></option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3 d-flex align-items-end">
+                                            <a th:href="@{/admin/browse-history}" class="btn btn-sm btn-outline-secondary me-2 w-100">Clear</a>
+                                            <button type="submit" class="btn btn-sm btn-primary w-100">Filter</button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Timeline View -->
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-white py-3 border-bottom-0 d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="fw-bold text-dark" th:if="${employeeSearch != null}">
+                                    <i class="fas fa-calendar-day me-2 text-primary"></i> Timeline for <span th:text="${employeeSearch}"></span>
+                                    <span th:if="${startDate != null}"> on <span th:text="${startDate}"></span></span>
+                                </span>
+                                <span class="fw-bold text-dark" th:if="${employeeSearch == null}">
+                                    <i class="fas fa-globe me-2 text-primary"></i> Global Timeline
+                                </span>
+                            </div>
+                            <span class="text-muted small"><span th:text="${historyPage.totalElements}"></span> events</span>
+                        </div>
+                        <div class="card-body p-4 bg-light">
+                            
+                            <!-- Timeline container -->
+                            <div class="position-relative" style="border-left: 2px solid #e9ecef; margin-left: 10px;" th:if="${!historyPage.empty}">
+                                
+                                <div class="position-relative mb-4 ms-4" th:each="history : ${historyPage.content}">
+                                    <!-- Timeline Dot -->
+                                    <span class="position-absolute rounded-circle bg-primary" 
+                                          style="width: 12px; height: 12px; left: -31px; top: 15px; border: 2px solid white; box-shadow: 0 0 0 2px #0d6efd;"></span>
+                                    
+                                    <!-- Timeline Card -->
+                                    <div class="card shadow-sm border-0" style="transition: transform 0.2s;" onmouseover="this.style.transform='translateX(5px)'" onmouseout="this.style.transform='translateX(0)'">
+                                        <div class="card-body p-3">
+                                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                                <div class="fw-bold text-dark">
+                                                    <img th:src="'https://www.google.com/s2/favicons?domain=' + ${history.url}" width="16" height="16" class="me-2" style="border-radius:2px;" onerror="this.style.display='none'">
+                                                    <span th:text="${history.pageTitle != null and !history.pageTitle.isEmpty() ? history.pageTitle : 'Unknown Title'}">Page Title</span>
+                                                </div>
+                                                <div class="text-primary small fw-bold text-nowrap ms-2">
+                                                    <i class="far fa-clock me-1"></i> <span th:text="${#temporals.format(history.timestamp, 'hh:mm:ss a')}"></span>
+                                                </div>
+                                            </div>
+                                            
+                                            <a th:href="${history.url}" target="_blank" class="text-decoration-none text-muted small d-inline-block text-truncate" style="max-width: 100%;">
+                                                <i class="fas fa-link me-1"></i> <span th:text="${history.url}">url</span>
+                                            </a>
+
+                                            <div class="mt-2 pt-2 border-top small text-muted" th:if="${employeeSearch == null}">
+                                                <i class="fas fa-user-circle me-1"></i> <span th:text="${history.employee?.name}">Employee</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                            </div>
+
+                            <div th:if="${historyPage.empty}" class="text-center py-5 text-muted">
+                                <div class="mb-3"><i class="fas fa-stream fa-3x text-light"></i></div>
+                                <h5 class="fw-bold">No timeline events found</h5>
+                                <p>Select an employee and date from the left, or adjust your filters.</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Pagination -->
+                        <div class="card-footer bg-white py-3 d-flex justify-content-between align-items-center" th:if="${historyPage.totalPages > 1}">
+                            <span class="text-muted small">
+                                Page <span th:text="${historyPage.number + 1}"></span> of <span th:text="${historyPage.totalPages}"></span>
+                            </span>
+                            <nav aria-label="Timeline pagination">
+                                <ul class="pagination pagination-sm mb-0">
+                                    <li class="page-item" th:classappend="${historyPage.first ? 'disabled' : ''}">
+                                        <a class="page-link" th:href="@{/admin/browse-history(page=${historyPage.number - 1}, employeeSearch=${employeeSearch}, url=${urlSearch}, domain=${domainSearch}, title=${titleSearch}, startDate=${startDate}, endDate=${endDate}, sortDirection=${sortDirection}, size=${size})}">Previous</a>
+                                    </li>
+                                    <li class="page-item" th:classappend="${historyPage.last ? 'disabled' : ''}">
+                                        <a class="page-link" th:href="@{/admin/browse-history(page=${historyPage.number + 1}, employeeSearch=${employeeSearch}, url=${urlSearch}, domain=${domainSearch}, title=${titleSearch}, startDate=${startDate}, endDate=${endDate}, sortDirection=${sortDirection}, size=${size})}">Next</a>
+                                    </li>
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <script>
+            $(document).ready(function() {
+                // Tree Ajax Logic
+                $('.employee-tree-btn').on('click', function() {
+                    let btn = $(this);
+                    let empId = btn.data('employee-id');
+                    let empName = btn.data('employee-name');
+                    let targetCollapse = $(btn.attr('data-bs-target'));
+                    let ul = targetCollapse.find('.dates-list');
+                    let spinner = targetCollapse.find('.loading-spinner');
+                    
+                    // Only load if it's empty
+                    if(ul.children().length === 0) {
+                        spinner.show();
+                        $.get('/admin/api/browse-history/employee/' + empId + '/dates', function(dates) {
+                            spinner.hide();
+                            if(dates.length === 0) {
+                                ul.append('<li class="list-group-item text-muted text-center py-2 border-0 bg-light">No history</li>');
+                            } else {
+                                dates.forEach(function(date) {
+                                    let link = '/admin/browse-history?employeeSearch=' + encodeURIComponent(empName) + '&startDate=' + date + '&endDate=' + date;
+                                    ul.append('<a href="' + link + '" class="list-group-item list-group-item-action py-2 text-primary border-0 bg-light ms-3"><i class="fas fa-calendar-day me-2 text-muted"></i>' + date + '</a>');
+                                });
+                            }
+                        }).fail(function() {
+                            spinner.hide();
+                            ul.append('<li class="list-group-item text-danger text-center py-2 border-0 bg-light">Error loading dates</li>');
+                        });
+                    }
+                });
+
+                // Initialize Select2 for Domain
+                $('.select2-domain').select2({
+                    theme: 'bootstrap-5',
+                    placeholder: $('.select2-domain').data('placeholder'),
+                    allowClear: true,
+                    tags: true,
+                    ajax: {
+                        url: '/admin/api/browse-history/domains',
+                        dataType: 'json',
+                        delay: 250,
+                        data: function (params) {
+                            return { q: params.term };
+                        },
+                        processResults: function (data) {
+                            return { results: data };
+                        },
+                        cache: true
+                    }
+                });
+
+                // Initialize Select2 for URL
+                $('.select2-url').select2({
+                    theme: 'bootstrap-5',
+                    placeholder: $('.select2-url').data('placeholder'),
+                    allowClear: true,
+                    tags: true,
+                    ajax: {
+                        url: '/admin/api/browse-history/urls',
+                        dataType: 'json',
+                        delay: 250,
+                        data: function (params) {
+                            return { q: params.term };
+                        },
+                        processResults: function (data) {
+                            return { results: data };
+                        },
+                        cache: true
+                    }
+                });
+
+                // Initialize Select2 for Title
+                $('.select2-title').select2({
+                    theme: 'bootstrap-5',
+                    placeholder: $('.select2-title').data('placeholder'),
+                    allowClear: true,
+                    tags: true,
+                    ajax: {
+                        url: '/admin/api/browse-history/titles',
+                        dataType: 'json',
+                        delay: 250,
+                        data: function (params) {
+                            return { q: params.term };
+                        },
+                        processResults: function (data) {
+                            return { results: data };
+                        },
+                        cache: true
+                    }
+                });
+            });
+        </script>
+    </div>
+</body>
+
+</html>

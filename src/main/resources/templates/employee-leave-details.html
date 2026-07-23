@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Employee Monthly Leave Details</title>
+</head>
+<body>
+    <div th:replace="~{layout :: layout(~{::section}, ~{::script}, 'leave-quotas')}">
+        <section class="container-fluid py-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="mb-1 d-flex align-items-center gap-2">
+                        <i class="fas fa-user-clock text-primary"></i> 
+                        <span th:text="${employee.name}">Employee Name</span> - Monthly Breakdown (<span th:text="${year}">Year</span>)
+                    </h2>
+                    <p class="text-muted mb-0">Detailed view of leave usage and absences by month</p>
+                </div>
+                <a th:href="@{/leave-quotas}" class="btn btn-outline-secondary rounded-pill px-4 shadow-sm">
+                    <i class="fas fa-arrow-left me-2"></i> Back to Quotas
+                </a>
+            </div>
+
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th scope="col" class="border-0 rounded-start px-4 py-3">Month</th>
+                                    <th scope="col" class="border-0 text-center py-3">Total Days</th>
+                                    <th scope="col" class="border-0 text-center py-3">Paid/Unpaid/Absent</th>
+                                    <th scope="col" class="border-0 text-center rounded-end py-3">Breakdown</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="m : ${breakdown}">
+                                    <td class="px-4 py-3 fw-medium text-dark" th:text="${m.month}">Month</td>
+                                    <td class="text-center py-3 fw-bold" th:text="${m.totalDays}">0</td>
+                                    <td class="text-center py-3">
+                                        <div class="d-flex justify-content-center gap-2 flex-wrap">
+                                            <span role="button" class="badge bg-success-subtle text-success border border-success-subtle rounded-pill hover-scale" title="Paid Leaves" th:text="'Paid: ' + ${m.paidLeavesTaken}" th:onclick="'openCalendar(' + ${m.monthValue} + ', \'paid\')'"></span>
+                                            <span role="button" class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill hover-scale" title="Unpaid Leaves" th:text="'Unpaid: ' + ${m.unpaidLeavesTaken}" th:onclick="'openCalendar(' + ${m.monthValue} + ', \'unpaid\')'"></span>
+                                            <span role="button" class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill hover-scale" title="Absent Days" th:text="'Absent: ' + ${m.absentDays}" th:onclick="'openCalendar(' + ${m.monthValue} + ', \'absent\')'"></span>
+                                        </div>
+                                    </td>
+                                    <td class="text-center py-3">
+                                        <div class="d-flex justify-content-center gap-2 flex-wrap">
+                                            <span role="button" class="badge bg-info text-dark rounded-pill hover-scale" title="Sick" th:onclick="'openCalendar(' + ${m.monthValue} + ', \'sick\')'">Sick: <span th:text="${m.sickLeavesTaken}"></span></span>
+                                            <span role="button" class="badge bg-secondary rounded-pill hover-scale" title="Casual" th:onclick="'openCalendar(' + ${m.monthValue} + ', \'casual\')'">Casual: <span th:text="${m.casualLeavesTaken}"></span></span>
+                                            <span role="button" class="badge bg-light text-dark border rounded-pill hover-scale" title="Other" th:onclick="'openCalendar(' + ${m.monthValue} + ', \'other\')'">Other: <span th:text="${m.otherLeavesTaken}"></span></span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div id="calendarSection" class="card border-0 shadow-sm rounded-4 mt-4" style="display: none;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4 class="mb-0 fw-bold" id="calMonthYear"></h4>
+                        <span class="badge text-bg-primary fs-6 px-3 py-2 text-capitalize" id="calCategoryBadge"></span>
+                    </div>
+                    <div class="calendar-wrapper">
+                        <div class="calendar-grid">
+                            <div class="cal-header">Sun</div><div class="cal-header">Mon</div><div class="cal-header">Tue</div>
+                            <div class="cal-header">Wed</div><div class="cal-header">Thu</div><div class="cal-header">Fri</div><div class="cal-header">Sat</div>
+                            <!-- days injected via JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <style>
+                .hover-scale { cursor: pointer; transition: transform 0.2s; }
+                .hover-scale:hover { transform: scale(1.05); }
+                .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; text-align: center; }
+                .cal-header { font-weight: 600; font-size: 0.85rem; color: #6c757d; padding-bottom: 5px; }
+                .cal-day { border-radius: 8px; padding: 10px 0; font-size: 0.95rem; background: #f8f9fa; border: 1px solid #e9ecef; cursor: default; position: relative; min-height: 40px; display: flex; align-items: center; justify-content: center; }
+                .cal-day.empty { background: transparent; border-color: transparent; }
+                .cal-day.highlight-paid { background: #d1e7dd !important; border-color: #badbcc !important; color: #198754 !important; font-weight: bold; cursor: help; }
+                .cal-day.highlight-unpaid { background: #fff3cd !important; border-color: #ffecb5 !important; color: #ffc107 !important; font-weight: bold; cursor: help; }
+                .cal-day.highlight-absent { background: #f8d7da !important; border-color: #f5c2c7 !important; color: #dc3545 !important; font-weight: bold; cursor: help; }
+                .cal-day.highlight-sick { background: #0dcaf0 !important; border-color: #0dcaf0 !important; color: #212529 !important; font-weight: bold; cursor: help; }
+                .cal-day.highlight-casual { background: #6c757d !important; border-color: #6c757d !important; color: #ffffff !important; font-weight: bold; cursor: help; }
+                .cal-day.highlight-other { background: #f8f9fa !important; border-color: #dee2e6 !important; color: #212529 !important; font-weight: bold; cursor: help; }
+                .cal-day.highlight-weekend { background: #e9ecef !important; border-color: #dee2e6 !important; color: #6c757d !important; font-weight: bold; cursor: help; }
+                .cal-day.highlight-holiday { background: #cfe2ff !important; border-color: #b6d4fe !important; color: #084298 !important; font-weight: bold; cursor: help; }
+            </style>
+        </section>
+        <script th:inline="javascript">
+            /*<![CDATA[*/
+            var breakdownData = /*[[${breakdown}]]*/ [];
+            var currentYear = /*[[${year}]]*/ 2026;
+            
+            function openCalendar(monthValue, clickedCategory) {
+                var monthData = breakdownData.find(m => m.monthValue === monthValue);
+                if(!monthData) return;
+                
+                document.getElementById('calMonthYear').innerText = monthData.month + " " + currentYear;
+                document.getElementById('calCategoryBadge').innerText = "Full Month Overview";
+                
+                renderCalendar(monthValue, currentYear, monthData);
+                
+                var calSection = document.getElementById('calendarSection');
+                calSection.style.display = 'block';
+                calSection.scrollIntoView({ behavior: 'smooth', block: 'end' });
+            }
+            
+            function renderCalendar(month, year, monthData) {
+                var grid = document.querySelector('.calendar-grid');
+                // clear old days
+                var days = grid.querySelectorAll('.cal-day');
+                days.forEach(d => d.remove());
+                
+                var highlightMap = {};
+                function addHighlights(list, cat) {
+                    if(!list) return;
+                    list.forEach(h => {
+                        highlightMap[h.date] = { proof: h.proof, category: cat };
+                    });
+                }
+                
+                // Add in reverse priority (last one wins)
+                addHighlights(monthData.weekendDates, 'weekend');
+                addHighlights(monthData.holidayDates, 'holiday');
+                addHighlights(monthData.otherDates, 'other');
+                addHighlights(monthData.casualDates, 'casual');
+                addHighlights(monthData.sickDates, 'sick');
+                addHighlights(monthData.unpaidDates, 'unpaid');
+                addHighlights(monthData.paidDates, 'paid');
+                addHighlights(monthData.absentDates, 'absent');
+                
+                var firstDay = new Date(year, month - 1, 1).getDay();
+                var daysInMonth = new Date(year, month, 0).getDate();
+                
+                for(var i=0; i<firstDay; i++){
+                    var empty = document.createElement('div');
+                    empty.className = 'cal-day empty';
+                    grid.appendChild(empty);
+                }
+                
+                for(var i=1; i<=daysInMonth; i++){
+                    var dayDiv = document.createElement('div');
+                    dayDiv.className = 'cal-day';
+                    dayDiv.innerText = i;
+                    
+                    var dateStr = year + "-" + String(month).padStart(2, '0') + "-" + String(i).padStart(2, '0');
+                    var hl = highlightMap[dateStr];
+                    if(hl) {
+                        dayDiv.classList.add('highlight-' + hl.category);
+                        dayDiv.title = hl.proof;
+                        
+                        // Initialize tooltip with html enabled
+                        new bootstrap.Tooltip(dayDiv, { html: true });
+                    }
+                    
+                    grid.appendChild(dayDiv);
+                }
+            }
+            /*]]>*/
+        </script>
+    </div>
+</body>
+</html>

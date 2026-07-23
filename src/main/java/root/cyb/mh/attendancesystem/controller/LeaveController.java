@@ -84,9 +84,44 @@ public class LeaveController {
         }
 
         model.addAttribute("requests", requests);
+        model.addAttribute("employees", employeeRepository.findAll());
         model.addAttribute("activeLink", "leave-manage");
         model.addAttribute("isTestingMode", isTestingMode);
         return "admin-leave-requests";
+    }
+
+    @PostMapping("/manage/create")
+    public String createForceLeave(@RequestParam String employeeId,
+            @RequestParam String startDate,
+            @RequestParam String endDate,
+            @RequestParam(defaultValue = "Force Leave Deduction By HR") String leaveType,
+            @RequestParam String reason,
+            @RequestParam(defaultValue = "APPROVED") String status,
+            Authentication authentication) {
+
+        boolean isAdminOrHr = authentication.getAuthorities().stream()
+                .anyMatch(r -> r.getAuthority().equals("ROLE_ADMIN") || r.getAuthority().equals("ROLE_HR"));
+        if (!isAdminOrHr) {
+            return "redirect:/leave/manage?error=AccessDenied";
+        }
+
+        String creatorUsername = authentication.getName();
+        String creatorRole = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .filter(r -> r.startsWith("ROLE_"))
+                .findFirst().orElse("ROLE_ADMIN");
+
+        try {
+            java.time.LocalDate start = java.time.LocalDate.parse(startDate);
+            java.time.LocalDate end = java.time.LocalDate.parse(endDate);
+            LeaveRequest.Status reqStatus = LeaveRequest.Status.valueOf(status.toUpperCase());
+
+            leaveService.createHrForceLeave(employeeId, start, end, leaveType, reason, reqStatus, creatorUsername, creatorRole);
+        } catch (Exception e) {
+            return "redirect:/leave/manage?error=" + java.net.URLEncoder.encode(e.getMessage(), java.nio.charset.StandardCharsets.UTF_8);
+        }
+
+        return "redirect:/leave/manage?success=LeaveCreated";
     }
 
     @PostMapping("/manage/update")

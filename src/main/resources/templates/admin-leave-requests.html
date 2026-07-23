@@ -12,6 +12,11 @@
                 class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h1 class="h2" th:text="${pageTitle != null ? pageTitle : 'Leave Requests Management'}">Leave Requests
                     Management</h1>
+                <div class="btn-toolbar mb-2 mb-md-0" sec:authorize="hasAnyRole('ADMIN', 'HR')">
+                    <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#createForceLeaveModal">
+                        <i class="fas fa-plus-circle me-1"></i> Add Force Leave Deduction
+                    </button>
+                </div>
             </div>
 
             <div class="card shadow-sm">
@@ -41,7 +46,8 @@
                                         <div class="small text-muted" th:text="${#temporals.format(req.createdAt, 'hh:mm a')}">10:00 AM</div>
                                     </td>
                                     <td>
-                                        <div th:text="${req.leaveType}" class="badge bg-secondary mb-1">VACATION</div>
+                                        <div th:text="${req.leaveType}" class="badge mb-1" th:classappend="${req.isHrAction ? 'bg-danger' : 'bg-secondary'}">VACATION</div>
+                                        <span th:if="${req.isHrAction}" class="badge bg-warning text-dark mb-1 d-block" style="font-size: 0.7rem;">HR Action</span>
                                         <br>
                                         <small th:text="${req.startDate} + ' to ' + ${req.endDate}"></small>
                                     </td>
@@ -127,6 +133,68 @@
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                                 <button type="submit" class="btn btn-primary">Confirm</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Create Force Leave Deduction Modal -->
+            <div class="modal fade" id="createForceLeaveModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <form action="/leave/manage/create" method="post">
+                        <div class="modal-content">
+                            <div class="modal-header bg-primary text-white">
+                                <h5 class="modal-title"><i class="fas fa-gavel me-2"></i>Add Force Leave Deduction</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Select Employee</label>
+                                    <select name="employeeId" class="form-select" required>
+                                        <option value="">-- Choose Employee --</option>
+                                        <option th:each="emp : ${employees}" 
+                                                th:value="${emp.id}" 
+                                                th:text="${emp.name + ' (' + emp.id + ' - ' + (emp.department != null ? emp.department.name : 'No Dept') + ')'}">
+                                        </option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Leave Type</label>
+                                    <select name="leaveType" class="form-select" required>
+                                        <option value="Force Leave Deduction By HR" selected>Force Leave Deduction By HR</option>
+                                        <option value="Sick">Sick Leave</option>
+                                        <option value="Casual">Casual Leave</option>
+                                        <option value="Vacation">Vacation</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">Start Date</label>
+                                        <input type="date" name="startDate" class="form-control" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">End Date</label>
+                                        <input type="date" name="endDate" class="form-control" required>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Status</label>
+                                    <select name="status" class="form-select" required>
+                                        <option value="APPROVED" selected>APPROVED</option>
+                                        <option value="PENDING">PENDING</option>
+                                        <option value="REJECTED">REJECTED</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Reason</label>
+                                    <textarea name="reason" class="form-control" rows="3" placeholder="Enter reason for force leave deduction..." required></textarea>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn btn-primary">Assign Leave</button>
                             </div>
                         </div>
                     </form>

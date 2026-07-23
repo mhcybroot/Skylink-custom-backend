@@ -88,7 +88,10 @@
                                                 <div class="small fw-medium" th:text="${#temporals.format(req.createdAt, 'MMM dd, yyyy')}">Jan 01, 2024</div>
                                                 <div class="small text-muted" th:text="${#temporals.format(req.createdAt, 'hh:mm a')}">10:00 AM</div>
                                             </td>
-                                            <td th:text="${req.leaveType}">Sick</td>
+                                            <td>
+                                                <span th:text="${req.leaveType}" class="badge mb-1" th:classappend="${req.isHrAction or (req.leaveType != null and req.leaveType.contains('Force Leave')) ? 'bg-danger' : 'bg-secondary'}">Sick</span>
+                                                <span th:if="${req.isHrAction}" class="badge bg-warning text-dark d-block" style="font-size: 0.7rem;">HR Action Force Leave Deduction</span>
+                                            </td>
                                             <td>
                                                 <span th:text="${req.startDate}"></span> to <span
                                                     th:text="${req.endDate}"></span>

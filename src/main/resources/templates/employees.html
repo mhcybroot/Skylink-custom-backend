@@ -150,6 +150,9 @@
                                                 th:data-designation="${emp.designation}"
                                                 th:data-reports-to-id="${emp.reportsTo != null ? emp.reportsTo.id : ''}"
                                                 th:data-reports-to-assistant="${emp.reportsToAssistant != null ? emp.reportsToAssistant.id : ''}"
+                                                th:data-reports-to-assistant-id="${emp.reportsToAssistant != null ? emp.reportsToAssistant.id : ''}"
+                                                th:data-joining-date="${emp.joiningDate}"
+                                                th:data-date-of-birth="${emp.dateOfBirth}"
                                                 th:data-is-guest="${emp.isGuest}"
                                                 th:data-is-analyst="${emp.isAnalyst}"
                                                 th:data-is-analyst-controller="${emp.isAnalystController}"
@@ -160,6 +163,19 @@
                                                 class="btn btn-info btn-sm text-white shadow-sm fw-bold">
                                                 <i class="fas fa-lock me-1"></i>Resources
                                             </a>
+                                            <form th:action="@{/employees/{id}/force-logout-extension(id=${emp.id})}"
+                                                method="post" style="display:inline;"
+                                                onsubmit="return confirm('Force logout this employee\'s Chrome extension?')">
+                                                <button type="submit" class="btn btn-outline-danger btn-sm">
+                                                    <i class="fas fa-sign-out-alt me-1"></i>Force Ext Logout
+                                                </button>
+                                            </form>
+                                            <!-- TEMPORARILY HIDDEN
+                                            <a th:href="@{/admin/live-monitor(employeeId=${emp.id})}"
+                                                class="btn btn-success btn-sm text-white shadow-sm fw-bold">
+                                                <i class="fas fa-desktop me-1"></i>Live View
+                                            </a>
+                                            -->
                                             <a th:href="@{/employees/delete/{id}(id=${emp.id})}"
                                                 class="btn btn-danger btn-sm"
                                                 onclick="return confirm('Delete this employee?')">Delete</a>
@@ -292,9 +308,15 @@
                                                 id="accountNumber" placeholder="Account No.">
                                         </div>
                                     </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Joining Date</label>
-                                        <input type="date" class="form-control" id="empJoiningDate" name="joiningDate">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Joining Date</label>
+                                            <input type="date" class="form-control" id="empJoiningDate" name="joiningDate">
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Date of Birth</label>
+                                            <input type="date" class="form-control" id="empDateOfBirth" name="dateOfBirth">
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="modal-footer">
@@ -352,6 +374,7 @@
                 var accNum = btn.getAttribute('data-account-number');
                 var username = btn.getAttribute('data-username');
                 var joiningDate = btn.getAttribute('data-joining-date');
+                var dateOfBirth = btn.getAttribute('data-date-of-birth');
                 var designation = btn.getAttribute('data-designation');
                 var reportsToId = btn.getAttribute('data-reports-to-id');
 
@@ -367,6 +390,7 @@
                 document.getElementById('bankName').value = bankName;
                 document.getElementById('accountNumber').value = accNum;
                 document.getElementById('empJoiningDate').value = joiningDate;
+                document.getElementById('empDateOfBirth').value = dateOfBirth;
                 document.getElementById('empDesignation').value = designation;
                 document.getElementById('empReportsTo').value = reportsToId;
                 document.getElementById('empReportsToAssistant').value = btn.getAttribute('data-reports-to-assistant') || '';
@@ -396,6 +420,7 @@
                 document.getElementById('bankName').value = '';
                 document.getElementById('accountNumber').value = '';
                 document.getElementById('empJoiningDate').value = '';
+                document.getElementById('empDateOfBirth').value = '';
                 document.getElementById('empUsername').value = ''; // Clear username
             });
             document.getElementById('empModalTitle').innerText = 'Add Employee';

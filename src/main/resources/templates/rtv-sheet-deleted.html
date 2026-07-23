@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head>
+    <title>Deleted RTV Records - Skylink Attendance System</title>
+</head>
+
+<body>
+    <div th:replace="~{layout :: layout(~{::section}, ~{::script}, 'rtv-sheet-deleted')}">
+        <section>
+            <style>
+                .badge-status-solved {
+                    background-color: #dcfce7;
+                    color: #15803d;
+                    border: 1px solid #bbf7d0;
+                }
+                .badge-status-followup {
+                    background-color: #fef3c7;
+                    color: #b45309;
+                    border: 1px solid #fde68a;
+                }
+                .badge-status-waiting {
+                    background-color: #e0f2fe;
+                    color: #0369a1;
+                    border: 1px solid #bae6fd;
+                }
+                .badge-status-process {
+                    background-color: #e0e7ff;
+                    color: #4338ca;
+                    border: 1px solid #c7d2fe;
+                }
+                .badge-issue-from {
+                    background-color: #f1f5f9;
+                    color: #475569;
+                    border: 1px solid #e2e8f0;
+                    font-size: 0.75rem;
+                }
+                .deleted-row-hover:hover {
+                    background-color: #fff5f5 !important;
+                }
+                .restore-btn-glow:hover {
+                    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.25);
+                    transform: translateY(-1px);
+                    transition: all 0.15s ease;
+                }
+                .empty-state-icon {
+                    width: 80px;
+                    height: 80px;
+                    background: linear-gradient(135deg, #fee2e2, #fecaca);
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin: 0 auto 1.5rem;
+                }
+                .stat-pill {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.4rem;
+                    background: rgba(255,255,255,0.15);
+                    border: 1px solid rgba(255,255,255,0.25);
+                    border-radius: 50px;
+                    padding: 0.35rem 0.9rem;
+                    font-size: 0.85rem;
+                    font-weight: 600;
+                    color: white;
+                }
+            </style>
+
+            <!-- Page Header -->
+            <div class="border-0 shadow-sm rounded-3 mb-4 p-4 text-white"
+                 style="background: linear-gradient(135deg, #7f1d1d 0%, #450a0a 100%);">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <i class="fas fa-trash-restore fa-lg text-red-300"></i>
+                            <h3 class="fw-bold mb-0 text-white">Deleted RTV Records</h3>
+                        </div>
+                        <p class="text-white-50 small mb-0">
+                            View and restore soft-deleted RTV records. All deletions are audit-logged.
+                        </p>
+                    </div>
+                    <div class="d-flex align-items-center gap-3">
+                        <div id="headerDeletedCount" class="stat-pill">
+                            <i class="fas fa-trash"></i>
+                            <span id="totalDeletedCount">—</span> Deleted
+                        </div>
+                        <a href="/rtv-sheet" class="btn btn-outline-light fw-bold rounded-3 px-3 shadow-sm">
+                            <i class="fas fa-arrow-left me-1"></i> Back to RTV Sheet
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search & Filter Bar -->
+            <div class="card border-0 shadow-sm rounded-3 mb-4 p-3 bg-white">
+                <div class="row g-2 align-items-center">
+                    <div class="col-md-4">
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0">
+                                <i class="fas fa-search text-muted"></i>
+                            </span>
+                            <input type="text" id="searchInput" class="form-control border-start-0"
+                                   placeholder="Search WO, Client, Details..." oninput="filterRecords()">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <select id="statusFilter" class="form-select" onchange="filterRecords()">
+                            <option value="">— All Statuses —</option>
+                            <option value="SOLVED">SOLVED</option>
+                            <option value="FOLLOW_UP">FOLLOW_UP</option>
+                            <option value="WAITING_FOR_UPDATE">WAITING_FOR_UPDATE</option>
+                            <option value="ON_PROCESS">ON_PROCESS</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select id="issueFromFilter" class="form-select" onchange="filterRecords()">
+                            <option value="">— All Issue Sources —</option>
+                            <option value="CLIENT">CLIENT</option>
+                            <option value="RVM">RVM</option>
+                            <option value="CT">CT</option>
+                            <option value="PROCESSOR">PROCESSOR</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select id="processorFilter" class="form-select" onchange="filterRecords()">
+                            <option value="">— All Processors —</option>
+                            <option th:each="emp : ${employees}" th:value="${emp.id}" th:text="${emp.name}"></option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 text-end">
+                        <button class="btn btn-outline-secondary w-100" onclick="resetFilters()">
+                            <i class="fas fa-redo me-1"></i> Reset
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Table Card -->
+            <div class="card border-0 shadow-sm rounded-3 overflow-hidden bg-white">
+                <div class="card-header border-0 py-3 px-4"
+                     style="background: linear-gradient(90deg, #fef2f2, #fff);">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-danger rounded-pill" id="resultCountBadge">0</span>
+                            <span class="fw-semibold text-dark small">deleted records found</span>
+                        </div>
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1 text-danger"></i>
+                            Restoring a record moves it back to the active RTV table.
+                        </small>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" id="deletedTable">
+                        <thead class="table-light" style="border-bottom: 2px solid #fee2e2;">
+                            <tr>
+                                <th class="ps-4 py-3 text-uppercase small fw-bold text-muted">WO Number</th>
+                                <th class="py-3 text-uppercase small fw-bold text-muted">Client Code</th>
+                                <th class="py-3 text-uppercase small fw-bold text-muted">Original Processor</th>
+                                <th class="py-3 text-uppercase small fw-bold text-muted">RTV Solved By</th>
+                                <th class="py-3 text-uppercase small fw-bold text-muted">Issue From</th>
+                                <th class="py-3 text-uppercase small fw-bold text-muted">Status</th>
+                                <th class="py-3 text-uppercase small fw-bold text-muted">Deleted At</th>
+                                <th class="py-3 text-uppercase small fw-bold text-muted">Details</th>
+                                <th class="py-3 text-uppercase small fw-bold text-muted">Notes</th>
+                                <th class="text-end pe-4 py-3 text-uppercase small fw-bold text-muted">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="deletedTableBody">
+                            <tr>
+                                <td colspan="10" class="text-center py-5 text-muted">
+                                    <i class="fas fa-spinner fa-spin fa-2x d-block mb-2"></i>
+                                    Loading deleted records...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <script>
+            let allDeletedRecords = [];
+
+            document.addEventListener('DOMContentLoaded', () => {
+                loadDeletedRecords();
+            });
+
+            function loadDeletedRecords() {
+                fetch('/api/rtv-sheet/deleted')
+                    .then(res => {
+                        if (!res.ok) throw new Error('HTTP ' + res.status);
+                        return res.json();
+                    })
+                    .then(data => {
+                        allDeletedRecords = data;
+                        document.getElementById('totalDeletedCount').textContent = data.length;
+                        filterRecords();
+                    })
+                    .catch(err => {
+                        document.getElementById('deletedTableBody').innerHTML = `
+                            <tr><td colspan="10" class="text-center py-5 text-danger">
+                                <i class="fas fa-exclamation-triangle fa-2x d-block mb-2"></i>
+                                Failed to load deleted records: ${escapeHtml(err.message)}
+                            </td></tr>`;
+                    });
+            }
+
+            function filterRecords() {
+                const query = document.getElementById('searchInput').value.toLowerCase();
+                const status = document.getElementById('statusFilter').value;
+                const issue = document.getElementById('issueFromFilter').value;
+                const processorId = document.getElementById('processorFilter').value;
+
+                const filtered = allDeletedRecords.filter(r => {
+                    const matchesQuery = !query ||
+                        (r.woNumber && r.woNumber.toLowerCase().includes(query)) ||
+                        (r.clientCode && r.clientCode.toLowerCase().includes(query)) ||
+                        (r.details && r.details.toLowerCase().includes(query)) ||
+                        (r.notes && r.notes.toLowerCase().includes(query)) ||
+                        (r.originalProcessor && r.originalProcessor.name.toLowerCase().includes(query));
+
+                    const matchesStatus = !status || r.rtvStatus === status;
+                    const matchesIssue = !issue || r.issueFrom === issue;
+                    const matchesProcessor = !processorId ||
+                        (r.originalProcessor && String(r.originalProcessor.id) === String(processorId));
+
+                    return matchesQuery && matchesStatus && matchesIssue && matchesProcessor;
+                });
+
+                document.getElementById('resultCountBadge').textContent = filtered.length;
+                renderTable(filtered);
+            }
+
+            function resetFilters() {
+                document.getElementById('searchInput').value = '';
+                document.getElementById('statusFilter').value = '';
+                document.getElementById('issueFromFilter').value = '';
+                document.getElementById('processorFilter').value = '';
+                filterRecords();
+            }
+
+            function renderTable(records) {
+                const tbody = document.getElementById('deletedTableBody');
+
+                if (!records || records.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="10" class="text-center py-5">
+                                <div class="empty-state-icon">
+                                    <i class="fas fa-trash fa-2x text-danger opacity-50"></i>
+                                </div>
+                                <p class="fw-bold text-dark mb-1">No deleted records found</p>
+                                <small class="text-muted">All RTV records are currently active, or your filters returned no results.</small>
+                                <div class="mt-3">
+                                    <a href="/rtv-sheet" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-arrow-left me-1"></i>Go to Active Records
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = records.map(r => {
+                    const procName = r.originalProcessor
+                        ? escapeHtml(r.originalProcessor.name)
+                        : '<span class="text-muted fst-italic">Unassigned</span>';
+                    const solvedName = r.rtvSolvedBy
+                        ? escapeHtml(r.rtvSolvedBy.name)
+                        : '<span class="text-muted fst-italic">Unassigned</span>';
+                    const deletedAt = r.updatedAt ? new Date(r.updatedAt).toLocaleString() : 'N/A';
+                    const statusBadge = getStatusBadge(r.rtvStatus);
+
+                    return `
+                        <tr class="deleted-row-hover">
+                            <td class="ps-4">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 fw-bold">
+                                        <i class="fas fa-trash fa-xs me-1 opacity-50"></i>${escapeHtml(r.woNumber)}
+                                    </span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark border">${escapeHtml(r.clientCode)}</span>
+                            </td>
+                            <td class="fw-medium">${procName}</td>
+                            <td>${solvedName}</td>
+                            <td>
+                                <span class="badge badge-issue-from">${escapeHtml(r.issueFrom || '')}</span>
+                            </td>
+                            <td>${statusBadge}</td>
+                            <td>
+                                <small class="text-muted">
+                                    <i class="far fa-calendar-times me-1 text-danger opacity-50"></i>${deletedAt}
+                                </small>
+                            </td>
+                            <td style="min-width: 200px; max-width: 300px;">
+                                <div class="small text-secondary" style="white-space: normal; word-break: break-word;">
+                                    ${escapeHtml(r.details || '—')}
+                                </div>
+                            </td>
+                            <td style="min-width: 150px; max-width: 220px;">
+                                <div class="small text-muted" style="white-space: normal; word-break: break-word;">
+                                    ${r.notes ? escapeHtml(r.notes) : '<span class="fst-italic">None</span>'}
+                                </div>
+                            </td>
+                            <td class="text-end pe-4">
+                                <button class="btn btn-sm btn-success restore-btn-glow px-3 fw-semibold"
+                                        onclick="restoreRecord(${r.id}, '${escapeHtml(r.woNumber)}')"
+                                        title="Restore this RTV record">
+                                    <i class="fas fa-trash-restore me-1"></i>Restore
+                                </button>
+                            </td>
+                        </tr>`;
+                }).join('');
+            }
+
+            function restoreRecord(id, woNumber) {
+                if (!confirm(`Restore RTV record "${woNumber}"?\n\nIt will reappear in the active RTV sheet and the action will be logged in the audit trail.`)) return;
+
+                const btn = event.currentTarget;
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Restoring...';
+
+                fetch(`/api/rtv-sheet/${id}/restore`, { method: 'POST' })
+                    .then(res => {
+                        if (!res.ok) throw new Error('Failed to restore record (HTTP ' + res.status + ')');
+                        return res.json();
+                    })
+                    .then(() => {
+                        // Remove the restored row with a fade-out animation
+                        const row = btn.closest('tr');
+                        row.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+                        row.style.opacity = '0';
+                        row.style.transform = 'translateX(20px)';
+                        setTimeout(() => {
+                            allDeletedRecords = allDeletedRecords.filter(r => r.id !== id);
+                            document.getElementById('totalDeletedCount').textContent = allDeletedRecords.length;
+                            filterRecords();
+                            showToast(`✅ WO record "${woNumber}" has been restored successfully!`, 'success');
+                        }, 400);
+                    })
+                    .catch(err => {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fas fa-trash-restore me-1"></i>Restore';
+                        showToast('Error: ' + err.message, 'danger');
+                    });
+            }
+
+            function showToast(message, type) {
+                const existing = document.getElementById('restoreToast');
+                if (existing) existing.remove();
+
+                const toast = document.createElement('div');
+                toast.id = 'restoreToast';
+                toast.style.cssText = `
+                    position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999;
+                    min-width: 320px; max-width: 480px;
+                    background: ${type === 'success' ? '#f0fdf4' : '#fef2f2'};
+                    border: 1px solid ${type === 'success' ? '#bbf7d0' : '#fecaca'};
+                    color: ${type === 'success' ? '#15803d' : '#dc2626'};
+                    border-radius: 12px; padding: 1rem 1.25rem;
+                    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+                    font-weight: 600; font-size: 0.9rem;
+                    animation: slideInToast 0.3s ease;
+                `;
+                toast.innerHTML = message;
+
+                const style = document.createElement('style');
+                style.textContent = `@keyframes slideInToast { from { opacity:0; transform: translateY(20px); } to { opacity:1; transform: translateY(0); } }`;
+                document.head.appendChild(style);
+
+                document.body.appendChild(toast);
+                setTimeout(() => {
+                    toast.style.transition = 'opacity 0.3s ease';
+                    toast.style.opacity = '0';
+                    setTimeout(() => toast.remove(), 300);
+                }, 4000);
+            }
+
+            function getStatusBadge(status) {
+                switch (status) {
+                    case 'SOLVED':
+                        return '<span class="badge badge-status-solved px-2 py-1"><i class="fas fa-check-circle me-1"></i>SOLVED</span>';
+                    case 'FOLLOW_UP':
+                        return '<span class="badge badge-status-followup px-2 py-1"><i class="fas fa-clock me-1"></i>FOLLOW UP</span>';
+                    case 'WAITING_FOR_UPDATE':
+                        return '<span class="badge badge-status-waiting px-2 py-1"><i class="fas fa-spinner me-1"></i>WAITING FOR UPDATE</span>';
+                    case 'ON_PROCESS':
+                    default:
+                        return '<span class="badge badge-status-process px-2 py-1"><i class="fas fa-cog fa-spin me-1"></i>ON PROCESS</span>';
+                }
+            }
+
+            function escapeHtml(str) {
+                if (!str) return '';
+                return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+                          .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+            }
+        </script>
+    </div>
+</body>
+
+</html>

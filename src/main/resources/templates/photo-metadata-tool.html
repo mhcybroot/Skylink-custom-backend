@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <title>Photo Metadata & EXIF Editor</title>
+</head>
+
+<body>
+    <div th:replace="~{layout :: layout(~{::section}, ~{::script}, 'photo-metadata-tool')}">
+        <section>
+            <!-- Leaflet Map CSS -->
+            <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+            <style>
+                .tool-header {
+                    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+                    color: #fff;
+                    border-radius: 12px;
+                    padding: 1.5rem 2rem;
+                    margin-bottom: 1.5rem;
+                    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+                }
+
+                .dropzone-box {
+                    border: 2px dashed #3b82f6;
+                    background: rgba(59, 130, 246, 0.03);
+                    border-radius: 12px;
+                    padding: 2.5rem 1.5rem;
+                    text-align: center;
+                    cursor: pointer;
+                    transition: all 0.2s ease-in-out;
+                }
+
+                .dropzone-box:hover, .dropzone-box.dragover {
+                    background: rgba(59, 130, 246, 0.08);
+                    border-color: #2563eb;
+                    transform: translateY(-2px);
+                }
+
+                .photo-card {
+                    background: #fff;
+                    border-radius: 10px;
+                    border: 1px solid #e2e8f0;
+                    overflow: hidden;
+                    transition: all 0.2s ease;
+                    position: relative;
+                }
+
+                .photo-card.selected {
+                    border-color: #3b82f6;
+                    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
+                }
+
+                .photo-thumb-wrap {
+                    height: 220px;
+                    background: #0f172a;
+                    position: relative;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    overflow: hidden;
+                    border-radius: 6px 6px 0 0;
+                }
+
+                .photo-thumb-wrap img {
+                    max-height: 100%;
+                    max-width: 100%;
+                    object-fit: contain;
+                }
+
+                .photo-card-body {
+                    padding: 0.75rem 1rem;
+                    font-size: 0.85rem;
+                }
+
+                /* Hover Metadata Overlay */
+                .photo-metadata-overlay {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(15, 23, 42, 0.95);
+                    backdrop-filter: blur(8px);
+                    color: #f8fafc;
+                    padding: 0.75rem;
+                    font-size: 0.78rem;
+                    opacity: 0;
+                    transform: translateY(100%);
+                    transition: opacity 0.25s ease, transform 0.25s ease;
+                    pointer-events: none;
+                    z-index: 20;
+                    overflow-y: auto;
+                    box-sizing: border-box;
+                }
+
+                .photo-metadata-overlay::-webkit-scrollbar {
+                    width: 5px;
+                }
+
+                .photo-metadata-overlay::-webkit-scrollbar-track {
+                    background: rgba(0, 0, 0, 0.2);
+                }
+
+                .photo-metadata-overlay::-webkit-scrollbar-thumb {
+                    background: #3b82f6;
+                    border-radius: 3px;
+                }
+
+                .photo-thumb-wrap:hover .photo-metadata-overlay {
+                    opacity: 1;
+                    transform: translateY(0);
+                    pointer-events: auto;
+                }
+
+                .meta-row {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 0.35rem;
+                    padding: 3px 6px;
+                    margin-bottom: 3px;
+                    background: rgba(255, 255, 255, 0.05);
+                    border-radius: 4px;
+                    border: 1px solid rgba(255, 255, 255, 0.08);
+                    font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+                    font-size: 0.73rem;
+                }
+
+                .meta-label {
+                    color: #38bdf8;
+                    font-weight: 600;
+                }
+
+                .meta-val {
+                    color: #f1f5f9;
+                    text-align: right;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                    max-width: 60%;
+                }
+
+                #mapPicker {
+                    height: 320px;
+                    width: 100%;
+                    border-radius: 8px;
+                    z-index: 1;
+                }
+
+                .badge-gps {
+                    background: #10b981;
+                    color: #fff;
+                }
+
+                .preset-card {
+                    background: #f8fafc;
+                    border-radius: 8px;
+                    border: 1px solid #cbd5e1;
+                    padding: 1rem;
+                }
+            </style>
+
+            <!-- Page Header -->
+            <div class="tool-header d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div>
+                    <h3 class="fw-bold mb-1"><i class="fas fa-camera-retro me-2 text-info"></i>Photo EXIF Metadata Tool</h3>
+                    <p class="text-slate-300 mb-0 small">Upload photos, edit GPS coordinates & camera metadata, save presets, and export as ZIP. (No files stored on server)</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary" onclick="triggerFileInput()"><i class="fas fa-plus me-1"></i> Add Photos</button>
+                    <button class="btn btn-outline-light" onclick="clearAllPhotos()"><i class="fas fa-trash me-1"></i> Clear</button>
+                </div>
+            </div>
+
+            <!-- Main Content Container -->
+            <div class="row g-4">
+                <!-- Left Column: Upload Dropzone & Photo Gallery -->
+                <div class="col-lg-8">
+                    <!-- Dropzone -->
+                    <div id="dropzone" class="dropzone-box mb-4" onclick="triggerFileInput()">
+                        <input type="file" id="fileInput" multiple accept="image/jpeg,image/png,image/webp,image/tiff" style="display: none;" onchange="handleFileSelect(event)">
+                        <i class="fas fa-cloud-upload-alt fa-3x text-primary mb-2"></i>
+                        <h5 class="fw-bold mb-1">Drag & Drop Photos Here</h5>
+                        <p class="text-muted small mb-0">Supports JPEG, PNG, WebP, TIFF. Files are processed transiently in memory.</p>
+                    </div>
+
+                    <!-- Toolbar -->
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <span id="photoCountBadge" class="badge bg-secondary">0 Photos</span>
+                            <span id="selectedCountBadge" class="badge bg-primary ms-1" style="display: none;">0 Selected</span>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-outline-secondary" onclick="selectAllPhotos(true)">Select All</button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="selectAllPhotos(false)">Deselect All</button>
+                        </div>
+                    </div>
+
+                    <!-- Photo Cards Grid -->
+                    <div id="photoGrid" class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
+                        <!-- Cards dynamically rendered -->
+                    </div>
+                </div>
+
+                <!-- Right Column: Metadata Inspector & Profile Presets -->
+                <div class="col-lg-4">
+                    <!-- Presets Panel -->
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                            <span class="fw-bold"><i class="fas fa-bookmark me-2 text-warning"></i>Metadata Profiles</span>
+                            <button class="btn btn-sm btn-outline-warning" onclick="openSaveProfileModal()"><i class="fas fa-save me-1"></i> Save Current</button>
+                        </div>
+                        <div class="card-body">
+                            <label class="form-label small fw-bold">Select Saved Profile</label>
+                            <select id="profileSelect" class="form-select form-select-sm mb-3" onchange="loadSelectedProfile()">
+                                <option value="">-- Choose a Preset Profile --</option>
+                            </select>
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-sm btn-success" onclick="applyProfileToSelected()"><i class="fas fa-check-double me-1"></i> Apply to Selected Photos</button>
+                                <button class="btn btn-sm btn-outline-success" onclick="applyProfileToAll()"><i class="fas fa-globe me-1"></i> Apply to ALL Photos</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Active Photo Inspector & Map -->
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-slate-800 text-dark fw-bold">
+                            <i class="fas fa-sliders-h me-2 text-primary"></i>Metadata Editor
+                        </div>
+                        <div class="card-body">
+                            <!-- Default Metadata Fields -->
+                            <div class="row g-2 mb-2">
+                                <div class="col-6">
+                                    <label class="form-label small fw-bold">UploadBy</label>
+                                    <input type="text" id="editUploadBy" class="form-control form-control-sm" th:value="${username}" placeholder="e.g. Alray Johnson">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label small fw-bold">UploadTimestamp</label>
+                                    <input type="text" id="editUploadTimestamp" class="form-control form-control-sm" placeholder="e.g. 7/1/2026 5:58 PM">
+                                </div>
+                            </div>
+
+                            <div class="row g-2 mb-2">
+                                <div class="col-6">
+                                    <label class="form-label small fw-bold">FileName</label>
+                                    <input type="text" id="editFileName" class="form-control form-control-sm bg-light" readonly placeholder="Image filename">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label small fw-bold">DateTimeOriginal</label>
+                                    <input type="text" id="editDateTimeOriginal" class="form-control form-control-sm" placeholder="e.g. 2026:07:01 17:58:27">
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold"><i class="fas fa-map-marker-alt me-1 text-danger"></i>GPS Coordinates</label>
+                                <div class="row g-2 mb-2">
+                                    <div class="col">
+                                        <input type="number" step="any" id="editLat" class="form-control form-control-sm" placeholder="GPSLatitude (e.g. 40.344035)">
+                                    </div>
+                                    <div class="col">
+                                        <input type="number" step="any" id="editLng" class="form-control form-control-sm" placeholder="GPSLongitude (e.g. -75.869876)">
+                                    </div>
+                                </div>
+                                <div id="mapPicker"></div>
+                                <small class="text-muted d-block mt-1">Click anywhere on the map to set GPS location pin.</small>
+                            </div>
+
+                            <hr>
+
+                            <!-- Camera Device & System Fields -->
+                            <div class="row g-2 mb-2">
+                                <div class="col-6">
+                                    <label class="form-label small fw-bold">Make</label>
+                                    <input type="text" id="editMake" class="form-control form-control-sm" placeholder="e.g. Apple">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label small fw-bold">Model</label>
+                                    <input type="text" id="editModel" class="form-control form-control-sm" placeholder="e.g. iPhone">
+                                </div>
+                            </div>
+
+                            <div class="row g-2 mb-2">
+                                <div class="col-6">
+                                    <label class="form-label small fw-bold">UploadFrom</label>
+                                    <input type="text" id="editUploadFrom" class="form-control form-control-sm" placeholder="e.g. PPW 2">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label small fw-bold">Duplicate</label>
+                                    <select id="editDuplicate" class="form-select form-select-sm">
+                                        <option value="False">False</option>
+                                        <option value="True">True</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="mb-2">
+                                <label class="form-label small fw-bold">Software</label>
+                                <input type="text" id="editSoftware" class="form-control form-control-sm" placeholder="e.g. Adobe Lightroom / iOS 17">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small fw-bold">Author / Artist</label>
+                                <input type="text" id="editArtist" class="form-control form-control-sm" placeholder="e.g. John Doe">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small fw-bold">Copyright</label>
+                                <input type="text" id="editCopyright" class="form-control form-control-sm" placeholder="e.g. © 2026 Company Ltd">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Description / User Comment</label>
+                                <textarea id="editDescription" class="form-control form-control-sm" rows="2" placeholder="e.g. Field inspection photo"></textarea>
+                            </div>
+
+                            <!-- Custom User-Defined Metadata Fields Container -->
+                            <div id="customFieldsContainer" class="mb-3">
+                                <!-- Dynamic custom fields rendered here -->
+                            </div>
+
+                            <div class="d-flex gap-2 mb-3">
+                                <button type="button" class="btn btn-outline-info btn-sm w-100" onclick="openAddCustomFieldModal()">
+                                    <i class="fas fa-plus-circle me-1"></i> Add Custom Field
+                                </button>
+                            </div>
+
+                            <div class="d-grid">
+                                <button class="btn btn-primary btn-sm" onclick="saveActivePhotoMetadata()"><i class="fas fa-sync me-1"></i> Update Selected Photo(s)</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ZIP Download Action Card -->
+                    <div class="card shadow-sm border-primary">
+                        <div class="card-body text-center">
+                            <h6 class="fw-bold mb-2"><i class="fas fa-file-archive me-1 text-primary"></i>Export Processed Photos</h6>
+                            <p class="text-muted small mb-3">Download modified images directly into a single ZIP archive.</p>
+                            <button id="downloadZipBtn" class="btn btn-primary w-100 py-2 fw-bold" onclick="downloadZipArchive()" disabled>
+                                <i class="fas fa-download me-2"></i>Download Photos as ZIP
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Save Profile Modal -->
+            <div class="modal fade" id="saveProfileModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header bg-dark text-white">
+                            <h5 class="modal-title"><i class="fas fa-bookmark me-2 text-warning"></i>Save Metadata Profile</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Profile Name</label>
+                                <input type="text" id="newProfileName" class="form-control" placeholder="e.g. Dhaka Main Office - iPhone Preset">
+                            </div>
+                            <p class="small text-muted mb-0">This preset will save current form values (GPS, Make, Model, Artist, etc.) to your account for future 1-click use.</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-warning" onclick="confirmSaveProfile()">Save Profile</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Custom Metadata Field Modal -->
+            <div class="modal fade" id="addCustomFieldModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header bg-dark text-white">
+                            <h5 class="modal-title"><i class="fas fa-plus-circle me-2 text-info"></i>Add Custom Metadata Field</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Field Label / Name</label>
+                                <input type="text" id="newFieldLabel" class="form-control" placeholder="e.g. Inspection ID, Project Name, Serial Number">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Field Type</label>
+                                <select id="newFieldType" class="form-select">
+                                    <option value="TEXT">Text</option>
+                                    <option value="NUMBER">Number</option>
+                                </select>
+                            </div>
+                            <p class="small text-muted mb-0">This custom field will be saved to your account and added to your Metadata Editor layout.</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-info text-white" onclick="confirmAddCustomField()">Add Field</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Leaflet & Main Logic Script -->
+        <script th:src="@{https://unpkg.com/leaflet@1.9.4/dist/leaflet.js}"></script>
+        <script>
+            let loadedPhotos = []; // { id, file, filename, url, metadata: {} }
+            let activePhotoId = null;
+            let selectedPhotoIds = new Set();
+            let savedProfiles = [];
+            let userCustomFields = [];
+            let map, marker;
+
+            document.addEventListener('DOMContentLoaded', () => {
+                initMap();
+                initDropzone();
+                fetchProfiles();
+                fetchCustomFields();
+            });
+
+            // --- Map Picker Setup ---
+            function initMap() {
+                // Default center: Dhaka (23.8103, 90.4125)
+                map = L.map('mapPicker').setView([23.8103, 90.4125], 11);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '© OpenStreetMap'
+                }).addTo(map);
+
+                map.on('click', function (e) {
+                    const lat = parseFloat(e.latlng.lat.toFixed(6));
+                    const lng = parseFloat(e.latlng.lng.toFixed(6));
+                    document.getElementById('editLat').value = lat;
+                    document.getElementById('editLng').value = lng;
+                    setMapMarker(lat, lng);
+                });
+
+                document.getElementById('editLat').addEventListener('change', updateMarkerFromInputs);
+                document.getElementById('editLng').addEventListener('change', updateMarkerFromInputs);
+            }
+
+            function setMapMarker(lat, lng) {
+                if (!map) return;
+                if (marker) {
+                    marker.setLatLng([lat, lng]);
+                } else {
+                    marker = L.marker([lat, lng]).addTo(map);
+                }
+                map.panTo([lat, lng]);
+            }
+
+            function updateMarkerFromInputs() {
+                const lat = parseFloat(document.getElementById('editLat').value);
+                const lng = parseFloat(document.getElementById('editLng').value);
+                if (!isNaN(lat) && !isNaN(lng)) {
+                    setMapMarker(lat, lng);
+                }
+            }
+
+            // --- Dropzone & File Handling ---
+            function initDropzone() {
+                const dz = document.getElementById('dropzone');
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    dz.addEventListener(eventName, preventDefaults, false);
+                });
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    dz.addEventListener(eventName, () => dz.classList.add('dragover'), false);
+                });
+                ['dragleave', 'drop'].forEach(eventName => {
+                    dz.addEventListener(eventName, () => dz.classList.remove('dragover'), false);
+                });
+
+                dz.addEventListener('drop', (e) => {
+                    const dt = e.dataTransfer;
+                    const files = dt.files;
+                    handleFiles(files);
+                });
+            }
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            function triggerFileInput() {
+                document.getElementById('fileInput').click();
+            }
+
+            function handleFileSelect(e) {
+                handleFiles(e.target.files);
+            }
+
+            function handleFiles(files) {
+                if (!files || files.length === 0) return;
+
+                const formData = new FormData();
+                const newPhotos = [];
+
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    if (!file.type.startsWith('image/')) continue;
+
+                    const photoId = 'photo_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+                    const url = URL.createObjectURL(file);
+
+                    const photoObj = {
+                        id: photoId,
+                        file: file,
+                        filename: file.name,
+                        url: url,
+                        metadata: {
+                            latitude: null,
+                            longitude: null,
+                            cameraMake: '',
+                            cameraModel: '',
+                            software: '',
+                            artist: '',
+                            copyright: '',
+                            description: ''
+                        }
+                    };
+
+                    loadedPhotos.push(photoObj);
+                    newPhotos.push(photoObj);
+                    formData.append('photos', file);
+                }
+
+                renderPhotoGrid();
+                updateBadges();
+
+                // Fetch server-side extracted metadata
+                fetch('/api/photo-metadata/inspect', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(res => res.json())
+                .then(dataList => {
+                    dataList.forEach(item => {
+                        const target = loadedPhotos.find(p => p.filename === item.filename);
+                        if (target && item) {
+                            if (item.latitude) target.metadata.latitude = item.latitude;
+                            if (item.longitude) target.metadata.longitude = item.longitude;
+                            if (item.cameraMake) target.metadata.cameraMake = item.cameraMake;
+                            if (item.cameraModel) target.metadata.cameraModel = item.cameraModel;
+                            if (item.software) target.metadata.software = item.software;
+                            if (item.artist) target.metadata.artist = item.artist;
+                            if (item.copyright) target.metadata.copyright = item.copyright;
+                            if (item.description) target.metadata.description = item.description;
+                            if (item.allTags) target.metadata.allTags = item.allTags;
+                            if (item.dateOriginal) target.metadata.dateOriginal = item.dateOriginal;
+                            if (item.dateTimeOriginal) target.metadata.dateTimeOriginal = item.dateTimeOriginal;
+                            if (item.exposureTime) target.metadata.exposureTime = item.exposureTime;
+                            if (item.aperture) target.metadata.aperture = item.aperture;
+                            if (item.iso) target.metadata.iso = item.iso;
+                            if (item.focalLength) target.metadata.focalLength = item.focalLength;
+                            if (item.lensModel) target.metadata.lensModel = item.lensModel;
+                            if (item.uploadBy) target.metadata.uploadBy = item.uploadBy;
+                            if (item.uploadTimestamp) target.metadata.uploadTimestamp = item.uploadTimestamp;
+                            if (item.uploadFrom) target.metadata.uploadFrom = item.uploadFrom;
+                            if (item.duplicate) target.metadata.duplicate = item.duplicate;
+                            if (item.customFields) target.metadata.customFields = item.customFields;
+                        }
+                    });
+                    renderPhotoGrid();
+                    if (loadedPhotos.length > 0 && !activePhotoId) {
+                        selectActivePhoto(loadedPhotos[0].id);
+                    }
+                })
+                .catch(err => console.error("Error extracting EXIF:", err));
+            }
+
+            // --- Render & UI Helpers ---
+            function renderPhotoGrid() {
+                const grid = document.getElementById('photoGrid');
+                grid.innerHTML = '';
+
+                loadedPhotos.forEach(p => {
+                    const isSelected = selectedPhotoIds.has(p.id);
+                    const isActive = (p.id === activePhotoId);
+
+                    const col = document.createElement('div');
+                    col.className = 'col';
+                    col.innerHTML = `
+                        <div class="photo-card ${isSelected ? 'selected' : ''} ${isActive ? 'border-primary' : ''}">
+                            <div class="photo-thumb-wrap">
+                                <img src="${p.url}" alt="${p.filename}">
+                                <div class="position-absolute top-0 start-0 p-2" style="z-index: 10;">
+                                    <input type="checkbox" class="form-check-input" ${isSelected ? 'checked' : ''} onclick="toggleSelectPhoto('${p.id}', event)">
+                                </div>
+
+                                <!-- Hover EXIF Overlay -->
+                                <div class="photo-metadata-overlay">
+                                    <div class="d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom border-secondary">
+                                        <span class="fw-bold text-info" style="font-size: 0.75rem;"><i class="fas fa-info-circle me-1"></i>Metadata Summary</span>
+                                        <span class="badge bg-secondary" style="font-size: 0.65rem;">Hover EXIF</span>
+                                    </div>
+                                    <div class="meta-row">
+                                        <span class="meta-label">UploadBy:</span>
+                                        <span class="meta-val" title="${p.metadata.uploadBy || 'Alray Johnson'}">${p.metadata.uploadBy || 'Alray Johnson'}</span>
+                                    </div>
+                                    <div class="meta-row">
+                                        <span class="meta-label">UploadTimestamp:</span>
+                                        <span class="meta-val" title="${p.metadata.uploadTimestamp || '7/1/2026 5:58 PM'}">${p.metadata.uploadTimestamp || '7/1/2026 5:58 PM'}</span>
+                                    </div>
+                                    <div class="meta-row">
+                                        <span class="meta-label">FileName:</span>
+                                        <span class="meta-val" title="${p.filename}">${p.filename}</span>
+                                    </div>
+                                    <div class="meta-row">
+                                        <span class="meta-label">DateTimeOriginal:</span>
+                                        <span class="meta-val" title="${p.metadata.dateTimeOriginal || '2026:07:01 17:58:27'}">${p.metadata.dateTimeOriginal || '2026:07:01 17:58:27'}</span>
+                                    </div>
+                                    <div class="meta-row">
+                                        <span class="meta-label">GPSLatitude:</span>
+                                        <span class="meta-val">${p.metadata.latitude !== null && p.metadata.latitude !== undefined ? p.metadata.latitude : '40.344035'}</span>
+                                    </div>
+                                    <div class="meta-row">
+                                        <span class="meta-label">GPSLongitude:</span>
+                                        <span class="meta-val">${p.metadata.longitude !== null && p.metadata.longitude !== undefined ? p.metadata.longitude : '-75.869876'}</span>
+                                    </div>
+                                    <div class="meta-row">
+                                        <span class="meta-label">Make:</span>
+                                        <span class="meta-val" title="${p.metadata.cameraMake || 'Apple'}">${p.metadata.cameraMake || 'Apple'}</span>
+                                    </div>
+                                    <div class="meta-row">
+                                        <span class="meta-label">Model:</span>
+                                        <span class="meta-val" title="${p.metadata.cameraModel || 'iPhone'}">${p.metadata.cameraModel || 'iPhone'}</span>
+                                    </div>
+                                    <div class="meta-row">
+                                        <span class="meta-label">UploadFrom:</span>
+                                        <span class="meta-val" title="${p.metadata.uploadFrom || 'PPW 2'}">${p.metadata.uploadFrom || 'PPW 2'}</span>
+                                    </div>
+                                    <div class="meta-row">
+                                        <span class="meta-label">Duplicate:</span>
+                                        <span class="meta-val">${p.metadata.duplicate || 'False'}</span>
+                                    </div>
+                                    ${p.metadata.customFields ? Object.entries(p.metadata.customFields).map(([k, v]) => `
+                                        <div class="meta-row">
+                                            <span class="meta-label">${k}:</span>
+                                            <span class="meta-val" title="${v}">${v}</span>
+                                        </div>
+                                    `).join('') : ''}
+                                </div>
+                            </div>
+                            <div class="photo-card-body" onclick="selectActivePhoto('${p.id}')" style="cursor: pointer;">
+                                <div class="fw-bold text-truncate" title="${p.filename}">${p.filename}</div>
+                                <div class="d-flex justify-content-between align-items-center mt-1">
+                                    <span class="badge ${p.metadata.latitude ? 'badge-gps' : 'bg-secondary'}">
+                                        <i class="fas fa-map-marker-alt me-1"></i>${p.metadata.latitude ? 'GPS Set' : 'No GPS'}
+                                    </span>
+                                    <small class="text-muted">${(p.file.size / 1024).toFixed(0)} KB</small>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    grid.appendChild(col);
+                });
+
+                document.getElementById('downloadZipBtn').disabled = (loadedPhotos.length === 0);
+            }
+
+            function selectActivePhoto(id) {
+                activePhotoId = id;
+                const photo = loadedPhotos.find(p => p.id === id);
+                if (!photo) return;
+
+                document.getElementById('editUploadBy').value = photo.metadata.uploadBy || 'Alray Johnson';
+                document.getElementById('editUploadTimestamp').value = photo.metadata.uploadTimestamp || '7/1/2026 5:58 PM';
+                document.getElementById('editFileName').value = photo.filename;
+                document.getElementById('editDateTimeOriginal').value = photo.metadata.dateTimeOriginal || '2026:07:01 17:58:27';
+                document.getElementById('editLat').value = photo.metadata.latitude !== null && photo.metadata.latitude !== undefined ? photo.metadata.latitude : 40.344035;
+                document.getElementById('editLng').value = photo.metadata.longitude !== null && photo.metadata.longitude !== undefined ? photo.metadata.longitude : -75.869876;
+                document.getElementById('editMake').value = photo.metadata.cameraMake || 'Apple';
+                document.getElementById('editModel').value = photo.metadata.cameraModel || 'iPhone';
+                document.getElementById('editUploadFrom').value = photo.metadata.uploadFrom || 'PPW 2';
+                document.getElementById('editDuplicate').value = photo.metadata.duplicate || 'False';
+                document.getElementById('editSoftware').value = photo.metadata.software || '';
+                document.getElementById('editArtist').value = photo.metadata.artist || '';
+                document.getElementById('editCopyright').value = photo.metadata.copyright || '';
+                document.getElementById('editDescription').value = photo.metadata.description || '';
+
+                if (photo.metadata.allTags) {
+                    if (!photo.metadata.customFields) photo.metadata.customFields = {};
+                    const ignoreList = ['make', 'model', 'software', 'artist', 'copyright', 'description', 'latitude', 'longitude', 'date/time original', 'data precision', 'image width', 'image height', 'file name', 'file size'];
+                    Object.entries(photo.metadata.allTags).forEach(([rawKey, val]) => {
+                        const lowKey = rawKey.toLowerCase();
+                        if (!ignoreList.some(ig => lowKey === ig || lowKey.includes('gps') || lowKey.includes('thumbnail'))) {
+                            const cleanKey = rawKey.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+                            if (photo.metadata.customFields[cleanKey] === undefined) {
+                                photo.metadata.customFields[cleanKey] = val;
+                            }
+                        }
+                    });
+                }
+
+                if (photo.metadata.customFields) {
+                    let needsReRender = false;
+                    Object.keys(photo.metadata.customFields).forEach(key => {
+                        if (!userCustomFields.some(f => f.fieldKey === key)) {
+                            userCustomFields.push({
+                                id: 'tmp_' + key,
+                                fieldLabel: key.replace(/_/g, ' ').toUpperCase(),
+                                fieldKey: key,
+                                fieldType: 'TEXT'
+                            });
+                            needsReRender = true;
+                        }
+                    });
+                    if (needsReRender) {
+                        renderCustomFieldsForm();
+                    }
+                }
+
+                userCustomFields.forEach(f => {
+                    const el = document.getElementById('custom_field_' + f.fieldKey);
+                    if (el) {
+                        el.value = (photo.metadata.customFields && photo.metadata.customFields[f.fieldKey]) || '';
+                    }
+                });
+
+                if (photo.metadata.latitude && photo.metadata.longitude) {
+                    setMapMarker(photo.metadata.latitude, photo.metadata.longitude);
+                }
+
+                renderPhotoGrid();
+            }
+
+            function toggleSelectPhoto(id, event) {
+                event.stopPropagation();
+                if (selectedPhotoIds.has(id)) {
+                    selectedPhotoIds.delete(id);
+                } else {
+                    selectedPhotoIds.add(id);
+                }
+                updateBadges();
+                renderPhotoGrid();
+            }
+
+            function selectAllPhotos(select) {
+                if (select) {
+                    loadedPhotos.forEach(p => selectedPhotoIds.add(p.id));
+                } else {
+                    selectedPhotoIds.clear();
+                }
+                updateBadges();
+                renderPhotoGrid();
+            }
+
+            function clearAllPhotos() {
+                loadedPhotos = [];
+                selectedPhotoIds.clear();
+                activePhotoId = null;
+                updateBadges();
+                renderPhotoGrid();
+            }
+
+            function updateBadges() {
+                document.getElementById('photoCountBadge').innerText = `${loadedPhotos.length} Photos`;
+                const selBadge = document.getElementById('selectedCountBadge');
+                if (selectedPhotoIds.size > 0) {
+                    selBadge.innerText = `${selectedPhotoIds.size} Selected`;
+                    selBadge.style.display = 'inline-block';
+                } else {
+                    selBadge.style.display = 'none';
+                }
+            }
+
+            function saveActivePhotoMetadata() {
+                const targetIds = selectedPhotoIds.size > 0 ? Array.from(selectedPhotoIds) : (activePhotoId ? [activePhotoId] : []);
+                if (targetIds.length === 0) return;
+
+                const lat = parseFloat(document.getElementById('editLat').value);
+                const lng = parseFloat(document.getElementById('editLng').value);
+
+                targetIds.forEach(id => {
+                    const photo = loadedPhotos.find(p => p.id === id);
+                    if (photo) {
+                        photo.metadata.uploadBy = document.getElementById('editUploadBy').value;
+                        photo.metadata.uploadTimestamp = document.getElementById('editUploadTimestamp').value;
+                        photo.metadata.dateTimeOriginal = document.getElementById('editDateTimeOriginal').value;
+                        photo.metadata.latitude = !isNaN(lat) ? lat : null;
+                        photo.metadata.longitude = !isNaN(lng) ? lng : null;
+                        photo.metadata.cameraMake = document.getElementById('editMake').value;
+                        photo.metadata.cameraModel = document.getElementById('editModel').value;
+                        photo.metadata.uploadFrom = document.getElementById('editUploadFrom').value;
+                        photo.metadata.duplicate = document.getElementById('editDuplicate').value;
+                        photo.metadata.software = document.getElementById('editSoftware').value;
+                        photo.metadata.artist = document.getElementById('editArtist').value;
+                        photo.metadata.copyright = document.getElementById('editCopyright').value;
+                        photo.metadata.description = document.getElementById('editDescription').value;
+
+                        if (!photo.metadata.customFields) photo.metadata.customFields = {};
+                        userCustomFields.forEach(f => {
+                            const el = document.getElementById('custom_field_' + f.fieldKey);
+                            if (el) {
+                                photo.metadata.customFields[f.fieldKey] = el.value;
+                            }
+                        });
+                    }
+                });
+
+                renderPhotoGrid();
+            }
+
+            // --- Custom Metadata Fields Functions ---
+
+            function fetchCustomFields() {
+                fetch('/api/photo-metadata/custom-fields')
+                    .then(res => res.json())
+                    .then(fields => {
+                        userCustomFields = fields;
+                        renderCustomFieldsForm();
+                    })
+                    .catch(err => console.error("Error fetching custom fields:", err));
+            }
+
+            function renderCustomFieldsForm() {
+                const container = document.getElementById('customFieldsContainer');
+                container.innerHTML = '';
+
+                if (!userCustomFields || userCustomFields.length === 0) {
+                    return;
+                }
+
+                userCustomFields.forEach(f => {
+                    const div = document.createElement('div');
+                    div.className = 'mb-2';
+                    div.innerHTML = `
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label small fw-bold text-info mb-0">${f.fieldLabel}</label>
+                            <button type="button" class="btn btn-sm btn-link text-danger p-0" title="Delete Field" onclick="deleteCustomField(${f.id})">
+                                <i class="fas fa-trash-alt small"></i>
+                            </button>
+                        </div>
+                        <input type="${f.fieldType === 'NUMBER' ? 'number' : 'text'}" id="custom_field_${f.fieldKey}" class="form-control form-control-sm" placeholder="Enter ${f.fieldLabel}">
+                    `;
+                    container.appendChild(div);
+                });
+            }
+
+            function openAddCustomFieldModal() {
+                new bootstrap.Modal(document.getElementById('addCustomFieldModal')).show();
+            }
+
+            function confirmAddCustomField() {
+                const label = document.getElementById('newFieldLabel').value;
+                const type = document.getElementById('newFieldType').value;
+
+                if (!label || !label.trim()) {
+                    alert("Please enter a field name!");
+                    return;
+                }
+
+                const fieldData = {
+                    fieldLabel: label.trim(),
+                    fieldType: type
+                };
+
+                fetch('/api/photo-metadata/custom-fields', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(fieldData)
+                })
+                .then(res => res.json())
+                .then(() => {
+                    bootstrap.Modal.getInstance(document.getElementById('addCustomFieldModal')).hide();
+                    document.getElementById('newFieldLabel').value = '';
+                    fetchCustomFields();
+                })
+                .catch(err => alert("Failed to add field: " + err));
+            }
+
+            function deleteCustomField(id) {
+                if (!confirm("Are you sure you want to delete this custom metadata field?")) return;
+
+                fetch('/api/photo-metadata/custom-fields/' + id, {
+                    method: 'DELETE'
+                })
+                .then(res => {
+                    if (res.ok) {
+                        fetchCustomFields();
+                    } else {
+                        alert("Failed to delete field");
+                    }
+                })
+                .catch(err => alert("Error deleting field: " + err));
+            }
+
+            // --- Profile Presets Handling ---
+            function fetchProfiles() {
+                fetch('/api/photo-metadata/profiles')
+                    .then(res => res.json())
+                    .then(profiles => {
+                        savedProfiles = profiles;
+                        const select = document.getElementById('profileSelect');
+                        select.innerHTML = '<option value="">-- Choose a Preset Profile --</option>';
+                        profiles.forEach(p => {
+                            const opt = document.createElement('option');
+                            opt.value = p.id;
+                            opt.innerText = p.profileName;
+                            select.appendChild(opt);
+                        });
+                    })
+                    .catch(err => console.error("Error fetching profiles:", err));
+            }
+
+            function loadSelectedProfile() {
+                const profileId = document.getElementById('profileSelect').value;
+                if (!profileId) return;
+
+                const profile = savedProfiles.find(p => p.id == profileId);
+                if (!profile) return;
+
+                document.getElementById('editLat').value = profile.latitude || '';
+                document.getElementById('editLng').value = profile.longitude || '';
+                document.getElementById('editMake').value = profile.cameraMake || '';
+                document.getElementById('editModel').value = profile.cameraModel || '';
+                document.getElementById('editSoftware').value = profile.software || '';
+                document.getElementById('editArtist').value = profile.artist || '';
+                document.getElementById('editCopyright').value = profile.copyright || '';
+                document.getElementById('editDescription').value = profile.description || '';
+
+                if (profile.customFieldsJson) {
+                    try {
+                        const customMap = JSON.parse(profile.customFieldsJson);
+                        userCustomFields.forEach(f => {
+                            const el = document.getElementById('custom_field_' + f.fieldKey);
+                            if (el && customMap[f.fieldKey] !== undefined) {
+                                el.value = customMap[f.fieldKey];
+                            }
+                        });
+                    } catch(e){}
+                }
+
+                if (profile.latitude && profile.longitude) {
+                    setMapMarker(profile.latitude, profile.longitude);
+                }
+            }
+
+            function applyProfileToSelected() {
+                if (selectedPhotoIds.size === 0) {
+                    alert("Please select at least one photo first!");
+                    return;
+                }
+                saveActivePhotoMetadata();
+            }
+
+            function applyProfileToAll() {
+                if (loadedPhotos.length === 0) return;
+                selectAllPhotos(true);
+                saveActivePhotoMetadata();
+            }
+
+            function openSaveProfileModal() {
+                new bootstrap.Modal(document.getElementById('saveProfileModal')).show();
+            }
+
+            function confirmSaveProfile() {
+                const profileName = document.getElementById('newProfileName').value;
+                if (!profileName) {
+                    alert("Please enter a profile name!");
+                    return;
+                }
+
+                const lat = parseFloat(document.getElementById('editLat').value);
+                const lng = parseFloat(document.getElementById('editLng').value);
+
+                const customMap = {};
+                userCustomFields.forEach(f => {
+                    const el = document.getElementById('custom_field_' + f.fieldKey);
+                    if (el) customMap[f.fieldKey] = el.value;
+                });
+
+                const profileData = {
+                    profileName: profileName,
+                    latitude: !isNaN(lat) ? lat : null,
+                    longitude: !isNaN(lng) ? lng : null,
+                    cameraMake: document.getElementById('editMake').value,
+                    cameraModel: document.getElementById('editModel').value,
+                    software: document.getElementById('editSoftware').value,
+                    artist: document.getElementById('editArtist').value,
+                    copyright: document.getElementById('editCopyright').value,
+                    description: document.getElementById('editDescription').value,
+                    customFieldsJson: JSON.stringify(customMap)
+                };
+
+                fetch('/api/photo-metadata/profiles', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(profileData)
+                })
+                .then(res => res.json())
+                .then(() => {
+                    bootstrap.Modal.getInstance(document.getElementById('saveProfileModal')).hide();
+                    document.getElementById('newProfileName').value = '';
+                    fetchProfiles();
+                })
+                .catch(err => alert("Failed to save profile: " + err));
+            }
+
+            // --- ZIP Download Execution ---
+            function downloadZipArchive() {
+                if (loadedPhotos.length === 0) return;
+
+                const btn = document.getElementById('downloadZipBtn');
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating ZIP...';
+
+                const formData = new FormData();
+                const metadataReqs = [];
+
+                loadedPhotos.forEach(p => {
+                    formData.append('photos', p.file);
+                    metadataReqs.push({
+                        filename: p.filename,
+                        latitude: p.metadata.latitude,
+                        longitude: p.metadata.longitude,
+                        cameraMake: p.metadata.cameraMake,
+                        cameraModel: p.metadata.cameraModel,
+                        software: p.metadata.software,
+                        artist: p.metadata.artist,
+                        copyright: p.metadata.copyright,
+                        description: p.metadata.description,
+                        uploadBy: p.metadata.uploadBy,
+                        uploadTimestamp: p.metadata.uploadTimestamp,
+                        dateTimeOriginal: p.metadata.dateTimeOriginal,
+                        uploadFrom: p.metadata.uploadFrom,
+                        duplicate: p.metadata.duplicate,
+                        customFields: p.metadata.customFields || {}
+                    });
+                });
+
+                formData.append('metadataJson', JSON.stringify(metadataReqs));
+
+                fetch('/api/photo-metadata/download-zip', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) throw new Error("Server error generating ZIP");
+                    return response.blob();
+                })
+                .then(blob => {
+                    const downloadUrl = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = downloadUrl;
+                    a.download = 'modified_photos_' + Date.now() + '.zip';
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-download me-2"></i>Download Photos as ZIP';
+                })
+                .catch(err => {
+                    alert("Download failed: " + err.message);
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-download me-2"></i>Download Photos as ZIP';
+                });
+            }
+        </script>
+    </div>
+</body>
+</html>

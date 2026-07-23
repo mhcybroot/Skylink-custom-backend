@@ -183,13 +183,17 @@
                 <div class="col-12">
                     <!-- My Shared Resources Widget -->
                     <div class="card shadow-lg border-0 rounded-4 overflow-hidden mb-4">
-                        <div
-                            class="card-header bg-gradient bg-primary text-white border-bottom-0 py-4 d-flex align-items-center">
-                            <div class="bg-white text-primary rounded-circle d-flex align-items-center justify-content-center shadow-sm me-3"
-                                style="width: 48px; height: 48px;">
-                                <i class="fas fa-key fa-lg"></i>
+                        <div class="card-header bg-gradient bg-primary text-white border-bottom-0 py-4 d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-white text-primary rounded-circle d-flex align-items-center justify-content-center shadow-sm me-3"
+                                    style="width: 48px; height: 48px;">
+                                    <i class="fas fa-key fa-lg"></i>
+                                </div>
+                                <h6 class="mb-0 fw-bold">My Shared Resources</h6>
                             </div>
-                            <h6 class="mb-0 fw-bold">My Shared Resources</h6>
+                            <button type="button" class="btn btn-light text-primary fw-bold rounded-pill shadow-sm px-4" data-bs-toggle="modal" data-bs-target="#addResourceModal">
+                                <i class="fas fa-plus me-1"></i> Add Credential
+                            </button>
                         </div>
                         <div class="card-body bg-light p-4">
                             <div class="row g-4">
@@ -207,12 +211,14 @@
                                                     <h6 class="card-title fw-bold mb-0 text-dark"
                                                         th:text="${resource.resourceName}">Portal</h6>
                                                 </div>
-                                                <a th:if="${resource.resourceLink != null and !resource.resourceLink.isEmpty()}"
-                                                    th:href="${resource.resourceLink}" target="_blank"
-                                                    class="btn btn-outline-primary btn-sm rounded-pill shadow-sm px-3 w-100 w-sm-auto"
-                                                    title="Open Link">
-                                                    Open Link <i class="fas fa-external-link-alt ms-1"></i>
-                                                </a>
+                                                <div class="d-flex gap-2 w-100 w-sm-auto justify-content-end">
+                                                    <a th:if="${resource.resourceLink != null and !resource.resourceLink.isEmpty()}"
+                                                        th:href="${resource.resourceLink}" target="_blank"
+                                                        class="btn btn-outline-primary btn-sm rounded-pill shadow-sm px-3"
+                                                        title="Open Link">
+                                                        Open Link <i class="fas fa-external-link-alt ms-1"></i>
+                                                    </a>
+                                                </div>
                                             </div>
 
                                             <!-- Credentials -->
@@ -237,20 +243,8 @@
                                                         class="fas fa-lock me-1"></i> Password</label>
                                                 <div class="input-group">
                                                     <input type="password"
-                                                        class="form-control bg-light text-dark fw-bold font-monospace border-end-0"
-                                                        th:value="${resource.password}" readonly>
-                                                    <button class="btn border border-start-0 bg-light text-secondary"
-                                                        type="button"
-                                                        onclick="let input = this.parentElement.querySelector('input'); if (input.type === 'password') { input.type = 'text'; this.innerHTML = '<i class=\'fas fa-eye-slash\'></i>'; } else { input.type = 'password'; this.innerHTML = '<i class=\'fas fa-eye\'></i>'; }"
-                                                        title="Toggle Visibility">
-                                                        <i class="fas fa-eye"></i>
-                                                    </button>
-                                                    <button class="btn border border-start-0 bg-light text-secondary"
-                                                        type="button"
-                                                        onclick="navigator.clipboard.writeText(this.parentElement.querySelector('input').value); this.innerHTML='<i class=\'fas fa-check text-success\'></i>'; setTimeout(() => this.innerHTML='<i class=\'fas fa-copy\'></i>', 2000);"
-                                                        title="Copy Password">
-                                                        <i class="fas fa-copy"></i>
-                                                    </button>
+                                                        class="form-control bg-light text-dark fw-bold font-monospace"
+                                                        value="********" readonly>
                                                 </div>
                                             </div>
                                         </div>
@@ -384,10 +378,11 @@
                 // ... existing script ...
             </script>
 
-            <!-- Holiday Countdown Widget -->
-            <div class="row mb-4" th:if="${nextHoliday != null}">
-                <div class="col-12">
-                    <div class="card text-white shadow-sm border-0 position-relative overflow-hidden"
+            <!-- Holiday & Birthday Widget Row -->
+            <div class="row mb-4">
+                <!-- Holiday Widget -->
+                <div th:class="${nextBirthday != null} ? 'col-md-6 mb-3 mb-md-0' : 'col-12'" th:if="${nextHoliday != null}">
+                    <div class="card text-white shadow-sm border-0 position-relative overflow-hidden h-100"
                         style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
                         <div class="card-body text-center p-4">
                             <div class="d-flex justify-content-center align-items-center mb-2">
@@ -400,6 +395,27 @@
                                 until <span th:text="${nextHoliday.name}">New Year</span>
                                 <small class="d-block mt-1" style="font-size: 0.8rem;"
                                     th:text="${#temporals.format(nextHoliday.date, 'EEEE, dd MMMM yyyy')}">Monday, 01
+                                    January 2024</small>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Next Birthday Widget -->
+                <div th:class="${nextHoliday != null} ? 'col-md-6' : 'col-12'" th:if="${nextBirthday != null}">
+                    <div class="card shadow-sm border-0 position-relative overflow-hidden h-100"
+                        th:style="${nextBirthday.isToday} ? 'background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%); color: white;' : 'background: linear-gradient(135deg, #fff9e6 0%, #fff2cc 100%); color: #333;'">
+                        <div class="card-body text-center p-4">
+                            <div class="d-flex justify-content-center align-items-center mb-2">
+                                <i class="fas fa-birthday-cake fa-2x me-3" th:classappend="${nextBirthday.isToday ? 'text-white' : 'text-danger'}"></i>
+                                <h5 class="text-uppercase fw-bold mb-0">Next Birthday</h5>
+                            </div>
+
+                            <h5 class="fw-bold my-2" th:text="${nextBirthday.isToday ? 'TODAY!' : daysUntilBirthday + ' Days'}">5 Days</h5>
+                            <p class="mb-0" th:classappend="${nextBirthday.isToday ? 'opacity-100' : 'opacity-75'}">
+                                <span class="fw-bold" th:text="${nextBirthday.employeeName}">John Doe</span> is turning <span class="fw-bold" th:text="${nextBirthday.turningAge}">30</span>
+                                <small class="d-block mt-1 fw-bold" style="font-size: 0.8rem;"
+                                    th:text="${#temporals.format(nextBirthday.nextBirthday, 'EEEE, dd MMMM yyyy')}">Monday, 01
                                     January 2024</small>
                             </p>
                         </div>
@@ -887,6 +903,34 @@
 
                     </div>
                 </div>
+
+                <!-- Recent Leaves & HR Actions -->
+                <div class="card shadow-sm border-0 mt-3" th:if="${recentLeaves != null and !recentLeaves.isEmpty()}">
+                    <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold"><i class="fas fa-calendar-check text-primary me-2"></i> Recent Leaves & HR Actions</h6>
+                        <a href="/leave/employee" class="btn btn-sm btn-link text-decoration-none">View All</a>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush">
+                            <li th:each="req, reqStat : ${recentLeaves}" class="list-group-item p-3" th:if="${reqStat.index < 5}">
+                                <div class="d-flex justify-content-between align-items-start mb-1">
+                                    <div>
+                                        <span class="badge" th:classappend="${req.isHrAction or (req.leaveType != null and req.leaveType.contains('Force Leave')) ? 'bg-danger' : 'bg-primary'}" th:text="${req.leaveType}">Sick</span>
+                                        <span th:if="${req.isHrAction}" class="badge bg-warning text-dark ms-1">HR Action Force Leave Deduction</span>
+                                    </div>
+                                    <span class="badge" th:classappend="${req.status.name() == 'APPROVED' ? 'bg-success' : (req.status.name() == 'REJECTED' ? 'bg-danger' : 'bg-warning text-dark')}" th:text="${req.status}">APPROVED</span>
+                                </div>
+                                <div class="small fw-medium text-dark">
+                                    <i class="far fa-calendar me-1"></i> <span th:text="${req.startDate}"></span> to <span th:text="${req.endDate}"></span>
+                                </div>
+                                <div class="small text-muted text-truncate mt-1" style="max-width: 280px;" th:text="${req.reason}">Reason</div>
+                                <div th:if="${req.reviewedBy != null}" class="small text-muted mt-1" style="font-size: 0.75rem;">
+                                    <i class="fas fa-user-check me-1"></i> Approver/Creator: <span th:text="${req.reviewedBy}">HR Admin</span>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
             </div>
     </div>
     </section>
@@ -972,6 +1016,104 @@
         }
     </script>
     </div>
+    <!-- Add Resource Modal -->
+    <div class="modal fade" id="addResourceModal" tabindex="-1" aria-labelledby="addResourceModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4 border-0 shadow-lg">
+                <div class="modal-header bg-primary text-white rounded-top-4 border-0 p-4">
+                    <h5 class="modal-title fw-bold" id="addResourceModalLabel">
+                        <i class="fas fa-plus-circle me-2"></i>Add New Credential
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form th:action="@{/employee/resource/add}" method="post" id="addResourceForm">
+                        <div class="mb-3">
+                            <label for="resourceName" class="form-label text-muted fw-bold small text-uppercase">Website / App Name</label>
+                            <input type="text" class="form-control bg-light" id="resourceName" name="resourceName" placeholder="e.g. Property Pres Wizard" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="resourceLink" class="form-label text-muted fw-bold small text-uppercase">URL / Link</label>
+                            <input type="url" class="form-control bg-light" id="resourceLink" name="resourceLink" placeholder="https://..." required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="loginId" class="form-label text-muted fw-bold small text-uppercase">Username / ID</label>
+                            <input type="text" class="form-control bg-light" id="loginId" name="loginId" required>
+                        </div>
+                        <div class="mb-4">
+                            <label for="password" class="form-label text-muted fw-bold small text-uppercase">Password</label>
+                            <input type="password" class="form-control bg-light" id="password" name="password" required>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary rounded-pill fw-bold py-2">Save Credential</button>
+                            <button type="button" class="btn btn-light rounded-pill fw-bold text-muted py-2" data-bs-dismiss="modal">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Birthday Reminder Modal -->
+    <div th:if="${nextBirthday != null && nextBirthday.isToday}" class="modal fade" id="birthdayReminderModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg text-center p-4" style="background: linear-gradient(135deg, #fff9e6 0%, #fff2cc 100%); border-radius: 20px;">
+                <div class="modal-header border-0 pb-0 justify-content-end">
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body pt-0">
+                    <div style="font-size: 4rem; animation: bounce 2s infinite;" class="mb-3">🎂</div>
+                    <h3 class="fw-bold text-dark mb-3">It's <span th:text="${nextBirthday.employeeName}">John Doe</span>'s Birthday!</h3>
+                    <p class="text-muted fs-5 mb-4">They are turning <span class="fw-bold text-primary" th:text="${nextBirthday.turningAge}">30</span> today. Don't forget to wish them a very Happy Birthday! 🎉</p>
+                    <button type="button" class="btn btn-warning btn-lg rounded-pill fw-bold text-dark px-5 shadow-sm" data-bs-dismiss="modal">Got it!</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script th:inline="javascript">
+        document.addEventListener("DOMContentLoaded", function() {
+            /*[[${nextBirthday != null && nextBirthday.isToday}]]*/
+            var isBirthdayToday = /*[[${nextBirthday != null && nextBirthday.isToday}]]*/ false;
+            
+            if (isBirthdayToday) {
+                var employeeName = /*[[${nextBirthday != null ? nextBirthday.employeeName : ''}]]*/ '';
+                var storageKey = 'birthday_shown_' + employeeName.replace(/\s+/g, '_') + '_' + new Date().toLocaleDateString();
+                
+                if (!localStorage.getItem(storageKey)) {
+                    var birthdayModal = new bootstrap.Modal(document.getElementById('birthdayReminderModal'));
+                    birthdayModal.show();
+                    localStorage.setItem(storageKey, 'true');
+                    
+                    // Confetti Animation
+                    var duration = 3 * 1000;
+                    var end = Date.now() + duration;
+
+                    (function frame() {
+                        confetti({
+                            particleCount: 5,
+                            angle: 60,
+                            spread: 55,
+                            origin: { x: 0 },
+                            colors: ['#ffc107', '#ff9800', '#dc3545', '#0d6efd', '#20c997']
+                        });
+                        confetti({
+                            particleCount: 5,
+                            angle: 120,
+                            spread: 55,
+                            origin: { x: 1 },
+                            colors: ['#ffc107', '#ff9800', '#dc3545', '#0d6efd', '#20c997']
+                        });
+
+                        if (Date.now() < end) {
+                            requestAnimationFrame(frame);
+                        }
+                    }());
+                }
+            }
+        });
+    </script>
 </body>
 
 </html>

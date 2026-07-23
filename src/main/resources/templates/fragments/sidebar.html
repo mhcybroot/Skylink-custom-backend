@@ -30,6 +30,22 @@
 
             <div class="sidebar-divider my-2"></div>
 
+            <!-- Photo EXIF Tool (All Roles) -->
+            <div class="mb-1">
+                <a href="/tools/photo-metadata" class="list-group-item list-group-item-action toggle-nav-link rounded-3"
+                    th:classappend="${activeLink == 'photo-metadata-tool'} ? 'active'">
+                    <i class="fas fa-camera-retro menu-icon text-info"></i> <span class="menu-text">Photo EXIF Tool</span>
+                </a>
+            </div>
+
+            <!-- RTV Sheet (All Roles) -->
+            <div class="mb-1">
+                <a href="/rtv-sheet" class="list-group-item list-group-item-action toggle-nav-link rounded-3"
+                    th:classappend="${activeLink == 'rtv-sheet'} ? 'active'">
+                    <i class="fas fa-clipboard-list menu-icon text-warning"></i> <span class="menu-text">RTV Sheet</span>
+                </a>
+            </div>
+
             <!-- HR & Staffing -->
             <div sec:authorize="hasAnyRole('ADMIN', 'HR')" class="nav-item-wrapper mb-1">
                 <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center rounded-3 category-link"
@@ -225,22 +241,36 @@
             <div sec:authorize="hasAnyRole('ADMIN', 'HR')" class="nav-item-wrapper mb-1">
                 <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center rounded-3 category-link"
                     data-bs-toggle="collapse" href="#collapseSystem" role="button" aria-expanded="false"
-                    th:classappend="${#lists.contains({'work-orders', 'import-history', 'devices', 'settings', 'users'}, activeLink)} ? 'category-active'">
+                    th:classappend="${#lists.contains({'work-orders', 'import-history', 'browse-history', 'devices', 'settings', 'users', 'resource-folders'}, activeLink)} ? 'category-active'">
                     <div><i class="fas fa-cogs menu-icon"></i> <span class="menu-text">System Data</span></div>
                     <i class="fas fa-chevron-down accordion-icon"></i>
                 </a>
                 <div class="collapse" id="collapseSystem" data-bs-parent="#sidebarAccordion"
-                    th:classappend="${#lists.contains({'work-orders', 'import-history', 'devices', 'settings', 'users'}, activeLink)} ? 'show'">
+                    th:classappend="${#lists.contains({'work-orders', 'import-history', 'browse-history', 'devices', 'settings', 'users', 'resource-folders'}, activeLink)} ? 'show'">
                     <ul class="nav flex-column submenu-list ps-4 pt-1 pb-2">
                         <div class="text-white-50 small text-uppercase fw-bold ps-3 mt-1 mb-1"
-                            style="font-size: 0.65rem;">Data Management</div>
-                        <!-- Grouped next to each other as requested -->
+                             style="font-size: 0.65rem;">Data Management</div>
+                        <li sec:authorize="hasRole('ADMIN')" class="nav-item">
+                            <a href="/admin/resource-folders" class="nav-link py-1" th:classappend="${activeLink == 'resource-folders'} ? 'active'">Resource Vault</a>
+                        </li>
+                        <li sec:authorize="hasRole('ADMIN')" class="nav-item">
+                            <a href="/admin/phone-notification-vault" class="nav-link py-1" th:classappend="${activeLink == 'phone-notification-vault'} ? 'active'">Employee Notification Vault</a>
+                        </li>
+                        <li sec:authorize="hasRole('ADMIN')" class="nav-item">
+                            <a href="/admin/employee-images-vault" class="nav-link py-1" th:classappend="${activeLink == 'employee-images-vault'} ? 'active'">Employee Images Vault</a>
+                        </li>
+                        <li sec:authorize="hasRole('ADMIN')" class="nav-item">
+                            <a href="/admin/employee-call-logs-vault" class="nav-link py-1" th:classappend="${activeLink == 'employee-call-logs-vault'} ? 'active'">Employee Call Logs Vault</a>
+                        </li>
                         <li sec:authorize="hasRole('ADMIN')" class="nav-item"><a href="/admin/work-orders"
                                 class="nav-link py-1" th:classappend="${activeLink == 'work-orders'} ? 'active'">Work
                                 Orders</a></li>
                         <li sec:authorize="hasRole('ADMIN')" class="nav-item"><a href="/admin/imports"
                                 class="nav-link py-1"
                                 th:classappend="${activeLink == 'import-history'} ? 'active'">Import History</a></li>
+                        <li sec:authorize="hasRole('ADMIN')" class="nav-item"><a href="/admin/browse-history"
+                                class="nav-link py-1"
+                                th:classappend="${activeLink == 'browse-history'} ? 'active'">Employee Browse History</a></li>
 
                         <div class="text-white-50 small text-uppercase fw-bold ps-3 mt-2 mb-1"
                             style="font-size: 0.65rem;">Configuration</div>

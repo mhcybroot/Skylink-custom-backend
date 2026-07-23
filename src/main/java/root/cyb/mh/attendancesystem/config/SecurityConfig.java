@@ -25,7 +25,8 @@ public class SecurityConfig {
                                                 .requestMatchers("/css/**", "/js/**", "/images/**", "/webjars/**")
                                                 .permitAll()
                                                 .requestMatchers("/login", "/error").permitAll()
-                                                .requestMatchers("/api/v1/ppw-mapping").permitAll()
+                                                .requestMatchers("/api/v1/monitor/**").permitAll() // Allow monitor endpoints
+                                                .requestMatchers("/api/v1/ppw-mapping").authenticated()
                                                 .requestMatchers("/iclock/**").permitAll() // Allow ADMS Device
                                                                                            // Communication
                                                 // Admin Only Areas
@@ -40,11 +41,22 @@ public class SecurityConfig {
                                                 .requestMatchers("/master-data/**", "/admin/work-orders/**")
                                                 .hasRole("ADMIN")
                                                 .requestMatchers("/departments/**")
-                                                .hasRole("ADMIN")
+                                                .hasAnyRole("ADMIN", "HR")
                                                 // Employee Area
                                                 .requestMatchers("/employee/**").hasRole("EMPLOYEE")
                                                 // Dashboard restricted to Admin/HR
                                                 .requestMatchers("/dashboard").hasAnyRole("ADMIN", "HR")
+                                                .requestMatchers("/leave-quotas/**", "/birthdays/**").hasAnyRole("ADMIN", "HR")
+                                                // Secure newly identified exposed routes
+                                                .requestMatchers("/admin/**", "/api/admin/**").hasAnyRole("ADMIN", "HR")
+                                                .requestMatchers("/payroll/**").hasAnyRole("ADMIN", "HR")
+                                                .requestMatchers("/reports/**").hasAnyRole("ADMIN", "HR")
+                                                .requestMatchers("/data/**").hasRole("ADMIN")
+                                                .requestMatchers("/payment-requests/**").hasAnyRole("ADMIN", "HR", "EMPLOYEE")
+                                                .requestMatchers("/attendance", "/attendance-history", "/sync").hasAnyRole("ADMIN", "HR")
+                                                .requestMatchers("/supervisor/**").hasAnyRole("ADMIN", "HR", "SUPERVISOR")
+                                                .requestMatchers("/tools/photo-metadata/**", "/api/photo-metadata/**").hasAnyRole("ADMIN", "HR", "EMPLOYEE")
+                                                .requestMatchers("/rtv-sheet/**", "/api/rtv-sheet/**").hasAnyRole("ADMIN", "HR", "EMPLOYEE")
                                                 // Leave Management
                                                 .requestMatchers("/leave/manage/**")
                                                 .hasAnyRole("ADMIN", "HR", "EMPLOYEE")
@@ -61,6 +73,21 @@ public class SecurityConfig {
                                                 .logoutUrl("/logout")
                                                 .logoutSuccessUrl("/login?logout")
                                                 .permitAll())
+                                .httpBasic(org.springframework.security.config.Customizer.withDefaults())
+                                .exceptionHandling(exceptions -> exceptions
+                                        .defaultAuthenticationEntryPointFor(
+                                                (request, response, authException) -> {
+                                                    response.setStatus(401);
+                                                    response.setContentType("application/json");
+                                                    response.getWriter().write("{\"error\": \"Unauthorized\"}");
+                                                },
+                                                new org.springframework.security.web.util.matcher.AntPathRequestMatcher("/api/**")
+                                        )
+                                        .defaultAuthenticationEntryPointFor(
+                                                new org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint("/login"),
+                                                org.springframework.security.web.util.matcher.AnyRequestMatcher.INSTANCE
+                                        )
+                                )
                                 .csrf(csrf -> csrf.disable()); // Disabling CSRF for simplicity in this specific project
                                                                // context if
                                                                // needed, but keeping it enabled is better.

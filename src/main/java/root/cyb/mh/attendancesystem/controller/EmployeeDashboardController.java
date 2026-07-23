@@ -142,6 +142,9 @@ public class EmployeeDashboardController {
         model.addAttribute("paidLeavesTaken", paidTaken);
         model.addAttribute("unpaidLeavesTaken", unpaidTaken);
 
+        List<LeaveRequest> recentLeaves = leaveRequestRepository.findByEmployeeIdOrderByCreatedAtDesc(employeeId);
+        model.addAttribute("recentLeaves", recentLeaves);
+
         // 6. Next Holiday Countdown
         java.time.LocalDate today = java.time.LocalDate.now();
         java.util.Optional<root.cyb.mh.attendancesystem.model.PublicHoliday> nextHoliday = publicHolidayRepository
@@ -169,6 +172,19 @@ public class EmployeeDashboardController {
         List<Employee> allEmployees = employeeRepository.findAll();
         List<String> guestIds = allEmployees.stream().filter(Employee::isGuest).map(Employee::getId)
                 .collect(Collectors.toList());
+
+        // Employee Dashboard Birthday Counter
+        root.cyb.mh.attendancesystem.controller.DashboardController.BirthdayDto nextBirthday = allEmployees.stream()
+                .filter(e -> e.getDateOfBirth() != null)
+                .map(e -> new root.cyb.mh.attendancesystem.controller.DashboardController.BirthdayDto(e.getName(), e.getDateOfBirth(), today))
+                .min(Comparator.comparing(root.cyb.mh.attendancesystem.controller.DashboardController.BirthdayDto::getNextBirthday))
+                .orElse(null);
+
+        model.addAttribute("nextBirthday", nextBirthday);
+        if (nextBirthday != null) {
+            long daysUntilBirthday = java.time.temporal.ChronoUnit.DAYS.between(today, nextBirthday.getNextBirthday());
+            model.addAttribute("daysUntilBirthday", daysUntilBirthday);
+        }
 
         // Daily Report for Global Stats
         List<DailyAttendanceDto> dailyReport = reportService
@@ -421,6 +437,27 @@ public class EmployeeDashboardController {
         employeeRepository.save(employee);
 
         redirectAttributes.addFlashAttribute("success", "Password changed successfully.");
+        return "redirect:/employee/dashboard";
+    }
+    
+    @PostMapping("/employee/resource/add")
+    public String addSharedResource(Principal principal,
+                                    @RequestParam String resourceName,
+                                    @RequestParam String resourceLink,
+                                    @RequestParam String loginId,
+                                    @RequestParam String password) {
+        String employeeId = principal.getName();
+        Employee employee = employeeRepository.findById(employeeId).orElseThrow();
+        
+        SharedResource resource = new SharedResource();
+        resource.setEmployee(employee);
+        resource.setResourceName(resourceName);
+        resource.setResourceLink(resourceLink);
+        resource.setLoginId(loginId);
+        resource.setPassword(password);
+        resource.setCreatedAt(java.time.LocalDateTime.now());
+        
+        sharedResourceRepository.save(resource);
         return "redirect:/employee/dashboard";
     }
 }

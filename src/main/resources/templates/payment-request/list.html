@@ -375,8 +375,22 @@
                                                     th:text="${req.requester != null ? req.requester.username : (req.employeeRequester != null ? req.employeeRequester.name : 'Unknown')}"></span>
                                             </div>
                                         </td>
-                                        <td><span class="font-monospace small text-dark"
-                                                th:text="${req.workOrderNumber}"></span></td>
+                                        <td>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span class="font-monospace small text-dark" style="cursor: pointer;"
+                                                    th:text="${req.workOrderNumber}"
+                                                    th:data-wo="${req.workOrderNumber}" 
+                                                    onclick="event.stopPropagation(); copyWoToClipboard(this.getAttribute('data-wo'), this.nextElementSibling)"
+                                                    title="Copy to clipboard"></span>
+                                                <i class="far fa-copy text-muted small" style="cursor: pointer; opacity: 0.6; transition: 0.2s;" 
+                                                   th:if="${req.workOrderNumber != null and !req.workOrderNumber.isEmpty()}"
+                                                   th:data-wo="${req.workOrderNumber}" 
+                                                   onclick="event.stopPropagation(); copyWoToClipboard(this.getAttribute('data-wo'), this)" 
+                                                   onmouseover="this.style.opacity='1'" 
+                                                   onmouseout="this.style.opacity='0.6'"
+                                                   title="Copy to clipboard"></i>
+                                            </div>
+                                        </td>
                                         <td><span class="font-monospace fw-bold text-dark"
                                                 th:text="${'$' + req.amount}"></span></td>
                                         <td><span class="small text-dark text-truncate d-inline-block"
@@ -387,11 +401,11 @@
                                             </span>
                                         </td>
                                         <td>
-                                            <span th:text="${req.status}"
-                                                th:class="${'badge rounded-1 fw-normal ' + 
+                                            <span th:class="${'badge rounded-1 fw-medium px-2 py-1 ' + 
                                                 (req.status.name() == 'APPROVED' ? 'bg-success-subtle text-success border border-success' : 
-                                                (req.status.name() == 'REJECTED' ? 'bg-danger-subtle text-danger border border-danger' : 'bg-warning-subtle text-warning-emphasis border border-warning'))}">
-                                            </span>
+                                                (req.status.name() == 'REJECTED' ? 'bg-danger-subtle text-danger border border-danger' : 
+                                                (req.status.name() == 'HOLD' ? 'bg-secondary-subtle text-secondary border border-secondary' : 'bg-warning-subtle text-warning-emphasis border border-warning')))}"
+                                                th:text="${req.status}"></span>
                                         </td>
                                         <td>
                                             <span th:if="${req.paymentStatus != null}" th:text="${req.paymentStatus}"
@@ -872,6 +886,61 @@
                 urlParams.set('size', size);
                 urlParams.set('page', '0');
                 window.location.search = urlParams.toString();
+            }
+
+            function copyWoToClipboard(text, element) {
+                if (!text) return;
+
+                function onSuccess() {
+                    const originalClass = element.className;
+                    element.className = 'fas fa-check text-success small';
+                    
+                    if (typeof showToast === 'function') {
+                        showToast({
+                            id: Date.now(),
+                            title: 'Success',
+                            type: 'SUCCESS',
+                            message: 'Copied WO: ' + text
+                        });
+                    }
+
+                    setTimeout(() => {
+                        element.className = originalClass;
+                    }, 1500);
+                }
+
+                function onError(err) {
+                    console.error('Failed to copy: ', err);
+                    alert('Failed to copy Work Order number.');
+                }
+
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(text).then(onSuccess).catch(onError);
+                } else {
+                    // Fallback for non-secure contexts (like HTTP local IPs)
+                    try {
+                        const textArea = document.createElement("textarea");
+                        textArea.value = text;
+                        // Avoid scrolling to bottom
+                        textArea.style.top = "0";
+                        textArea.style.left = "0";
+                        textArea.style.position = "fixed";
+                        document.body.appendChild(textArea);
+                        textArea.focus();
+                        textArea.select();
+                        
+                        const successful = document.execCommand('copy');
+                        document.body.removeChild(textArea);
+                        
+                        if (successful) {
+                            onSuccess();
+                        } else {
+                            onError(new Error('execCommand returned false'));
+                        }
+                    } catch (err) {
+                        onError(err);
+                    }
+                }
             }
         </script>
     </div>

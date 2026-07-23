@@ -45,6 +45,9 @@ public class LeaveRequest {
     // Who approved/rejected it? (Optional audit)
     private String reviewedBy;
 
+    @Column(columnDefinition = "boolean default false")
+    private Boolean isHrAction = false;
+
     public enum Status {
         PENDING,
         APPROVED,

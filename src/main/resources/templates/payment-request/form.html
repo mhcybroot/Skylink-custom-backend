@@ -29,7 +29,7 @@
                                 <span th:text="${errorMessage}"></span>
                                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                             </div>
-                            <form th:action="@{/payment-requests}" th:object="${paymentRequest}" method="post">
+                            <form th:action="@{/payment-requests}" th:object="${paymentRequest}" method="post" onsubmit="return validateForm()">
 
                                 <div class="row g-4">
                                     <div class="col-md-6">
@@ -96,7 +96,8 @@
 
                                             <!-- Hidden Original Select for Form Binding -->
                                             <!-- We keep id="contractor" here so the auto-fill script continues to work -->
-                                            <select class="d-none" th:field="*{contractor}" id="contractor" required>
+                                            <!-- Removed 'required' attribute to avoid hidden focus error; handled via JS validation -->
+                                            <select class="d-none" th:field="*{contractor}" id="contractor">
                                                 <option value="">-- Select Contractor --</option>
                                                 <option th:each="c : ${activeContractors}" th:value="${c.id}"
                                                     th:text="${c.name}"></option>
@@ -121,7 +122,8 @@
                                     <div class="col-md-6">
                                         <label class="form-label fw-bold text-secondary text-uppercase small">Payment
                                             Priority</label>
-                                        <select class="form-select bg-light border-0" th:field="*{priority}">
+                                        <select class="form-select bg-light border-0" th:field="*{priority}" required>
+                                            <option value="">-- Select Priority --</option>
                                             <option th:each="p : ${priorities}" th:value="${p}" th:text="${p}"></option>
                                         </select>
                                     </div>
@@ -132,7 +134,7 @@
                                         <div class="input-group">
                                             <span class="input-group-text bg-light border-0"><i
                                                     class="fas fa-credit-card text-secondary"></i></span>
-                                            <select class="form-select bg-light border-0" th:field="*{paymentMethod}">
+                                            <select class="form-select bg-light border-0" th:field="*{paymentMethod}" required>
                                                 <option value="">-- Select Method --</option>
                                                 <option th:each="pm : ${activePaymentMethods}" th:value="${pm.id}"
                                                     th:text="${pm.methodName}"></option>
@@ -147,7 +149,7 @@
                                                     class="fas fa-info-circle text-secondary"></i></span>
                                             <input type="text" class="form-control bg-light border-0"
                                                 th:field="*{paymentAccountDetails}"
-                                                placeholder="e.g. Zelle Email, Bank Acct #">
+                                                placeholder="e.g. Zelle Email, Bank Acct #" required>
                                         </div>
                                     </div>
                                     <div class="col-md-6 position-relative">
@@ -361,6 +363,28 @@
                         workOrderWarning.classList.add('d-none');
                     }
                 });
+            }
+
+            // --- Form Validation for Hidden Dropdowns ---
+            function validateForm() {
+                const contractor = document.getElementById('contractor');
+                const client = document.getElementById('client');
+                const contractorSearch = document.getElementById('contractorSearch');
+                const clientSearch = document.getElementById('clientSearch');
+
+                if (contractor && !contractor.value) {
+                    alert('Please select a Contractor Name from the dropdown list.');
+                    if (contractorSearch) contractorSearch.focus();
+                    return false;
+                }
+
+                if (client && !client.value) {
+                    alert('Please select a Client Code from the dropdown list.');
+                    if (clientSearch) clientSearch.focus();
+                    return false;
+                }
+
+                return true;
             }
         </script>
     </div>
