@@ -32,6 +32,14 @@ public class RtvSheetController {
         return "rtv-sheet";
     }
 
+    @GetMapping("/rtv-sheet/deleted")
+    @PreAuthorize("hasAnyRole('EMPLOYEE', 'HR', 'ADMIN')")
+    public String renderDeletedRtvSheetPage(Model model) {
+        model.addAttribute("activeLink", "rtv-sheet-deleted");
+        model.addAttribute("employees", rtvSheetService.getAllEmployees());
+        return "rtv-sheet-deleted";
+    }
+
     // --- REST API ENDPOINTS ---
 
     @GetMapping("/api/rtv-sheet")
