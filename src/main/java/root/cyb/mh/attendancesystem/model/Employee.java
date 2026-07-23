@@ -1,5 +1,6 @@
 package root.cyb.mh.attendancesystem.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import lombok.AllArgsConstructor;
@@ -22,12 +23,15 @@ public class Employee {
     private String role;
 
     @jakarta.persistence.ManyToOne
+    @JsonIgnoreProperties({"reportsTo", "reportsToAssistant", "department", "password", "photoBase64"})
     private Department department;
 
     @jakarta.persistence.ManyToOne
+    @JsonIgnoreProperties({"reportsTo", "reportsToAssistant", "department", "password", "photoBase64"})
     private Employee reportsTo; // The supervisor this employee reports to
 
     @jakarta.persistence.ManyToOne
+    @JsonIgnoreProperties({"reportsTo", "reportsToAssistant", "department", "password", "photoBase64"})
     private Employee reportsToAssistant; // The backup/assistant supervisor
 
     private String designation; // e.g. Manager, MD, Senior Developer

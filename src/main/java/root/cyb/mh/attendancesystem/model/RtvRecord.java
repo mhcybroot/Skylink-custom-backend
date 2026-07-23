@@ -1,5 +1,6 @@
 package root.cyb.mh.attendancesystem.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -30,10 +31,12 @@ public class RtvRecord {
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "original_processor_id")
+    @JsonIgnoreProperties({"reportsTo", "reportsToAssistant", "department", "password", "photoBase64"})
     private Employee originalProcessor;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "rtv_solved_by_id")
+    @JsonIgnoreProperties({"reportsTo", "reportsToAssistant", "department", "password", "photoBase64"})
     private Employee rtvSolvedBy;
 
     @Enumerated(EnumType.STRING)
