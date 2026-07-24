@@ -12,7 +12,23 @@
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
             z-index: 1;
-            cursor: crosshair;
+        }
+
+        /* Force crosshair cursor on ALL Leaflet internal tile/container divs */
+        #pickerMap .leaflet-container,
+        #pickerMap .leaflet-tile-container,
+        #pickerMap .leaflet-tile-pane,
+        #pickerMap .leaflet-zoom-animated,
+        #pickerMap .leaflet-interactive {
+            cursor: crosshair !important;
+        }
+
+        /* Keep grab/grabbing cursor when hovering/dragging the green pin */
+        #pickerMap .leaflet-marker-icon {
+            cursor: grab !important;
+        }
+        #pickerMap .leaflet-marker-icon:active {
+            cursor: grabbing !important;
         }
 
         .coords-box {
@@ -253,7 +269,7 @@
             function initPickerMap() {
                 map = L.map('pickerMap', {
                     scrollWheelZoom: true,
-                    doubleClickZoom: true,
+                    doubleClickZoom: false,
                     touchZoom: true
                 }).setView([32.7767, -96.7970], 10);
 
@@ -285,15 +301,6 @@
 
                 // Click on Map Event -> Move Pin, Update Lat/Lng Inputs & Auto Reverse Geocode Zip/City!
                 map.on('click', (e) => {
-                    // Ignore double-clicks (used for map zooming)
-                    if (e.originalEvent && (e.originalEvent.detail > 1 || e.originalEvent.type === 'dblclick')) {
-                        return;
-                    }
-                    // Ignore clicks on map controls
-                    if (e.originalEvent && e.originalEvent.target && e.originalEvent.target.closest('.leaflet-control-container, .leaflet-popup')) {
-                        return;
-                    }
-
                     const lat = roundCoord(e.latlng.lat);
                     const lng = roundCoord(e.latlng.lng);
 
