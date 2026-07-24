@@ -247,16 +247,17 @@
                     weight: 2
                 }).addTo(map);
 
-                // Click on Map Event -> Move Pin & Update Lat/Lng Inputs
+                // Click on Map Event -> Move Pin, Update Lat/Lng Inputs & Reverse Geocode Zip/City!
                 map.on('click', (e) => {
                     const lat = roundCoord(e.latlng.lat);
                     const lng = roundCoord(e.latlng.lng);
 
                     setMarkerAndCircle(lat, lng);
                     updateInputCoords(lat, lng);
+                    reverseGeocodeCoords(lat, lng);
                 });
 
-                // Drag Marker Event -> Update Lat/Lng Inputs
+                // Drag Marker Event -> Update Lat/Lng Inputs & Reverse Geocode Zip/City!
                 baseMarker.on('dragend', (e) => {
                     const position = baseMarker.getLatLng();
                     const lat = roundCoord(position.lat);
@@ -264,7 +265,52 @@
 
                     radiusCircle.setLatLng([lat, lng]);
                     updateInputCoords(lat, lng);
+                    reverseGeocodeCoords(lat, lng);
                 });
+            }
+
+            function reverseGeocodeCoords(lat, lng) {
+                const zipInput = document.getElementById('inputZipCode');
+                const areaInput = document.getElementById('inputArea');
+
+                // Try OpenStreetMap Nominatim API reverse geocoding first
+                fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`)
+                    .then(res => res.json())
+                    .then(data => {
+                        let zip = '';
+                        let city = '';
+
+                        if (data && data.address) {
+                            zip = data.address.postcode || data.address.postal_code || '';
+                            city = data.address.city || data.address.town || data.address.village || data.address.suburb || data.address.county || '';
+                            const state = data.address.state || '';
+                            if (city && state) city = `${city}, ${state}`;
+                        }
+
+                        if (zip) zipInput.value = zip.split('-')[0].trim();
+                        if (city) areaInput.value = city;
+
+                        // Fallback to local DB if postcode not returned
+                        if (!zip) {
+                            fallbackLocalReverseGeocode(lat, lng);
+                        }
+                    })
+                    .catch(() => {
+                        fallbackLocalReverseGeocode(lat, lng);
+                    });
+            }
+
+            function fallbackLocalReverseGeocode(lat, lng) {
+                fetch(`/api/crew-map/reverse-geocode?lat=${lat}&lng=${lng}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.zipCode && !document.getElementById('inputZipCode').value) {
+                            document.getElementById('inputZipCode').value = data.zipCode;
+                        }
+                        if (data.area && !document.getElementById('inputArea').value) {
+                            document.getElementById('inputArea').value = data.area;
+                        }
+                    });
             }
 
             function updateInputCoords(lat, lng) {

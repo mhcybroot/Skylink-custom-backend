@@ -118,6 +118,34 @@ public class ZipCodeGeoService {
     }
 
     /**
+     * Reverse geocodes coordinates (lat, lng) to the nearest zip code and city in local DB.
+     */
+    public Map<String, String> findNearestZipForCoords(double lat, double lng) {
+        Map<String, String> result = new HashMap<>();
+        String closestZip = null;
+        GeoPoint closestPoint = null;
+        double minDistance = Double.MAX_VALUE;
+
+        for (Map.Entry<String, GeoPoint> entry : ZIP_DB.entrySet()) {
+            double dist = calculateHaversineDistanceMiles(lat, lng, entry.getValue().getLatitude(), entry.getValue().getLongitude());
+            if (dist < minDistance) {
+                minDistance = dist;
+                closestZip = entry.getKey();
+                closestPoint = entry.getValue();
+            }
+        }
+
+        if (closestZip != null && closestPoint != null) {
+            result.put("zipCode", closestZip);
+            result.put("city", closestPoint.getCity());
+            result.put("state", closestPoint.getState());
+            result.put("area", closestPoint.getCity() + ", " + closestPoint.getState());
+        }
+
+        return result;
+    }
+
+    /**
      * Calculates distance in miles between two coordinates using the Haversine formula.
      */
     public double calculateHaversineDistanceMiles(double lat1, double lon1, double lat2, double lon2) {

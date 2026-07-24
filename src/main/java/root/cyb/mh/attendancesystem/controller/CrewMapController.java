@@ -194,6 +194,17 @@ public class CrewMapController {
         return ResponseEntity.ok(response);
     }
 
+    // API: Reverse geocode lat/lng to zip code and city area
+    @GetMapping("/api/crew-map/reverse-geocode")
+    @ResponseBody
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
+    public ResponseEntity<Map<String, String>> reverseGeocode(
+            @RequestParam("lat") double lat,
+            @RequestParam("lng") double lng) {
+        Map<String, String> result = zipCodeGeoService.findNearestZipForCoords(lat, lng);
+        return ResponseEntity.ok(result);
+    }
+
     // API: Update Contractor Base Location & Coverage Settings
     @PostMapping("/api/crew-map/update-crew")
     @ResponseBody
