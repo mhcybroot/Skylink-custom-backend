@@ -49,4 +49,16 @@ public class Contractor {
 
     @Column(length = 100)
     private String area;
+
+    @Column(length = 30)
+    private String phone;
+
+    private Double latitude;
+    private Double longitude;
+
+    @Column(columnDefinition = "integer default 30")
+    private Integer serviceRadiusMiles = 30;
+
+    @Column(columnDefinition = "TEXT")
+    private String coverageZipCodes;
 }
