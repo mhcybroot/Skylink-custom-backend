@@ -53,6 +53,11 @@ public class ZipCodeGeoService {
         ZIP_DB.put("75025", new GeoPoint(33.0850, -96.7417, "Plano", "TX"));
         ZIP_DB.put("75034", new GeoPoint(33.1558, -96.8286, "Frisco", "TX"));
         ZIP_DB.put("75035", new GeoPoint(33.1517, -96.7644, "Frisco", "TX"));
+        ZIP_DB.put("75040", new GeoPoint(32.9126, -96.6389, "Garland", "TX"));
+        ZIP_DB.put("75041", new GeoPoint(32.8800, -96.6400, "Garland", "TX"));
+        ZIP_DB.put("75042", new GeoPoint(32.9000, -96.6700, "Garland", "TX"));
+        ZIP_DB.put("75043", new GeoPoint(32.8500, -96.6100, "Garland", "TX"));
+        ZIP_DB.put("75044", new GeoPoint(32.9700, -96.6300, "Garland", "TX"));
         ZIP_DB.put("75063", new GeoPoint(32.9197, -96.9531, "Irving", "TX"));
         ZIP_DB.put("75080", new GeoPoint(32.9669, -96.7444, "Richardson", "TX"));
         ZIP_DB.put("75093", new GeoPoint(33.0306, -96.8042, "Plano", "TX"));

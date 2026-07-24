@@ -318,7 +318,7 @@
                 }
 
                 // 1. Try Nominatim Geocoder first for full location search
-                fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1&limit=1`)
+                fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=us&addressdetails=1&limit=1`)
                     .then(res => res.json())
                     .then(results => {
                         if (btn) {
@@ -472,7 +472,8 @@
                         fillColor: markerColor,
                         fillOpacity: 0.08,
                         weight: 1.5,
-                        dashArray: '4, 4'
+                        dashArray: '4, 4',
+                        interactive: false
                     }).addTo(markersLayer);
 
                     // Connector Line if WO searched
@@ -481,7 +482,8 @@
                             color: markerColor,
                             weight: 2,
                             opacity: 0.6,
-                            dashArray: '5, 5'
+                            dashArray: '5, 5',
+                            interactive: false
                         }).addTo(markersLayer);
 
                         line.bindTooltip(`${c.distanceMiles} miles to ${c.name}`, { sticky: true });
