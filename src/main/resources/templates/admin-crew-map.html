@@ -209,17 +209,24 @@
             let markersLayer;
 
             document.addEventListener('DOMContentLoaded', () => {
+                console.log('[CrewMap] DOMContentLoaded - initialising map...');
                 initMap();
                 loadAllCrews();
             });
 
+            function roundCoord(val) {
+                return Math.round(val * 10000) / 10000;
+            }
             function initMap() {
+                console.log('[CrewMap] initMap() called');
                 // Centered on Dallas/Texas by default with smooth scroll wheel zoom
                 map = L.map('crewMap', {
                     scrollWheelZoom: true,
                     doubleClickZoom: false,
                     touchZoom: true
                 }).setView([32.7767, -96.7970], 9);
+
+                console.log('[CrewMap] Leaflet map created, container:', document.getElementById('crewMap'));
 
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     maxZoom: 19,
@@ -228,17 +235,30 @@
 
                 markersLayer = L.layerGroup().addTo(map);
 
-                // Map Click Event -> Drop Red WO Target Pin & Rank Nearest Crews INSTANTLY (0ms latency)!
+                // Map Click Event -> Drop Red WO Target Pin & Rank Nearest Crews INSTANTLY!
                 map.on('click', (e) => {
-                    const lat = roundCoord(e.latlng.lat);
-                    const lng = roundCoord(e.latlng.lng);
+                    console.log('[CrewMap] map.on(click) fired! latlng:', e.latlng, 'originalEvent:', e.originalEvent);
+                    try {
+                        const lat = roundCoord(e.latlng.lat);
+                        const lng = roundCoord(e.latlng.lng);
+                        console.log('[CrewMap] Click coords rounded:', lat, lng);
 
-                    // 1. Instant 0ms pin drop and crew ranking
-                    performProximityRanking(lat, lng, `${lat}, ${lng}`, '', '');
+                        // 1. Instant 0ms pin drop and crew ranking
+                        performProximityRanking(lat, lng, `${lat}, ${lng}`, '', '');
 
-                    // 2. Asynchronous reverse geocoding in background
-                    reverseGeocodeSearchLocation(lat, lng);
+                        // 2. Asynchronous reverse geocoding in background
+                        reverseGeocodeSearchLocation(lat, lng);
+                    } catch (err) {
+                        console.error('[CrewMap] ERROR inside map click handler:', err);
+                    }
                 });
+
+                // Also attach a raw DOM click listener on the container for comparison
+                document.getElementById('crewMap').addEventListener('click', (e) => {
+                    console.log('[CrewMap] RAW DOM click on #crewMap div, target:', e.target, 'tag:', e.target.tagName, 'class:', e.target.className);
+                });
+
+                console.log('[CrewMap] initMap() complete, click listener registered');
             }
 
             function reverseGeocodeSearchLocation(lat, lng) {
@@ -271,6 +291,7 @@
             }
 
             function performProximityRanking(lat, lng, queryLabel, city, state) {
+                console.log('[CrewMap] performProximityRanking called:', lat, lng, '| allCrews count:', allCrews.length);
                 document.getElementById('woSearchInput').value = queryLabel;
 
                 let ranked = allCrews.map(c => {
@@ -314,15 +335,17 @@
             }
 
             function loadAllCrews() {
+                console.log('[CrewMap] loadAllCrews() fetching /api/crew-map/crews ...');
                 fetch('/api/crew-map/crews')
                     .then(res => res.json())
                     .then(data => {
+                        console.log('[CrewMap] Crews loaded:', data.length, 'crews', data);
                         allCrews = data;
                         document.getElementById('headerCrewCount').textContent = allCrews.length;
                         renderMapAndList(allCrews, null, true);
                     })
                     .catch(err => {
-                        console.error('Error loading crews:', err);
+                        console.error('[CrewMap] Error loading crews:', err);
                         document.getElementById('crewListContainer').innerHTML =
                             `<div class="alert alert-danger p-3 text-center">Failed to load crew data: ${err.message}</div>`;
                     });
