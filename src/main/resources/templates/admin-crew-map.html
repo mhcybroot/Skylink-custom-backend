@@ -218,15 +218,6 @@
 
                 // Map Click Event -> Drop Red WO Target Pin & Rank Nearest Crews INSTANTLY (0ms latency)!
                 map.on('click', (e) => {
-                    // Ignore double-clicks (used for map zooming)
-                    if (e.originalEvent && (e.originalEvent.detail > 1 || e.originalEvent.type === 'dblclick')) {
-                        return;
-                    }
-                    // Ignore clicks on map zoom control buttons or popups
-                    if (e.originalEvent && e.originalEvent.target && e.originalEvent.target.closest('.leaflet-control-container, .leaflet-popup')) {
-                        return;
-                    }
-
                     const lat = roundCoord(e.latlng.lat);
                     const lng = roundCoord(e.latlng.lng);
 
