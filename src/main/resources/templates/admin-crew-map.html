@@ -413,17 +413,19 @@
                 const maxRadius = parseFloat(document.getElementById('maxRadiusSelect').value) || 9999;
                 let filteredCrews = baseList.filter(c => (c.distanceMiles !== undefined && c.distanceMiles !== null) ? c.distanceMiles <= maxRadius : true);
 
-                // 2. Filter by Contractor Details (Name, Base Zip, Area, Coverage Zips, Phone, Email)
+                // 2. Filter by Contractor Details (Name, Base Zip, Area, Coverage Zips, Phone, Email, Unmapped status)
                 const detailQuery = (document.getElementById('contractorDetailSearchInput')?.value || '').trim().toLowerCase();
                 if (detailQuery) {
                     filteredCrews = filteredCrews.filter(c => {
+                        const isUnmapped = !c.zipCode || c.zipCode.trim() === '';
+                        const unmappedMatch = isUnmapped && ('unmapped'.includes(detailQuery) || 'no zip'.includes(detailQuery) || 'missing'.includes(detailQuery) || 'n/a'.includes(detailQuery));
                         const nameMatch = (c.name || '').toLowerCase().includes(detailQuery);
                         const zipMatch = (c.zipCode || '').toLowerCase().includes(detailQuery);
                         const areaMatch = (c.area || '').toLowerCase().includes(detailQuery);
                         const coverageMatch = (c.coverageZipCodes || '').toLowerCase().includes(detailQuery);
                         const emailMatch = (c.email || '').toLowerCase().includes(detailQuery);
                         const phoneMatch = (c.phone || '').toLowerCase().includes(detailQuery);
-                        return nameMatch || zipMatch || areaMatch || coverageMatch || emailMatch || phoneMatch;
+                        return unmappedMatch || nameMatch || zipMatch || areaMatch || coverageMatch || emailMatch || phoneMatch;
                     });
                 }
 
@@ -512,34 +514,47 @@
                     bounds.extend(latLng);
 
                     const rank = idx + 1;
+                    const isUnmapped = !c.zipCode || c.zipCode.trim() === '';
                     const hasDistance = (c.distanceMiles !== undefined && c.distanceMiles !== null);
                     const isInRange = isSearchingWO ? (c.isInRange === true) : true;
-                    const markerColor = (isSearchingWO && !isInRange) ? '#f59e0b' : '#10b981';
+
+                    let markerColor = '#10b981';
+                    if (isUnmapped) {
+                        markerColor = '#6b7280'; // Grey for unmapped
+                    } else if (isSearchingWO && !isInRange) {
+                        markerColor = '#f59e0b'; // Orange for out-of-radius
+                    }
 
                     // Map Marker
+                    const markerPinContent = isUnmapped
+                        ? '<i class="fas fa-exclamation-triangle"></i>'
+                        : `${rank}`;
+
                     const marker = L.marker(latLng, {
                         icon: L.divIcon({
                             className: 'custom-crew-pin',
-                            html: `<div style="background-color: ${markerColor}; color: white; border: 2px solid white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; box-shadow: 0 3px 8px rgba(0,0,0,0.25);">${rank}</div>`,
+                            html: `<div style="background-color: ${markerColor}; color: white; border: 2px solid white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 11px; box-shadow: 0 3px 8px rgba(0,0,0,0.25);">${markerPinContent}</div>`,
                             iconSize: [30, 30],
                             iconAnchor: [15, 15]
                         })
                     }).addTo(markersLayer);
 
-                    // Radius Circle
-                    const radiusMeters = (c.serviceRadiusMiles || 30) * 1609.34;
-                    L.circle(latLng, {
-                        radius: radiusMeters,
-                        color: markerColor,
-                        fillColor: markerColor,
-                        fillOpacity: 0.08,
-                        weight: 1.5,
-                        dashArray: '4, 4',
-                        interactive: false
-                    }).addTo(markersLayer);
+                    // Radius Circle (only if mapped)
+                    if (!isUnmapped) {
+                        const radiusMeters = (c.serviceRadiusMiles || 30) * 1609.34;
+                        L.circle(latLng, {
+                            radius: radiusMeters,
+                            color: markerColor,
+                            fillColor: markerColor,
+                            fillOpacity: 0.08,
+                            weight: 1.5,
+                            dashArray: '4, 4',
+                            interactive: false
+                        }).addTo(markersLayer);
+                    }
 
                     // Connector Line if WO searched
-                    if (searchTarget && hasDistance) {
+                    if (searchTarget && hasDistance && !isUnmapped) {
                         const line = L.polyline([[searchTarget.targetLatitude, searchTarget.targetLongitude], latLng], {
                             color: markerColor,
                             weight: 2,
@@ -553,16 +568,20 @@
 
                     marker.bindPopup(`
                         <div>
-                            <strong style="color: #047857;">${escapeHtml(c.name)}</strong><br/>
-                            <small class="text-muted"><i class="fas fa-map-marker-alt me-1"></i>Base Zip: ${c.zipCode || 'N/A'}</small><br/>
+                            <strong style="color: ${isUnmapped ? '#dc2626' : '#047857'};">${escapeHtml(c.name)}</strong><br/>
+                            ${isUnmapped
+                                ? '<small class="text-danger fw-bold"><i class="fas fa-exclamation-triangle me-1"></i>Unmapped (No Base Zip Code)</small><br/>'
+                                : `<small class="text-muted"><i class="fas fa-map-marker-alt me-1"></i>Base Zip: ${c.zipCode}</small><br/>`}
                             <small class="text-muted"><i class="fas fa-arrows-alt-h me-1"></i>Radius: ${c.serviceRadiusMiles || 30} miles</small><br/>
-                            ${hasDistance ? `<strong class="text-success">Distance: ${c.distanceMiles} miles from WO</strong>` : ''}
+                            ${(hasDistance && !isUnmapped) ? `<strong class="text-success">Distance: ${c.distanceMiles} miles from WO</strong>` : ''}
                         </div>
                     `);
 
                     // Card HTML
                     let rangeBadge = '';
-                    if (isSearchingWO) {
+                    if (isUnmapped) {
+                        rangeBadge = '<span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1"><i class="fas fa-exclamation-circle me-1"></i>No Base Zip</span>';
+                    } else if (isSearchingWO) {
                         rangeBadge = isInRange
                             ? '<span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1"><i class="fas fa-check-circle me-1"></i>In Range</span>'
                             : '<span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-2 py-1"><i class="fas fa-exclamation-triangle me-1"></i>Out of Radius</span>';
@@ -570,23 +589,35 @@
                         rangeBadge = '<span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1"><i class="fas fa-satellite-dish me-1"></i>Active Base</span>';
                     }
 
-                    const distanceLabel = (isSearchingWO && hasDistance)
+                    const distanceLabel = (isSearchingWO && hasDistance && !isUnmapped)
                         ? `<i class="fas fa-route me-1 text-success"></i><strong class="text-success">${c.distanceMiles} Miles from WO Target</strong>`
                         : `<i class="fas fa-compass me-1"></i>${c.serviceRadiusMiles || 30} mi Radius`;
 
+                    const zipDisplay = isUnmapped
+                        ? '<span class="text-danger fw-bold"><i class="fas fa-exclamation-triangle me-1"></i>Zip Not Set</span>'
+                        : `<strong>${c.zipCode}</strong>`;
+
+                    const editBtn = isUnmapped
+                        ? `<a href="/crew-map/manage/${c.id}" class="btn btn-xs btn-danger py-1 px-2 text-xs fw-bold" onclick="event.stopPropagation();">
+                                <i class="fas fa-map-marker-alt me-1"></i>Set Location
+                           </a>`
+                        : `<a href="/crew-map/manage/${c.id}" class="btn btn-xs btn-outline-primary py-1 px-2 text-xs" onclick="event.stopPropagation();">
+                                <i class="fas fa-edit me-1"></i>Edit Base
+                           </a>`;
+
                     html += `
-                        <div class="card border-0 shadow-sm rounded-3 mb-2 crew-card ${isInRange ? 'in-range' : 'out-range'}" onclick="focusCrewOnMap(${c.latitude}, ${c.longitude})">
+                        <div class="card border-0 shadow-sm rounded-3 mb-2 crew-card ${isUnmapped ? 'out-range border-start-danger' : (isInRange ? 'in-range' : 'out-range')}" onclick="focusCrewOnMap(${c.latitude}, ${c.longitude})">
                             <div class="card-body p-3">
                                 <div class="d-flex align-items-center justify-content-between mb-2">
                                     <div class="d-flex align-items-center gap-2">
-                                        <span class="rank-badge ${isInRange ? 'bg-success text-white' : 'bg-warning text-dark'}">${rank}</span>
+                                        <span class="rank-badge ${isUnmapped ? 'bg-secondary text-white' : (isInRange ? 'bg-success text-white' : 'bg-warning text-dark')}">${rank}</span>
                                         <h6 class="fw-bold mb-0 text-dark">${escapeHtml(c.name)}</h6>
                                     </div>
                                     ${rangeBadge}
                                 </div>
                                 <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 small text-muted">
                                     <div>
-                                        <i class="fas fa-map-marker-alt me-1 text-danger"></i>Zip: <strong>${c.zipCode || 'N/A'}</strong> ${c.area ? `(${escapeHtml(c.area)})` : ''}
+                                        <i class="fas fa-map-marker-alt me-1 ${isUnmapped ? 'text-danger' : 'text-danger'}"></i>Zip: ${zipDisplay} ${c.area ? `(${escapeHtml(c.area)})` : ''}
                                     </div>
                                 </div>
                                 <div class="d-flex align-items-center justify-content-between mt-2 pt-2 border-top">
@@ -594,9 +625,7 @@
                                         ${distanceLabel}
                                     </div>
                                     <div class="d-flex gap-1">
-                                        <a href="/crew-map/manage/${c.id}" class="btn btn-xs btn-outline-primary py-1 px-2 text-xs" onclick="event.stopPropagation();">
-                                            <i class="fas fa-edit me-1"></i>Edit Base
-                                        </a>
+                                        ${editBtn}
                                     </div>
                                 </div>
                             </div>
