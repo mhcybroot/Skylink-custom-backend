@@ -35,27 +35,28 @@ public class MasterDataController {
             "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
             "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY");
 
+    @Autowired
+    private root.cyb.mh.attendancesystem.service.ZipCodeGeoService zipCodeGeoService;
+
     // --- CONTRACTORS (Employees, Admin, HR) ---
     @GetMapping("/contractors")
     @PreAuthorize("hasAnyRole('EMPLOYEE', 'ADMIN', 'HR')")
-    public String listContractors(
-            @RequestParam(value = "search", required = false) String search,
-            @RequestParam(value = "sort", defaultValue = "id") String sort,
-            @RequestParam(value = "dir", defaultValue = "asc") String dir,
+    public String listContractors(@RequestParam(value = "search", required = false) String search,
+            @RequestParam(value = "sort", required = false, defaultValue = "name") String sort,
+            @RequestParam(value = "dir", required = false, defaultValue = "asc") String dir,
             Model model) {
 
-        org.springframework.data.domain.Sort.Direction direction = dir.equalsIgnoreCase("desc")
-                ? org.springframework.data.domain.Sort.Direction.DESC
-                : org.springframework.data.domain.Sort.Direction.ASC;
-        org.springframework.data.domain.Sort sortObj = org.springframework.data.domain.Sort.by(direction, sort);
+        org.springframework.data.domain.Sort sortObj = dir.equalsIgnoreCase("asc")
+                ? org.springframework.data.domain.Sort.by(sort).ascending()
+                : org.springframework.data.domain.Sort.by(sort).descending();
 
         if (search != null && !search.trim().isEmpty()) {
             model.addAttribute("contractors", contractorRepository.searchContractors(search.trim(), sortObj));
-            model.addAttribute("search", search.trim());
         } else {
             model.addAttribute("contractors", contractorRepository.findAll(sortObj));
         }
 
+        model.addAttribute("search", search);
         model.addAttribute("sort", sort);
         model.addAttribute("dir", dir);
         model.addAttribute("reverseDir", dir.equals("asc") ? "desc" : "asc");
@@ -66,11 +67,47 @@ public class MasterDataController {
         return "master-data/contractors";
     }
 
+    @GetMapping("/contractors/new")
+    @PreAuthorize("hasAnyRole('EMPLOYEE', 'ADMIN', 'HR')")
+    public String renderNewContractorPage(Model model) {
+        model.addAttribute("activeLink", "master-data-contractors");
+        model.addAttribute("contractor", new Contractor());
+        model.addAttribute("activePaymentMethods", paymentMethodRepository.findByActiveTrue());
+        model.addAttribute("usStates", US_STATES);
+        return "master-data/contractor-form";
+    }
+
+    @GetMapping("/contractors/edit/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
+    public String renderEditContractorPage(@PathVariable("id") Long id, Model model, RedirectAttributes ps) {
+        Contractor c = contractorRepository.findById(id).orElse(null);
+        if (c == null) {
+            ps.addFlashAttribute("errorMessage", "Contractor not found.");
+            return "redirect:/master-data/contractors";
+        }
+        model.addAttribute("activeLink", "master-data-contractors");
+        model.addAttribute("contractor", c);
+        model.addAttribute("activePaymentMethods", paymentMethodRepository.findByActiveTrue());
+        model.addAttribute("usStates", US_STATES);
+        return "master-data/contractor-form";
+    }
+
     @PostMapping("/contractors")
     @PreAuthorize("hasAnyRole('EMPLOYEE', 'ADMIN', 'HR')")
     public String createContractor(@ModelAttribute Contractor contractor, RedirectAttributes ps,
             java.security.Principal principal) {
         try {
+            // Auto geocode if zip code is present and lat/lng missing
+            if (contractor.getZipCode() != null && !contractor.getZipCode().isBlank()
+                    && (contractor.getLatitude() == null || contractor.getLongitude() == null)) {
+                root.cyb.mh.attendancesystem.service.ZipCodeGeoService.GeoPoint pt =
+                        zipCodeGeoService.getCoordinatesForZip(contractor.getZipCode());
+                if (pt != null) {
+                    contractor.setLatitude(pt.getLatitude());
+                    contractor.setLongitude(pt.getLongitude());
+                }
+            }
+
             Contractor saved = contractorRepository.save(contractor);
             if (saved.getDefaultPaymentMethod() != null) {
                 ContractorPaymentInfo info = new ContractorPaymentInfo();
@@ -82,7 +119,7 @@ public class MasterDataController {
             }
             ps.addFlashAttribute("successMessage", "Contractor created successfully!");
         } catch (Exception e) {
-            ps.addFlashAttribute("errorMessage", "Error: Contractor name must be unique.");
+            ps.addFlashAttribute("errorMessage", "Error saving contractor: " + e.getMessage());
         }
         return "redirect:/master-data/contractors";
     }
@@ -96,10 +133,28 @@ public class MasterDataController {
                 existing.setName(contractor.getName());
                 existing.setDescription(contractor.getDescription());
                 existing.setEmail(contractor.getEmail());
+                existing.setPhone(contractor.getPhone());
                 existing.setZipCode(contractor.getZipCode());
+                existing.setState(contractor.getState());
                 existing.setArea(contractor.getArea());
+                existing.setServiceRadiusMiles(contractor.getServiceRadiusMiles() != null ? contractor.getServiceRadiusMiles() : 30);
+                existing.setCoverageZipCodes(contractor.getCoverageZipCodes());
+                existing.setLatitude(contractor.getLatitude());
+                existing.setLongitude(contractor.getLongitude());
                 existing.setDefaultPaymentMethod(contractor.getDefaultPaymentMethod());
                 existing.setAccountDetails(contractor.getAccountDetails());
+
+                // Auto geocode if lat/lng is missing
+                if (existing.getZipCode() != null && !existing.getZipCode().isBlank()
+                        && (existing.getLatitude() == null || existing.getLongitude() == null)) {
+                    root.cyb.mh.attendancesystem.service.ZipCodeGeoService.GeoPoint pt =
+                            zipCodeGeoService.getCoordinatesForZip(existing.getZipCode());
+                    if (pt != null) {
+                        existing.setLatitude(pt.getLatitude());
+                        existing.setLongitude(pt.getLongitude());
+                    }
+                }
+
                 contractorRepository.save(existing);
                 ps.addFlashAttribute("successMessage", "Contractor updated successfully!");
             } else {

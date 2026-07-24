@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head>
+    <title>Contractor Profile & Location Picker - [[${companyName}]]</title>
+    <!-- Leaflet CSS for Map rendering -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        #pickerMap {
+            height: 650px;
+            width: 100%;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            z-index: 1;
+        }
+
+        /* Force crosshair cursor on ALL Leaflet internal tile/container divs */
+        #pickerMap .leaflet-container,
+        #pickerMap .leaflet-tile-container,
+        #pickerMap .leaflet-tile-pane,
+        #pickerMap .leaflet-zoom-animated,
+        #pickerMap .leaflet-interactive {
+            cursor: crosshair !important;
+        }
+
+        /* Keep grab/grabbing cursor when hovering/dragging the green pin */
+        #pickerMap .leaflet-marker-icon {
+            cursor: grab !important;
+        }
+        #pickerMap .leaflet-marker-icon:active {
+            cursor: grabbing !important;
+        }
+
+        .coords-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+        }
+
+        .picker-instruction-banner {
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+            border: 1px solid #a7f3d0;
+            color: #065f46;
+            border-radius: 10px;
+            padding: 0.85rem 1.1rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .radius-slider {
+            accent-color: #10b981;
+        }
+    </style>
+</head>
+
+<body>
+    <div th:replace="~{layout :: layout(~{::section}, ~{::script}, 'master-data-contractors')}">
+        <section class="bg-light min-vh-100 pb-5">
+            <div class="container-fluid px-4 md-px-5 py-4">
+
+                <!-- Header -->
+                <div class="border-0 shadow-sm rounded-3 mb-4 p-4 text-white"
+                    style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                        <div>
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <i class="fas fa-user-edit fa-lg text-emerald-400"></i>
+                                <h3 class="fw-bold mb-0 text-white" th:text="${contractor.id != null ? 'Edit Contractor Profile & Coverage' : 'Add New Contractor Profile'}">
+                                    Contractor Form
+                                </h3>
+                            </div>
+                            <p class="text-white-50 small mb-0">
+                                Set contractor information, payment details, and pick exact base location & coverage radius on the interactive map.
+                            </p>
+                        </div>
+                        <div>
+                            <a href="/master-data/contractors" class="btn btn-outline-light fw-bold rounded-3 px-3 shadow-sm">
+                                <i class="fas fa-arrow-left me-1"></i> Back to Contractors List
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Instruction Banner -->
+                <div class="picker-instruction-banner shadow-sm mb-4 d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fas fa-hand-pointer fa-lg text-success"></i>
+                        <span>
+                            <strong>Interactive Location Picker:</strong> Click anywhere on the map or drag the pin to set the exact latitude, longitude, and base zip code for this contractor.
+                        </span>
+                    </div>
+                    <span class="badge bg-success bg-opacity-20 text-success border border-success border-opacity-30 px-3 py-2">
+                        <i class="fas fa-satellite me-1"></i> Live Geo Sync
+                    </span>
+                </div>
+
+                <!-- Main Split Layout -->
+                <div class="row g-4 mb-4">
+                    <!-- Left Column (5 Cols): Contractor Form -->
+                    <div class="col-lg-5">
+                        <div class="card border-0 shadow-sm rounded-3 bg-white p-4">
+                            <h5 class="fw-bold text-dark mb-3 border-bottom pb-2">
+                                <i class="fas fa-briefcase text-success me-2"></i>Contractor Details
+                            </h5>
+
+                            <form th:action="${contractor.id != null ? '/master-data/contractors/update' : '/master-data/contractors'}"
+                                  th:object="${contractor}" method="post">
+
+                                <input type="hidden" th:field="*{id}" if="${contractor.id != null}">
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold small text-muted text-uppercase">Contractor Name *</label>
+                                    <input type="text" class="form-control form-control-lg fw-bold" th:field="*{name}" required placeholder="Company or Individual Name">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold small text-muted text-uppercase">Description (Optional)</label>
+                                    <input type="text" class="form-control" th:field="*{description}" placeholder="e.g. Electrical / Landscaping Services">
+                                </div>
+
+                                <div class="row g-2 mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold small text-muted text-uppercase">Email Address</label>
+                                        <input type="email" class="form-control" th:field="*{email}" placeholder="contractor@example.com">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold small text-muted text-uppercase">Phone Number</label>
+                                        <input type="text" class="form-control" th:field="*{phone}" placeholder="e.g. (214) 555-0199">
+                                    </div>
+                                </div>
+
+                                <div class="row g-2 mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold small text-muted text-uppercase">Base Zip Code *</label>
+                                        <div class="input-group">
+                                            <input type="text" id="inputZipCode" class="form-control" th:field="*{zipCode}" placeholder="e.g. 75001" required onchange="geocodeZipInput()">
+                                            <button class="btn btn-outline-secondary" type="button" onclick="geocodeZipInput()" title="Auto-locate Zip Code">
+                                                <i class="fas fa-search-location"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold small text-muted text-uppercase">State / Region</label>
+                                        <select class="form-select" id="inputState" th:field="*{state}">
+                                            <option value="">-- Select State --</option>
+                                            <option th:each="st : ${usStates}" th:value="${st}" th:text="${st}"></option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold small text-muted text-uppercase">Full Area / Location Details (City, County, Zip)</label>
+                                    <input type="text" id="inputArea" class="form-control" th:field="*{area}" placeholder="e.g. Gainesville, Cooke County, TX 76240">
+                                </div>
+
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <label class="form-label fw-bold small text-muted text-uppercase mb-0">Service Coverage Radius (Miles) *</label>
+                                        <span class="badge bg-success" id="radiusValueBadge">30 Miles</span>
+                                    </div>
+                                    <input type="range" class="form-range radius-slider mb-2" id="inputRadiusSlider" min="5" max="300" step="5" value="30" oninput="onRadiusChange(this.value)">
+                                    <input type="number" id="inputRadius" class="form-control" min="5" max="500" required oninput="onRadiusChange(this.value)"
+                                           th:field="*{serviceRadiusMiles}">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold small text-muted text-uppercase">Primary Coverage Zip Codes (Optional)</label>
+                                    <textarea class="form-control" th:field="*{coverageZipCodes}" rows="2" placeholder="Comma-separated: 75001, 75002, 75006"></textarea>
+                                    <small class="text-muted">Direct zip code matches trigger auto-coverage.</small>
+                                </div>
+
+                                <div class="row g-2 mb-3">
+                                    <div class="col-md-12">
+                                        <label class="form-label fw-bold small text-muted text-uppercase">Default Payment Method</label>
+                                        <select class="form-select" th:field="*{defaultPaymentMethod}">
+                                            <option value="">-- Select Payment Method --</option>
+                                            <option th:each="pm : ${activePaymentMethods}" th:value="${pm.id}" th:text="${pm.methodName}"></option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold small text-muted text-uppercase">Account & Payment Info Details</label>
+                                    <textarea class="form-control" th:field="*{accountDetails}" rows="2" placeholder="e.g. Bank Account #, Zelle Email, Routing #, etc."></textarea>
+                                </div>
+
+                                <!-- Coordinates Box -->
+                                <div class="coords-box mb-4">
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <span class="fw-bold small text-dark"><i class="fas fa-crosshairs me-1 text-danger"></i>Base Latitude & Longitude</span>
+                                        <small class="text-muted">Populated from map click</small>
+                                    </div>
+                                    <div class="row g-2">
+                                        <div class="col-md-6">
+                                            <label class="form-label text-muted small mb-1">Latitude</label>
+                                            <input type="number" step="any" id="inputLat" class="form-control fw-bold text-success" placeholder="32.7767" th:field="*{latitude}" oninput="updateMarkerFromInputs()">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label text-muted small mb-1">Longitude</label>
+                                            <input type="number" step="any" id="inputLng" class="form-control fw-bold text-success" placeholder="-96.7970" th:field="*{longitude}" oninput="updateMarkerFromInputs()">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="d-grid gap-2">
+                                    <button type="submit" class="btn btn-dark btn-lg fw-bold shadow-sm" id="saveBtn">
+                                        <i class="fas fa-save me-1"></i> Save Contractor Profile
+                                    </button>
+                                    <a href="/master-data/contractors" class="btn btn-outline-secondary">Cancel</a>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Right Column (7 Cols): Interactive Map Picker -->
+                    <div class="col-lg-7">
+                        <div class="card border-0 shadow-sm rounded-3 bg-white p-3 h-100 d-flex flex-column">
+                            <!-- Jump Search Bar -->
+                            <div class="d-flex align-items-center justify-content-between mb-3 gap-2">
+                                <h6 class="fw-bold mb-0 text-dark">
+                                    <i class="fas fa-map-marked-alt text-success me-2"></i>Location Map Picker
+                                </h6>
+                                <div class="input-group style-sm" style="max-width: 380px;">
+                                    <input type="text" id="mapJumpSearchInput" class="form-control border-end-0" placeholder="Jump map to Zip/City..." onkeypress="if(event.key==='Enter') jumpMapToLocation()">
+                                    <button class="btn btn-outline-success fw-semibold" type="button" onclick="jumpMapToLocation()">
+                                        <i class="fas fa-search me-1"></i> Jump
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Map Container -->
+                            <div id="pickerMap" class="flex-grow-1"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Leaflet JS -->
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <script th:inline="javascript">
+            /*<![CDATA[*/
+            let contractorData = /*[[${contractor}]]*/ null;
+            /*]]>*/
+
+            let map;
+            let baseMarker;
+            let radiusCircle;
+
+            document.addEventListener('DOMContentLoaded', () => {
+                initPickerMap();
+
+                let initialLat = contractorData && contractorData.latitude ? contractorData.latitude : 32.7767;
+                let initialLng = contractorData && contractorData.longitude ? contractorData.longitude : -96.7970;
+                let initialRadius = contractorData && contractorData.serviceRadiusMiles ? contractorData.serviceRadiusMiles : 30;
+
+                onRadiusChange(initialRadius);
+
+                if (contractorData && contractorData.zipCode && (!contractorData.latitude || !contractorData.longitude)) {
+                    geocodeZipCode(contractorData.zipCode, true);
+                } else {
+                    setMarkerAndCircle(initialLat, initialLng);
+                    updateInputCoords(initialLat, initialLng);
+                    map.setView([initialLat, initialLng], 10);
+                }
+            });
+
+            function initPickerMap() {
+                map = L.map('pickerMap', {
+                    scrollWheelZoom: true,
+                    doubleClickZoom: false,
+                    touchZoom: true
+                }).setView([32.7767, -96.7970], 10);
+
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '&copy; OpenStreetMap contributors'
+                }).addTo(map);
+
+                // Draggable Green Base Pin
+                baseMarker = L.marker([32.7767, -96.7970], {
+                    draggable: true,
+                    icon: L.divIcon({
+                        className: 'custom-base-picker-pin',
+                        html: '<div style="background-color: #10b981; color: white; border: 3px solid white; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.35); font-size: 16px;"><i class="fas fa-home"></i></div>',
+                        iconSize: [36, 36],
+                        iconAnchor: [18, 18]
+                    })
+                }).addTo(map);
+
+                // Coverage Circle
+                radiusCircle = L.circle([32.7767, -96.7970], {
+                    radius: 30 * 1609.34,
+                    color: '#10b981',
+                    fillColor: '#10b981',
+                    fillOpacity: 0.12,
+                    weight: 2,
+                    interactive: false
+                }).addTo(map);
+
+                // Click on Map Event -> Move Pin, Update Lat/Lng Inputs & Auto Reverse Geocode Zip/City!
+                map.on('click', (e) => {
+                    const lat = roundCoord(e.latlng.lat);
+                    const lng = roundCoord(e.latlng.lng);
+
+                    setMarkerAndCircle(lat, lng);
+                    updateInputCoords(lat, lng);
+                    reverseGeocodeCoords(lat, lng);
+                });
+
+                // Drag Marker Event -> Update Lat/Lng Inputs & Auto Reverse Geocode Zip/City!
+                baseMarker.on('dragend', (e) => {
+                    const position = baseMarker.getLatLng();
+                    const lat = roundCoord(position.lat);
+                    const lng = roundCoord(position.lng);
+
+                    radiusCircle.setLatLng([lat, lng]);
+                    updateInputCoords(lat, lng);
+                    reverseGeocodeCoords(lat, lng);
+                });
+            }
+
+            const US_STATE_MAP = {
+                'ALABAMA': 'AL', 'ALASKA': 'AK', 'ARIZONA': 'AZ', 'ARKANSAS': 'AR', 'CALIFORNIA': 'CA',
+                'COLORADO': 'CO', 'CONNECTICUT': 'CT', 'DELAWARE': 'DE', 'FLORIDA': 'FL', 'GEORGIA': 'GA',
+                'HAWAII': 'HI', 'IDAHO': 'ID', 'ILLINOIS': 'IL', 'INDIANA': 'IN', 'IOWA': 'IA',
+                'KANSAS': 'KS', 'KENTUCKY': 'KY', 'LOUISIANA': 'LA', 'MAINE': 'ME', 'MARYLAND': 'MD',
+                'MASSACHUSETTS': 'MA', 'MICHIGAN': 'MI', 'MINNESOTA': 'MN', 'MISSISSIPPI': 'MS', 'MISSOURI': 'MO',
+                'MONTANA': 'MT', 'NEBRASKA': 'NE', 'NEVADA': 'NV', 'NEW HAMPSHIRE': 'NH', 'NEW JERSEY': 'NJ',
+                'NEW MEXICO': 'NM', 'NEW YORK': 'NY', 'NORTH CAROLINA': 'NC', 'NORTH DAKOTA': 'ND', 'OHIO': 'OH',
+                'OKLAHOMA': 'OK', 'OREGON': 'OR', 'PENNSYLVANIA': 'PA', 'RHODE ISLAND': 'RI', 'SOUTH CAROLINA': 'SC',
+                'SOUTH DAKOTA': 'SD', 'TENNESSEE': 'TN', 'TEXAS': 'TX', 'UTAH': 'UT', 'VERMONT': 'VT',
+                'VIRGINIA': 'VA', 'WASHINGTON': 'WA', 'WEST VIRGINIA': 'WV', 'WISCONSIN': 'WI', 'WYOMING': 'WY'
+            };
+
+            function convertStateToCode(rawState) {
+                if (!rawState) return '';
+                const clean = rawState.trim().toUpperCase();
+                if (clean.length === 2) return clean;
+                return US_STATE_MAP[clean] || '';
+            }
+
+            function updateStateDropdown(stateCode) {
+                const stateSelect = document.getElementById('inputState');
+                if (!stateSelect || !stateCode) return;
+
+                const targetCode = convertStateToCode(stateCode);
+                if (!targetCode) return;
+
+                for (let i = 0; i < stateSelect.options.length; i++) {
+                    if (stateSelect.options[i].value.toUpperCase() === targetCode) {
+                        stateSelect.selectedIndex = i;
+                        break;
+                    }
+                }
+            }
+
+            function reverseGeocodeCoords(lat, lng) {
+                const zipInput = document.getElementById('inputZipCode');
+                const areaInput = document.getElementById('inputArea');
+
+                fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`)
+                    .then(res => res.json())
+                    .then(data => {
+                        let zip = '';
+                        let stateCode = '';
+                        let fullAreaText = '';
+
+                        if (data && data.address) {
+                            zip = data.address.postcode || data.address.postal_code || '';
+                            const city = data.address.city || data.address.town || data.address.village || data.address.suburb || '';
+                            const county = data.address.county || '';
+                            const iso = data.address['ISO3166-2-lvl4'] || '';
+                            const fullState = data.address.state || '';
+
+                            if (iso.startsWith('US-')) {
+                                stateCode = iso.replace('US-', '').trim();
+                            } else if (fullState) {
+                                stateCode = convertStateToCode(fullState);
+                            }
+
+                            let parts = [];
+                            if (city) parts.push(city);
+                            if (county && county !== city && !county.toLowerCase().includes(city.toLowerCase())) parts.push(county);
+                            if (stateCode) parts.push(stateCode);
+                            if (zip) parts.push(zip.split('-')[0].trim());
+
+                            fullAreaText = parts.join(', ');
+                        }
+
+                        if (zip) zipInput.value = zip.split('-')[0].trim();
+                        if (stateCode) updateStateDropdown(stateCode);
+                        if (fullAreaText && areaInput) areaInput.value = fullAreaText;
+
+                        if (!stateCode || !zip) {
+                            fallbackLocalReverseGeocode(lat, lng);
+                        }
+                    })
+                    .catch(() => fallbackLocalReverseGeocode(lat, lng));
+            }
+
+            function fallbackLocalReverseGeocode(lat, lng) {
+                fetch(`/api/crew-map/reverse-geocode?lat=${lat}&lng=${lng}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        const zipInput = document.getElementById('inputZipCode');
+                        const stateSelect = document.getElementById('inputState');
+                        const areaInput = document.getElementById('inputArea');
+
+                        if (data.zipCode && (!zipInput.value || zipInput.value === '')) {
+                            zipInput.value = data.zipCode;
+                        }
+                        if (data.state && stateSelect && (!stateSelect.value || stateSelect.value === '')) {
+                            updateStateDropdown(data.state);
+                        }
+                        if (data.area && areaInput && (!areaInput.value || areaInput.value === '')) {
+                            areaInput.value = data.area + (data.zipCode ? ' ' + data.zipCode : '');
+                        }
+                    });
+            }
+
+            function updateInputCoords(lat, lng) {
+                document.getElementById('inputLat').value = lat;
+                document.getElementById('inputLng').value = lng;
+            }
+
+            function setMarkerAndCircle(lat, lng) {
+                const latLng = [lat, lng];
+                baseMarker.setLatLng(latLng);
+                radiusCircle.setLatLng(latLng);
+            }
+
+            function onRadiusChange(val) {
+                const radiusMiles = parseFloat(val) || 30;
+                document.getElementById('inputRadius').value = radiusMiles;
+                document.getElementById('inputRadiusSlider').value = radiusMiles;
+                document.getElementById('radiusValueBadge').textContent = `${radiusMiles} Miles`;
+
+                radiusCircle.setRadius(radiusMiles * 1609.34);
+            }
+
+            function updateMarkerFromInputs() {
+                const lat = parseFloat(document.getElementById('inputLat').value);
+                const lng = parseFloat(document.getElementById('inputLng').value);
+
+                if (!isNaN(lat) && !isNaN(lng)) {
+                    setMarkerAndCircle(lat, lng);
+                    map.panTo([lat, lng]);
+                }
+            }
+
+            function geocodeZipInput() {
+                const zip = document.getElementById('inputZipCode').value.trim();
+                if (zip) {
+                    geocodeZipCode(zip, true);
+                }
+            }
+
+            function geocodeZipCode(zip, setMap) {
+                fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(zip)}&addressdetails=1&limit=1`)
+                    .then(res => res.json())
+                    .then(results => {
+                        let lat = 0, lng = 0;
+                        if (results && results.length > 0) {
+                            const item = results[0];
+                            lat = roundCoord(parseFloat(item.lat));
+                            lng = roundCoord(parseFloat(item.lon));
+
+                            setMarkerAndCircle(lat, lng);
+                            updateInputCoords(lat, lng);
+
+                            let stateCode = '';
+                            let city = '';
+                            let county = '';
+
+                            if (item.address) {
+                                zip = item.address.postcode || item.address.postal_code || zip;
+                                city = item.address.city || item.address.town || item.address.village || item.address.suburb || '';
+                                county = item.address.county || '';
+                                const iso = item.address['ISO3166-2-lvl4'] || '';
+                                const fullState = item.address.state || '';
+
+                                if (iso.startsWith('US-')) {
+                                    stateCode = iso.replace('US-', '').trim();
+                                } else if (fullState) {
+                                    stateCode = convertStateToCode(fullState);
+                                }
+                            }
+
+                            if (stateCode) {
+                                updateStateDropdown(stateCode);
+                            }
+
+                            const areaInput = document.getElementById('inputArea');
+                            if (areaInput) {
+                                let parts = [];
+                                if (city) parts.push(city);
+                                if (county && county !== city && !county.toLowerCase().includes(city.toLowerCase())) parts.push(county);
+                                if (stateCode) parts.push(stateCode);
+                                if (zip) parts.push(zip.split('-')[0].trim());
+                                if (parts.length > 0) areaInput.value = parts.join(', ');
+                            }
+
+                            if (setMap) {
+                                map.setView([lat, lng], 11);
+                            }
+                        } else {
+                            fallbackLocalReverseGeocode(lat, lng);
+                        }
+                    })
+                    .catch(err => console.error('Geocode failed:', err));
+            }
+
+            function jumpMapToLocation() {
+                const query = document.getElementById('mapJumpSearchInput').value.trim();
+                if (!query) {
+                    alert('Please enter a Zip Code, City, or Address to search.');
+                    return;
+                }
+
+                fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1&limit=1`)
+                    .then(res => res.json())
+                    .then(results => {
+                        if (results && results.length > 0) {
+                            const item = results[0];
+                            const lat = roundCoord(parseFloat(item.lat));
+                            const lng = roundCoord(parseFloat(item.lon));
+
+                            setMarkerAndCircle(lat, lng);
+                            updateInputCoords(lat, lng);
+                            map.setView([lat, lng], 12);
+
+                            let zip = '';
+                            let stateCode = '';
+                            let city = '';
+                            let county = '';
+
+                            if (item.address) {
+                                zip = item.address.postcode || item.address.postal_code || '';
+                                city = item.address.city || item.address.town || item.address.village || item.address.suburb || '';
+                                county = item.address.county || '';
+                                const iso = item.address['ISO3166-2-lvl4'] || '';
+                                const fullState = item.address.state || '';
+
+                                if (iso.startsWith('US-')) {
+                                    stateCode = iso.replace('US-', '').trim();
+                                } else if (fullState) {
+                                    stateCode = convertStateToCode(fullState);
+                                }
+                            }
+
+                            if (zip) document.getElementById('inputZipCode').value = zip.split('-')[0].trim();
+                            if (stateCode) updateStateDropdown(stateCode);
+
+                            const areaInput = document.getElementById('inputArea');
+                            if (areaInput) {
+                                let parts = [];
+                                if (city) parts.push(city);
+                                if (county && county !== city && !county.toLowerCase().includes(city.toLowerCase())) parts.push(county);
+                                if (stateCode) parts.push(stateCode);
+                                if (zip) parts.push(zip.split('-')[0].trim());
+                                if (parts.length > 0) areaInput.value = parts.join(', ');
+                            }
+                        } else {
+                            geocodeZipCode(query, true);
+                        }
+                    })
+                    .catch(err => geocodeZipCode(query, true));
+            }
+
+            function roundCoord(num) {
+                return Math.round(num * 1000000) / 1000000;
+            }
+        </script>
+    </div>
+</body>
+
+</html>

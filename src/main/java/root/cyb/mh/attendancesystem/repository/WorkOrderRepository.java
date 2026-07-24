@@ -76,4 +76,6 @@ public interface WorkOrderRepository extends JpaRepository<WorkOrder, Long>, Jpa
     List<WorkOrder> findByContractorInvoicePaidAndContractorInvoiceTotalGreaterThan(boolean paid, BigDecimal amount);
 
     List<WorkOrder> findByDateReceivedBetween(java.time.LocalDate startDate, java.time.LocalDate endDate);
+
+    long countByContractorId(Long contractorId);
 }

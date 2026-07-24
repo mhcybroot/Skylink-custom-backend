@@ -46,6 +46,14 @@
                 </a>
             </div>
 
+            <!-- Crew Coverage Map (ADMIN, HR) -->
+            <div sec:authorize="hasAnyRole('ADMIN', 'HR')" class="mb-1">
+                <a href="/crew-map" class="list-group-item list-group-item-action toggle-nav-link rounded-3"
+                    th:classappend="${activeLink == 'crew-map'} ? 'active'">
+                    <i class="fas fa-map-marked-alt menu-icon text-success"></i> <span class="menu-text">Crew Coverage Map</span>
+                </a>
+            </div>
+
             <!-- HR & Staffing -->
             <div sec:authorize="hasAnyRole('ADMIN', 'HR')" class="nav-item-wrapper mb-1">
                 <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center rounded-3 category-link"
