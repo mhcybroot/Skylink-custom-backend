@@ -325,37 +325,6 @@
                     btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Searching...';
                 }
 
-                // 1. Try Nominatim Geocoder first for full location search
-                fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=us&addressdetails=1&limit=1`)
-                    .then(res => res.json())
-                    .then(results => {
-                        if (btn) {
-                            btn.disabled = false;
-                            btn.innerHTML = '<i class="fas fa-compass me-1"></i> Find Nearest Crews';
-                        }
-
-                        if (results && results.length > 0) {
-                            const item = results[0];
-                            const lat = roundCoord(parseFloat(item.lat));
-                            const lng = roundCoord(parseFloat(item.lon));
-
-                            let city = '';
-                            let state = '';
-                            if (item.address) {
-                                city = item.address.city || item.address.town || item.address.village || item.address.suburb || item.address.county || '';
-                                const iso = item.address['ISO3166-2-lvl4'] || '';
-                                state = iso.startsWith('US-') ? iso.replace('US-', '') : (item.address.state || '');
-                            }
-
-                            performProximityRanking(lat, lng, query, city, state);
-                        } else {
-                            fallbackBackendSearch(query, btn);
-                        }
-                    })
-                    .catch(() => fallbackBackendSearch(query, btn));
-            }
-
-            function fallbackBackendSearch(query, btn) {
                 fetch(`/api/crew-map/nearest?query=${encodeURIComponent(query)}`)
                     .then(res => res.json())
                     .then(data => {

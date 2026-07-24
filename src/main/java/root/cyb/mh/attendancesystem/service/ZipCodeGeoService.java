@@ -1,9 +1,20 @@
 package root.cyb.mh.attendancesystem.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 
+import java.net.URI;
+import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 public class ZipCodeGeoService {
@@ -81,45 +92,121 @@ public class ZipCodeGeoService {
         ZIP_DB.put("90210", new GeoPoint(34.0901, -118.4065, "Beverly Hills", "CA"));
         ZIP_DB.put("94102", new GeoPoint(37.7793, -122.4193, "San Francisco", "CA"));
 
-        // New York / Florida / Illinois
+        // New York / Florida / Illinois / Idaho / Nebraska
         ZIP_DB.put("10001", new GeoPoint(40.7501, -73.9996, "New York", "NY"));
         ZIP_DB.put("33101", new GeoPoint(25.7751, -80.1947, "Miami", "FL"));
         ZIP_DB.put("60601", new GeoPoint(41.8858, -87.6229, "Chicago", "IL"));
+        ZIP_DB.put("60633", new GeoPoint(41.6500, -87.5500, "Chicago", "IL"));
+        ZIP_DB.put("83221", new GeoPoint(43.1905, -112.3450, "Blackfoot", "ID"));
+        ZIP_DB.put("69221", new GeoPoint(42.6350, -100.5460, "Wood Lake", "NE"));
     }
 
     /**
-     * Looks up coordinates by 5-digit zip code.
+     * Looks up coordinates by location query (address, city, state, or zip code).
      */
-    public GeoPoint getCoordinatesForZip(String rawZip) {
-        if (rawZip == null) return null;
-        String zip = rawZip.trim();
-        if (zip.contains("-")) {
-            zip = zip.split("-")[0].trim();
-        }
-        if (ZIP_DB.containsKey(zip)) {
-            return ZIP_DB.get(zip);
+    public GeoPoint getCoordinatesForZip(String rawQuery) {
+        if (rawQuery == null || rawQuery.trim().isEmpty()) return null;
+        String query = rawQuery.trim();
+
+        // 1. Try Nominatim Geocoder HTTP lookup from Java backend (User-Agent header safe)
+        GeoPoint onlinePoint = queryNominatimBackend(query);
+        if (onlinePoint != null) {
+            return onlinePoint;
         }
 
-        // Algorithmic fallback estimate based on numeric range if exact zip is not in pre-seeded list
+        // 2. Extract 5-digit zip code from query via Regex
+        Pattern zipPattern = Pattern.compile("\\b\\d{5}\\b");
+        Matcher matcher = zipPattern.matcher(query);
+        if (matcher.find()) {
+            String extractedZip = matcher.group();
+            if (ZIP_DB.containsKey(extractedZip)) {
+                return ZIP_DB.get(extractedZip);
+            }
+            try {
+                int zipNum = Integer.parseInt(extractedZip);
+                return calculateZipRangeGeoPoint(zipNum, extractedZip);
+            } catch (Exception ignored) {
+            }
+        }
+
+        // 3. Search local ZIP_DB by city name matching
+        String lowerQuery = query.toLowerCase();
+        for (GeoPoint point : ZIP_DB.values()) {
+            if (lowerQuery.contains(point.getCity().toLowerCase())) {
+                return point;
+            }
+        }
+
+        // 4. Default regional fallback
+        return new GeoPoint(32.7767, -96.7970, "Dallas Base (" + query + ")", "TX");
+    }
+
+    private GeoPoint queryNominatimBackend(String query) {
         try {
-            int zipNum = Integer.parseInt(zip);
-            // Rough regional center centroids fallback
-            if (zipNum >= 75000 && zipNum <= 76999) {
-                return new GeoPoint(32.7767 + ((zipNum % 100) * 0.005), -96.7970 + ((zipNum % 50) * 0.005), "Dallas Area (" + zip + ")", "TX");
-            } else if (zipNum >= 77000 && zipNum <= 77999) {
-                return new GeoPoint(29.7604, -95.3698, "Houston Area (" + zip + ")", "TX");
-            } else if (zipNum >= 78000 && zipNum <= 78999) {
-                return new GeoPoint(30.2672, -97.7431, "Austin/SA Area (" + zip + ")", "TX");
-            } else if (zipNum >= 90000 && zipNum <= 96199) {
-                return new GeoPoint(34.0522, -118.2437, "California Region (" + zip + ")", "CA");
-            } else if (zipNum >= 100000 && zipNum <= 14999) {
-                return new GeoPoint(40.7128, -74.0060, "New York Region (" + zip + ")", "NY");
+            String encoded = URLEncoder.encode(query, StandardCharsets.UTF_8);
+            String url = "https://nominatim.openstreetmap.org/search?format=json&q=" + encoded + "&countrycodes=us&addressdetails=1&limit=1";
+
+            HttpClient client = HttpClient.newBuilder()
+                    .connectTimeout(Duration.ofSeconds(3))
+                    .build();
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .header("User-Agent", "SkylinkAttendanceSystem/1.0 (contact@skylink.com)")
+                    .timeout(Duration.ofSeconds(4))
+                    .GET()
+                    .build();
+
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() == 200 && response.body() != null && response.body().contains("lat")) {
+                ObjectMapper mapper = new ObjectMapper();
+                JsonNode root = mapper.readTree(response.body());
+                if (root.isArray() && root.size() > 0) {
+                    JsonNode first = root.get(0);
+                    double lat = first.get("lat").asDouble();
+                    double lon = first.get("lon").asDouble();
+
+                    String city = query;
+                    String state = "US";
+
+                    if (first.has("address")) {
+                        JsonNode addr = first.get("address");
+                        if (addr.has("city")) city = addr.get("city").asText();
+                        else if (addr.has("town")) city = addr.get("town").asText();
+                        else if (addr.has("village")) city = addr.get("village").asText();
+                        else if (addr.has("suburb")) city = addr.get("suburb").asText();
+                        else if (addr.has("county")) city = addr.get("county").asText();
+
+                        if (addr.has("ISO3166-2-lvl4")) {
+                            state = addr.get("ISO3166-2-lvl4").asText().replace("US-", "");
+                        } else if (addr.has("state")) {
+                            state = addr.get("state").asText();
+                        }
+                    }
+
+                    return new GeoPoint(lat, lon, city, state);
+                }
             }
         } catch (Exception ignored) {
         }
+        return null;
+    }
 
-        // Standard US centroid default if unknown string
-        return new GeoPoint(32.7767, -96.7970, "Dallas Base (" + zip + ")", "TX");
+    private GeoPoint calculateZipRangeGeoPoint(int zipNum, String zip) {
+        if (zipNum >= 75000 && zipNum <= 76999) {
+            return new GeoPoint(32.7767 + ((zipNum % 100) * 0.005), -96.7970 + ((zipNum % 50) * 0.005), "Dallas Area (" + zip + ")", "TX");
+        } else if (zipNum >= 77000 && zipNum <= 77999) {
+            return new GeoPoint(29.7604, -95.3698, "Houston Area (" + zip + ")", "TX");
+        } else if (zipNum >= 78000 && zipNum <= 78999) {
+            return new GeoPoint(30.2672, -97.7431, "Austin/SA Area (" + zip + ")", "TX");
+        } else if (zipNum >= 90000 && zipNum <= 96199) {
+            return new GeoPoint(34.0522, -118.2437, "California Region (" + zip + ")", "CA");
+        } else if (zipNum >= 60000 && zipNum <= 62999) {
+            return new GeoPoint(41.8781, -87.6298, "Chicago Region (" + zip + ")", "IL");
+        } else if (zipNum >= 100000 && zipNum <= 14999) {
+            return new GeoPoint(40.7128, -74.0060, "New York Region (" + zip + ")", "NY");
+        }
+        return new GeoPoint(32.7767, -96.7970, "US Centroid (" + zip + ")", "US");
     }
 
     /**
