@@ -295,38 +295,67 @@
                 });
             }
 
+            const US_STATE_MAP = {
+                'ALABAMA': 'AL', 'ALASKA': 'AK', 'ARIZONA': 'AZ', 'ARKANSAS': 'AR', 'CALIFORNIA': 'CA',
+                'COLORADO': 'CO', 'CONNECTICUT': 'CT', 'DELAWARE': 'DE', 'FLORIDA': 'FL', 'GEORGIA': 'GA',
+                'HAWAII': 'HI', 'IDAHO': 'ID', 'ILLINOIS': 'IL', 'INDIANA': 'IN', 'IOWA': 'IA',
+                'KANSAS': 'KS', 'KENTUCKY': 'KY', 'LOUISIANA': 'LA', 'MAINE': 'ME', 'MARYLAND': 'MD',
+                'MASSACHUSETTS': 'MA', 'MICHIGAN': 'MI', 'MINNESOTA': 'MN', 'MISSISSIPPI': 'MS', 'MISSOURI': 'MO',
+                'MONTANA': 'MT', 'NEBRASKA': 'NE', 'NEVADA': 'NV', 'NEW HAMPSHIRE': 'NH', 'NEW JERSEY': 'NJ',
+                'NEW MEXICO': 'NM', 'NEW YORK': 'NY', 'NORTH CAROLINA': 'NC', 'NORTH DAKOTA': 'ND', 'OHIO': 'OH',
+                'OKLAHOMA': 'OK', 'OREGON': 'OR', 'PENNSYLVANIA': 'PA', 'RHODE ISLAND': 'RI', 'SOUTH CAROLINA': 'SC',
+                'SOUTH DAKOTA': 'SD', 'TENNESSEE': 'TN', 'TEXAS': 'TX', 'UTAH': 'UT', 'VERMONT': 'VT',
+                'VIRGINIA': 'VA', 'WASHINGTON': 'WA', 'WEST VIRGINIA': 'WV', 'WISCONSIN': 'WI', 'WYOMING': 'WY'
+            };
+
+            function convertStateToCode(rawState) {
+                if (!rawState) return '';
+                const clean = rawState.trim().toUpperCase();
+                if (clean.length === 2) return clean;
+                return US_STATE_MAP[clean] || '';
+            }
+
+            function updateAreaStateDropdown(stateCode) {
+                const areaInput = document.getElementById('inputArea');
+                if (!areaInput || !stateCode) return;
+
+                const targetCode = convertStateToCode(stateCode);
+                if (!targetCode) return;
+
+                for (let i = 0; i < areaInput.options.length; i++) {
+                    if (areaInput.options[i].value.toUpperCase() === targetCode) {
+                        areaInput.selectedIndex = i;
+                        break;
+                    }
+                }
+            }
+
             function reverseGeocodeCoords(lat, lng) {
                 const zipInput = document.getElementById('inputZipCode');
-                const areaInput = document.getElementById('inputArea');
 
                 fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`)
                     .then(res => res.json())
                     .then(data => {
                         let zip = '';
-                        let city = '';
+                        let stateCode = '';
 
                         if (data && data.address) {
                             zip = data.address.postcode || data.address.postal_code || '';
-                            city = data.address.city || data.address.town || data.address.village || data.address.suburb || data.address.state || '';
-                        }
-
-                        if (zip) zipInput.value = zip.split('-')[0].trim();
-                        if (city && areaInput) {
-                            // Try matching state code if present
-                            const state = data.address ? data.address.state : '';
-                            if (state) {
-                                for (let opt of areaInput.options) {
-                                    if (opt.value === state || opt.text === state) {
-                                        areaInput.value = opt.value;
-                                        break;
-                                    }
-                                }
+                            const iso = data.address['ISO3166-2-lvl4'] || '';
+                            const fullState = data.address.state || '';
+                            if (iso.startsWith('US-')) {
+                                stateCode = iso.replace('US-', '').trim();
+                            } else if (fullState) {
+                                stateCode = convertStateToCode(fullState);
                             }
                         }
 
-                        if (!zip) {
-                            fallbackLocalReverseGeocode(lat, lng);
+                        if (zip) zipInput.value = zip.split('-')[0].trim();
+                        if (stateCode) {
+                            updateAreaStateDropdown(stateCode);
                         }
+
+                        fallbackLocalReverseGeocode(lat, lng);
                     })
                     .catch(() => fallbackLocalReverseGeocode(lat, lng));
             }
@@ -338,8 +367,8 @@
                         if (data.zipCode && !document.getElementById('inputZipCode').value) {
                             document.getElementById('inputZipCode').value = data.zipCode;
                         }
-                        if (data.state && document.getElementById('inputArea')) {
-                            document.getElementById('inputArea').value = data.state;
+                        if (data.state) {
+                            updateAreaStateDropdown(data.state);
                         }
                     });
             }
@@ -385,17 +414,35 @@
                 fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(zip)}&addressdetails=1&limit=1`)
                     .then(res => res.json())
                     .then(results => {
+                        let lat = 0, lng = 0;
                         if (results && results.length > 0) {
                             const item = results[0];
-                            const lat = roundCoord(parseFloat(item.lat));
-                            const lng = roundCoord(parseFloat(item.lon));
+                            lat = roundCoord(parseFloat(item.lat));
+                            lng = roundCoord(parseFloat(item.lon));
 
                             setMarkerAndCircle(lat, lng);
                             updateInputCoords(lat, lng);
 
+                            let stateCode = '';
+                            if (item.address) {
+                                const iso = item.address['ISO3166-2-lvl4'] || '';
+                                const fullState = item.address.state || '';
+                                if (iso.startsWith('US-')) {
+                                    stateCode = iso.replace('US-', '').trim();
+                                } else if (fullState) {
+                                    stateCode = convertStateToCode(fullState);
+                                }
+                            }
+                            if (stateCode) {
+                                updateAreaStateDropdown(stateCode);
+                            }
+
                             if (setMap) {
                                 map.setView([lat, lng], 11);
                             }
+                        }
+                        if (lat && lng) {
+                            fallbackLocalReverseGeocode(lat, lng);
                         }
                     })
                     .catch(err => console.error('Geocode failed:', err));
