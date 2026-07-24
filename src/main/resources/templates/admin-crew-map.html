@@ -286,7 +286,7 @@
                 document.getElementById('searchSummaryText').textContent =
                     `WO Target Pin: ${queryLabel}`;
 
-                filterCrewList();
+                filterCrewList(false);
             }
 
             function calculateHaversineDistanceMiles(lat1, lon1, lat2, lon2) {
@@ -307,7 +307,7 @@
                     .then(data => {
                         allCrews = data;
                         document.getElementById('headerCrewCount').textContent = allCrews.length;
-                        renderMapAndList(allCrews, null);
+                        renderMapAndList(allCrews, null, true);
                     })
                     .catch(err => {
                         console.error('Error loading crews:', err);
@@ -346,7 +346,7 @@
                         document.getElementById('searchSummaryText').textContent =
                             `Target WO: ${data.searchQuery} (${data.targetCity}, ${data.targetState})`;
 
-                        filterCrewList();
+                        filterCrewList(true);
                     })
                     .catch(err => {
                         if (btn) {
@@ -357,16 +357,16 @@
                     });
             }
 
-            function filterCrewList() {
+            function filterCrewList(shouldFitBounds = false) {
                 if (!currentSearchData) {
-                    renderMapAndList(allCrews, null);
+                    renderMapAndList(allCrews, null, shouldFitBounds);
                     return;
                 }
 
                 const maxRadius = parseFloat(document.getElementById('maxRadiusSelect').value) || 9999;
                 const filteredCrews = currentSearchData.crews.filter(c => c.distanceMiles <= maxRadius);
 
-                renderMapAndList(filteredCrews, currentSearchData);
+                renderMapAndList(filteredCrews, currentSearchData, shouldFitBounds);
             }
 
             function resetMapAndSearch() {
@@ -378,7 +378,7 @@
                 loadAllCrews();
             }
 
-            function renderMapAndList(crews, searchTarget) {
+            function renderMapAndList(crews, searchTarget, shouldFitBounds = false) {
                 markersLayer.clearLayers();
                 document.getElementById('resultCountBadge').textContent = `${crews.length} Crews`;
 
@@ -536,7 +536,7 @@
 
                 container.innerHTML = html;
 
-                if (crews.length > 0 && bounds.isValid()) {
+                if (shouldFitBounds && crews.length > 0 && bounds.isValid()) {
                     map.fitBounds(bounds, { padding: [40, 40] });
                 }
             }
