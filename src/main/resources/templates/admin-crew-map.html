@@ -212,11 +212,15 @@
 
                 markersLayer = L.layerGroup().addTo(map);
 
-                // Map Click Event -> Drop Red WO Target Pin & Rank Nearest Crews by Proximity Distance!
+                // Map Click Event -> Drop Red WO Target Pin & Rank Nearest Crews INSTANTLY (0ms latency)!
                 map.on('click', (e) => {
                     const lat = roundCoord(e.latlng.lat);
                     const lng = roundCoord(e.latlng.lng);
 
+                    // 1. Instant 0ms pin drop and crew ranking
+                    performProximityRanking(lat, lng, `${lat}, ${lng}`, '', '');
+
+                    // 2. Asynchronous reverse geocoding in background
                     reverseGeocodeSearchLocation(lat, lng);
                 });
             }
@@ -228,12 +232,10 @@
                     .then(res => res.json())
                     .then(data => {
                         let queryLabel = `${lat}, ${lng}`;
-                        let city = '';
-                        let state = '';
                         if (data && data.address) {
-                            city = data.address.city || data.address.town || data.address.village || data.address.suburb || data.address.county || '';
+                            const city = data.address.city || data.address.town || data.address.village || data.address.suburb || data.address.county || '';
                             const iso = data.address['ISO3166-2-lvl4'] || '';
-                            state = iso.startsWith('US-') ? iso.replace('US-', '') : (data.address.state || '');
+                            const state = iso.startsWith('US-') ? iso.replace('US-', '') : (data.address.state || '');
                             const zip = data.address.postcode || data.address.postal_code || '';
 
                             let parts = [];
@@ -241,14 +243,20 @@
                             if (state) parts.push(state);
                             if (zip) parts.push(zip.split('-')[0].trim());
                             if (parts.length > 0) queryLabel = parts.join(', ');
+
+                            searchInput.value = queryLabel;
+                            document.getElementById('searchSummaryText').textContent = `WO Target Pin: ${queryLabel}`;
+                            if (currentSearchData) {
+                                currentSearchData.searchQuery = queryLabel;
+                            }
                         }
-                        searchInput.value = queryLabel;
-                        performProximityRanking(lat, lng, queryLabel, city, state);
                     })
-                    .catch(() => performProximityRanking(lat, lng, `${lat}, ${lng}`, '', ''));
+                    .catch(() => {});
             }
 
             function performProximityRanking(lat, lng, queryLabel, city, state) {
+                document.getElementById('woSearchInput').value = queryLabel;
+
                 let ranked = allCrews.map(c => {
                     let dist = calculateHaversineDistanceMiles(lat, lng, c.latitude, c.longitude);
                     dist = Math.round(dist * 10) / 10;
@@ -424,13 +432,22 @@
                     bounds.extend(woLatLng);
 
                     const woMarker = L.marker(woLatLng, {
+                        draggable: true,
                         icon: L.divIcon({
                             className: 'custom-wo-pin',
-                            html: '<div style="background-color: #dc2626; color: white; border: 2px solid white; border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); font-size: 16px;"><i class="fas fa-home"></i></div>',
+                            html: '<div style="background-color: #dc2626; color: white; border: 2px solid white; border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); font-size: 16px; cursor: move;"><i class="fas fa-home"></i></div>',
                             iconSize: [34, 34],
                             iconAnchor: [17, 17]
                         })
                     }).addTo(markersLayer);
+
+                    woMarker.on('dragend', (e) => {
+                        const dragPos = e.target.getLatLng();
+                        const lat = roundCoord(dragPos.lat);
+                        const lng = roundCoord(dragPos.lng);
+                        performProximityRanking(lat, lng, `${lat}, ${lng}`, '', '');
+                        reverseGeocodeSearchLocation(lat, lng);
+                    });
 
                     woMarker.bindPopup(`
                         <div style="font-family: inherit;">
