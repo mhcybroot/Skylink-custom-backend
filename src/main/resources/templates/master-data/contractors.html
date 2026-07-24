@@ -21,10 +21,10 @@
                             sec:authorize="hasAnyRole('ADMIN', 'HR')">
                             <i class="fas fa-chart-pie me-2"></i>Analytics
                         </a>
-                        <button class="btn btn-dark rounded-1 shadow-sm fs-6" data-bs-toggle="modal"
-                            data-bs-target="#addContractorModal">
+                        <a href="/master-data/contractors/new" class="btn btn-dark rounded-1 shadow-sm fs-6"
+                            sec:authorize="hasAnyRole('ADMIN', 'HR')">
                             <i class="fas fa-plus me-2"></i>Add Contractor
-                        </button>
+                        </a>
                     </div>
                 </div>
 
@@ -186,16 +186,18 @@
                                                 class="badge rounded-1 bg-secondary-subtle text-secondary border border-secondary fw-normal">Inactive</span>
                                         </td>
                                         <td class="text-end pe-4">
-                                            <button class="btn btn-sm btn-outline-primary rounded-1 me-1"
-                                                title="Edit Contractor" th:data-id="${c.id}" th:data-name="${c.name}"
-                                                th:data-description="${c.description}" th:data-email="${c.email}"
-                                                th:data-area="${c.area}" th:data-zip="${c.zipCode}"
-                                                th:data-pm="${c.defaultPaymentMethod?.id}"
-                                                th:data-details="${c.accountDetails}"
-                                                onclick="openEditContractorModal(this)"
+                                            <a th:href="@{/master-data/contractors/edit/{id}(id=${c.id})}"
+                                                class="btn btn-sm btn-outline-primary rounded-1 me-1"
+                                                title="Edit Profile & Coverage Location"
                                                 sec:authorize="hasAnyRole('ADMIN', 'HR')">
                                                 <i class="fas fa-edit"></i>
-                                            </button>
+                                            </a>
+                                            <a th:href="@{/crew-map/manage/{id}(id=${c.id})}"
+                                                class="btn btn-sm btn-outline-success rounded-1 me-1"
+                                                title="Manage Map Location Pin"
+                                                sec:authorize="hasAnyRole('ADMIN', 'HR')">
+                                                <i class="fas fa-map-marked-alt"></i>
+                                            </a>
                                             <a th:href="@{/master-data/contractors/{id}/dashboard(id=${c.id})}"
                                                 class="btn btn-sm btn-outline-secondary rounded-1 me-1"
                                                 title="Open Dashboard">
