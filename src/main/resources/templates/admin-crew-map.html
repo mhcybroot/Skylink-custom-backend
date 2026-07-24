@@ -11,7 +11,19 @@
             width: 100%;
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-            z-index: 1;
+            /* Fix: own stacking context so parent .card CSS transform does not intercept click events */
+            position: relative;
+            z-index: 2;
+            isolation: isolate;
+        }
+
+        /* Fix: guarantee all Leaflet tile panes receive pointer events regardless of parent transform */
+        #crewMap .leaflet-pane,
+        #crewMap .leaflet-map-pane,
+        #crewMap .leaflet-tile-pane,
+        #crewMap .leaflet-tile-container,
+        #crewMap .leaflet-container {
+            pointer-events: auto !important;
         }
 
         .crew-card {
@@ -202,10 +214,10 @@
             });
 
             function initMap() {
-                // Centered on Dallas/Texas by default with smooth scroll wheel & double-click zoom enabled
+                // Centered on Dallas/Texas by default with smooth scroll wheel zoom
                 map = L.map('crewMap', {
                     scrollWheelZoom: true,
-                    doubleClickZoom: true,
+                    doubleClickZoom: false,
                     touchZoom: true
                 }).setView([32.7767, -96.7970], 9);
 
