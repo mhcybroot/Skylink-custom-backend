@@ -102,6 +102,40 @@ public class ZipCodeGeoService {
     }
 
     /**
+     * Fast 0ms offline-only lookup (skips blocking external HTTP requests).
+     * Used for bulk crew listing to prevent production timeouts.
+     */
+    public GeoPoint getCoordinatesForZipFast(String rawQuery) {
+        if (rawQuery == null || rawQuery.trim().isEmpty()) return null;
+        String query = rawQuery.trim();
+
+        // 1. Extract 5-digit zip code from query via Regex & check ZIP_DB or US zip range centroid
+        Pattern zipPattern = Pattern.compile("\\b\\d{5}\\b");
+        Matcher matcher = zipPattern.matcher(query);
+        if (matcher.find()) {
+            String extractedZip = matcher.group();
+            if (ZIP_DB.containsKey(extractedZip)) {
+                return ZIP_DB.get(extractedZip);
+            }
+            try {
+                int zipNum = Integer.parseInt(extractedZip);
+                return calculateZipRangeGeoPoint(zipNum, extractedZip);
+            } catch (Exception ignored) {
+            }
+        }
+
+        // 2. Search local ZIP_DB by city name matching
+        String lowerQuery = query.toLowerCase();
+        for (GeoPoint point : ZIP_DB.values()) {
+            if (lowerQuery.contains(point.getCity().toLowerCase())) {
+                return point;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Looks up coordinates by location query (address, city, state, or zip code).
      */
     public GeoPoint getCoordinatesForZip(String rawQuery) {

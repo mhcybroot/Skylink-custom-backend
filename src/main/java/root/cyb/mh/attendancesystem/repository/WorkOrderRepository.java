@@ -78,4 +78,7 @@ public interface WorkOrderRepository extends JpaRepository<WorkOrder, Long>, Jpa
     List<WorkOrder> findByDateReceivedBetween(java.time.LocalDate startDate, java.time.LocalDate endDate);
 
     long countByContractorId(Long contractorId);
+
+    @Query("SELECT w.contractor.id, COUNT(w) FROM WorkOrder w WHERE w.contractor IS NOT NULL GROUP BY w.contractor.id")
+    List<Object[]> findActiveWorkOrderCountsGroupedByContractor();
 }

@@ -57,6 +57,7 @@ public class CrewMapController {
     }
 
     // API: Get all active crews with geocoding
+    // API: Get all active crews with geocoding
     @GetMapping("/api/crew-map/crews")
     @ResponseBody
     @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
@@ -64,13 +65,16 @@ public class CrewMapController {
         List<Contractor> contractors = contractorRepository.findByActiveTrue();
         List<CrewDistanceDto> dtos = new ArrayList<>();
 
+        // Pre-fetch Work Order counts into a Map in 1 single bulk query (fixes N+1 database problem)
+        Map<Long, Long> woCountsMap = prefetchWorkOrderCounts();
+
         for (Contractor c : contractors) {
             Double lat = c.getLatitude();
             Double lng = c.getLongitude();
 
-            // Auto geocode zip code if lat/lng is null
+            // Auto geocode zip code FAST offline if lat/lng is null (fixes HTTP timeout problem)
             if ((lat == null || lng == null) && c.getZipCode() != null && !c.getZipCode().isBlank()) {
-                ZipCodeGeoService.GeoPoint pt = zipCodeGeoService.getCoordinatesForZip(c.getZipCode());
+                ZipCodeGeoService.GeoPoint pt = zipCodeGeoService.getCoordinatesForZipFast(c.getZipCode());
                 if (pt != null) {
                     lat = pt.getLatitude();
                     lng = pt.getLongitude();
@@ -83,7 +87,7 @@ public class CrewMapController {
                 lng = -96.7970;
             }
 
-            long activeWos = workOrderRepository.countByContractorId(c.getId());
+            long activeWos = woCountsMap.getOrDefault(c.getId(), 0L);
             int radius = c.getServiceRadiusMiles() != null ? c.getServiceRadiusMiles() : 30;
             int radiusKm = (int) Math.round(radius * 1.60934);
 
@@ -107,6 +111,22 @@ public class CrewMapController {
         }
 
         return ResponseEntity.ok(dtos);
+    }
+
+    private Map<Long, Long> prefetchWorkOrderCounts() {
+        Map<Long, Long> map = new HashMap<>();
+        try {
+            List<Object[]> counts = workOrderRepository.findActiveWorkOrderCountsGroupedByContractor();
+            if (counts != null) {
+                for (Object[] row : counts) {
+                    if (row != null && row.length >= 2 && row[0] != null) {
+                        map.put(((Number) row[0]).longValue(), ((Number) row[1]).longValue());
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return map;
     }
 
     // API: Search nearest crews for a target Zip Code or query
@@ -141,13 +161,14 @@ public class CrewMapController {
 
         List<Contractor> contractors = contractorRepository.findByActiveTrue();
         List<CrewDistanceDto> rankedCrews = new ArrayList<>();
+        Map<Long, Long> woCountsMap = prefetchWorkOrderCounts();
 
         for (Contractor c : contractors) {
             Double lat = c.getLatitude();
             Double lng = c.getLongitude();
 
             if ((lat == null || lng == null) && c.getZipCode() != null && !c.getZipCode().isBlank()) {
-                ZipCodeGeoService.GeoPoint pt = zipCodeGeoService.getCoordinatesForZip(c.getZipCode());
+                ZipCodeGeoService.GeoPoint pt = zipCodeGeoService.getCoordinatesForZipFast(c.getZipCode());
                 if (pt != null) {
                     lat = pt.getLatitude();
                     lng = pt.getLongitude();
@@ -170,7 +191,7 @@ public class CrewMapController {
                 isInRange = true;
             }
 
-            long activeWos = workOrderRepository.countByContractorId(c.getId());
+            long activeWos = woCountsMap.getOrDefault(c.getId(), 0L);
 
             CrewDistanceDto dto = CrewDistanceDto.builder()
                     .id(c.getId())
