@@ -137,10 +137,10 @@
                         <label class="form-label small fw-bold text-muted mb-1">Max Distance Radius</label>
                         <select id="maxRadiusSelect" class="form-select" onchange="filterCrewList()">
                             <option value="9999" selected>Show All Distances</option>
-                            <option value="15">Within 15 Miles</option>
-                            <option value="30">Within 30 Miles</option>
-                            <option value="50">Within 50 Miles</option>
-                            <option value="100">Within 100 Miles</option>
+                            <option value="25">Within 25 km</option>
+                            <option value="50">Within 50 km</option>
+                            <option value="80">Within 80 km</option>
+                            <option value="160">Within 160 km</option>
                         </select>
                     </div>
                     <div class="col-md-4 text-end">
@@ -309,17 +309,20 @@
                 document.getElementById('woSearchInput').value = queryLabel;
 
                 let ranked = allCrews.map(c => {
-                    let dist = calculateHaversineDistanceMiles(lat, lng, c.latitude, c.longitude);
-                    dist = Math.round(dist * 10) / 10;
-                    let radius = c.serviceRadiusMiles || 30;
-                    let isInRange = dist <= radius;
+                    let distMiles = calculateHaversineDistanceMiles(lat, lng, c.latitude, c.longitude);
+                    let distKm = Math.round(distMiles * 1.60934 * 10) / 10;
+                    let radiusMiles = c.serviceRadiusMiles || 30;
+                    let radiusKm = c.serviceRadiusKm || Math.round(radiusMiles * 1.60934);
+                    let isInRange = distMiles <= radiusMiles;
                     return Object.assign({}, c, {
-                        distanceMiles: dist,
+                        distanceMiles: Math.round(distMiles * 10) / 10,
+                        distanceKm: distKm,
+                        serviceRadiusKm: radiusKm,
                         isInRange: isInRange
                     });
                 });
 
-                ranked.sort((a, b) => a.distanceMiles - b.distanceMiles);
+                ranked.sort((a, b) => a.distanceKm - b.distanceKm);
 
                 currentSearchData = {
                     searchQuery: queryLabel,
@@ -409,9 +412,16 @@
             function filterCrewList(shouldFitBounds = false) {
                 let baseList = currentSearchData ? currentSearchData.crews : allCrews;
 
-                // 1. Filter by Max Distance Radius
-                const maxRadius = parseFloat(document.getElementById('maxRadiusSelect').value) || 9999;
-                let filteredCrews = baseList.filter(c => (c.distanceMiles !== undefined && c.distanceMiles !== null) ? c.distanceMiles <= maxRadius : true);
+                // 1. Filter by Max Distance Radius (in km)
+                const maxRadiusKm = parseFloat(document.getElementById('maxRadiusSelect').value) || 9999;
+                let filteredCrews = baseList.filter(c => {
+                    if (c.distanceKm !== undefined && c.distanceKm !== null) {
+                        return c.distanceKm <= maxRadiusKm;
+                    } else if (c.distanceMiles !== undefined && c.distanceMiles !== null) {
+                        return (c.distanceMiles * 1.60934) <= maxRadiusKm;
+                    }
+                    return true;
+                });
 
                 // 2. Filter by Contractor Details (Name, Base Zip, Area, Coverage Zips, Phone, Email, Unmapped status)
                 const detailQuery = (document.getElementById('contractorDetailSearchInput')?.value || '').trim().toLowerCase();
@@ -553,6 +563,12 @@
                         }).addTo(markersLayer);
                     }
 
+                    const distKm = (c.distanceKm !== undefined && c.distanceKm !== null)
+                        ? c.distanceKm
+                        : (c.distanceMiles ? Math.round(c.distanceMiles * 1.60934 * 10) / 10 : null);
+
+                    const radiusKm = c.serviceRadiusKm || (c.serviceRadiusMiles ? Math.round(c.serviceRadiusMiles * 1.60934) : 48);
+
                     // Connector Line if WO searched
                     if (searchTarget && hasDistance && !isUnmapped) {
                         const line = L.polyline([[searchTarget.targetLatitude, searchTarget.targetLongitude], latLng], {
@@ -563,7 +579,7 @@
                             interactive: false
                         }).addTo(markersLayer);
 
-                        line.bindTooltip(`${c.distanceMiles} miles to ${c.name}`, { sticky: true });
+                        line.bindTooltip(`${distKm} km to ${c.name}`, { sticky: true });
                     }
 
                     marker.bindPopup(`
@@ -572,8 +588,8 @@
                             ${isUnmapped
                                 ? '<small class="text-danger fw-bold"><i class="fas fa-exclamation-triangle me-1"></i>Unmapped (No Base Zip Code)</small><br/>'
                                 : `<small class="text-muted"><i class="fas fa-map-marker-alt me-1"></i>Base Zip: ${c.zipCode}</small><br/>`}
-                            <small class="text-muted"><i class="fas fa-arrows-alt-h me-1"></i>Radius: ${c.serviceRadiusMiles || 30} miles</small><br/>
-                            ${(hasDistance && !isUnmapped) ? `<strong class="text-success">Distance: ${c.distanceMiles} miles from WO</strong>` : ''}
+                            <small class="text-muted"><i class="fas fa-arrows-alt-h me-1"></i>Radius: ${radiusKm} km</small><br/>
+                            ${(hasDistance && !isUnmapped) ? `<strong class="text-success">Distance: ${distKm} km from WO</strong>` : ''}
                         </div>
                     `);
 
@@ -590,8 +606,8 @@
                     }
 
                     const distanceLabel = (isSearchingWO && hasDistance && !isUnmapped)
-                        ? `<i class="fas fa-route me-1 text-success"></i><strong class="text-success">${c.distanceMiles} Miles from WO Target</strong>`
-                        : `<i class="fas fa-compass me-1"></i>${c.serviceRadiusMiles || 30} mi Radius`;
+                        ? `<i class="fas fa-route me-1 text-success"></i><strong class="text-success">${distKm} km from WO Target</strong>`
+                        : `<i class="fas fa-compass me-1"></i>${radiusKm} km Radius`;
 
                     const zipDisplay = isUnmapped
                         ? '<span class="text-danger fw-bold"><i class="fas fa-exclamation-triangle me-1"></i>Zip Not Set</span>'

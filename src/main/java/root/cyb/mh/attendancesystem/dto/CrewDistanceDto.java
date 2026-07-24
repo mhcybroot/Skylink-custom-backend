@@ -19,11 +19,13 @@ public class CrewDistanceDto {
     private Double latitude;
     private Double longitude;
     private Integer serviceRadiusMiles;
+    private Integer serviceRadiusKm;
     private String coverageZipCodes;
     private boolean active;
 
     // Distance calculation fields
     private Double distanceMiles;
+    private Double distanceKm;
     private Boolean isInRange;
     private Long activeWorkOrdersCount;
 }

@@ -296,4 +296,11 @@ public class ZipCodeGeoService {
         double distance = R * c;
         return Math.round(distance * 10.0) / 10.0; // Round to 1 decimal place
     }
+
+    /**
+     * Calculates distance in kilometers between two coordinates using the Haversine formula.
+     */
+    public double calculateHaversineDistanceKm(double lat1, double lon1, double lat2, double lon2) {
+        return calculateHaversineDistanceMiles(lat1, lon1, lat2, lon2) * 1.60934;
+    }
 }

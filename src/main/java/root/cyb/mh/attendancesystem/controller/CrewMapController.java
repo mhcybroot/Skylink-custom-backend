@@ -84,6 +84,8 @@ public class CrewMapController {
             }
 
             long activeWos = workOrderRepository.countByContractorId(c.getId());
+            int radius = c.getServiceRadiusMiles() != null ? c.getServiceRadiusMiles() : 30;
+            int radiusKm = (int) Math.round(radius * 1.60934);
 
             CrewDistanceDto dto = CrewDistanceDto.builder()
                     .id(c.getId())
@@ -94,7 +96,8 @@ public class CrewMapController {
                     .area(c.getArea())
                     .latitude(lat)
                     .longitude(lng)
-                    .serviceRadiusMiles(c.getServiceRadiusMiles() != null ? c.getServiceRadiusMiles() : 30)
+                    .serviceRadiusMiles(radius)
+                    .serviceRadiusKm(radiusKm)
                     .coverageZipCodes(c.getCoverageZipCodes())
                     .active(c.isActive())
                     .activeWorkOrdersCount(activeWos)
@@ -156,8 +159,10 @@ public class CrewMapController {
                 lng = -96.7970;
             }
 
-            double distanceMiles = zipCodeGeoService.calculateHaversineDistanceMiles(targetLat, targetLng, lat, lng);
             int radius = c.getServiceRadiusMiles() != null ? c.getServiceRadiusMiles() : 30;
+            int radiusKm = (int) Math.round(radius * 1.60934);
+            double distanceMiles = zipCodeGeoService.calculateHaversineDistanceMiles(targetLat, targetLng, lat, lng);
+            double distanceKm = Math.round(distanceMiles * 1.60934 * 10.0) / 10.0;
             boolean isInRange = distanceMiles <= radius;
 
             // Direct Zipcode match override
@@ -177,9 +182,11 @@ public class CrewMapController {
                     .latitude(lat)
                     .longitude(lng)
                     .serviceRadiusMiles(radius)
+                    .serviceRadiusKm(radiusKm)
                     .coverageZipCodes(c.getCoverageZipCodes())
                     .active(c.isActive())
                     .distanceMiles(distanceMiles)
+                    .distanceKm(distanceKm)
                     .isInRange(isInRange)
                     .activeWorkOrdersCount(activeWos)
                     .build();
