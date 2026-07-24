@@ -390,6 +390,38 @@
             }
 
             function geocodeZipCode(zip, setMap) {
+                fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(zip)}&addressdetails=1&limit=1`)
+                    .then(res => res.json())
+                    .then(results => {
+                        if (results && results.length > 0) {
+                            const item = results[0];
+                            const lat = roundCoord(parseFloat(item.lat));
+                            const lng = roundCoord(parseFloat(item.lon));
+
+                            setMarkerAndCircle(lat, lng);
+                            updateInputCoords(lat, lng);
+
+                            let city = '';
+                            if (item.address) {
+                                city = item.address.city || item.address.town || item.address.village || item.address.suburb || item.address.county || '';
+                                const state = item.address.state || '';
+                                if (city && state) city = `${city}, ${state}`;
+                            }
+                            if (city && !document.getElementById('inputArea').value) {
+                                document.getElementById('inputArea').value = city;
+                            }
+
+                            if (setMap) {
+                                map.setView([lat, lng], 12);
+                            }
+                        } else {
+                            fallbackBackendGeocode(zip, setMap);
+                        }
+                    })
+                    .catch(() => fallbackBackendGeocode(zip, setMap));
+            }
+
+            function fallbackBackendGeocode(zip, setMap) {
                 fetch(`/api/crew-map/nearest?query=${encodeURIComponent(zip)}`)
                     .then(res => res.json())
                     .then(data => {
@@ -408,15 +440,49 @@
                                 map.setView([lat, lng], 11);
                             }
                         }
-                    })
-                    .catch(err => console.error('Geocode failed:', err));
+                    });
             }
 
             function jumpMapToLocation() {
                 const query = document.getElementById('mapJumpSearchInput').value.trim();
-                if (query) {
-                    geocodeZipCode(query, true);
+                if (!query) {
+                    alert('Please enter a Zip Code, City, or Address to search.');
+                    return;
                 }
+
+                // Try OpenStreetMap Nominatim Forward Geocoder
+                fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1&limit=1`)
+                    .then(res => res.json())
+                    .then(results => {
+                        if (results && results.length > 0) {
+                            const item = results[0];
+                            const lat = roundCoord(parseFloat(item.lat));
+                            const lng = roundCoord(parseFloat(item.lon));
+
+                            setMarkerAndCircle(lat, lng);
+                            updateInputCoords(lat, lng);
+                            map.setView([lat, lng], 12);
+
+                            let zip = '';
+                            let city = '';
+                            if (item.address) {
+                                zip = item.address.postcode || item.address.postal_code || '';
+                                city = item.address.city || item.address.town || item.address.village || item.address.suburb || item.address.county || '';
+                                const state = item.address.state || '';
+                                if (city && state) city = `${city}, ${state}`;
+                            }
+
+                            if (zip) document.getElementById('inputZipCode').value = zip.split('-')[0].trim();
+                            if (city) document.getElementById('inputArea').value = city;
+                        } else {
+                            // Fallback to backend geocoder
+                            geocodeZipCode(query, true);
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Nominatim jump search failed, falling back:', err);
+                        geocodeZipCode(query, true);
+                    });
             }
 
             function saveCrewBase(e) {
