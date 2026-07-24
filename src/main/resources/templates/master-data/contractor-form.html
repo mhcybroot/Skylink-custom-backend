@@ -251,7 +251,11 @@
             });
 
             function initPickerMap() {
-                map = L.map('pickerMap').setView([32.7767, -96.7970], 10);
+                map = L.map('pickerMap', {
+                    scrollWheelZoom: true,
+                    doubleClickZoom: true,
+                    touchZoom: true
+                }).setView([32.7767, -96.7970], 10);
 
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     maxZoom: 19,
@@ -275,11 +279,21 @@
                     color: '#10b981',
                     fillColor: '#10b981',
                     fillOpacity: 0.12,
-                    weight: 2
+                    weight: 2,
+                    interactive: false
                 }).addTo(map);
 
                 // Click on Map Event -> Move Pin, Update Lat/Lng Inputs & Auto Reverse Geocode Zip/City!
                 map.on('click', (e) => {
+                    // Ignore double-clicks (used for map zooming)
+                    if (e.originalEvent && (e.originalEvent.detail > 1 || e.originalEvent.type === 'dblclick')) {
+                        return;
+                    }
+                    // Ignore clicks on map controls
+                    if (e.originalEvent && e.originalEvent.target && e.originalEvent.target.closest('.leaflet-control-container, .leaflet-popup')) {
+                        return;
+                    }
+
                     const lat = roundCoord(e.latlng.lat);
                     const lng = roundCoord(e.latlng.lng);
 
