@@ -361,7 +361,7 @@
 
                             let parts = [];
                             if (city) parts.push(city);
-                            if (county && !county.toLowerCase().includes(city.toLowerCase())) parts.push(county);
+                            if (county && county !== city && !county.toLowerCase().includes(city.toLowerCase())) parts.push(county);
                             if (stateCode) parts.push(stateCode);
                             if (zip) parts.push(zip.split('-')[0].trim());
 
@@ -372,7 +372,9 @@
                         if (stateCode) updateStateDropdown(stateCode);
                         if (fullAreaText && areaInput) areaInput.value = fullAreaText;
 
-                        fallbackLocalReverseGeocode(lat, lng);
+                        if (!stateCode || !zip) {
+                            fallbackLocalReverseGeocode(lat, lng);
+                        }
                     })
                     .catch(() => fallbackLocalReverseGeocode(lat, lng));
             }
@@ -382,12 +384,13 @@
                     .then(res => res.json())
                     .then(data => {
                         const zipInput = document.getElementById('inputZipCode');
+                        const stateSelect = document.getElementById('inputState');
                         const areaInput = document.getElementById('inputArea');
 
                         if (data.zipCode && (!zipInput.value || zipInput.value === '')) {
                             zipInput.value = data.zipCode;
                         }
-                        if (data.state) {
+                        if (data.state && stateSelect && (!stateSelect.value || stateSelect.value === '')) {
                             updateStateDropdown(data.state);
                         }
                         if (data.area && areaInput && (!areaInput.value || areaInput.value === '')) {
@@ -447,24 +450,41 @@
                             updateInputCoords(lat, lng);
 
                             let stateCode = '';
+                            let city = '';
+                            let county = '';
+
                             if (item.address) {
+                                zip = item.address.postcode || item.address.postal_code || zip;
+                                city = item.address.city || item.address.town || item.address.village || item.address.suburb || '';
+                                county = item.address.county || '';
                                 const iso = item.address['ISO3166-2-lvl4'] || '';
                                 const fullState = item.address.state || '';
+
                                 if (iso.startsWith('US-')) {
                                     stateCode = iso.replace('US-', '').trim();
                                 } else if (fullState) {
                                     stateCode = convertStateToCode(fullState);
                                 }
                             }
+
                             if (stateCode) {
-                                updateAreaStateDropdown(stateCode);
+                                updateStateDropdown(stateCode);
+                            }
+
+                            const areaInput = document.getElementById('inputArea');
+                            if (areaInput) {
+                                let parts = [];
+                                if (city) parts.push(city);
+                                if (county && county !== city && !county.toLowerCase().includes(city.toLowerCase())) parts.push(county);
+                                if (stateCode) parts.push(stateCode);
+                                if (zip) parts.push(zip.split('-')[0].trim());
+                                if (parts.length > 0) areaInput.value = parts.join(', ');
                             }
 
                             if (setMap) {
                                 map.setView([lat, lng], 11);
                             }
-                        }
-                        if (lat && lng) {
+                        } else {
                             fallbackLocalReverseGeocode(lat, lng);
                         }
                     })
@@ -491,11 +511,36 @@
                             map.setView([lat, lng], 12);
 
                             let zip = '';
+                            let stateCode = '';
+                            let city = '';
+                            let county = '';
+
                             if (item.address) {
                                 zip = item.address.postcode || item.address.postal_code || '';
+                                city = item.address.city || item.address.town || item.address.village || item.address.suburb || '';
+                                county = item.address.county || '';
+                                const iso = item.address['ISO3166-2-lvl4'] || '';
+                                const fullState = item.address.state || '';
+
+                                if (iso.startsWith('US-')) {
+                                    stateCode = iso.replace('US-', '').trim();
+                                } else if (fullState) {
+                                    stateCode = convertStateToCode(fullState);
+                                }
                             }
 
                             if (zip) document.getElementById('inputZipCode').value = zip.split('-')[0].trim();
+                            if (stateCode) updateStateDropdown(stateCode);
+
+                            const areaInput = document.getElementById('inputArea');
+                            if (areaInput) {
+                                let parts = [];
+                                if (city) parts.push(city);
+                                if (county && county !== city && !county.toLowerCase().includes(city.toLowerCase())) parts.push(county);
+                                if (stateCode) parts.push(stateCode);
+                                if (zip) parts.push(zip.split('-')[0].trim());
+                                if (parts.length > 0) areaInput.value = parts.join(', ');
+                            }
                         } else {
                             geocodeZipCode(query, true);
                         }
