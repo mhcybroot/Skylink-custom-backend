@@ -177,14 +177,28 @@
                 <!-- Right 5 Columns: Ranked Nearest Crews Panel -->
                 <div class="col-lg-5">
                     <div class="card border-0 shadow-sm rounded-3 bg-white h-100 d-flex flex-column">
-                        <div class="card-header border-0 py-3 px-4 bg-light d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="fw-bold text-dark mb-0">
-                                    <i class="fas fa-list-ol text-success me-2"></i>Nearest Crews Ranked
-                                </h6>
-                                <small class="text-muted" id="searchSummaryText">Showing all registered crew locations</small>
+                        <div class="card-header border-0 py-3 px-4 bg-light">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div>
+                                    <h6 class="fw-bold text-dark mb-0">
+                                        <i class="fas fa-list-ol text-success me-2"></i>Nearest Crews Ranked
+                                    </h6>
+                                    <small class="text-muted" id="searchSummaryText">Showing all registered crew locations</small>
+                                </div>
+                                <span class="badge bg-success rounded-pill px-3 py-2" id="resultCountBadge">0 Crews</span>
                             </div>
-                            <span class="badge bg-success rounded-pill px-3 py-2" id="resultCountBadge">0 Crews</span>
+                            <!-- Advanced Contractor Detail Search Bar -->
+                            <div class="input-group input-group-sm mt-2">
+                                <span class="input-group-text bg-white border-end-0 text-muted">
+                                    <i class="fas fa-filter text-primary"></i>
+                                </span>
+                                <input type="text" id="contractorDetailSearchInput" class="form-control border-start-0 border-end-0"
+                                    placeholder="Filter by Name, Base Zip, Area, Coverage Zips..."
+                                    onkeyup="filterCrewList(false)">
+                                <button class="btn btn-outline-secondary btn-sm" type="button" onclick="clearContractorDetailSearch()" title="Clear filter">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
                         </div>
 
                         <div class="card-body p-3 overflow-auto flex-grow-1" style="max-height: 580px;" id="crewListContainer">
@@ -393,20 +407,43 @@
             }
 
             function filterCrewList(shouldFitBounds = false) {
-                if (!currentSearchData) {
-                    renderMapAndList(allCrews, null, shouldFitBounds);
-                    return;
+                let baseList = currentSearchData ? currentSearchData.crews : allCrews;
+
+                // 1. Filter by Max Distance Radius
+                const maxRadius = parseFloat(document.getElementById('maxRadiusSelect').value) || 9999;
+                let filteredCrews = baseList.filter(c => (c.distanceMiles !== undefined && c.distanceMiles !== null) ? c.distanceMiles <= maxRadius : true);
+
+                // 2. Filter by Contractor Details (Name, Base Zip, Area, Coverage Zips, Phone, Email)
+                const detailQuery = (document.getElementById('contractorDetailSearchInput')?.value || '').trim().toLowerCase();
+                if (detailQuery) {
+                    filteredCrews = filteredCrews.filter(c => {
+                        const nameMatch = (c.name || '').toLowerCase().includes(detailQuery);
+                        const zipMatch = (c.zipCode || '').toLowerCase().includes(detailQuery);
+                        const areaMatch = (c.area || '').toLowerCase().includes(detailQuery);
+                        const coverageMatch = (c.coverageZipCodes || '').toLowerCase().includes(detailQuery);
+                        const emailMatch = (c.email || '').toLowerCase().includes(detailQuery);
+                        const phoneMatch = (c.phone || '').toLowerCase().includes(detailQuery);
+                        return nameMatch || zipMatch || areaMatch || coverageMatch || emailMatch || phoneMatch;
+                    });
                 }
 
-                const maxRadius = parseFloat(document.getElementById('maxRadiusSelect').value) || 9999;
-                const filteredCrews = currentSearchData.crews.filter(c => c.distanceMiles <= maxRadius);
-
                 renderMapAndList(filteredCrews, currentSearchData, shouldFitBounds);
+            }
+
+            function clearContractorDetailSearch() {
+                const input = document.getElementById('contractorDetailSearchInput');
+                if (input) {
+                    input.value = '';
+                    filterCrewList(false);
+                }
             }
 
             function resetMapAndSearch() {
                 document.getElementById('woSearchInput').value = '';
                 document.getElementById('maxRadiusSelect').value = '9999';
+                if (document.getElementById('contractorDetailSearchInput')) {
+                    document.getElementById('contractorDetailSearchInput').value = '';
+                }
                 document.getElementById('searchSummaryText').textContent = 'Showing all registered crew locations';
                 currentSearchData = null;
                 map.setView([32.7767, -96.7970], 9);
