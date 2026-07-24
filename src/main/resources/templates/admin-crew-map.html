@@ -330,13 +330,16 @@
                 // Render Crew Markers & Sidebar Cards
                 let html = '';
 
+                const isSearchingWO = !!searchTarget;
+
                 crews.forEach((c, idx) => {
                     const latLng = [c.latitude, c.longitude];
                     bounds.extend(latLng);
 
                     const rank = idx + 1;
-                    const isInRange = c.isInRange !== undefined ? c.isInRange : true;
-                    const markerColor = isInRange ? '#10b981' : '#f59e0b';
+                    const hasDistance = (c.distanceMiles !== undefined && c.distanceMiles !== null);
+                    const isInRange = isSearchingWO ? (c.isInRange === true) : true;
+                    const markerColor = (isSearchingWO && !isInRange) ? '#f59e0b' : '#10b981';
 
                     // Map Marker
                     const marker = L.marker(latLng, {
@@ -360,7 +363,7 @@
                     }).addTo(markersLayer);
 
                     // Connector Line if WO searched
-                    if (searchTarget) {
+                    if (searchTarget && hasDistance) {
                         const line = L.polyline([[searchTarget.targetLatitude, searchTarget.targetLongitude], latLng], {
                             color: markerColor,
                             weight: 2,
@@ -375,15 +378,24 @@
                         <div>
                             <strong style="color: #047857;">${escapeHtml(c.name)}</strong><br/>
                             <small class="text-muted"><i class="fas fa-map-marker-alt me-1"></i>Base Zip: ${c.zipCode || 'N/A'}</small><br/>
-                            <small class="text-muted"><i class="fas fa-arrows-alt-h me-1"></i>Radius: ${c.serviceRadiusMiles} miles</small><br/>
-                            ${c.distanceMiles !== undefined ? `<strong class="text-success">Distance: ${c.distanceMiles} miles</strong>` : ''}
+                            <small class="text-muted"><i class="fas fa-arrows-alt-h me-1"></i>Radius: ${c.serviceRadiusMiles || 30} miles</small><br/>
+                            ${hasDistance ? `<strong class="text-success">Distance: ${c.distanceMiles} miles</strong>` : ''}
                         </div>
                     `);
 
                     // Card HTML
-                    const rangeBadge = isInRange
-                        ? '<span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1"><i class="fas fa-check-circle me-1"></i>In Range</span>'
-                        : '<span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-2 py-1"><i class="fas fa-exclamation-triangle me-1"></i>Out of Radius</span>';
+                    let rangeBadge = '';
+                    if (isSearchingWO) {
+                        rangeBadge = isInRange
+                            ? '<span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1"><i class="fas fa-check-circle me-1"></i>In Range</span>'
+                            : '<span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-2 py-1"><i class="fas fa-exclamation-triangle me-1"></i>Out of Radius</span>';
+                    } else {
+                        rangeBadge = '<span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1"><i class="fas fa-satellite-dish me-1"></i>Active Base</span>';
+                    }
+
+                    const distanceLabel = hasDistance
+                        ? `<i class="fas fa-route me-1"></i>${c.distanceMiles} Miles`
+                        : `<i class="fas fa-compass me-1"></i>${c.serviceRadiusMiles || 30} mi Radius`;
 
                     html += `
                         <div class="card border-0 shadow-sm rounded-3 mb-2 crew-card ${isInRange ? 'in-range' : 'out-range'}" onclick="focusCrewOnMap(${c.latitude}, ${c.longitude})">
@@ -405,7 +417,7 @@
                                 </div>
                                 <div class="d-flex align-items-center justify-content-between mt-2 pt-2 border-top">
                                     <div class="distance-pill">
-                                        <i class="fas fa-route me-1"></i>${c.distanceMiles !== undefined ? `${c.distanceMiles} Miles` : `${c.serviceRadiusMiles} mi Radius`}
+                                        ${distanceLabel}
                                     </div>
                                     <div class="d-flex gap-1">
                                         <a href="/crew-map/manage/${c.id}" class="btn btn-xs btn-outline-primary py-1 px-2 text-xs" onclick="event.stopPropagation();">
