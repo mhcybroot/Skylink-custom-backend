@@ -136,9 +136,9 @@
                         <button class="btn btn-outline-secondary me-2" onclick="resetMapAndSearch()">
                             <i class="fas fa-redo me-1"></i> Reset View
                         </button>
-                        <button class="btn btn-primary fw-bold" onclick="openEditCrewModal()">
-                            <i class="fas fa-edit me-1"></i> Edit Crew Base/Coverage
-                        </button>
+                        <a href="/crew-map/manage" class="btn btn-primary fw-bold">
+                            <i class="fas fa-map-marker-alt me-1"></i> Add / Edit Crew Base
+                        </a>
                     </div>
                 </div>
             </div>
@@ -185,64 +185,6 @@
                 </div>
             </div>
 
-            <!-- Edit Crew Location Modal -->
-            <div class="modal fade" id="editCrewModal" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content border-0 shadow">
-                        <div class="modal-header bg-success text-white">
-                            <h5 class="modal-title fw-bold">
-                                <i class="fas fa-map-marker-alt me-2"></i>Edit Crew Base Location & Coverage
-                            </h5>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <form id="editCrewForm" onsubmit="saveCrewLocation(event)">
-                            <div class="modal-body p-4">
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold small">Select Crew / Contractor *</label>
-                                    <select id="modalCrewSelect" class="form-select" required onchange="onCrewSelectChange()">
-                                        <option value="">-- Choose Contractor --</option>
-                                        <option th:each="c : ${contractors}" th:value="${c.id}" th:text="${c.name}"></option>
-                                    </select>
-                                </div>
-                                <div class="row g-2 mb-3">
-                                    <div class="col-md-6">
-                                        <label class="form-label fw-bold small">Base Zip Code *</label>
-                                        <input type="text" id="modalZipCode" class="form-control" placeholder="e.g. 75001" required>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label fw-bold small">Service Radius (Miles) *</label>
-                                        <input type="number" id="modalRadius" class="form-control" value="30" min="5" max="500" required>
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold small">Area / City Name</label>
-                                    <input type="text" id="modalArea" class="form-control" placeholder="e.g. Dallas, TX">
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold small">Primary Coverage Zip Codes (Optional)</label>
-                                    <input type="text" id="modalCoverageZips" class="form-control" placeholder="Comma-separated: 75001, 75002, 75006">
-                                    <small class="text-muted">Direct zip code matches will trigger auto-coverage.</small>
-                                </div>
-                                <div class="row g-2">
-                                    <div class="col-md-6">
-                                        <label class="form-label fw-bold small">Custom Latitude (Optional)</label>
-                                        <input type="number" step="any" id="modalLat" class="form-control" placeholder="Auto-calculated if blank">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label fw-bold small">Custom Longitude (Optional)</label>
-                                        <input type="number" step="any" id="modalLng" class="form-control" placeholder="Auto-calculated if blank">
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="modal-footer bg-light">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                <button type="submit" class="btn btn-success fw-bold px-4" id="saveCrewBtn">
-                                    <i class="fas fa-save me-1"></i> Save Changes
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
             </div>
         </section>
 
@@ -253,10 +195,8 @@
             let allCrews = [];
             let currentSearchData = null;
             let markersLayer;
-            let editCrewModal;
 
             document.addEventListener('DOMContentLoaded', () => {
-                editCrewModal = new bootstrap.Modal(document.getElementById('editCrewModal'));
                 initMap();
                 loadAllCrews();
             });
@@ -468,9 +408,9 @@
                                         <i class="fas fa-route me-1"></i>${c.distanceMiles !== undefined ? `${c.distanceMiles} Miles` : `${c.serviceRadiusMiles} mi Radius`}
                                     </div>
                                     <div class="d-flex gap-1">
-                                        <button class="btn btn-xs btn-outline-primary py-1 px-2 text-xs" onclick="event.stopPropagation(); openEditCrewModalForId(${c.id})">
+                                        <a href="/crew-map/manage/${c.id}" class="btn btn-xs btn-outline-primary py-1 px-2 text-xs" onclick="event.stopPropagation();">
                                             <i class="fas fa-edit me-1"></i>Edit Base
-                                        </button>
+                                        </a>
                                     </div>
                                 </div>
                             </div>

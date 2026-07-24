@@ -36,6 +36,26 @@ public class CrewMapController {
         return "admin-crew-map";
     }
 
+    @GetMapping("/crew-map/manage")
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
+    public String renderCrewManagePage(@RequestParam(value = "id", required = false) Long id, Model model) {
+        model.addAttribute("activeLink", "crew-map");
+        model.addAttribute("contractors", contractorRepository.findAll());
+        if (id != null) {
+            contractorRepository.findById(id).ifPresent(c -> model.addAttribute("selectedContractor", c));
+        }
+        return "admin-crew-manage";
+    }
+
+    @GetMapping("/crew-map/manage/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
+    public String renderCrewManagePageById(@PathVariable("id") Long id, Model model) {
+        model.addAttribute("activeLink", "crew-map");
+        model.addAttribute("contractors", contractorRepository.findAll());
+        contractorRepository.findById(id).ifPresent(c -> model.addAttribute("selectedContractor", c));
+        return "admin-crew-manage";
+    }
+
     // API: Get all active crews with geocoding
     @GetMapping("/api/crew-map/crews")
     @ResponseBody

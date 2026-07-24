@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head>
+    <title>Manage Crew Base Location - [[${companyName}]] Admin</title>
+    <!-- Leaflet CSS for Map rendering -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        #pickerMap {
+            height: 600px;
+            width: 100%;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            z-index: 1;
+            cursor: crosshair;
+        }
+
+        .coords-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+        }
+
+        .picker-instruction-banner {
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+            border: 1px solid #a7f3d0;
+            color: #065f46;
+            border-radius: 10px;
+            padding: 0.85rem 1.1rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .radius-slider {
+            accent-color: #10b981;
+        }
+    </style>
+</head>
+
+<body>
+    <div th:replace="~{layout :: layout(~{::section}, ~{::script}, 'crew-map')}">
+        <section>
+            <!-- Page Header -->
+            <div class="border-0 shadow-sm rounded-3 mb-4 p-4 text-white"
+                style="background: linear-gradient(135deg, #065f46 0%, #047857 50%, #064e3b 100%);">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <i class="fas fa-map-marker-alt fa-lg text-emerald-300"></i>
+                            <h3 class="fw-bold mb-0 text-white">Set Crew Base Location & Coverage Radius</h3>
+                        </div>
+                        <p class="text-white-50 small mb-0">
+                            Click directly on the map or drag the green marker pin to select exact latitude & longitude coordinates.
+                        </p>
+                    </div>
+                    <div>
+                        <a href="/crew-map" class="btn btn-outline-light fw-bold rounded-3 px-3 shadow-sm">
+                            <i class="fas fa-arrow-left me-1"></i> Back to Coverage Map
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Instruction Banner -->
+            <div class="picker-instruction-banner shadow-sm mb-4 d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="fas fa-hand-pointer fa-lg text-success"></i>
+                    <span>
+                        <strong>Point & Click Map Picker:</strong> Click anywhere on the map or drag the pin to set the exact base coordinates for the crew.
+                    </span>
+                </div>
+                <span class="badge bg-success bg-opacity-20 text-success border border-success border-opacity-30 px-3 py-2">
+                    <i class="fas fa-satellite me-1"></i> Live Geo Sync
+                </span>
+            </div>
+
+            <!-- Main Split Layout -->
+            <div class="row g-4 mb-4">
+                <!-- Left Column (5 Cols): Crew Location Form -->
+                <div class="col-lg-5">
+                    <div class="card border-0 shadow-sm rounded-3 bg-white p-4">
+                        <h5 class="fw-bold text-dark mb-3 border-bottom pb-2">
+                            <i class="fas fa-id-card text-success me-2"></i>Crew Details & Settings
+                        </h5>
+
+                        <form id="crewManageForm" onsubmit="saveCrewBase(event)">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold small text-muted">Select Contractor / Crew *</label>
+                                <select id="crewSelect" class="form-select form-select-lg fw-bold" required onchange="onSelectCrewChange()">
+                                    <option value="">-- Select Contractor --</option>
+                                    <option th:each="c : ${contractors}"
+                                            th:value="${c.id}"
+                                            th:text="${c.name}"
+                                            th:selected="${selectedContractor != null and selectedContractor.id == c.id}">
+                                    </option>
+                                </select>
+                            </div>
+
+                            <div class="row g-2 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold small text-muted">Base Zip Code *</label>
+                                    <div class="input-group">
+                                        <input type="text" id="inputZipCode" class="form-control" placeholder="e.g. 75001" required
+                                               th:value="${selectedContractor != null ? selectedContractor.zipCode : ''}"
+                                               onchange="geocodeZipInput()">
+                                        <button class="btn btn-outline-secondary" type="button" onclick="geocodeZipInput()" title="Auto-locate Zip Code">
+                                            <i class="fas fa-search-location"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold small text-muted">Area / City Name</label>
+                                    <input type="text" id="inputArea" class="form-control" placeholder="e.g. Dallas, TX"
+                                           th:value="${selectedContractor != null ? selectedContractor.area : ''}">
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <label class="form-label fw-bold small text-muted mb-0">Service Radius (Miles) *</label>
+                                    <span class="badge bg-success" id="radiusValueBadge">30 Miles</span>
+                                </div>
+                                <input type="range" class="form-range radius-slider mb-2" id="inputRadiusSlider" min="5" max="300" step="5" value="30" oninput="onRadiusChange(this.value)">
+                                <input type="number" id="inputRadius" class="form-control" min="5" max="500" value="30" required oninput="onRadiusChange(this.value)"
+                                       th:value="${selectedContractor != null and selectedContractor.serviceRadiusMiles != null ? selectedContractor.serviceRadiusMiles : 30}">
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold small text-muted">Primary Coverage Zip Codes (Optional)</label>
+                                <textarea id="inputCoverageZips" class="form-control" rows="2" placeholder="Comma-separated: 75001, 75002, 75006"
+                                          th:text="${selectedContractor != null ? selectedContractor.coverageZipCodes : ''}"></textarea>
+                                <small class="text-muted">Work Orders matching these zip codes will auto-match this crew.</small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold small text-muted">Contact Phone (Optional)</label>
+                                <input type="text" id="inputPhone" class="form-control" placeholder="e.g. (214) 555-0199"
+                                       th:value="${selectedContractor != null ? selectedContractor.phone : ''}">
+                            </div>
+
+                            <!-- Selected Coordinates Display Box -->
+                            <div class="coords-box mb-4">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <span class="fw-bold small text-dark"><i class="fas fa-crosshairs me-1 text-danger"></i>Base Latitude & Longitude</span>
+                                    <small class="text-muted">Populated from map click</small>
+                                </div>
+                                <div class="row g-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label text-muted small mb-1">Latitude</label>
+                                        <input type="number" step="any" id="inputLat" class="form-control fw-bold text-success" placeholder="32.7767" required oninput="updateMarkerFromInputs()"
+                                               th:value="${selectedContractor != null ? selectedContractor.latitude : ''}">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label text-muted small mb-1">Longitude</label>
+                                        <input type="number" step="any" id="inputLng" class="form-control fw-bold text-success" placeholder="-96.7970" required oninput="updateMarkerFromInputs()"
+                                               th:value="${selectedContractor != null ? selectedContractor.longitude : ''}">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-success btn-lg fw-bold shadow-sm" id="saveBtn">
+                                    <i class="fas fa-save me-1"></i> Save Crew Base & Coverage
+                                </button>
+                                <a href="/crew-map" class="btn btn-outline-secondary">Cancel</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Right Column (7 Cols): Interactive Map Picker -->
+                <div class="col-lg-7">
+                    <div class="card border-0 shadow-sm rounded-3 bg-white p-3 h-100 d-flex flex-column">
+                        <!-- Jump Search Bar -->
+                        <div class="d-flex align-items-center justify-content-between mb-3 gap-2">
+                            <h6 class="fw-bold mb-0 text-dark">
+                                <i class="fas fa-map-marked-alt text-success me-2"></i>Map Picker
+                            </h6>
+                            <div class="input-group style-sm" style="max-width: 380px;">
+                                <input type="text" id="mapJumpSearchInput" class="form-control border-end-0" placeholder="Jump map to Zip/City..." onkeypress="if(event.key==='Enter') jumpMapToLocation()">
+                                <button class="btn btn-outline-success fw-semibold" type="button" onclick="jumpMapToLocation()">
+                                    <i class="fas fa-search me-1"></i> Jump
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Map Container -->
+                        <div id="pickerMap" class="flex-grow-1"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Leaflet JS -->
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <script th:inline="javascript">
+            /*<![CDATA[*/
+            let contractorsList = /*[[${contractors}]]*/ [];
+            let initialSelected = /*[[${selectedContractor}]]*/ null;
+            /*]]>*/
+
+            let map;
+            let baseMarker;
+            let radiusCircle;
+
+            document.addEventListener('DOMContentLoaded', () => {
+                initPickerMap();
+
+                if (initialSelected) {
+                    loadContractorIntoForm(initialSelected);
+                } else {
+                    const select = document.getElementById('crewSelect');
+                    if (select.options.length > 1) {
+                        select.selectedIndex = 1;
+                        onSelectCrewChange();
+                    }
+                }
+            });
+
+            function initPickerMap() {
+                // Centered default on Dallas area
+                map = L.map('pickerMap').setView([32.7767, -96.7970], 10);
+
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '&copy; OpenStreetMap contributors'
+                }).addTo(map);
+
+                // Draggable Green Base Pin
+                baseMarker = L.marker([32.7767, -96.7970], {
+                    draggable: true,
+                    icon: L.divIcon({
+                        className: 'custom-base-picker-pin',
+                        html: '<div style="background-color: #10b981; color: white; border: 3px solid white; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.35); font-size: 16px;"><i class="fas fa-home"></i></div>',
+                        iconSize: [36, 36],
+                        iconAnchor: [18, 18]
+                    })
+                }).addTo(map);
+
+                // Coverage Circle
+                radiusCircle = L.circle([32.7767, -96.7970], {
+                    radius: 30 * 1609.34,
+                    color: '#10b981',
+                    fillColor: '#10b981',
+                    fillOpacity: 0.12,
+                    weight: 2
+                }).addTo(map);
+
+                // Click on Map Event -> Move Pin & Update Lat/Lng Inputs
+                map.on('click', (e) => {
+                    const lat = roundCoord(e.latlng.lat);
+                    const lng = roundCoord(e.latlng.lng);
+
+                    setMarkerAndCircle(lat, lng);
+                    updateInputCoords(lat, lng);
+                });
+
+                // Drag Marker Event -> Update Lat/Lng Inputs
+                baseMarker.on('dragend', (e) => {
+                    const position = baseMarker.getLatLng();
+                    const lat = roundCoord(position.lat);
+                    const lng = roundCoord(position.lng);
+
+                    radiusCircle.setLatLng([lat, lng]);
+                    updateInputCoords(lat, lng);
+                });
+            }
+
+            function updateInputCoords(lat, lng) {
+                document.getElementById('inputLat').value = lat;
+                document.getElementById('inputLng').value = lng;
+            }
+
+            function setMarkerAndCircle(lat, lng) {
+                const latLng = [lat, lng];
+                baseMarker.setLatLng(latLng);
+                radiusCircle.setLatLng(latLng);
+            }
+
+            function onRadiusChange(val) {
+                const radiusMiles = parseFloat(val) || 30;
+                document.getElementById('inputRadius').value = radiusMiles;
+                document.getElementById('inputRadiusSlider').value = radiusMiles;
+                document.getElementById('radiusValueBadge').textContent = `${radiusMiles} Miles`;
+
+                radiusCircle.setRadius(radiusMiles * 1609.34);
+            }
+
+            function updateMarkerFromInputs() {
+                const lat = parseFloat(document.getElementById('inputLat').value);
+                const lng = parseFloat(document.getElementById('inputLng').value);
+
+                if (!isNaN(lat) && !isNaN(lng)) {
+                    setMarkerAndCircle(lat, lng);
+                    map.panTo([lat, lng]);
+                }
+            }
+
+            function onSelectCrewChange() {
+                const id = document.getElementById('crewSelect').value;
+                if (!id) return;
+
+                const crew = contractorsList.find(c => String(c.id) === String(id));
+                if (crew) {
+                    loadContractorIntoForm(crew);
+                }
+            }
+
+            function loadContractorIntoForm(crew) {
+                document.getElementById('crewSelect').value = crew.id;
+                document.getElementById('inputZipCode').value = crew.zipCode || '';
+                document.getElementById('inputArea').value = crew.area || '';
+                document.getElementById('inputCoverageZips').value = crew.coverageZipCodes || '';
+                document.getElementById('inputPhone').value = crew.phone || '';
+
+                const radius = crew.serviceRadiusMiles || 30;
+                onRadiusChange(radius);
+
+                let lat = crew.latitude;
+                let lng = crew.longitude;
+
+                if (!lat || !lng) {
+                    // Try zip geocode
+                    if (crew.zipCode) {
+                        geocodeZipCode(crew.zipCode, true);
+                        return;
+                    } else {
+                        lat = 32.7767;
+                        lng = -96.7970;
+                    }
+                }
+
+                setMarkerAndCircle(lat, lng);
+                updateInputCoords(lat, lng);
+                map.setView([lat, lng], 11);
+            }
+
+            function geocodeZipInput() {
+                const zip = document.getElementById('inputZipCode').value.trim();
+                if (zip) {
+                    geocodeZipCode(zip, true);
+                }
+            }
+
+            function geocodeZipCode(zip, setMap) {
+                fetch(`/api/crew-map/nearest?query=${encodeURIComponent(zip)}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.targetLatitude && data.targetLongitude) {
+                            const lat = data.targetLatitude;
+                            const lng = data.targetLongitude;
+
+                            setMarkerAndCircle(lat, lng);
+                            updateInputCoords(lat, lng);
+
+                            if (data.targetCity && !document.getElementById('inputArea').value) {
+                                document.getElementById('inputArea').value = `${data.targetCity}, ${data.targetState}`;
+                            }
+
+                            if (setMap) {
+                                map.setView([lat, lng], 11);
+                            }
+                        }
+                    })
+                    .catch(err => console.error('Geocode failed:', err));
+            }
+
+            function jumpMapToLocation() {
+                const query = document.getElementById('mapJumpSearchInput').value.trim();
+                if (query) {
+                    geocodeZipCode(query, true);
+                }
+            }
+
+            function saveCrewBase(e) {
+                e.preventDefault();
+
+                const id = document.getElementById('crewSelect').value;
+                if (!id) {
+                    alert('Please select a contractor/crew');
+                    return;
+                }
+
+                const btn = document.getElementById('saveBtn');
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Saving...';
+
+                const payload = {
+                    id: parseInt(id),
+                    zipCode: document.getElementById('inputZipCode').value,
+                    area: document.getElementById('inputArea').value,
+                    phone: document.getElementById('inputPhone').value,
+                    serviceRadiusMiles: parseInt(document.getElementById('inputRadius').value) || 30,
+                    coverageZipCodes: document.getElementById('inputCoverageZips').value,
+                    latitude: parseFloat(document.getElementById('inputLat').value),
+                    longitude: parseFloat(document.getElementById('inputLng').value)
+                };
+
+                fetch('/api/crew-map/update-crew', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                })
+                .then(res => res.json())
+                .then(data => {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-save me-1"></i> Save Crew Base & Coverage';
+
+                    if (data.error) {
+                        alert(data.error);
+                        return;
+                    }
+
+                    // Redirect back to main map page
+                    window.location.href = '/crew-map';
+                })
+                .catch(err => {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-save me-1"></i> Save Crew Base & Coverage';
+                    alert('Save failed: ' + err.message);
+                });
+            }
+
+            function roundCoord(num) {
+                return Math.round(num * 1000000) / 1000000;
+            }
+        </script>
+    </div>
+</body>
+
+</html>
