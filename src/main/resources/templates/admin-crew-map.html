@@ -522,83 +522,74 @@
                 let drawnCircles = new Set();
 
                 crews.forEach((c, idx) => {
-                    const latLng = [c.latitude, c.longitude];
-                    bounds.extend(latLng);
-
                     const rank = idx + 1;
                     const isUnmapped = !c.zipCode || c.zipCode.trim() === '';
                     const hasDistance = (c.distanceMiles !== undefined && c.distanceMiles !== null);
                     const isInRange = isSearchingWO ? (c.isInRange === true) : true;
+                    const latLng = [c.latitude, c.longitude];
 
-                    let markerColor = '#10b981';
-                    if (isUnmapped) {
-                        markerColor = '#6b7280'; // Grey for unmapped
-                    } else if (isSearchingWO && !isInRange) {
-                        markerColor = '#f59e0b'; // Orange for out-of-radius
-                    }
+                    let markerColor = (isSearchingWO && !isInRange) ? '#f59e0b' : '#10b981';
 
-                    // Map Marker
-                    const markerPinContent = isUnmapped
-                        ? '<i class="fas fa-exclamation-triangle"></i>'
-                        : `${rank}`;
+                    // Only render marker pin and map layers if contractor HAS a Zip Code (is NOT unmapped)
+                    if (!isUnmapped) {
+                        bounds.extend(latLng);
 
-                    const marker = L.marker(latLng, {
-                        icon: L.divIcon({
-                            className: 'custom-crew-pin',
-                            html: `<div style="background-color: ${markerColor}; color: white; border: 2px solid white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 11px; box-shadow: 0 3px 8px rgba(0,0,0,0.25);">${markerPinContent}</div>`,
-                            iconSize: [30, 30],
-                            iconAnchor: [15, 15]
-                        })
-                    }).addTo(markersLayer);
-
-                    // Render Radius Circle only for mapped crews that are In-Range OR top 10 ranked (to avoid stacking 350+ circles & solid orange screen)
-                    const shouldDrawCircle = !isUnmapped && (isInRange || rank <= 10);
-                    if (shouldDrawCircle) {
-                        const circleKey = `${c.latitude}_${c.longitude}_${c.serviceRadiusMiles || 30}`;
-                        if (!drawnCircles.has(circleKey)) {
-                            drawnCircles.add(circleKey);
-                            const radiusMeters = (c.serviceRadiusMiles || 30) * 1609.34;
-                            L.circle(latLng, {
-                                radius: radiusMeters,
-                                color: markerColor,
-                                fillColor: markerColor,
-                                fillOpacity: 0.05,
-                                weight: 1.5,
-                                dashArray: '4, 4',
-                                interactive: false
-                            }).addTo(markersLayer);
-                        }
-                    }
-
-                    const distKm = (c.distanceKm !== undefined && c.distanceKm !== null)
-                        ? c.distanceKm
-                        : (c.distanceMiles ? Math.round(c.distanceMiles * 1.60934 * 10) / 10 : null);
-
-                    const radiusKm = c.serviceRadiusKm || (c.serviceRadiusMiles ? Math.round(c.serviceRadiusMiles * 1.60934) : 48);
-
-                    // Connector Line if WO searched
-                    if (searchTarget && hasDistance && !isUnmapped) {
-                        const line = L.polyline([[searchTarget.targetLatitude, searchTarget.targetLongitude], latLng], {
-                            color: markerColor,
-                            weight: 2,
-                            opacity: 0.6,
-                            dashArray: '5, 5',
-                            interactive: false
+                        const marker = L.marker(latLng, {
+                            icon: L.divIcon({
+                                className: 'custom-crew-pin',
+                                html: `<div style="background-color: ${markerColor}; color: white; border: 2px solid white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 11px; box-shadow: 0 3px 8px rgba(0,0,0,0.25);">${rank}</div>`,
+                                iconSize: [30, 30],
+                                iconAnchor: [15, 15]
+                            })
                         }).addTo(markersLayer);
 
-                        line.bindTooltip(`${distKm} km to ${c.name}`, { sticky: true });
-                    }
+                        // Render Radius Circle only for mapped crews that are In-Range OR top 10 ranked
+                        const shouldDrawCircle = (isInRange || rank <= 10);
+                        if (shouldDrawCircle) {
+                            const circleKey = `${c.latitude}_${c.longitude}_${c.serviceRadiusMiles || 30}`;
+                            if (!drawnCircles.has(circleKey)) {
+                                drawnCircles.add(circleKey);
+                                const radiusMeters = (c.serviceRadiusMiles || 30) * 1609.34;
+                                L.circle(latLng, {
+                                    radius: radiusMeters,
+                                    color: markerColor,
+                                    fillColor: markerColor,
+                                    fillOpacity: 0.05,
+                                    weight: 1.5,
+                                    dashArray: '4, 4',
+                                    interactive: false
+                                }).addTo(markersLayer);
+                            }
+                        }
 
-                    marker.bindPopup(`
-                        <div>
-                            <strong style="color: ${isUnmapped ? '#dc2626' : '#047857'};">${escapeHtml(c.name)}</strong><br/>
-                            ${isUnmapped
-                                ? '<small class="text-danger fw-bold"><i class="fas fa-exclamation-triangle me-1"></i>Unmapped (No Base Zip Code)</small><br/>'
-                                : `<small class="text-muted"><i class="fas fa-map-marker-alt me-1"></i>Base Zip: ${c.zipCode}</small><br/>`}
-                            <small class="text-muted"><i class="fas fa-arrows-alt-h me-1"></i>Radius: ${radiusKm} km</small><br/>
-                            ${(hasDistance && !isUnmapped) ? `<strong class="text-success">Distance: ${distKm} km from WO</strong>` : ''}
-                        </div>
-                    `);
+                        const distKm = (c.distanceKm !== undefined && c.distanceKm !== null)
+                            ? c.distanceKm
+                            : (c.distanceMiles ? Math.round(c.distanceMiles * 1.60934 * 10) / 10 : null);
+
+                        const radiusKm = c.serviceRadiusKm || (c.serviceRadiusMiles ? Math.round(c.serviceRadiusMiles * 1.60934) : 48);
+
+                        // Connector Line if WO searched
+                        if (searchTarget && hasDistance) {
+                            const line = L.polyline([[searchTarget.targetLatitude, searchTarget.targetLongitude], latLng], {
+                                color: markerColor,
+                                weight: 2,
+                                opacity: 0.6,
+                                dashArray: '5, 5',
+                                interactive: false
+                            }).addTo(markersLayer);
+
+                            line.bindTooltip(`${distKm} km to ${c.name}`, { sticky: true });
+                        }
+
+                        marker.bindPopup(`
+                            <div>
+                                <strong style="color: #047857;">${escapeHtml(c.name)}</strong><br/>
+                                <small class="text-muted"><i class="fas fa-map-marker-alt me-1"></i>Base Zip: ${c.zipCode}</small><br/>
+                                <small class="text-muted"><i class="fas fa-arrows-alt-h me-1"></i>Radius: ${radiusKm} km</small><br/>
+                                ${(hasDistance) ? `<strong class="text-success">Distance: ${distKm} km from WO</strong>` : ''}
+                            </div>
+                        `);
+                    }
 
                     // Card HTML
                     let rangeBadge = '';
