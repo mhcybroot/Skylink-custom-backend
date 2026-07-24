@@ -108,7 +108,7 @@ public class ZipCodeGeoService {
         if (rawQuery == null || rawQuery.trim().isEmpty()) return null;
         String query = rawQuery.trim();
 
-        // 1. Try Nominatim Geocoder HTTP lookup from Java backend (User-Agent header safe)
+        // 1. Try Nominatim Geocoder HTTP lookup from Java backend with multi-stage address fallback
         GeoPoint onlinePoint = queryNominatimBackend(query);
         if (onlinePoint != null) {
             return onlinePoint;
@@ -138,10 +138,42 @@ public class ZipCodeGeoService {
         }
 
         // 4. Default regional fallback
-        return new GeoPoint(32.7767, -96.7970, "Dallas Base (" + query + ")", "TX");
+        return new GeoPoint(39.8283, -98.5795, "US Centroid (" + query + ")", "US");
     }
 
     private GeoPoint queryNominatimBackend(String query) {
+        // Stage 1: Try exact query
+        GeoPoint point = fetchNominatimSingle(query);
+        if (point != null) return point;
+
+        // Stage 2: Strip house/street number or first segment before comma
+        // e.g. "5657 County 175 Rd, Clyde, Ohio, 43410" -> "Clyde, Ohio, 43410"
+        if (query.contains(",")) {
+            String subQuery = query.substring(query.indexOf(",") + 1).trim();
+            point = fetchNominatimSingle(subQuery);
+            if (point != null) return point;
+
+            // Stage 3: Try last segment after comma (e.g. "Ohio, 43410" or "43410")
+            if (subQuery.contains(",")) {
+                String cityZipQuery = subQuery.substring(subQuery.indexOf(",") + 1).trim();
+                point = fetchNominatimSingle(cityZipQuery);
+                if (point != null) return point;
+            }
+        }
+
+        // Stage 4: Extract 5-digit zip code and query zip directly via OpenStreetMap
+        Pattern zipPattern = Pattern.compile("\\b\\d{5}\\b");
+        Matcher matcher = zipPattern.matcher(query);
+        if (matcher.find()) {
+            String extractedZip = matcher.group();
+            point = fetchNominatimSingle(extractedZip + ", USA");
+            if (point != null) return point;
+        }
+
+        return null;
+    }
+
+    private GeoPoint fetchNominatimSingle(String query) {
         try {
             String encoded = URLEncoder.encode(query, StandardCharsets.UTF_8);
             String url = "https://nominatim.openstreetmap.org/search?format=json&q=" + encoded + "&countrycodes=us&addressdetails=1&limit=1";
@@ -193,20 +225,29 @@ public class ZipCodeGeoService {
     }
 
     private GeoPoint calculateZipRangeGeoPoint(int zipNum, String zip) {
-        if (zipNum >= 75000 && zipNum <= 76999) {
+        int prefix = zipNum / 1000;
+        if (prefix >= 75 && prefix <= 76) {
             return new GeoPoint(32.7767 + ((zipNum % 100) * 0.005), -96.7970 + ((zipNum % 50) * 0.005), "Dallas Area (" + zip + ")", "TX");
-        } else if (zipNum >= 77000 && zipNum <= 77999) {
+        } else if (prefix >= 77 && prefix <= 77) {
             return new GeoPoint(29.7604, -95.3698, "Houston Area (" + zip + ")", "TX");
-        } else if (zipNum >= 78000 && zipNum <= 78999) {
+        } else if (prefix >= 78 && prefix <= 79) {
             return new GeoPoint(30.2672, -97.7431, "Austin/SA Area (" + zip + ")", "TX");
-        } else if (zipNum >= 90000 && zipNum <= 96199) {
+        } else if (prefix >= 90 && prefix <= 96) {
             return new GeoPoint(34.0522, -118.2437, "California Region (" + zip + ")", "CA");
-        } else if (zipNum >= 60000 && zipNum <= 62999) {
-            return new GeoPoint(41.8781, -87.6298, "Chicago Region (" + zip + ")", "IL");
-        } else if (zipNum >= 100000 && zipNum <= 14999) {
+        } else if (prefix >= 60 && prefix <= 62) {
+            return new GeoPoint(41.8781, -87.6298, "Chicago/Illinois (" + zip + ")", "IL");
+        } else if (prefix >= 43 && prefix <= 45) {
+            return new GeoPoint(40.4173, -82.9071, "Ohio Region (" + zip + ")", "OH");
+        } else if (prefix >= 10 && prefix <= 14) {
             return new GeoPoint(40.7128, -74.0060, "New York Region (" + zip + ")", "NY");
+        } else if (prefix >= 30 && prefix <= 34) {
+            return new GeoPoint(32.1656, -82.9001, "Georgia/Florida Region (" + zip + ")", "GA");
+        } else if (prefix >= 83 && prefix <= 83) {
+            return new GeoPoint(43.1905, -112.3450, "Idaho Region (" + zip + ")", "ID");
+        } else if (prefix >= 68 && prefix <= 69) {
+            return new GeoPoint(41.4925, -99.9018, "Nebraska Region (" + zip + ")", "NE");
         }
-        return new GeoPoint(32.7767, -96.7970, "US Centroid (" + zip + ")", "US");
+        return new GeoPoint(39.8283, -98.5795, "US Centroid (" + zip + ")", "US");
     }
 
     /**
