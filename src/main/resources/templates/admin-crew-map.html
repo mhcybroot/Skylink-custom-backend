@@ -519,6 +519,8 @@
 
                 const isSearchingWO = !!searchTarget;
 
+                let drawnCircles = new Set();
+
                 crews.forEach((c, idx) => {
                     const latLng = [c.latitude, c.longitude];
                     bounds.extend(latLng);
@@ -549,18 +551,23 @@
                         })
                     }).addTo(markersLayer);
 
-                    // Radius Circle (only if mapped)
-                    if (!isUnmapped) {
-                        const radiusMeters = (c.serviceRadiusMiles || 30) * 1609.34;
-                        L.circle(latLng, {
-                            radius: radiusMeters,
-                            color: markerColor,
-                            fillColor: markerColor,
-                            fillOpacity: 0.08,
-                            weight: 1.5,
-                            dashArray: '4, 4',
-                            interactive: false
-                        }).addTo(markersLayer);
+                    // Render Radius Circle only for mapped crews that are In-Range OR top 10 ranked (to avoid stacking 350+ circles & solid orange screen)
+                    const shouldDrawCircle = !isUnmapped && (isInRange || rank <= 10);
+                    if (shouldDrawCircle) {
+                        const circleKey = `${c.latitude}_${c.longitude}_${c.serviceRadiusMiles || 30}`;
+                        if (!drawnCircles.has(circleKey)) {
+                            drawnCircles.add(circleKey);
+                            const radiusMeters = (c.serviceRadiusMiles || 30) * 1609.34;
+                            L.circle(latLng, {
+                                radius: radiusMeters,
+                                color: markerColor,
+                                fillColor: markerColor,
+                                fillOpacity: 0.05,
+                                weight: 1.5,
+                                dashArray: '4, 4',
+                                interactive: false
+                            }).addTo(markersLayer);
+                        }
                     }
 
                     const distKm = (c.distanceKm !== undefined && c.distanceKm !== null)
@@ -655,8 +662,22 @@
                 }
             }
 
-            function focusCrewOnMap(lat, lng) {
-                map.setView([lat, lng], 12);
+            let focusCircleLayer = null;
+            function focusCrewOnMap(lat, lng, radiusMiles = 30) {
+                if (!lat || !lng) return;
+                map.setView([lat, lng], 11);
+                if (focusCircleLayer) {
+                    markersLayer.removeLayer(focusCircleLayer);
+                }
+                focusCircleLayer = L.circle([lat, lng], {
+                    radius: (radiusMiles || 30) * 1609.34,
+                    color: '#2563eb',
+                    fillColor: '#3b82f6',
+                    fillOpacity: 0.12,
+                    weight: 2,
+                    dashArray: '5, 5',
+                    interactive: false
+                }).addTo(markersLayer);
             }
 
             function openEditCrewModal() {
