@@ -47,7 +47,10 @@ public class Contractor {
     @Column(length = 20)
     private String zipCode;
 
-    @Column(length = 100)
+    @Column(length = 50)
+    private String state;
+
+    @Column(length = 150)
     private String area;
 
     @Column(length = 30)

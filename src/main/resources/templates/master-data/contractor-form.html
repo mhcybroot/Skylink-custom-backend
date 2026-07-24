@@ -125,12 +125,17 @@
                                         </div>
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label fw-bold small text-muted text-uppercase">Area / Location State</label>
-                                        <select class="form-select" id="inputArea" th:field="*{area}">
-                                            <option value="">-- Select Area / State --</option>
-                                            <option th:each="state : ${usStates}" th:value="${state}" th:text="${state}"></option>
+                                        <label class="form-label fw-bold small text-muted text-uppercase">State / Region</label>
+                                        <select class="form-select" id="inputState" th:field="*{state}">
+                                            <option value="">-- Select State --</option>
+                                            <option th:each="st : ${usStates}" th:value="${st}" th:text="${st}"></option>
                                         </select>
                                     </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold small text-muted text-uppercase">Full Area / Location Details (City, County, Zip)</label>
+                                    <input type="text" id="inputArea" class="form-control" th:field="*{area}" placeholder="e.g. Gainesville, Cooke County, TX 76240">
                                 </div>
 
                                 <div class="mb-3">
@@ -315,16 +320,16 @@
                 return US_STATE_MAP[clean] || '';
             }
 
-            function updateAreaStateDropdown(stateCode) {
-                const areaInput = document.getElementById('inputArea');
-                if (!areaInput || !stateCode) return;
+            function updateStateDropdown(stateCode) {
+                const stateSelect = document.getElementById('inputState');
+                if (!stateSelect || !stateCode) return;
 
                 const targetCode = convertStateToCode(stateCode);
                 if (!targetCode) return;
 
-                for (let i = 0; i < areaInput.options.length; i++) {
-                    if (areaInput.options[i].value.toUpperCase() === targetCode) {
-                        areaInput.selectedIndex = i;
+                for (let i = 0; i < stateSelect.options.length; i++) {
+                    if (stateSelect.options[i].value.toUpperCase() === targetCode) {
+                        stateSelect.selectedIndex = i;
                         break;
                     }
                 }
@@ -332,28 +337,40 @@
 
             function reverseGeocodeCoords(lat, lng) {
                 const zipInput = document.getElementById('inputZipCode');
+                const areaInput = document.getElementById('inputArea');
 
                 fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`)
                     .then(res => res.json())
                     .then(data => {
                         let zip = '';
                         let stateCode = '';
+                        let fullAreaText = '';
 
                         if (data && data.address) {
                             zip = data.address.postcode || data.address.postal_code || '';
+                            const city = data.address.city || data.address.town || data.address.village || data.address.suburb || '';
+                            const county = data.address.county || '';
                             const iso = data.address['ISO3166-2-lvl4'] || '';
                             const fullState = data.address.state || '';
+
                             if (iso.startsWith('US-')) {
                                 stateCode = iso.replace('US-', '').trim();
                             } else if (fullState) {
                                 stateCode = convertStateToCode(fullState);
                             }
+
+                            let parts = [];
+                            if (city) parts.push(city);
+                            if (county && !county.toLowerCase().includes(city.toLowerCase())) parts.push(county);
+                            if (stateCode) parts.push(stateCode);
+                            if (zip) parts.push(zip.split('-')[0].trim());
+
+                            fullAreaText = parts.join(', ');
                         }
 
                         if (zip) zipInput.value = zip.split('-')[0].trim();
-                        if (stateCode) {
-                            updateAreaStateDropdown(stateCode);
-                        }
+                        if (stateCode) updateStateDropdown(stateCode);
+                        if (fullAreaText && areaInput) areaInput.value = fullAreaText;
 
                         fallbackLocalReverseGeocode(lat, lng);
                     })
@@ -364,11 +381,17 @@
                 fetch(`/api/crew-map/reverse-geocode?lat=${lat}&lng=${lng}`)
                     .then(res => res.json())
                     .then(data => {
-                        if (data.zipCode && !document.getElementById('inputZipCode').value) {
-                            document.getElementById('inputZipCode').value = data.zipCode;
+                        const zipInput = document.getElementById('inputZipCode');
+                        const areaInput = document.getElementById('inputArea');
+
+                        if (data.zipCode && (!zipInput.value || zipInput.value === '')) {
+                            zipInput.value = data.zipCode;
                         }
                         if (data.state) {
-                            updateAreaStateDropdown(data.state);
+                            updateStateDropdown(data.state);
+                        }
+                        if (data.area && areaInput && (!areaInput.value || areaInput.value === '')) {
+                            areaInput.value = data.area + (data.zipCode ? ' ' + data.zipCode : '');
                         }
                     });
             }

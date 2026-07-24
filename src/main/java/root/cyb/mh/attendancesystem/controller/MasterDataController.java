@@ -135,6 +135,7 @@ public class MasterDataController {
                 existing.setEmail(contractor.getEmail());
                 existing.setPhone(contractor.getPhone());
                 existing.setZipCode(contractor.getZipCode());
+                existing.setState(contractor.getState());
                 existing.setArea(contractor.getArea());
                 existing.setServiceRadiusMiles(contractor.getServiceRadiusMiles() != null ? contractor.getServiceRadiusMiles() : 30);
                 existing.setCoverageZipCodes(contractor.getCoverageZipCodes());

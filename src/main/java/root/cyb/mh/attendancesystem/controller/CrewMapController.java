@@ -240,6 +240,10 @@ public class CrewMapController {
             contractor.setArea((String) payload.get("area"));
         }
 
+        if (payload.containsKey("state")) {
+            contractor.setState((String) payload.get("state"));
+        }
+
         if (payload.containsKey("phone")) {
             contractor.setPhone((String) payload.get("phone"));
         }
