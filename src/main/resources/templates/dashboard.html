@@ -374,10 +374,10 @@
                                                 <i class="fas fa-umbrella-beach me-1"></i> On Leave
                                             </span>
 
-                                            <!-- Attendance Daily Status Sub-Pill (e.g. Present / Late / Early) -->
-                                            <span th:if="${item.status == 'PRESENT' || item.status == 'LATE'}"
+                                            <!-- Attendance Daily Status Sub-Pill (Shown for all statuses e.g. Present / Late / Absent / Missed) -->
+                                            <span th:if="${item.status != null && item.status != 'ON_LEAVE' && item.status != 'LEAVE'}"
                                                   class="badge rounded-1 fw-normal" style="font-size: 0.7rem;"
-                                                  th:classappend="${item.status == 'PRESENT' ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-warning-subtle text-warning-emphasis border border-warning-subtle'}"
+                                                  th:classappend="${item.status == 'PRESENT' ? 'bg-success-subtle text-success border border-success-subtle' : (item.status == 'LATE' ? 'bg-warning-subtle text-warning-emphasis border border-warning-subtle' : 'bg-danger-subtle text-danger border border-danger-subtle')}"
                                                   th:text="${item.status}">
                                                 PRESENT
                                             </span>
