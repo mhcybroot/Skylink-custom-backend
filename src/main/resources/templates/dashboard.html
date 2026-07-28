@@ -293,7 +293,7 @@
                                 <small class="text-muted" th:text="${previousDayDate != null ? 'Date: ' + #temporals.format(previousDayDate, 'EEEE, MMM dd, yyyy') : 'Yesterday'}">Yesterday</small>
                             </div>
                             <div class="d-flex align-items-center gap-2">
-                                <input type="text" id="prevDaySearchInput" class="form-control form-control-sm border-secondary-subtle" placeholder="Search employee..." style="max-width: 180px;" onkeyup="filterPrevDayList()">
+                                <input type="text" id="prevDaySearchInput" class="form-control form-control-sm border-secondary-subtle" placeholder="Search employee..." style="max-width: 180px;" oninput="filterPrevDayList()" onkeyup="filterPrevDayList()">
                                 <a href="/reports/daily" class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm">
                                     View Full Report <i class="fas fa-arrow-right ms-1"></i>
                                 </a>
@@ -301,6 +301,9 @@
                         </div>
                         <div class="card-body p-0" style="max-height: 520px; overflow-y: auto;">
                             <div class="list-group list-group-flush" id="prevDayEmployeeList">
+                                <div id="noMatchMessage" class="list-group-item text-center py-4 text-muted" style="display: none;">
+                                    <i class="fas fa-search me-1"></i> No matching employees found
+                                </div>
                                 <div class="list-group-item px-4 py-3 border-bottom prev-day-item"
                                      th:each="item : ${previousDayReport}">
                                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
@@ -1512,18 +1515,30 @@
                 }
             };
 
-            let autoScrollInterval = null;
-            function filterPrevDayList() {
-                const input = document.getElementById('prevDaySearchInput') ? document.getElementById('prevDaySearchInput').value.toLowerCase() : '';
+            window.filterPrevDayList = function () {
+                const inputEl = document.getElementById('prevDaySearchInput');
+                const input = inputEl ? inputEl.value.toLowerCase().trim() : '';
                 const items = document.querySelectorAll('.prev-day-item');
+                let visibleCount = 0;
                 items.forEach(item => {
                     const text = item.innerText.toLowerCase();
                     if (text.includes(input)) {
-                        item.style.display = '';
+                        item.style.display = 'block';
+                        visibleCount++;
                     } else {
                         item.style.display = 'none';
                     }
                 });
+                const noMatchEl = document.getElementById('noMatchMessage');
+                if (noMatchEl) {
+                    noMatchEl.style.display = (visibleCount === 0 && items.length > 0) ? 'block' : 'none';
+                }
+            };
+
+            const searchInp = document.getElementById('prevDaySearchInput');
+            if (searchInp) {
+                searchInp.addEventListener('input', window.filterPrevDayList);
+                searchInp.addEventListener('keyup', window.filterPrevDayList);
             }
 
             let clockInterval = null;
