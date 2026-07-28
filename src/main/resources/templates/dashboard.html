@@ -293,10 +293,7 @@
                                 <small class="text-muted" th:text="${previousDayDate != null ? 'Date: ' + #temporals.format(previousDayDate, 'EEEE, MMM dd, yyyy') : 'Yesterday'}">Yesterday</small>
                             </div>
                             <div class="d-flex align-items-center gap-2">
-                                <input type="text" id="prevDaySearchInput" class="form-control form-control-sm border-secondary-subtle" placeholder="Search employee..." style="max-width: 180px;" oninput="filterPrevDayList()" onkeyup="filterPrevDayList()">
-                                <a href="/reports/daily" class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm">
-                                    View Full Report <i class="fas fa-arrow-right ms-1"></i>
-                                </a>
+                                <input type="text" id="prevDaySearchInput" class="form-control form-control-sm border-secondary-subtle" placeholder="Search employee..." style="max-width: 220px;" oninput="filterPrevDayList()" onkeyup="filterPrevDayList()">
                             </div>
                         </div>
                         <div class="card-body p-0" style="max-height: 520px; overflow-y: auto;">
