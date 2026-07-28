@@ -116,6 +116,7 @@ public class DashboardController {
                                         }
                                 })
                                 .sorted(Comparator.comparingInt(this::getPreviousDayStatusPriority)
+                                                .thenComparingInt(this::getPreviousDaySubStatusPriority)
                                                 .thenComparing(DailyAttendanceDto::getEmployeeName, Comparator.nullsLast(Comparator.naturalOrder())))
                                 .collect(Collectors.toList());
 
@@ -464,5 +465,22 @@ public class DashboardController {
                         return 3;
                 }
                 return 4;
+        }
+
+        private int getPreviousDaySubStatusPriority(DailyAttendanceDto dto) {
+                String dailyStatus = dto.getStatus() != null ? dto.getStatus().toUpperCase() : "";
+                if (dailyStatus.contains("LATE")) {
+                        return 1;
+                }
+                if (dailyStatus.contains("EARLY")) {
+                        return 2;
+                }
+                if (dailyStatus.contains("ABSENT") || dailyStatus.contains("MISSED")) {
+                        return 3;
+                }
+                if (dailyStatus.contains("PRESENT")) {
+                        return 4;
+                }
+                return 5;
         }
 }
