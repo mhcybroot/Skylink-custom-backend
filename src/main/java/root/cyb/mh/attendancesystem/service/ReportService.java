@@ -134,7 +134,17 @@ public class ReportService {
 
             // Helpful for UI
             dto.setDesignation(emp.getDesignation());
-            dto.setAvatarPath(emp.getAvatarPath());
+            if (emp.getAvatarPath() != null && !emp.getAvatarPath().isBlank()) {
+                dto.setAvatarPath(emp.getAvatarPath());
+            } else if (emp.getPhotoBase64() != null && !emp.getPhotoBase64().isBlank()) {
+                String b64 = emp.getPhotoBase64().trim();
+                if (!b64.startsWith("data:image")) {
+                    b64 = "data:image/jpeg;base64," + b64;
+                }
+                dto.setAvatarPath(b64);
+            } else {
+                dto.setAvatarPath("/api/employees/" + emp.getId() + "/avatar");
+            }
 
             WorkSchedule schedule = resolveSchedule(emp.getId(), date, globalSchedule);
 

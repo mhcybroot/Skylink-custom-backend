@@ -382,6 +382,26 @@ public class DashboardController {
                 return "birthdays";
         }
 
+        @org.springframework.web.bind.annotation.GetMapping("/api/employees/{id}/avatar")
+        @org.springframework.web.bind.annotation.ResponseBody
+        public org.springframework.http.ResponseEntity<byte[]> getEmployeeAvatar(@org.springframework.web.bind.annotation.PathVariable("id") String id) {
+                return employeeRepository.findById(id).map(emp -> {
+                        if (emp.getPhotoBase64() != null && !emp.getPhotoBase64().isBlank()) {
+                                try {
+                                        String b64 = emp.getPhotoBase64().trim();
+                                        if (b64.contains(",")) {
+                                                b64 = b64.substring(b64.indexOf(",") + 1);
+                                        }
+                                        byte[] decoded = java.util.Base64.getDecoder().decode(b64);
+                                        return org.springframework.http.ResponseEntity.ok()
+                                                        .contentType(org.springframework.http.MediaType.IMAGE_JPEG)
+                                                        .body(decoded);
+                                } catch (Exception ignored) {}
+                        }
+                        return org.springframework.http.ResponseEntity.notFound().<byte[]>build();
+                }).orElseGet(() -> org.springframework.http.ResponseEntity.notFound().build());
+        }
+
         // Inner DTO
         public static class LiveStatusDto {
                 private String id;

@@ -307,15 +307,14 @@
                                         <!-- Employee Info + Clean Avatar -->
                                         <div class="d-flex align-items-center gap-3">
                                             <div class="position-relative">
-                                                <img th:if="${item.avatarPath != null && !#strings.isEmpty(item.avatarPath)}"
-                                                     th:src="${item.avatarPath}"
+                                                <img th:src="${item.avatarPath != null && !#strings.isEmpty(item.avatarPath) ? item.avatarPath : '/api/employees/' + item.employeeId + '/avatar'}"
                                                      class="rounded-circle border shadow-sm object-fit-cover"
                                                      style="width: 46px; height: 46px;"
+                                                     onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';"
                                                      alt="Employee Photo">
-                                                <div th:unless="${item.avatarPath != null && !#strings.isEmpty(item.avatarPath)}"
-                                                     class="rounded-circle bg-primary bg-opacity-10 text-primary border border-primary-subtle fw-bold d-flex align-items-center justify-content-center shadow-sm"
-                                                     style="width: 46px; height: 46px; font-size: 1.1rem;"
-                                                     th:text="${item.employeeName != null && item.employeeName.length() > 0 ? item.employeeName.substring(0,1).toUpperCase() : 'E'}">
+                                                <div class="rounded-circle bg-primary bg-opacity-10 text-primary border border-primary-subtle fw-bold align-items-center justify-content-center shadow-sm"
+                                                     style="width: 46px; height: 46px; font-size: 1.1rem; display: none;"
+                                                     th:text="${item.employeeName != null ? item.employeeName.replaceAll('^(Dr\.|Prof\.|Mr\.|Mrs\.|Ms\.|MD|PhD)\s+', '').substring(0,1).toUpperCase() : 'E'}">
                                                     E
                                                 </div>
                                             </div>
