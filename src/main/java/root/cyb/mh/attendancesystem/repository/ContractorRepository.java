@@ -11,6 +11,8 @@ public interface ContractorRepository extends JpaRepository<Contractor, Long> {
 
         java.util.Optional<Contractor> findByName(String name);
 
+        java.util.Optional<Contractor> findByNameIgnoreCase(String name);
+
         List<Contractor> findByActiveTrue(org.springframework.data.domain.Sort sort);
 
         @org.springframework.data.jpa.repository.Query("SELECT c FROM Contractor c WHERE " +

@@ -97,6 +97,15 @@ public class MasterDataController {
     public String createContractor(@ModelAttribute Contractor contractor, RedirectAttributes ps,
             java.security.Principal principal) {
         try {
+            if (contractor.getName() != null) contractor.setName(contractor.getName().trim());
+            if (contractor.getZipCode() != null) contractor.setZipCode(contractor.getZipCode().trim());
+            if (contractor.getPhone() != null) contractor.setPhone(contractor.getPhone().trim());
+            if (contractor.getEmail() != null) contractor.setEmail(contractor.getEmail().trim());
+            if (contractor.getArea() != null) contractor.setArea(contractor.getArea().trim());
+            if (contractor.getState() != null) contractor.setState(contractor.getState().trim());
+
+            contractor.setActive(true);
+
             // Auto geocode if zip code is present and lat/lng missing
             if (contractor.getZipCode() != null && !contractor.getZipCode().isBlank()
                     && (contractor.getLatitude() == null || contractor.getLongitude() == null)) {
@@ -130,17 +139,27 @@ public class MasterDataController {
         try {
             Contractor existing = contractorRepository.findById(contractor.getId()).orElse(null);
             if (existing != null) {
-                existing.setName(contractor.getName());
+                if (contractor.getName() != null && !contractor.getName().isBlank()) {
+                    existing.setName(contractor.getName().trim());
+                }
                 existing.setDescription(contractor.getDescription());
-                existing.setEmail(contractor.getEmail());
-                existing.setPhone(contractor.getPhone());
-                existing.setZipCode(contractor.getZipCode());
-                existing.setState(contractor.getState());
-                existing.setArea(contractor.getArea());
+                if (contractor.getEmail() != null) existing.setEmail(contractor.getEmail().trim());
+                if (contractor.getPhone() != null) existing.setPhone(contractor.getPhone().trim());
+                if (contractor.getZipCode() != null) existing.setZipCode(contractor.getZipCode().trim());
+                if (contractor.getState() != null) existing.setState(contractor.getState().trim());
+                if (contractor.getArea() != null) existing.setArea(contractor.getArea().trim());
+
                 existing.setServiceRadiusMiles(contractor.getServiceRadiusMiles() != null ? contractor.getServiceRadiusMiles() : 30);
                 existing.setCoverageZipCodes(contractor.getCoverageZipCodes());
-                existing.setLatitude(contractor.getLatitude());
-                existing.setLongitude(contractor.getLongitude());
+
+                // Preserve existing lat/lng unless explicit new non-null coordinates are provided
+                if (contractor.getLatitude() != null) {
+                    existing.setLatitude(contractor.getLatitude());
+                }
+                if (contractor.getLongitude() != null) {
+                    existing.setLongitude(contractor.getLongitude());
+                }
+
                 existing.setDefaultPaymentMethod(contractor.getDefaultPaymentMethod());
                 existing.setAccountDetails(contractor.getAccountDetails());
 
