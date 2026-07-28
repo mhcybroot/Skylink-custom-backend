@@ -345,24 +345,40 @@
 
                                         <!-- Activity Status & Daily Status Badges -->
                                         <div class="text-end d-flex flex-column align-items-end gap-1">
-                                            <!-- Activity Status Badge -->
-                                            <span th:if="${item.currentWorkStatus == 'LEFT_WITHOUT_PUNCH'}"
+                                            <!-- 1. Left Without Punch -->
+                                            <span th:if="${item.currentWorkStatus == 'LEFT_WITHOUT_PUNCH' || item.status == 'LEFT_WITHOUT_PUNCH'}"
                                                   class="badge bg-danger text-white shadow-sm px-3 py-1 rounded-pill" style="font-size: 0.75rem;">
                                                 <i class="fas fa-exclamation-triangle me-1"></i> Left Without Punch
                                             </span>
-                                            <span th:if="${item.currentWorkStatus == 'INCOMPLETE_SHIFT'}"
+
+                                            <!-- 2. Incomplete Shift -->
+                                            <span th:if="${item.currentWorkStatus == 'INCOMPLETE_SHIFT' || (item.currentWorkStatus != 'LEFT_WITHOUT_PUNCH' && item.status == 'EARLY_LEAVE')}"
                                                   class="badge bg-warning text-dark shadow-sm px-3 py-1 rounded-pill" style="font-size: 0.75rem;">
                                                 <i class="fas fa-clock me-1"></i> Incomplete Shift
                                             </span>
-                                            <span th:if="${item.currentWorkStatus != 'LEFT_WITHOUT_PUNCH' && item.currentWorkStatus != 'INCOMPLETE_SHIFT'}"
-                                                  class="badge bg-success bg-opacity-15 text-success border border-success px-3 py-1 rounded-pill" style="font-size: 0.75rem;"
-                                                  th:text="${item.currentWorkStatus != null ? item.currentWorkStatus : 'COMPLETED_DAY'}">
-                                                COMPLETED_DAY
+
+                                            <!-- 3. Completed Shift (Only if present & not incomplete/left without punch) -->
+                                            <span th:if="${item.currentWorkStatus != 'LEFT_WITHOUT_PUNCH' && item.currentWorkStatus != 'INCOMPLETE_SHIFT' && item.status != 'ABSENT' && item.status != 'ON_LEAVE' && item.status != 'LEAVE' && item.status != 'EARLY_LEAVE'}"
+                                                  class="badge bg-success bg-opacity-15 text-success border border-success-subtle px-3 py-1 rounded-pill fw-bold" style="font-size: 0.75rem;">
+                                                <i class="fas fa-check-circle me-1"></i> Completed
                                             </span>
 
-                                            <!-- Daily Status Badge -->
-                                            <span class="badge rounded-1 fw-normal" style="font-size: 0.7rem;"
-                                                  th:classappend="${item.status == 'PRESENT' ? 'bg-success-subtle text-success border border-success-subtle' : (item.status == 'LATE' ? 'bg-warning-subtle text-warning-emphasis border border-warning-subtle' : 'bg-secondary-subtle text-secondary border')}"
+                                            <!-- 4. Absent -->
+                                            <span th:if="${item.status == 'ABSENT' && item.currentWorkStatus != 'LEFT_WITHOUT_PUNCH'}"
+                                                  class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-1 rounded-pill fw-bold" style="font-size: 0.75rem;">
+                                                <i class="fas fa-user-slash me-1"></i> Absent
+                                            </span>
+
+                                            <!-- 5. On Leave -->
+                                            <span th:if="${item.status == 'ON_LEAVE' || item.status == 'LEAVE'}"
+                                                  class="badge bg-info-subtle text-info-emphasis border border-info-subtle px-3 py-1 rounded-pill fw-bold" style="font-size: 0.75rem;">
+                                                <i class="fas fa-umbrella-beach me-1"></i> On Leave
+                                            </span>
+
+                                            <!-- Attendance Daily Status Sub-Pill (e.g. Present / Late / Early) -->
+                                            <span th:if="${item.status == 'PRESENT' || item.status == 'LATE'}"
+                                                  class="badge rounded-1 fw-normal" style="font-size: 0.7rem;"
+                                                  th:classappend="${item.status == 'PRESENT' ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-warning-subtle text-warning-emphasis border border-warning-subtle'}"
                                                   th:text="${item.status}">
                                                 PRESENT
                                             </span>
