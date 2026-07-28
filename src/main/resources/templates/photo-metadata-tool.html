@@ -761,7 +761,10 @@
 
             function saveActivePhotoMetadata() {
                 const targetIds = selectedPhotoIds.size > 0 ? Array.from(selectedPhotoIds) : (activePhotoId ? [activePhotoId] : []);
-                if (targetIds.length === 0) return;
+                if (targetIds.length === 0) {
+                    showToastNotification('Please select or click a photo to update.', 'warning');
+                    return;
+                }
 
                 const lat = parseFloat(document.getElementById('editLat').value);
                 const lng = parseFloat(document.getElementById('editLng').value);
@@ -794,6 +797,39 @@
                 });
 
                 renderPhotoGrid();
+                showToastNotification(`Metadata updated for ${targetIds.length} selected photo(s)!`, 'success');
+            }
+
+            function showToastNotification(message, type = 'success') {
+                let toastContainer = document.getElementById('photoToolToastContainer');
+                if (!toastContainer) {
+                    toastContainer = document.createElement('div');
+                    toastContainer.id = 'photoToolToastContainer';
+                    toastContainer.style.cssText = 'position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; pointer-events: none;';
+                    document.body.appendChild(toastContainer);
+                }
+
+                const toast = document.createElement('div');
+                const bgClass = type === 'success' ? 'bg-success text-white' : (type === 'warning' ? 'bg-warning text-dark' : 'bg-danger text-white');
+                const iconClass = type === 'success' ? 'fa-check-circle' : (type === 'warning' ? 'fa-exclamation-triangle' : 'fa-times-circle');
+                const closeBtnClass = type === 'warning' ? 'btn-close' : 'btn-close btn-close-white';
+
+                toast.className = `toast align-items-center ${bgClass} border-0 show shadow-lg rounded-3`;
+                toast.style.cssText = 'pointer-events: auto; min-width: 280px; transition: all 0.3s ease;';
+                toast.innerHTML = `
+                    <div class="d-flex">
+                        <div class="toast-body d-flex align-items-center py-2 px-3 fw-semibold" style="font-size: 13px;">
+                            <i class="fas ${iconClass} me-2 fs-6"></i> ${message}
+                        </div>
+                        <button type="button" class="${closeBtnClass} me-2 m-auto" onclick="this.parentElement.parentElement.remove()"></button>
+                    </div>
+                `;
+
+                toastContainer.appendChild(toast);
+                setTimeout(() => {
+                    toast.style.opacity = '0';
+                    setTimeout(() => toast.remove(), 300);
+                }, 3000);
             }
 
             // --- Custom Metadata Fields Functions ---
@@ -1030,8 +1066,23 @@
                     method: 'POST',
                     body: formData
                 })
-                .then(response => {
-                    if (!response.ok) throw new Error("Server error generating ZIP");
+                .then(async response => {
+                    if (!response.ok) {
+                        let errMsg = "Server error generating ZIP";
+                        try {
+                            const errTxt = await response.text();
+                            if (errTxt) {
+                                try {
+                                    const json = JSON.parse(errTxt);
+                                    if (json.error) errMsg = json.error;
+                                    else if (json.message) errMsg = json.message;
+                                } catch (_) {
+                                    errMsg = errTxt;
+                                }
+                            }
+                        } catch (_) {}
+                        throw new Error(errMsg);
+                    }
                     return response.blob();
                 })
                 .then(blob => {
@@ -1047,7 +1098,7 @@
                     btn.innerHTML = '<i class="fas fa-download me-2"></i>Download Photos as ZIP';
                 })
                 .catch(err => {
-                    alert("Download failed: " + err.message);
+                    alert("Download failed: " + (err.message || "Network error. Please ensure file total size is under 200MB."));
                     btn.disabled = false;
                     btn.innerHTML = '<i class="fas fa-download me-2"></i>Download Photos as ZIP';
                 });
