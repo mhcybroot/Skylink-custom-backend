@@ -282,29 +282,112 @@
 
             <!-- Main Content Row -->
             <div class="row">
-                <!-- Recent Activity (Left, Wider) -->
-                <div class="col-lg-8">
-                    <div class="card h-100 mb-3 shadow-sm border-0">
-                        <div class="card-header-custom">
-                            Recent Activity
+                <!-- Previous Day Shift & Activity Status (Left, Wider) -->
+                <div class="col-lg-8 d-flex flex-column">
+                    <div class="card h-100 mb-3 shadow-sm border-0 rounded-3 d-flex flex-column">
+                        <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <div>
+                                <h6 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2">
+                                    <i class="fas fa-user-clock text-primary"></i> Previous Day Shift & Activity Status
+                                </h6>
+                                <small class="text-muted" th:text="${previousDayDate != null ? 'Date: ' + #temporals.format(previousDayDate, 'EEEE, MMM dd, yyyy') : 'Yesterday'}">Yesterday</small>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <input type="text" id="prevDaySearchInput" class="form-control form-control-sm border-secondary-subtle" placeholder="Search employee..." style="max-width: 220px;" oninput="filterPrevDayList()" onkeyup="filterPrevDayList()">
+                            </div>
                         </div>
-                        <div class="card-body p-0">
-                            <div class="list-group list-group-flush">
-                                <div class="list-group-item d-flex justify-content-between align-items-center"
-                                    th:each="log : ${recentLogs}">
-                                    <div>
-                                        <div class="fw-bold"
-                                            th:text="${employeeMap.get(log.employeeId) != null ? employeeMap.get(log.employeeId) : log.employeeId}">
-                                            John Doe</div>
-                                        <div class="small text-muted" th:text="${log.employeeId}">ID: 1</div>
-                                    </div>
-                                    <div class="text-end">
-                                        <span class="badge bg-light text-dark border"
-                                            th:text="${#temporals.format(log.timestamp, 'HH:mm:ss')}">09:00:00</span>
+                        <div class="card-body p-0 flex-grow-1" style="overflow-y: auto; max-height: 720px;">
+                            <div class="list-group list-group-flush" id="prevDayEmployeeList">
+                                <div id="noMatchMessage" class="list-group-item text-center py-4 text-muted" style="display: none;">
+                                    <i class="fas fa-search me-1"></i> No matching employees found
+                                </div>
+                                <div class="list-group-item px-4 py-3 border-bottom prev-day-item"
+                                     th:each="item : ${previousDayReport}">
+                                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                                        <!-- Employee Info + Clean Avatar -->
+                                        <div class="d-flex align-items-center gap-3">
+                                            <div class="position-relative">
+                                                <img th:src="${item.avatarPath != null && !#strings.isEmpty(item.avatarPath) ? item.avatarPath : '/api/employees/' + item.employeeId + '/avatar'}"
+                                                     class="rounded-circle border shadow-sm object-fit-cover"
+                                                     style="width: 46px; height: 46px;"
+                                                     onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';"
+                                                     alt="Employee Photo">
+                                                <div class="rounded-circle bg-primary bg-opacity-10 text-primary border border-primary-subtle fw-bold align-items-center justify-content-center shadow-sm"
+                                                     style="width: 46px; height: 46px; font-size: 1.1rem; display: none;"
+                                                     th:text="${item.employeeName != null ? item.employeeName.replaceAll('^(Dr\.|Prof\.|Mr\.|Mrs\.|Ms\.|MD|PhD)\s+', '').substring(0,1).toUpperCase() : 'E'}">
+                                                    E
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div class="fw-bold text-dark emp-name" th:text="${item.employeeName}">John Doe</div>
+                                                <div class="d-flex align-items-center gap-2 text-muted small mt-1">
+                                                    <span class="badge bg-light text-secondary border font-monospace" th:text="${'ID: ' + item.employeeId}">ID: 101</span>
+                                                    <span th:if="${item.departmentName != null}" class="text-truncate" style="max-width: 140px;" th:text="${item.departmentName}">Engineering</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Check-in / Check-out Times & Active Work Duration -->
+                                        <div class="text-center d-none d-md-block">
+                                            <div class="d-flex align-items-center gap-2 mb-1">
+                                                <span class="badge bg-success bg-opacity-10 text-success border border-success-subtle px-2 py-1" style="font-size: 0.75rem;">
+                                                    <i class="fas fa-sign-in-alt me-1"></i> In: <strong th:text="${item.inTime != null ? #temporals.format(item.inTime, 'hh:mm a') : '--:--'}">09:00 AM</strong>
+                                                </span>
+                                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle px-2 py-1" style="font-size: 0.75rem;">
+                                                    <i class="fas fa-sign-out-alt me-1"></i> Out: <strong th:text="${item.outTime != null ? #temporals.format(item.outTime, 'hh:mm a') : '--:--'}">05:30 PM</strong>
+                                                </span>
+                                            </div>
+                                            <small class="text-muted" style="font-size: 0.75rem;" th:if="${item.activeWorkDuration != null}">
+                                                <i class="fas fa-stopwatch me-1 text-primary"></i> Worked: <span class="fw-bold text-dark" th:text="${item.activeWorkDuration}">08h 00m</span>
+                                            </small>
+                                        </div>
+
+                                        <!-- Activity Status & Daily Status Badges -->
+                                        <div class="text-end d-flex flex-column align-items-end gap-1">
+                                            <!-- 1. Left Without Punch -->
+                                            <span th:if="${item.currentWorkStatus == 'LEFT_WITHOUT_PUNCH' || item.status == 'LEFT_WITHOUT_PUNCH'}"
+                                                  class="badge bg-danger text-white shadow-sm px-3 py-1 rounded-pill" style="font-size: 0.75rem;">
+                                                <i class="fas fa-exclamation-triangle me-1"></i> Left Without Punch
+                                            </span>
+
+                                            <!-- 2. Incomplete Shift -->
+                                            <span th:if="${item.currentWorkStatus == 'INCOMPLETE_SHIFT' || (item.currentWorkStatus != 'LEFT_WITHOUT_PUNCH' && item.status == 'EARLY_LEAVE')}"
+                                                  class="badge bg-warning text-dark shadow-sm px-3 py-1 rounded-pill" style="font-size: 0.75rem;">
+                                                <i class="fas fa-clock me-1"></i> Incomplete Shift
+                                            </span>
+
+                                            <!-- 3. Completed Shift (Only if present & not incomplete/left without punch) -->
+                                            <span th:if="${item.currentWorkStatus != 'LEFT_WITHOUT_PUNCH' && item.currentWorkStatus != 'INCOMPLETE_SHIFT' && item.status != 'ABSENT' && item.status != 'ON_LEAVE' && item.status != 'LEAVE' && item.status != 'EARLY_LEAVE'}"
+                                                  class="badge bg-success bg-opacity-15 text-success border border-success-subtle px-3 py-1 rounded-pill fw-bold" style="font-size: 0.75rem;">
+                                                <i class="fas fa-check-circle me-1"></i> Completed
+                                            </span>
+
+                                            <!-- 4. Absent -->
+                                            <span th:if="${item.status == 'ABSENT' && item.currentWorkStatus != 'LEFT_WITHOUT_PUNCH'}"
+                                                  class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-1 rounded-pill fw-bold" style="font-size: 0.75rem;">
+                                                <i class="fas fa-user-slash me-1"></i> Absent
+                                            </span>
+
+                                            <!-- 5. On Leave -->
+                                            <span th:if="${item.status == 'ON_LEAVE' || item.status == 'LEAVE'}"
+                                                  class="badge bg-info-subtle text-info-emphasis border border-info-subtle px-3 py-1 rounded-pill fw-bold" style="font-size: 0.75rem;">
+                                                <i class="fas fa-umbrella-beach me-1"></i> On Leave
+                                            </span>
+
+                                            <!-- Attendance Daily Status Sub-Pill (e.g. Present / Late / Early) -->
+                                            <span th:if="${item.status == 'PRESENT' || item.status == 'LATE'}"
+                                                  class="badge rounded-1 fw-normal" style="font-size: 0.7rem;"
+                                                  th:classappend="${item.status == 'PRESENT' ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-warning-subtle text-warning-emphasis border border-warning-subtle'}"
+                                                  th:text="${item.status}">
+                                                PRESENT
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="list-group-item text-center text-muted" th:if="${recentLogs.isEmpty()}">
-                                    No recent activity
+
+                                <div class="list-group-item text-center py-5 text-muted" th:if="${previousDayReport == null || previousDayReport.isEmpty()}">
+                                    <i class="fas fa-info-circle fa-2x mb-2 opacity-50"></i>
+                                    <p class="mb-0 fw-bold">No previous day shift records available.</p>
                                 </div>
                             </div>
                         </div>
@@ -1428,7 +1511,32 @@
                 }
             };
 
-            let autoScrollInterval = null;
+            window.filterPrevDayList = function () {
+                const inputEl = document.getElementById('prevDaySearchInput');
+                const input = inputEl ? inputEl.value.toLowerCase().trim() : '';
+                const items = document.querySelectorAll('.prev-day-item');
+                let visibleCount = 0;
+                items.forEach(item => {
+                    const text = item.innerText.toLowerCase();
+                    if (text.includes(input)) {
+                        item.style.display = 'block';
+                        visibleCount++;
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+                const noMatchEl = document.getElementById('noMatchMessage');
+                if (noMatchEl) {
+                    noMatchEl.style.display = (visibleCount === 0 && items.length > 0) ? 'block' : 'none';
+                }
+            };
+
+            const searchInp = document.getElementById('prevDaySearchInput');
+            if (searchInp) {
+                searchInp.addEventListener('input', window.filterPrevDayList);
+                searchInp.addEventListener('keyup', window.filterPrevDayList);
+            }
+
             let clockInterval = null;
 
             function startDigitalClock() {
