@@ -455,16 +455,19 @@ public class DashboardController {
                 String workStatus = dto.getCurrentWorkStatus() != null ? dto.getCurrentWorkStatus().toUpperCase() : "";
                 String dailyStatus = dto.getStatus() != null ? dto.getStatus().toUpperCase() : "";
 
-                if (workStatus.contains("LEFT_WITHOUT_PUNCH") || dailyStatus.contains("LEFT_WITHOUT_PUNCH")) {
+                if ("ABSENT".equalsIgnoreCase(dailyStatus) && !"LEFT_WITHOUT_PUNCH".equalsIgnoreCase(workStatus)) {
                         return 1;
                 }
-                if (workStatus.contains("INCOMPLETE_SHIFT") || dailyStatus.contains("INCOMPLETE") || dailyStatus.contains("EARLY_LEAVE")) {
+                if (workStatus.contains("LEFT_WITHOUT_PUNCH") || dailyStatus.contains("LEFT_WITHOUT_PUNCH")) {
                         return 2;
                 }
-                if (workStatus.contains("COMPLETED") || dailyStatus.contains("PRESENT") || dailyStatus.contains("LATE")) {
+                if (workStatus.contains("INCOMPLETE_SHIFT") || dailyStatus.contains("INCOMPLETE") || dailyStatus.contains("EARLY_LEAVE")) {
                         return 3;
                 }
-                return 4;
+                if (workStatus.contains("COMPLETED") || dailyStatus.contains("PRESENT") || dailyStatus.contains("LATE")) {
+                        return 4;
+                }
+                return 5;
         }
 
         private int getPreviousDaySubStatusPriority(DailyAttendanceDto dto) {
