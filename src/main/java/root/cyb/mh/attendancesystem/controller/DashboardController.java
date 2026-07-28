@@ -95,6 +95,33 @@ public class DashboardController {
                 // But to be consistent with "excluding guests", maybe we should filter too?
                 // The requirement was specific to "Today's Status" (the counters).
                 // I will keep Recent Activity as is (raw logs) unless requested.
+                // Previous Day Incomplete Shift & Attendance Status Report
+                LocalDate previousDay = today.minusDays(1);
+                List<DailyAttendanceDto> prevDayReportRaw = reportService
+                                .getDailyReport(previousDay, null, null,
+                                                org.springframework.data.domain.PageRequest.of(0, 5000))
+                                .getContent();
+
+                List<DailyAttendanceDto> previousDayReport = prevDayReportRaw.stream()
+                                .filter(d -> !guestIds.contains(d.getEmployeeId()))
+                                .peek(dto -> {
+                                        if (dto.getAvatarPath() == null || dto.getAvatarPath().isBlank()) {
+                                                employeeRepository.findById(dto.getEmployeeId()).ifPresent(emp -> {
+                                                        if (emp.getAvatarPath() != null && !emp.getAvatarPath().isBlank()) {
+                                                                dto.setAvatarPath(emp.getAvatarPath());
+                                                        } else if (emp.getPhotoBase64() != null && !emp.getPhotoBase64().isBlank()) {
+                                                                dto.setAvatarPath("data:image/jpeg;base64," + emp.getPhotoBase64());
+                                                        }
+                                                });
+                                        }
+                                })
+                                .sorted(Comparator.comparingInt(this::getPreviousDayStatusPriority)
+                                                .thenComparing(DailyAttendanceDto::getEmployeeName, Comparator.nullsLast(Comparator.naturalOrder())))
+                                .collect(Collectors.toList());
+
+                model.addAttribute("previousDayDate", previousDay);
+                model.addAttribute("previousDayReport", previousDayReport);
+
                 List<AttendanceLog> recentLogs = attendanceLogRepository.findByTimestampBetween(
                                 today.atStartOfDay(), today.atTime(LocalTime.MAX))
                                 .stream()
@@ -401,5 +428,21 @@ public class DashboardController {
                 public LocalDate getNextBirthday() { return nextBirthday; }
                 public int getTurningAge() { return turningAge; }
                 public boolean getIsToday() { return isToday; }
+        }
+
+        private int getPreviousDayStatusPriority(DailyAttendanceDto dto) {
+                String workStatus = dto.getCurrentWorkStatus() != null ? dto.getCurrentWorkStatus().toUpperCase() : "";
+                String dailyStatus = dto.getStatus() != null ? dto.getStatus().toUpperCase() : "";
+
+                if (workStatus.contains("LEFT_WITHOUT_PUNCH") || dailyStatus.contains("LEFT_WITHOUT_PUNCH")) {
+                        return 1;
+                }
+                if (workStatus.contains("INCOMPLETE_SHIFT") || dailyStatus.contains("INCOMPLETE") || dailyStatus.contains("EARLY_LEAVE")) {
+                        return 2;
+                }
+                if (workStatus.contains("COMPLETED") || dailyStatus.contains("PRESENT") || dailyStatus.contains("LATE")) {
+                        return 3;
+                }
+                return 4;
         }
 }
