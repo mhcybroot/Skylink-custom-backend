@@ -855,10 +855,11 @@ public class DataImportExportService {
                 String contName = record.get("Contractor");
                 wo.setOriginalContractorString(contName);
                 if (contName != null && !contName.trim().isEmpty()) {
-                    wo.setContractor(contractorRepository.findByName(contName)
+                    String cleanName = contName.trim();
+                    wo.setContractor(contractorRepository.findByNameIgnoreCase(cleanName)
                             .orElseGet(() -> {
                                 Contractor c = new Contractor();
-                                c.setName(contName);
+                                c.setName(cleanName);
                                 c.setActive(true);
                                 return contractorRepository.save(c);
                             }));
