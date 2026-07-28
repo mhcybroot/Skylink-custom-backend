@@ -358,7 +358,7 @@
 
                                             <!-- 3. Completed Shift (Only if present & not incomplete/left without punch) -->
                                             <span th:if="${item.currentWorkStatus != 'LEFT_WITHOUT_PUNCH' && item.currentWorkStatus != 'INCOMPLETE_SHIFT' && item.status != 'ABSENT' && item.status != 'ON_LEAVE' && item.status != 'LEAVE' && item.status != 'EARLY_LEAVE'}"
-                                                  class="badge bg-success bg-opacity-15 text-success border border-success-subtle px-3 py-1 rounded-pill fw-bold" style="font-size: 0.75rem;">
+                                                  class="badge bg-success text-white shadow-sm px-3 py-1 rounded-pill fw-semibold" style="font-size: 0.75rem;">
                                                 <i class="fas fa-check-circle me-1"></i> Completed
                                             </span>
 
