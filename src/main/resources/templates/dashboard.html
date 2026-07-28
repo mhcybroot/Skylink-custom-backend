@@ -283,8 +283,8 @@
             <!-- Main Content Row -->
             <div class="row">
                 <!-- Previous Day Shift & Activity Status (Left, Wider) -->
-                <div class="col-lg-8">
-                    <div class="card mb-3 shadow-sm border-0 rounded-3">
+                <div class="col-lg-8 d-flex flex-column">
+                    <div class="card h-100 mb-3 shadow-sm border-0 rounded-3 d-flex flex-column">
                         <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
                             <div>
                                 <h6 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2">
@@ -296,7 +296,7 @@
                                 <input type="text" id="prevDaySearchInput" class="form-control form-control-sm border-secondary-subtle" placeholder="Search employee..." style="max-width: 220px;" oninput="filterPrevDayList()" onkeyup="filterPrevDayList()">
                             </div>
                         </div>
-                        <div class="card-body p-0" style="max-height: 650px; overflow-y: auto;">
+                        <div class="card-body p-0 flex-grow-1" style="overflow-y: auto; max-height: 720px;">
                             <div class="list-group list-group-flush" id="prevDayEmployeeList">
                                 <div id="noMatchMessage" class="list-group-item text-center py-4 text-muted" style="display: none;">
                                     <i class="fas fa-search me-1"></i> No matching employees found
