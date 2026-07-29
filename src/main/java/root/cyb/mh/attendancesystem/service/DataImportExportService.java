@@ -841,12 +841,13 @@ public class DataImportExportService {
                 String clientName = record.get("Client");
                 wo.setOriginalClientString(clientName);
                 if (clientName != null && !clientName.trim().isEmpty()) {
-                    String finalClientName = clientName;
-                    wo.setClient(clientRepository.findByCode(clientName)
+                    String cleanClientName = clientName.trim();
+                    wo.setClient(clientRepository.findFirstByCode(cleanClientName)
+                            .or(() -> clientRepository.findFirstByNameIgnoreCase(cleanClientName))
                             .orElseGet(() -> {
                                 Client c = new Client();
-                                c.setName(finalClientName);
-                                c.setCode(finalClientName);
+                                c.setName(cleanClientName);
+                                c.setCode(cleanClientName);
                                 c.setActive(true);
                                 return clientRepository.save(c);
                             }));
@@ -856,13 +857,8 @@ public class DataImportExportService {
                 wo.setOriginalContractorString(contName);
                 if (contName != null && !contName.trim().isEmpty()) {
                     String cleanName = contName.trim();
-                    wo.setContractor(contractorRepository.findByNameIgnoreCase(cleanName)
-                            .orElseGet(() -> {
-                                Contractor c = new Contractor();
-                                c.setName(cleanName);
-                                c.setActive(true);
-                                return contractorRepository.save(c);
-                            }));
+                    contractorRepository.findFirstByNameIgnoreCase(cleanName)
+                            .ifPresent(wo::setContractor);
                 }
 
                 workOrderRepository.save(wo);
