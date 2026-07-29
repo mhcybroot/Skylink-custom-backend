@@ -10,4 +10,6 @@ public interface ClientRepository extends JpaRepository<Client, Long> {
     List<Client> findByActiveTrue();
 
     java.util.Optional<Client> findByCode(String code);
+    java.util.Optional<Client> findFirstByCode(String code);
+    java.util.Optional<Client> findFirstByNameIgnoreCase(String name);
 }
