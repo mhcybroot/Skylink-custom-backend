@@ -98,7 +98,12 @@ public class MasterDataController {
     @PreAuthorize("hasAnyRole('EMPLOYEE', 'ADMIN', 'HR')")
     public String createContractor(@ModelAttribute Contractor contractor, RedirectAttributes ps,
             java.security.Principal principal) {
+        // Prevent data wiping: if an existing ID is passed to creation endpoint, safely delegate to updateContractor
+        if (contractor.getId() != null) {
+            return updateContractor(contractor, ps, principal);
+        }
         try {
+            contractor.setId(null);
             if (contractor.getName() != null) contractor.setName(contractor.getName().trim());
             if (contractor.getZipCode() != null) contractor.setZipCode(contractor.getZipCode().trim());
             if (contractor.getPhone() != null) contractor.setPhone(contractor.getPhone().trim());

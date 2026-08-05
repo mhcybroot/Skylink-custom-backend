@@ -107,7 +107,7 @@
                             <form th:action="${contractor.id != null ? '/master-data/contractors/update' : '/master-data/contractors'}"
                                   th:object="${contractor}" method="post">
 
-                                <input type="hidden" th:field="*{id}" if="${contractor.id != null}">
+                                <input type="hidden" th:field="*{id}" th:if="${contractor.id != null}">
 
                                 <div class="mb-3">
                                     <label class="form-label fw-bold small text-muted text-uppercase">Contractor Name *</label>
