@@ -469,10 +469,13 @@ public class MasterDataController {
 
     @GetMapping("/contractors/{id}/dashboard")
     @PreAuthorize("hasAnyRole('EMPLOYEE', 'ADMIN', 'HR')")
-    public String contractorDashboard(@PathVariable Long id, Model model,
+    public String contractorDashboard(@PathVariable Long id, Model model, RedirectAttributes ps,
             @org.springframework.security.core.annotation.AuthenticationPrincipal org.springframework.security.core.userdetails.UserDetails userDetails) {
-        Contractor contractor = contractorRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Contractor not found"));
+        Contractor contractor = contractorRepository.findById(id).orElse(null);
+        if (contractor == null) {
+            ps.addFlashAttribute("errorMessage", "Contractor with ID " + id + " was not found.");
+            return "redirect:/master-data/contractors";
+        }
 
         // 1. Payment Methods
         java.util.List<ContractorPaymentInfo> paymentInfos = contractorPaymentInfoRepository

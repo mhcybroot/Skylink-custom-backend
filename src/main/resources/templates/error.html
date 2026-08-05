@@ -197,8 +197,8 @@
     </div>
 
     <div class="error-container">
-        <!-- We use thymeleaf to get the actual HTTP status code, defaulting to 500 if missing -->
-        <h1 class="error-code" th:attr="data-text=${status ?: '500'}" th:text="${status ?: '500'}">500</h1>
+        <!-- We use thymeleaf to get the actual HTTP status code, defaulting to 500 if missing or 200 -->
+        <h1 class="error-code" th:attr="data-text=${(status != null and status != 200) ? status : '500'}" th:text="${(status != null and status != 200) ? status : '500'}">500</h1>
         
         <h2 class="error-title">
             <span th:if="${status == 403}">Access Denied</span>
