@@ -14,6 +14,8 @@ import root.cyb.mh.attendancesystem.repository.*;
 @RequestMapping("/master-data")
 public class MasterDataController {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(MasterDataController.class);
+
     @Autowired
     private ContractorRepository contractorRepository;
     @Autowired
@@ -135,22 +137,41 @@ public class MasterDataController {
 
     @PostMapping("/contractors/update")
     @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
-    public String updateContractor(@ModelAttribute Contractor contractor, RedirectAttributes ps) {
+    public String updateContractor(@ModelAttribute Contractor contractor, RedirectAttributes ps, java.security.Principal principal) {
         try {
             Contractor existing = contractorRepository.findById(contractor.getId()).orElse(null);
             if (existing != null) {
+                String actor = (principal != null) ? principal.getName() : "System";
+                log.info("CONTRACTOR EDIT INITIATED - ID: {}, Current Name: '{}' by User: '{}'", existing.getId(), existing.getName(), actor);
+
                 if (contractor.getName() != null && !contractor.getName().isBlank()) {
                     existing.setName(contractor.getName().trim());
                 }
-                existing.setDescription(contractor.getDescription());
-                if (contractor.getEmail() != null) existing.setEmail(contractor.getEmail().trim());
-                if (contractor.getPhone() != null) existing.setPhone(contractor.getPhone().trim());
-                if (contractor.getZipCode() != null) existing.setZipCode(contractor.getZipCode().trim());
-                if (contractor.getState() != null) existing.setState(contractor.getState().trim());
-                if (contractor.getArea() != null) existing.setArea(contractor.getArea().trim());
+                if (contractor.getDescription() != null) {
+                    existing.setDescription(contractor.getDescription());
+                }
+                if (contractor.getEmail() != null && !contractor.getEmail().isBlank()) {
+                    existing.setEmail(contractor.getEmail().trim());
+                }
+                if (contractor.getPhone() != null && !contractor.getPhone().isBlank()) {
+                    existing.setPhone(contractor.getPhone().trim());
+                }
+                if (contractor.getZipCode() != null && !contractor.getZipCode().isBlank()) {
+                    existing.setZipCode(contractor.getZipCode().trim());
+                }
+                if (contractor.getState() != null && !contractor.getState().isBlank()) {
+                    existing.setState(contractor.getState().trim());
+                }
+                if (contractor.getArea() != null && !contractor.getArea().isBlank()) {
+                    existing.setArea(contractor.getArea().trim());
+                }
 
-                existing.setServiceRadiusMiles(contractor.getServiceRadiusMiles() != null ? contractor.getServiceRadiusMiles() : 30);
-                existing.setCoverageZipCodes(contractor.getCoverageZipCodes());
+                if (contractor.getServiceRadiusMiles() != null) {
+                    existing.setServiceRadiusMiles(contractor.getServiceRadiusMiles());
+                }
+                if (contractor.getCoverageZipCodes() != null && !contractor.getCoverageZipCodes().isBlank()) {
+                    existing.setCoverageZipCodes(contractor.getCoverageZipCodes().trim());
+                }
 
                 // Preserve existing lat/lng unless explicit new non-null coordinates are provided
                 if (contractor.getLatitude() != null) {
@@ -160,8 +181,13 @@ public class MasterDataController {
                     existing.setLongitude(contractor.getLongitude());
                 }
 
-                existing.setDefaultPaymentMethod(contractor.getDefaultPaymentMethod());
-                existing.setAccountDetails(contractor.getAccountDetails());
+                // Only update payment info if explicitly provided in form to prevent wiping existing data
+                if (contractor.getDefaultPaymentMethod() != null) {
+                    existing.setDefaultPaymentMethod(contractor.getDefaultPaymentMethod());
+                }
+                if (contractor.getAccountDetails() != null && !contractor.getAccountDetails().isBlank()) {
+                    existing.setAccountDetails(contractor.getAccountDetails().trim());
+                }
 
                 // Auto geocode if lat/lng is missing
                 if (existing.getZipCode() != null && !existing.getZipCode().isBlank()
@@ -175,11 +201,16 @@ public class MasterDataController {
                 }
 
                 contractorRepository.save(existing);
+                log.info("CONTRACTOR SAVED SUCCESS - ID: {}, Name: '{}', Phone: '{}', Email: '{}', PaymentMethod: '{}', AccountDetails: '{}' by User: '{}'",
+                        existing.getId(), existing.getName(), existing.getPhone(), existing.getEmail(),
+                        existing.getDefaultPaymentMethod() != null ? existing.getDefaultPaymentMethod().getMethodName() : "None",
+                        existing.getAccountDetails(), actor);
                 ps.addFlashAttribute("successMessage", "Contractor updated successfully!");
             } else {
                 ps.addFlashAttribute("errorMessage", "Contractor not found.");
             }
         } catch (Exception e) {
+            log.error("Error updating contractor ID: {}", contractor.getId(), e);
             ps.addFlashAttribute("errorMessage", "Error updating contractor: " + e.getMessage());
         }
         return "redirect:/master-data/contractors";
