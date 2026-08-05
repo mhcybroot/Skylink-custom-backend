@@ -99,12 +99,12 @@
                                     class="list-group-item p-3 d-flex align-items-center justify-content-between hover-bg-light">
                                     <div class="d-flex align-items-center">
                                         <div class="me-3">
-                                            <div th:if="${contractor.defaultPaymentMethod != null && contractor.defaultPaymentMethod.id == info.paymentMethod.id}"
+                                            <div th:if="${contractor.defaultPaymentMethod != null && info.paymentMethod != null && contractor.defaultPaymentMethod.id == info.paymentMethod.id}"
                                                 class="rounded-circle bg-success-subtle text-success d-flex align-items-center justify-content-center border border-success"
                                                 style="width: 32px; height: 32px;" title="Default Method">
                                                 <i class="fas fa-check small"></i>
                                             </div>
-                                            <div th:unless="${contractor.defaultPaymentMethod != null && contractor.defaultPaymentMethod.id == info.paymentMethod.id}"
+                                            <div th:unless="${contractor.defaultPaymentMethod != null && info.paymentMethod != null && contractor.defaultPaymentMethod.id == info.paymentMethod.id}"
                                                 class="rounded-circle bg-light text-secondary d-flex align-items-center justify-content-center border"
                                                 style="width: 32px; height: 32px;">
                                                 <i class="fas fa-credit-card small"></i>
@@ -112,14 +112,14 @@
                                         </div>
                                         <div>
                                             <div class="fw-bold text-dark small mb-0"
-                                                th:text="${info.paymentMethod.methodName}">Method</div>
+                                                th:text="${info.paymentMethod?.methodName ?: 'Method'}">Method</div>
                                             <div class="font-monospace text-muted small"
-                                                th:text="${info.accountDetails}">Details</div>
+                                                th:text="${info.accountDetails ?: '-'}">Details</div>
                                         </div>
                                     </div>
                                     <div class="d-flex gap-2">
                                         <button
-                                            th:unless="${contractor.defaultPaymentMethod != null && contractor.defaultPaymentMethod.id == info.paymentMethod.id}"
+                                            th:unless="${contractor.defaultPaymentMethod != null && info.paymentMethod != null && contractor.defaultPaymentMethod.id == info.paymentMethod.id}"
                                             class="btn btn-xs btn-outline-secondary rounded-1" th:data-id="${info.id}"
                                             onclick="setDefault(this.getAttribute('data-id'))" title="Set as Default">
                                             <i class="fas fa-star text-warning"></i>
@@ -148,10 +148,10 @@
                                         class="list-group-item bg-white small border rounded-1 mb-1">
                                         <div class="d-flex justify-content-between">
                                             <span class="text-decoration-line-through text-muted"><span
-                                                    th:text="${info.paymentMethod.methodName}"></span>: <span
-                                                    th:text="${info.accountDetails}"></span></span>
+                                                    th:text="${info.paymentMethod?.methodName ?: 'Method'}"></span>: <span
+                                                    th:text="${info.accountDetails ?: '-'}"></span></span>
                                             <span class="text-muted fst-italic"
-                                                th:text="${'Deleted by ' + info.deletedBy}"></span>
+                                                th:text="${'Deleted by ' + (info.deletedBy ?: 'System')}"></span>
                                         </div>
                                     </li>
                                 </ul>
@@ -187,10 +187,10 @@
                                                     th:text="${'REQ-' + req.id}">REQ-1</a>
                                             </td>
                                             <td class="text-muted small"
-                                                th:text="${#temporals.format(req.requestDate, 'MMM dd, yyyy')}">Jan 01,
+                                                th:text="${req.requestDate != null ? #temporals.format(req.requestDate, 'MMM dd, yyyy') : '-'}">Jan 01,
                                                 2023</td>
                                             <td class="font-monospace fw-bold text-dark small"
-                                                th:text="${'$' + #numbers.formatDecimal(req.amount, 1, 'COMMA', 2, 'POINT')}">
+                                                th:text="${'$' + #numbers.formatDecimal(req.amount != null ? req.amount : 0, 1, 'COMMA', 2, 'POINT')}">
                                                 $500.00</td>
                                             <td>
                                                 <span class="badge rounded-1 fw-normal border"
