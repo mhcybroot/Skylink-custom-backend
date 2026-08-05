@@ -481,12 +481,17 @@ public class MasterDataController {
                 .findByContractorIdAndActiveFalse(id);
 
         // 2. Payment Requests History
-        boolean isAdminOrHr = userDetails.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_HR"));
+        boolean isAdminOrHr = false;
+        if (userDetails != null && userDetails.getAuthorities() != null) {
+            isAdminOrHr = userDetails.getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_HR"));
+        } else {
+            isAdminOrHr = true;
+        }
 
         java.util.List<root.cyb.mh.attendancesystem.model.PaymentRequest> requests;
 
-        if (isAdminOrHr) {
+        if (isAdminOrHr || userDetails == null) {
             requests = paymentRequestRepository.findByContractorIdOrderByRequestDateDesc(id);
         } else {
             java.util.Optional<root.cyb.mh.attendancesystem.model.Employee> emp = employeeRepository
@@ -498,17 +503,22 @@ public class MasterDataController {
                 requests = paymentRequestRepository.findByContractorIdOrderByRequestDateDesc(id);
             }
         }
+        if (requests == null) {
+            requests = new java.util.ArrayList<>();
+        }
 
         // 3. Stats
         java.math.BigDecimal totalPaid = java.math.BigDecimal.ZERO;
         long pendingCount = 0;
 
         for (root.cyb.mh.attendancesystem.model.PaymentRequest r : requests) {
-            if (r.getPaymentStatus() == root.cyb.mh.attendancesystem.model.enums.PaymentStatus.PAID) {
-                totalPaid = totalPaid.add(r.getAmount() != null ? r.getAmount() : java.math.BigDecimal.ZERO);
-            }
-            if (r.getStatus() == root.cyb.mh.attendancesystem.model.enums.RequestStatus.PENDING) {
-                pendingCount++;
+            if (r != null) {
+                if (r.getPaymentStatus() != null && r.getPaymentStatus() == root.cyb.mh.attendancesystem.model.enums.PaymentStatus.PAID) {
+                    totalPaid = totalPaid.add(r.getAmount() != null ? r.getAmount() : java.math.BigDecimal.ZERO);
+                }
+                if (r.getStatus() != null && r.getStatus() == root.cyb.mh.attendancesystem.model.enums.RequestStatus.PENDING) {
+                    pendingCount++;
+                }
             }
         }
 
