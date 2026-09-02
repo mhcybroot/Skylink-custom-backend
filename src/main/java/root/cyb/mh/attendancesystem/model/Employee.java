@@ -57,6 +57,9 @@ public class Employee {
     @jakarta.persistence.Column(columnDefinition = "boolean default false")
     private boolean isAnalystController = false;
 
+    @jakarta.persistence.Column(columnDefinition = "boolean default false")
+    private boolean canViewAllPaymentRequests = false;
+
     private java.time.LocalDate joiningDate;
     private java.time.LocalDate dateOfBirth;
 

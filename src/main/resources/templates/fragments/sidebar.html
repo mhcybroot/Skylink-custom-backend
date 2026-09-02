@@ -183,8 +183,11 @@
                                     th:classappend="${activeLink == 'leave'} ? 'active'">My Leave</a></li>
                             <li class="nav-item"><a href="/employee/payroll" class="nav-link py-1"
                                     th:classappend="${activeLink == 'payroll'} ? 'active'">My Payslips</a></li>
-                            <li class="nav-item"><a href="/payment-requests" class="nav-link py-1"
-                                    th:classappend="${activeLink == 'payment-requests'} ? 'active'">Payment Requests</a>
+                            <li class="nav-item"><a href="/payment-requests" class="nav-link py-1 d-flex justify-content-between align-items-center"
+                                    th:classappend="${activeLink == 'payment-requests'} ? 'active'">
+                                    <span>Payment Requests</span>
+                                    <span th:if="${loggedEmployee != null and loggedEmployee.canViewAllPaymentRequests}" class="badge bg-primary rounded-pill" style="font-size: 0.65rem;">All</span>
+                                </a>
                             </li>
                             <li class="nav-item"><a href="/master-data/contractors" class="nav-link py-1"
                                     th:classappend="${activeLink == 'master-data-contractors'} ? 'active'">Contractors</a>

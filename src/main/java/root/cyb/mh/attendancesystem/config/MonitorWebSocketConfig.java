@@ -21,12 +21,4 @@ public class MonitorWebSocketConfig implements WebSocketConfigurer {
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(monitorWebSocketHandler, "/api/v1/monitor/ws").setAllowedOrigins("*");
     }
-
-    @Bean
-    public ServletServerContainerFactoryBean createWebSocketContainer() {
-        ServletServerContainerFactoryBean container = new ServletServerContainerFactoryBean();
-        container.setMaxTextMessageBufferSize(8192);
-        container.setMaxBinaryMessageBufferSize(5 * 1024 * 1024); // 5MB
-        return container;
-    }
 }

@@ -82,6 +82,7 @@ public class EmployeeController {
                 existing.setGuest(employee.isGuest()); // Use correct getter/setter
                 existing.setAnalyst(employee.isAnalyst());
                 existing.setAnalystController(employee.isAnalystController());
+                existing.setCanViewAllPaymentRequests(employee.isCanViewAllPaymentRequests());
                 existing.setAnnualLeaveQuota(employee.getAnnualLeaveQuota()); // Update Quota
                 existing.setJoiningDate(employee.getJoiningDate()); // Update Joining Date
                 existing.setDateOfBirth(employee.getDateOfBirth()); // Update Date of Birth

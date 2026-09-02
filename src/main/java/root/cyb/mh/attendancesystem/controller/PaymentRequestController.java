@@ -96,6 +96,11 @@ public class PaymentRequestController {
         boolean isAdminOrHr = userDetails.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_HR"));
 
+        Optional<root.cyb.mh.attendancesystem.model.Employee> empOpt = employeeRepository
+                .findById(userDetails.getUsername());
+        boolean canViewAll = isAdminOrHr || (empOpt.isPresent() && empOpt.get().isCanViewAllPaymentRequests());
+        boolean isViewOnlyEmployee = !isAdminOrHr && canViewAll;
+
         if (requesterName != null) {
             requesterName = requesterName.stream().filter(s -> s != null && !s.trim().isEmpty()).collect(java.util.stream.Collectors.toList());
             if (requesterName.isEmpty()) requesterName = null;
@@ -104,15 +109,19 @@ public class PaymentRequestController {
         Specification<PaymentRequest> spec = createSpecification(
                 startDate, endDate, contractorId, clientId, paymentMethodId,
                 workOrderNumber, requesterName, priority, status, paymentStatus,
-                ppwUpdateStatus, view, userDetails, isAdminOrHr);
+                ppwUpdateStatus, view, userDetails, canViewAll);
 
         // Security / View Constraints for Title
         String title = "Payment Requests";
         if (isAdminOrHr) {
             title = "All Payment Requests";
+        } else if (isViewOnlyEmployee) {
+            if ("self".equals(view) || "my".equals(view)) {
+                title = "My Payment Requests";
+            } else {
+                title = "All Payment Requests (Directory)";
+            }
         } else {
-            Optional<root.cyb.mh.attendancesystem.model.Employee> empOpt = employeeRepository
-                    .findById(userDetails.getUsername());
             if (empOpt.isPresent() && "team".equals(view)) {
                 title = "Team Payment Requests";
             } else {
@@ -137,6 +146,9 @@ public class PaymentRequestController {
         model.addAttribute("endItemIndex", endItemIndex);
         model.addAttribute("size", pageSize);
         model.addAttribute("pageTitle", title);
+        model.addAttribute("canViewAll", canViewAll);
+        model.addAttribute("isViewOnlyEmployee", isViewOnlyEmployee);
+        model.addAttribute("isAdminOrHr", isAdminOrHr);
 
         // Sorting params
         model.addAttribute("sortField", sortField);
@@ -203,6 +215,10 @@ public class PaymentRequestController {
         boolean isAdminOrHr = userDetails.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_HR"));
 
+        Optional<root.cyb.mh.attendancesystem.model.Employee> empOpt = employeeRepository
+                .findById(userDetails.getUsername());
+        boolean canViewAll = isAdminOrHr || (empOpt.isPresent() && empOpt.get().isCanViewAllPaymentRequests());
+
         if (requesterName != null) {
             requesterName = requesterName.stream().filter(s -> s != null && !s.trim().isEmpty()).collect(java.util.stream.Collectors.toList());
             if (requesterName.isEmpty()) requesterName = null;
@@ -211,7 +227,7 @@ public class PaymentRequestController {
         Specification<PaymentRequest> spec = createSpecification(
                 startDate, endDate, contractorId, clientId, paymentMethodId,
                 workOrderNumber, requesterName, priority, status, paymentStatus,
-                ppwUpdateStatus, view, userDetails, isAdminOrHr);
+                ppwUpdateStatus, view, userDetails, canViewAll);
 
         Sort sort = Sort.by(sortDir.equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC, sortField);
         List<PaymentRequest> requests = paymentRequestRepository.findAll(spec, sort);
@@ -234,7 +250,7 @@ public class PaymentRequestController {
             String workOrderNumber, List<String> requesterName,
             List<PaymentPriority> priority, List<RequestStatus> status,
             List<PaymentStatus> paymentStatus, List<PPWStatus> ppwUpdateStatus,
-            String view, UserDetails userDetails, boolean isAdminOrHr) {
+            String view, UserDetails userDetails, boolean canViewAll) {
 
         Specification<PaymentRequest> spec = PaymentRequestSpecification.getFilterSpec(
                 startDate, endDate,
@@ -242,7 +258,7 @@ public class PaymentRequestController {
                 workOrderNumber, requesterName,
                 priority, status, paymentStatus, ppwUpdateStatus);
 
-        if (!isAdminOrHr) {
+        if (!canViewAll) {
             Optional<root.cyb.mh.attendancesystem.model.Employee> empOpt = employeeRepository
                     .findById(userDetails.getUsername());
 
@@ -273,6 +289,22 @@ public class PaymentRequestController {
                 }
             } else {
                 spec = spec.and((root, query, cb) -> cb.disjunction());
+            }
+        } else if ("self".equals(view) || "my".equals(view)) {
+            Optional<root.cyb.mh.attendancesystem.model.Employee> empOpt = employeeRepository
+                    .findById(userDetails.getUsername());
+            if (empOpt.isPresent()) {
+                root.cyb.mh.attendancesystem.model.Employee employee = empOpt.get();
+                Specification<PaymentRequest> selfSpec = (root, query, cb) -> {
+                    jakarta.persistence.criteria.Join<PaymentRequest, User> userJoin = root.join("requester",
+                            jakarta.persistence.criteria.JoinType.LEFT);
+                    jakarta.persistence.criteria.Join<PaymentRequest, root.cyb.mh.attendancesystem.model.Employee> empJoin = root
+                            .join("employeeRequester", jakarta.persistence.criteria.JoinType.LEFT);
+                    return cb.or(
+                            cb.equal(userJoin.get("username"), userDetails.getUsername()),
+                            cb.equal(empJoin.get("id"), employee.getId()));
+                };
+                spec = spec.and(selfSpec);
             }
         }
         return spec;
@@ -637,10 +669,12 @@ public class PaymentRequestController {
             boolean isAdminOrHr = userDetails.getAuthorities().stream()
                     .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_HR"));
 
-            boolean isRequester = false;
-            // Check if requester
             Optional<root.cyb.mh.attendancesystem.model.Employee> currentEmpOpt = employeeRepository
                     .findById(userDetails.getUsername());
+            boolean canViewAll = isAdminOrHr || (currentEmpOpt.isPresent() && currentEmpOpt.get().isCanViewAllPaymentRequests());
+
+            boolean isRequester = false;
+            // Check if requester
             if (currentEmpOpt.isPresent() && request.getEmployeeRequester() != null
                     && request.getEmployeeRequester().getId().equals(currentEmpOpt.get().getId())) {
                 isRequester = true;
@@ -651,7 +685,7 @@ public class PaymentRequestController {
                 isRequester = true;
             }
 
-            if (!isAdminOrHr && !isRequester) {
+            if (!canViewAll && !isRequester) {
                 response.sendError(jakarta.servlet.http.HttpServletResponse.SC_FORBIDDEN, "Access Denied");
                 return;
             }
