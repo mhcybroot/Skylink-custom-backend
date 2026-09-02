@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head>
+    <title>MikroTik Live Network Explorer - [[${companyName}]]</title>
+    <style>
+        .code-box {
+            background: #0f172a;
+            color: #38bdf8;
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.82rem;
+            position: relative;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: #334155;
+            color: white;
+            border: none;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.72rem;
+        }
+        .copy-btn:hover {
+            background: #475569;
+        }
+
+        .stat-card {
+            transition: all 0.2s ease-in-out;
+        }
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08) !important;
+        }
+
+        .nav-pills .nav-link {
+            color: #475569;
+            font-weight: 600;
+            border-radius: 10px;
+            padding: 10px 20px;
+            transition: all 0.2s;
+        }
+        .nav-pills .nav-link.active {
+            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+        }
+
+        .led-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .led-active {
+            background-color: #22c55e;
+            box-shadow: 0 0 8px #22c55e;
+        }
+        .led-inactive {
+            background-color: #ef4444;
+            box-shadow: 0 0 6px #ef4444;
+        }
+        .led-warning {
+            background-color: #f59e0b;
+            box-shadow: 0 0 8px #f59e0b;
+        }
+
+        .table-hover tbody tr:hover {
+            background-color: #f8fafc;
+        }
+        .search-highlight {
+            background-color: #fef08a !important;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div th:replace="~{layout :: layout(~{::section}, ~{::script}, 'network-manager')}">
+        <section class="container-fluid py-3 px-md-4">
+
+            <!-- Page Header -->
+            <div class="border-0 shadow-sm rounded-4 mb-4 p-4 text-white position-relative overflow-hidden"
+                 style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0369a1 100%);">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 position-relative" style="z-index: 2;">
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <i class="fas fa-satellite-dish fa-lg text-info"></i>
+                            <h3 class="fw-bold mb-0 text-white">MikroTik Live Network Explorer</h3>
+                            <span class="badge bg-info text-dark fw-bold rounded-pill ms-2">Real-time Telemetry</span>
+                        </div>
+                        <p class="text-white-50 small mb-0">
+                            Centralized NOC hub for live DHCP leases, global ARP endpoint cache, router interface telemetry, and switch port bindings.
+                        </p>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <a href="/network" class="btn btn-sm btn-outline-light rounded-pill px-3">
+                            <i class="fas fa-arrow-left me-1"></i> Switch Rack Dashboard
+                        </a>
+                        <button id="btnPageSync" class="btn btn-sm btn-info fw-bold rounded-pill px-3 text-dark" onclick="triggerLiveSync()">
+                            <i class="fas fa-sync-alt me-1"></i> Sync MikroTik Now
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top Summary Stats Ribbon -->
+            <div class="row g-3 mb-4">
+                <div class="col-6 col-md-3">
+                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white stat-card border-start border-4 border-primary">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="text-muted small fw-semibold text-uppercase">Active DHCP Leases</span>
+                                <h3 class="fw-bold text-dark mb-0 mt-1" id="statLeasesCount">--</h3>
+                            </div>
+                            <div class="rounded-circle bg-primary bg-opacity-10 p-3 text-primary">
+                                <i class="fas fa-file-contract fa-lg"></i>
+                            </div>
+                        </div>
+                        <div class="mt-2 text-muted small" style="font-size: 0.75rem;">Bound IP & Hostnames</div>
+                    </div>
+                </div>
+
+                <div class="col-6 col-md-3">
+                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white stat-card border-start border-4 border-success">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="text-muted small fw-semibold text-uppercase">Total ARP Endpoints</span>
+                                <h3 class="fw-bold text-success mb-0 mt-1" id="statArpCount">--</h3>
+                            </div>
+                            <div class="rounded-circle bg-success bg-opacity-10 p-3 text-success">
+                                <i class="fas fa-network-wired fa-lg"></i>
+                            </div>
+                        </div>
+                        <div class="mt-2 text-muted small" style="font-size: 0.75rem;">Discovered IP & MAC Table</div>
+                    </div>
+                </div>
+
+                <div class="col-6 col-md-3">
+                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white stat-card border-start border-4 border-info">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="text-muted small fw-semibold text-uppercase">Router Interfaces</span>
+                                <h3 class="fw-bold text-info mb-0 mt-1" id="statInterfacesCount">--</h3>
+                            </div>
+                            <div class="rounded-circle bg-info bg-opacity-10 p-3 text-info">
+                                <i class="fas fa-ethernet fa-lg"></i>
+                            </div>
+                        </div>
+                        <div class="mt-2 text-muted small" style="font-size: 0.75rem;">Ethernet, VLANs & Bridges</div>
+                    </div>
+                </div>
+
+                <div class="col-6 col-md-3">
+                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white stat-card border-start border-4 border-warning">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="text-muted small fw-semibold text-uppercase">Sync Status</span>
+                                <h5 class="fw-bold text-dark mb-0 mt-1" id="statSyncStatus">
+                                    <span th:if="${config.lastSyncStatus == 'SUCCESS'}" class="text-success"><i class="fas fa-check-circle me-1"></i> Synced</span>
+                                    <span th:if="${config.lastSyncStatus == 'ERROR'}" class="text-danger"><i class="fas fa-exclamation-circle me-1"></i> Error</span>
+                                    <span th:if="${config.lastSyncStatus == 'NEVER' or config.lastSyncStatus == null}" class="text-muted">Idle</span>
+                                </h5>
+                            </div>
+                            <div class="rounded-circle bg-warning bg-opacity-10 p-3 text-warning">
+                                <i class="fas fa-heartbeat fa-lg"></i>
+                            </div>
+                        </div>
+                        <div class="mt-2 text-muted small text-truncate" style="font-size: 0.72rem;" th:text="${config.lastSyncTime != null ? 'Last: ' + #temporals.format(config.lastSyncTime, 'yyyy-MM-dd HH:mm:ss') : 'No sync recorded'}"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation Tabs -->
+            <div class="card border-0 shadow-sm rounded-4 bg-white mb-4">
+                <div class="card-header bg-white border-bottom p-3">
+                    <ul class="nav nav-pills gap-2" id="mikrotikNavTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active d-flex align-items-center gap-2" id="leases-tab" data-bs-toggle="pill" data-bs-target="#tab-leases" type="button" role="tab">
+                                <i class="fas fa-file-contract"></i>
+                                <span>Active DHCP Leases</span>
+                                <span class="badge bg-light text-dark rounded-pill ms-1" id="badgeLeases">--</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link d-flex align-items-center gap-2" id="arp-tab" data-bs-toggle="pill" data-bs-target="#tab-arp" type="button" role="tab">
+                                <i class="fas fa-globe"></i>
+                                <span>Global ARP & IPAM Cache</span>
+                                <span class="badge bg-light text-dark rounded-pill ms-1" id="badgeArp">--</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link d-flex align-items-center gap-2" id="interfaces-tab" data-bs-toggle="pill" data-bs-target="#tab-interfaces" type="button" role="tab">
+                                <i class="fas fa-ethernet"></i>
+                                <span>Router Interfaces Telemetry</span>
+                                <span class="badge bg-light text-dark rounded-pill ms-1" id="badgeInterfaces">--</span>
+                            </button>
+                        </li>
+                        <li class="nav-item ms-auto" role="presentation">
+                            <button class="nav-link d-flex align-items-center gap-2" id="settings-tab" data-bs-toggle="pill" data-bs-target="#tab-settings" type="button" role="tab">
+                                <i class="fas fa-sliders-h"></i>
+                                <span>Connection & Auto-Sync Settings</span>
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="card-body p-4">
+                    <div class="tab-content" id="mikrotikTabContent">
+
+                        <!-- TAB 1: DHCP LEASES -->
+                        <div class="tab-pane fade show active" id="tab-leases" role="tabpanel">
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+                                <div class="d-flex align-items-center gap-2 flex-grow-1" style="max-width: 450px;">
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted"></i></span>
+                                        <input type="text" id="leasesSearchInput" class="form-control border-start-0 bg-light" placeholder="Search by IP, MAC, Hostname, or Port..." onkeyup="filterLeasesTable()">
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="loadLeases()">
+                                        <i class="fas fa-redo me-1"></i> Refresh Table
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="table-responsive rounded-3 border">
+                                <table class="table table-hover align-middle mb-0 small">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>IP Address</th>
+                                            <th>MAC Address</th>
+                                            <th>Client Hostname / Identifier</th>
+                                            <th>VLAN / Server</th>
+                                            <th>Lease Status</th>
+                                            <th>Expires After</th>
+                                            <th>Mapped Switch Port</th>
+                                            <th class="text-end">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="leasesTableBody">
+                                        <tr><td colspan="8" class="text-center py-4 text-muted"><i class="fas fa-spinner fa-spin me-2"></i> Loading DHCP leases...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- TAB 2: ARP TABLE -->
+                        <div class="tab-pane fade" id="tab-arp" role="tabpanel">
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+                                <div class="d-flex align-items-center gap-2 flex-grow-1" style="max-width: 450px;">
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted"></i></span>
+                                        <input type="text" id="arpSearchInput" class="form-control border-start-0 bg-light" placeholder="Filter ARP table by IP, MAC, or Interface..." onkeyup="filterArpTable()">
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="loadArp()">
+                                        <i class="fas fa-redo me-1"></i> Refresh ARP
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="table-responsive rounded-3 border" style="max-height: 600px; overflow-y: auto;">
+                                <table class="table table-hover align-middle mb-0 small">
+                                    <thead class="table-light sticky-top">
+                                        <tr>
+                                            <th>IP Address</th>
+                                            <th>MAC Address</th>
+                                            <th>Interface</th>
+                                            <th>Type</th>
+                                            <th>Status</th>
+                                            <th>Comment / Notes</th>
+                                            <th class="text-end">Quick Ping</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="arpTableBody">
+                                        <tr><td colspan="7" class="text-center py-4 text-muted"><i class="fas fa-spinner fa-spin me-2"></i> Loading ARP table...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- TAB 3: ROUTER INTERFACES -->
+                        <div class="tab-pane fade" id="tab-interfaces" role="tabpanel">
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+                                <h6 class="fw-bold mb-0 text-dark">Live Interface Telemetry & Error Tracking</h6>
+                                <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="loadInterfaces()">
+                                    <i class="fas fa-redo me-1"></i> Refresh Interfaces
+                                </button>
+                            </div>
+
+                            <div class="table-responsive rounded-3 border">
+                                <table class="table table-hover align-middle mb-0 small">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Interface Name</th>
+                                            <th>Link State</th>
+                                            <th>Type</th>
+                                            <th>MAC Address</th>
+                                            <th>RX Bytes / Traffic</th>
+                                            <th>TX Bytes / Traffic</th>
+                                            <th>Errors (RX/TX)</th>
+                                            <th>Link Flap Count</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="interfacesTableBody">
+                                        <tr><td colspan="8" class="text-center py-4 text-muted"><i class="fas fa-spinner fa-spin me-2"></i> Loading interfaces...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- TAB 4: SETTINGS & SETUP -->
+                        <div class="tab-pane fade" id="tab-settings" role="tabpanel">
+                            <div class="row g-4">
+                                <div class="col-lg-7">
+                                    <div class="p-4 bg-light rounded-4 border">
+                                        <h5 class="fw-bold mb-3 text-dark"><i class="fas fa-key text-primary me-2"></i> Router Connection & API Credentials</h5>
+                                        <div id="connectionAlert" class="alert d-none small mb-4"></div>
+
+                                        <form id="mikrotikConfigForm" onsubmit="saveConfig(event)">
+                                            <div class="row g-3">
+                                                <div class="col-md-8">
+                                                    <label class="form-label small fw-bold">Router Host / IP Address <span class="text-danger">*</span></label>
+                                                    <input type="text" id="cfgHost" class="form-control" th:value="${config.host}" required placeholder="116.206.59.142">
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label small fw-bold">API Port <span class="text-danger">*</span></label>
+                                                    <input type="number" id="cfgPort" class="form-control" th:value="${config.port}" required placeholder="8225">
+                                                </div>
+
+                                                <div class="col-md-6">
+                                                    <label class="form-label small fw-bold">API Username <span class="text-danger">*</span></label>
+                                                    <input type="text" id="cfgUsername" class="form-control" th:value="${config.username}" required placeholder="skylink-sync">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label small fw-bold">API Password</label>
+                                                    <input type="password" id="cfgPassword" class="form-control" th:value="${config.password}" placeholder="Leave blank if unchanged">
+                                                </div>
+
+                                                <div class="col-md-6">
+                                                    <div class="p-3 bg-white rounded-3 border">
+                                                        <div class="form-check form-switch">
+                                                            <input class="form-check-input" type="checkbox" id="cfgUseSsl" th:checked="${config.useSsl}">
+                                                            <label class="form-check-label small fw-bold" for="cfgUseSsl">Use HTTPS / SSL</label>
+                                                        </div>
+                                                        <span class="text-muted small" style="font-size: 0.75rem;">Bypasses self-signed certificate mismatch</span>
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-md-6">
+                                                    <div class="p-3 bg-white rounded-3 border">
+                                                        <div class="form-check form-switch">
+                                                            <input class="form-check-input" type="checkbox" id="cfgAutoSync" th:checked="${config.autoSyncEnabled}">
+                                                            <label class="form-check-label small fw-bold" for="cfgAutoSync">Background Auto-Sync</label>
+                                                        </div>
+                                                        <span class="text-muted small" style="font-size: 0.75rem;">Polls every 5 minutes in background</span>
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-12 mt-4 pt-3 border-top d-flex justify-content-between align-items-center">
+                                                    <button type="button" class="btn btn-outline-primary rounded-pill px-4" id="btnTestConn" onclick="testConnection()">
+                                                        <i class="fas fa-plug me-1"></i> Test Connection
+                                                    </button>
+                                                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold">
+                                                        <i class="fas fa-save me-1"></i> Save Configuration
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+
+                                <div class="col-lg-5">
+                                    <div class="p-4 bg-light rounded-4 border mb-3">
+                                        <h6 class="fw-bold mb-2 text-dark"><i class="fas fa-terminal text-info me-2"></i> Winbox Terminal Setup</h6>
+                                        <p class="text-muted small mb-2">Enable REST API & create user in MikroTik Winbox:</p>
+                                        <div class="code-box">
+                                            <button class="copy-btn" onclick="copySnippet()">Copy</button>
+                                            <pre id="routerosSnippet" class="m-0 text-white" style="white-space: pre-wrap;">/ip service set www-ssl certificate=skylink-cert port=8225 disabled=no
+/ip firewall filter add chain=input action=accept protocol=tcp dst-port=8225 comment="Allow Skylink Backend API" place-before=1
+/user group add name=skylink-api policy=read,api,test,rest-api
+/user add name=skylink-sync group=skylink-api password=YourPassword123</pre>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </section>
+    </div>
+
+    <!-- Map Lease to Switch Port Modal -->
+    <div class="modal fade" id="mapLeaseModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <form id="mapLeaseForm" onsubmit="submitMapLease(event)">
+                    <div class="modal-header bg-dark text-white p-4">
+                        <h5 class="modal-title fw-bold mb-0"><i class="fas fa-link text-info me-2"></i> Map Lease to Switch Port</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <div class="mb-3 p-3 bg-light rounded-3 border">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted small">IP Address:</span>
+                                <strong id="modalLeaseIp" class="text-dark">--</strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted small">MAC Address:</span>
+                                <code id="modalLeaseMac">--</code>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted small">Detected Hostname:</span>
+                                <span id="modalLeaseHost" class="fw-bold text-primary">--</span>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Select Target Switch & Port <span class="text-danger">*</span></label>
+                            <select id="modalTargetPort" class="form-select" required>
+                                <option value="">-- Choose a Switch Port --</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Device Category</label>
+                            <select id="modalDeviceCategory" class="form-select">
+                                <option value="Workstation PC">Workstation PC</option>
+                                <option value="Laptop / Mobile">Laptop / Mobile</option>
+                                <option value="Static Peripheral / Printer">Static Peripheral / Printer</option>
+                                <option value="IP Phone / VoIP">IP Phone / VoIP</option>
+                                <option value="Server / Appliance">Server / Appliance</option>
+                                <option value="Access Point / WiFi">Access Point / WiFi</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer p-3 bg-light">
+                        <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-success rounded-pill px-4 fw-bold">
+                            <i class="fas fa-check me-1"></i> Save Port Binding
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts Section -->
+    <script th:inline="javascript">
+        let allLeases = [];
+        let allArp = [];
+        let allInterfaces = [];
+        let allSwitchPorts = [];
+
+        document.addEventListener("DOMContentLoaded", function () {
+            loadLeases();
+            loadArp();
+            loadInterfaces();
+            loadSwitchPorts();
+        });
+
+        function formatBytes(bytes) {
+            if (!bytes || bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function loadLeases() {
+            fetch('/api/network/mikrotik/leases')
+                .then(res => res.json())
+                .then(data => {
+                    allLeases = data;
+                    document.getElementById('statLeasesCount').textContent = data.length;
+                    document.getElementById('badgeLeases').textContent = data.length;
+                    renderLeasesTable(data);
+                })
+                .catch(err => {
+                    document.getElementById('leasesTableBody').innerHTML = `<tr><td colspan="8" class="text-center text-danger py-4">Failed to load leases: ${err}</td></tr>`;
+                });
+        }
+
+        function renderLeasesTable(leases) {
+            const tbody = document.getElementById('leasesTableBody');
+            tbody.innerHTML = '';
+            if (leases.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">No DHCP leases found. Run live sync to populate.</td></tr>';
+                return;
+            }
+
+            leases.forEach(l => {
+                const tr = document.createElement('tr');
+                const isBound = (l.status && l.status.toLowerCase() === 'bound');
+                const isMapped = l.mapped;
+
+                tr.innerHTML = `
+                    <td class="fw-bold text-dark">
+                        <i class="fas fa-laptop me-1 text-muted"></i> ${l.ipAddress || '—'}
+                    </td>
+                    <td><code>${l.macAddress || '—'}</code></td>
+                    <td>
+                        <strong class="text-primary">${l.hostName || '—'}</strong>
+                        ${l.comment ? `<div class="text-muted" style="font-size: 0.72rem;">${l.comment}</div>` : ''}
+                    </td>
+                    <td><span class="badge bg-light text-dark border">${l.server || 'default'}</span></td>
+                    <td>
+                        <span class="badge ${isBound ? 'bg-success' : 'bg-warning text-dark'}">
+                            ${l.status || 'unknown'}
+                        </span>
+                    </td>
+                    <td class="text-muted">${l.expiresAfter || '—'}</td>
+                    <td>
+                        ${isMapped ? `
+                            <a href="/network?search=${encodeURIComponent(l.ipAddress)}" class="badge bg-primary text-white text-decoration-none p-2 rounded-pill">
+                                <i class="fas fa-plug me-1"></i> ${l.deviceName} - ${l.portNumber}
+                            </a>
+                        ` : `
+                            <span class="badge bg-secondary text-white rounded-pill">Unmapped</span>
+                        `}
+                    </td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-primary rounded-pill px-2 py-1 me-1" onclick="pingHost('${l.ipAddress}')" title="Ping Host">
+                            <i class="fas fa-bolt"></i>
+                        </button>
+                        <button class="btn btn-sm btn-success rounded-pill px-2 py-1" onclick="openMapLeaseModal('${l.ipAddress}', '${l.macAddress}', '${l.hostName || ''}')" title="Map to Switch Port">
+                            <i class="fas fa-link me-1"></i> Map Port
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function filterLeasesTable() {
+            const q = document.getElementById('leasesSearchInput').value.toLowerCase().trim();
+            if (!q) {
+                renderLeasesTable(allLeases);
+                return;
+            }
+            const filtered = allLeases.filter(l => 
+                (l.ipAddress && l.ipAddress.toLowerCase().includes(q)) ||
+                (l.macAddress && l.macAddress.toLowerCase().includes(q)) ||
+                (l.hostName && l.hostName.toLowerCase().includes(q)) ||
+                (l.deviceName && l.deviceName.toLowerCase().includes(q)) ||
+                (l.portNumber && l.portNumber.toLowerCase().includes(q))
+            );
+            renderLeasesTable(filtered);
+        }
+
+        function loadArp() {
+            fetch('/api/network/mikrotik/arp')
+                .then(res => res.json())
+                .then(data => {
+                    allArp = data;
+                    document.getElementById('statArpCount').textContent = data.length;
+                    document.getElementById('badgeArp').textContent = data.length;
+                    renderArpTable(data);
+                })
+                .catch(err => {
+                    document.getElementById('arpTableBody').innerHTML = `<tr><td colspan="7" class="text-center text-danger py-4">Failed to load ARP: ${err}</td></tr>`;
+                });
+        }
+
+        function renderArpTable(arps) {
+            const tbody = document.getElementById('arpTableBody');
+            tbody.innerHTML = '';
+            if (arps.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No ARP entries found. Run live sync to populate.</td></tr>';
+                return;
+            }
+
+            arps.forEach(a => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="fw-bold text-dark">${a.address || '—'}</td>
+                    <td><code>${a.macAddress || '—'}</code></td>
+                    <td><span class="badge bg-light text-dark border">${a.networkInterface || '—'}</span></td>
+                    <td>
+                        <span class="badge ${a.dynamic ? 'bg-info text-dark' : 'bg-secondary'}">${a.dynamic ? 'Dynamic' : 'Static'}</span>
+                    </td>
+                    <td>
+                        <span class="badge ${a.complete ? 'bg-success' : 'bg-warning text-dark'}">${a.complete ? 'Complete' : 'Incomplete'}</span>
+                    </td>
+                    <td class="text-muted">${a.comment || '—'}</td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-primary rounded-pill px-2 py-1" onclick="pingHost('${a.address}')">
+                            <i class="fas fa-bolt me-1"></i> Ping
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function filterArpTable() {
+            const q = document.getElementById('arpSearchInput').value.toLowerCase().trim();
+            if (!q) {
+                renderArpTable(allArp);
+                return;
+            }
+            const filtered = allArp.filter(a => 
+                (a.address && a.address.toLowerCase().includes(q)) ||
+                (a.macAddress && a.macAddress.toLowerCase().includes(q)) ||
+                (a.networkInterface && a.networkInterface.toLowerCase().includes(q)) ||
+                (a.comment && a.comment.toLowerCase().includes(q))
+            );
+            renderArpTable(filtered);
+        }
+
+        function loadInterfaces() {
+            fetch('/api/network/mikrotik/interfaces')
+                .then(res => res.json())
+                .then(data => {
+                    allInterfaces = data;
+                    document.getElementById('statInterfacesCount').textContent = data.length;
+                    document.getElementById('badgeInterfaces').textContent = data.length;
+                    renderInterfacesTable(data);
+                })
+                .catch(err => {
+                    document.getElementById('interfacesTableBody').innerHTML = `<tr><td colspan="8" class="text-center text-danger py-4">Failed to load interfaces: ${err}</td></tr>`;
+                });
+        }
+
+        function renderInterfacesTable(ifaces) {
+            const tbody = document.getElementById('interfacesTableBody');
+            tbody.innerHTML = '';
+            if (ifaces.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">No interfaces found. Run live sync to populate.</td></tr>';
+                return;
+            }
+
+            ifaces.forEach(i => {
+                const tr = document.createElement('tr');
+                const isRunning = i.running;
+                const isFlapping = (i.linkDowns && i.linkDowns >= 3);
+
+                tr.innerHTML = `
+                    <td class="fw-bold text-dark">
+                        <span class="led-indicator ${isRunning ? 'led-active' : 'led-inactive'} me-2"></span>
+                        ${i.name}
+                        ${i.comment ? `<div class="text-muted" style="font-size: 0.72rem;">${i.comment}</div>` : ''}
+                    </td>
+                    <td>
+                        <span class="badge ${isRunning ? 'bg-success' : 'bg-danger'}">${isRunning ? 'RUNNING' : 'DOWN'}</span>
+                    </td>
+                    <td><span class="badge bg-light text-dark border">${i.type || 'ether'}</span></td>
+                    <td><code>${i.macAddress || '—'}</code></td>
+                    <td class="text-dark fw-semibold">${formatBytes(i.rxByte)}</td>
+                    <td class="text-dark fw-semibold">${formatBytes(i.txByte)}</td>
+                    <td>
+                        <span class="text-muted">${i.rxError || 0} / ${i.txError || 0}</span>
+                    </td>
+                    <td>
+                        ${isFlapping ? `
+                            <span class="badge bg-warning text-dark"><i class="fas fa-exclamation-triangle me-1"></i> ${i.linkDowns} drops</span>
+                        ` : `
+                            <span class="text-muted">${i.linkDowns || 0}</span>
+                        `}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function loadSwitchPorts() {
+            fetch('/api/network/search?q=')
+                .then(res => res.json())
+                .then(ports => {
+                    allSwitchPorts = ports;
+                    const select = document.getElementById('modalTargetPort');
+                    select.innerHTML = '<option value="">-- Choose a Switch Port --</option>';
+                    ports.forEach(p => {
+                        const opt = document.createElement('option');
+                        opt.value = p.id;
+                        opt.textContent = `${p.device ? p.device.name : 'Device'} - ${p.portNumber} (${p.hostnameOrUser || 'Empty / Unassigned'} | VLAN: ${p.vlan || 'None'})`;
+                        select.appendChild(opt);
+                    });
+                });
+        }
+
+        function openMapLeaseModal(ip, mac, host) {
+            document.getElementById('modalLeaseIp').textContent = ip || '—';
+            document.getElementById('modalLeaseMac').textContent = mac || '—';
+            document.getElementById('modalLeaseHost').textContent = host || 'Workstation PC';
+
+            const modal = new bootstrap.Modal(document.getElementById('mapLeaseModal'));
+            modal.show();
+        }
+
+        function submitMapLease(e) {
+            e.preventDefault();
+            const portId = document.getElementById('modalTargetPort').value;
+            if (!portId) {
+                alert("Please select a target switch port.");
+                return;
+            }
+
+            const payload = {
+                portId: parseInt(portId),
+                ipAddress: document.getElementById('modalLeaseIp').textContent,
+                macAddress: document.getElementById('modalLeaseMac').textContent,
+                hostName: document.getElementById('modalLeaseHost').textContent,
+                deviceCategory: document.getElementById('modalDeviceCategory').value
+            };
+
+            fetch('/api/network/mikrotik/map-lease', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`✅ ${data.message}`);
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('mapLeaseModal'));
+                    if (modal) modal.hide();
+                    loadLeases();
+                } else {
+                    alert("Mapping failed: " + data.message);
+                }
+            })
+            .catch(err => alert("Request failed: " + err));
+        }
+
+        function pingHost(ip) {
+            if (!ip || ip === '—') return;
+            const btn = event.currentTarget;
+            const orig = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+            fetch('/api/network/ping?ip=' + encodeURIComponent(ip))
+                .then(res => res.json())
+                .then(data => {
+                    btn.innerHTML = orig;
+                    alert(`Ping result for ${data.targetIp}:\n${data.reachable ? '✅ Host Online' : '❌ Host Unreachable'}\nLatency: ${data.responseTimeMs}ms\nMessage: ${data.message}`);
+                })
+                .catch(err => {
+                    btn.innerHTML = orig;
+                    alert("Ping request failed: " + err);
+                });
+        }
+
+        function triggerLiveSync() {
+            const btn = document.getElementById('btnPageSync');
+            const origHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Syncing...';
+            btn.disabled = true;
+
+            fetch('/api/network/mikrotik/sync', { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    btn.innerHTML = origHtml;
+                    btn.disabled = false;
+                    if (data.success) {
+                        alert(`✅ ${data.message}`);
+                        loadLeases();
+                        loadArp();
+                        loadInterfaces();
+                    } else {
+                        alert(`❌ ${data.message}`);
+                    }
+                })
+                .catch(err => {
+                    btn.innerHTML = origHtml;
+                    btn.disabled = false;
+                    alert("Sync request failed: " + err);
+                });
+        }
+
+        function testConnection() {
+            const btn = document.getElementById('btnTestConn');
+            const alertBox = document.getElementById('connectionAlert');
+            const origHtml = btn.innerHTML;
+
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Testing...';
+            btn.disabled = true;
+            alertBox.className = 'alert d-none small mb-4';
+
+            const payload = {
+                host: document.getElementById('cfgHost').value.trim(),
+                port: parseInt(document.getElementById('cfgPort').value) || 443,
+                username: document.getElementById('cfgUsername').value.trim(),
+                password: document.getElementById('cfgPassword').value,
+                useSsl: document.getElementById('cfgUseSsl').checked
+            };
+
+            fetch('/api/network/mikrotik/test-connection', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                btn.innerHTML = origHtml;
+                btn.disabled = false;
+                alertBox.classList.remove('d-none');
+                if (data.success) {
+                    alertBox.className = 'alert alert-success small mb-4';
+                    alertBox.innerHTML = `<i class="fas fa-check-circle me-1"></i> ${data.message}`;
+                } else {
+                    alertBox.className = 'alert alert-danger small mb-4';
+                    alertBox.innerHTML = `<i class="fas fa-times-circle me-1"></i> ${data.message}`;
+                }
+            })
+            .catch(err => {
+                btn.innerHTML = origHtml;
+                btn.disabled = false;
+                alertBox.classList.remove('d-none');
+                alertBox.className = 'alert alert-danger small mb-4';
+                alertBox.innerHTML = `<i class="fas fa-exclamation-triangle me-1"></i> Connection request failed: ${err}`;
+            });
+        }
+
+        function saveConfig(e) {
+            e.preventDefault();
+            const payload = {
+                host: document.getElementById('cfgHost').value.trim(),
+                port: parseInt(document.getElementById('cfgPort').value) || 443,
+                username: document.getElementById('cfgUsername').value.trim(),
+                password: document.getElementById('cfgPassword').value,
+                useSsl: document.getElementById('cfgUseSsl').checked,
+                autoSyncEnabled: document.getElementById('cfgAutoSync').checked
+            };
+
+            fetch('/api/network/mikrotik/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert("✅ MikroTik connection settings saved successfully!");
+                    window.location.reload();
+                } else {
+                    alert("Error saving configuration: " + data.message);
+                }
+            })
+            .catch(err => alert("Request failed: " + err));
+        }
+
+        function copySnippet() {
+            const text = document.getElementById('routerosSnippet').innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                alert("Copied RouterOS terminal commands to clipboard!");
+            });
+        }
+    </script>
+</body>
+</html>

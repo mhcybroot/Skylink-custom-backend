@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head>
+    <title th:text="'Port ' + ${port.portNumber} + ' Profile - ' + (${device != null} ? ${device.name} : 'Network Switch')">Port Details - Network Switch Manager</title>
+    <style>
+        .port-led-indicator {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .led-green-glow {
+            background-color: #10b981;
+            box-shadow: 0 0 10px #10b981, 0 0 20px rgba(16, 185, 129, 0.4);
+        }
+        .led-blue-glow {
+            background-color: #3b82f6;
+            box-shadow: 0 0 10px #3b82f6, 0 0 20px rgba(59, 130, 246, 0.4);
+        }
+        .led-purple-glow {
+            background-color: #8b5cf6;
+            box-shadow: 0 0 10px #8b5cf6, 0 0 20px rgba(139, 92, 246, 0.4);
+        }
+        .led-gray-off {
+            background-color: #64748b;
+            opacity: 0.7;
+        }
+        .led-amber-glow {
+            background-color: #f59e0b;
+            box-shadow: 0 0 10px #f59e0b, 0 0 20px rgba(245, 158, 11, 0.4);
+        }
+        .led-red-glow {
+            background-color: #ef4444;
+            box-shadow: 0 0 10px #ef4444, 0 0 20px rgba(239, 68, 68, 0.4);
+        }
+
+        /* Timeline styling */
+        .port-timeline {
+            position: relative;
+            padding-left: 28px;
+            margin: 15px 0;
+        }
+        .port-timeline::before {
+            content: '';
+            position: absolute;
+            top: 8px;
+            bottom: 8px;
+            left: 11px;
+            width: 2px;
+            background: #e2e8f0;
+        }
+        .timeline-item {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .timeline-item:last-child {
+            margin-bottom: 0;
+        }
+        .timeline-marker {
+            position: absolute;
+            left: -28px;
+            top: 2px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            color: #fff;
+            border: 2px solid #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .marker-link-up { background: #10b981; }
+        .marker-link-down { background: #64748b; }
+        .marker-speed { background: #0ea5e9; }
+        .marker-mac { background: #6366f1; }
+        .marker-ip { background: #14b8a6; }
+        .marker-host { background: #8b5cf6; }
+        .marker-vlan { background: #f59e0b; }
+        .marker-error { background: #ef4444; }
+        .marker-config { background: #334155; }
+
+        .timeline-content {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 12px 16px;
+            transition: all 0.2s ease;
+        }
+        .timeline-content:hover {
+            background: #fff;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border-color: #cbd5e1;
+        }
+    </style>
+</head>
+
+<body>
+    <div th:replace="~{layout :: layout(~{::section}, ~{::script}, 'network-manager')}">
+        <section class="container-fluid py-3 px-md-4">
+
+            <!-- Breadcrumbs & Quick Header Navigation -->
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0">
+                        <li class="breadcrumb-item">
+                            <a href="/network" class="text-decoration-none text-primary">
+                                <i class="fas fa-network-wired me-1"></i> Network Switch Manager
+                            </a>
+                        </li>
+                        <li class="breadcrumb-item" th:if="${device != null}">
+                            <a th:href="@{/network(deviceTab=${device.id})}" class="text-decoration-none text-secondary" th:text="${device.name}">
+                                Switch 01
+                            </a>
+                        </li>
+                        <li class="breadcrumb-item active fw-bold text-dark" aria-current="page" th:text="'Port ' + ${port.portNumber}">
+                            Port GE08
+                        </li>
+                    </ol>
+                </nav>
+
+                <!-- Port Jump Dropdown & Prev/Next Buttons -->
+                <div class="d-flex align-items-center gap-2">
+                    <a th:if="${prevPort != null}" th:href="@{/network/ports/{id}(id=${prevPort.id})}"
+                       class="btn btn-outline-secondary btn-sm rounded-pill px-3 shadow-sm"
+                       th:title="'Go to ' + ${prevPort.portNumber}">
+                        <i class="fas fa-chevron-left me-1"></i> <span th:text="${prevPort.portNumber}">GE07</span>
+                    </a>
+                    <button th:if="${prevPort == null}" class="btn btn-outline-secondary btn-sm rounded-pill px-3 disabled" disabled>
+                        <i class="fas fa-chevron-left me-1"></i> Prev
+                    </button>
+
+                    <select class="form-select form-select-sm rounded-pill shadow-sm" style="width: auto; font-weight: 600;" onchange="window.location.href='/network/ports/' + this.value">
+                        <option th:each="p : ${allDevicePorts}"
+                                th:value="${p.id}"
+                                th:text="${p.portNumber} + ' (' + ${p.portStatus} + ')'"
+                                th:selected="${p.id == port.id}">
+                            GE08 (ACTIVE_CONNECTED)
+                        </option>
+                    </select>
+
+                    <a th:if="${nextPort != null}" th:href="@{/network/ports/{id}(id=${nextPort.id})}"
+                       class="btn btn-outline-secondary btn-sm rounded-pill px-3 shadow-sm"
+                       th:title="'Go to ' + ${nextPort.portNumber}">
+                        <span th:text="${nextPort.portNumber}">GE09</span> <i class="fas fa-chevron-right ms-1"></i>
+                    </a>
+                    <button th:if="${nextPort == null}" class="btn btn-outline-secondary btn-sm rounded-pill px-3 disabled" disabled>
+                        Next <i class="fas fa-chevron-right ms-1"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Port Hero Banner -->
+            <div class="border-0 shadow-sm rounded-4 mb-4 p-4 text-white position-relative overflow-hidden"
+                 style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0284c7 100%);">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 position-relative" style="z-index: 2;">
+                    <div>
+                        <div class="d-flex align-items-center gap-3 mb-2 flex-wrap">
+                            <h2 class="fw-bold mb-0 text-white" th:text="'Physical Port ' + ${port.portNumber}">Physical Port GE08</h2>
+                            
+                            <!-- Glowing LED Pill -->
+                            <div class="d-inline-flex align-items-center gap-2 px-3 py-1 bg-dark bg-opacity-75 rounded-pill border border-secondary shadow-sm">
+                                <span class="port-led-indicator"
+                                      th:classappend="${port.portStatus.name() == 'ACTIVE_CONNECTED' ? (port.isTrunk ? 'led-purple-glow' : ((device != null and device.name.contains('PoE')) ? 'led-blue-glow' : 'led-green-glow')) : (port.portStatus.name() == 'LINK_DOWN' ? 'led-gray-off' : 'led-amber-glow')}">
+                                </span>
+                                <span class="fw-bold small text-light" th:text="${port.portStatus}">ACTIVE_CONNECTED</span>
+                            </div>
+
+                            <span class="badge bg-light text-dark fw-bold border" th:if="${port.isTrunk}">
+                                <i class="fas fa-layer-group text-primary me-1"></i> 802.1Q TRUNK
+                            </span>
+                            <span class="badge bg-primary text-white fw-bold" th:if="${!port.isTrunk}">
+                                <i class="fas fa-desktop me-1"></i> ACCESS PORT
+                            </span>
+                        </div>
+
+                        <div class="text-white-50 small d-flex align-items-center gap-3 flex-wrap">
+                            <span><i class="fas fa-server me-1"></i> Switch: <strong class="text-light" th:text="${device != null} ? ${device.name} : 'Unknown'">Switch 01</strong></span>
+                            <span><i class="fas fa-network-wired me-1"></i> IP: <strong class="text-light" th:text="${device != null} ? ${device.ipAddress} : '—'">10.10.16.2</strong></span>
+                            <span><i class="fas fa-tag me-1"></i> VLAN: <strong class="text-light" th:text="${port.vlan != null ? port.vlan : 'Default (1)'}">15</strong></span>
+                            <span><i class="fas fa-tachometer-alt me-1"></i> Speed: <strong class="text-light" th:text="${port.speedNegotiation != null ? port.speedNegotiation : '1 Gbps'}">1 Gbps</strong></span>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <button class="btn btn-primary rounded-pill px-3 shadow-sm fw-bold" onclick="openEditModal()">
+                            <i class="fas fa-edit me-1"></i> Edit Specs
+                        </button>
+                        <button class="btn btn-warning rounded-pill px-3 shadow-sm fw-bold text-dark" onclick="openLogIssueModal()">
+                            <i class="fas fa-exclamation-triangle me-1"></i> Log Ticket
+                        </button>
+                        <button class="btn btn-outline-light rounded-pill px-3 shadow-sm" onclick="exportCurrentPortCsv()">
+                            <i class="fas fa-file-csv me-1"></i> Export History
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Key Metric Summary Row -->
+            <div class="row g-3 mb-4">
+                <div class="col-6 col-md-3">
+                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+                        <div class="text-muted small fw-semibold mb-1">Current Active User</div>
+                        <div class="fw-bold text-dark fs-5 text-truncate" th:text="${port.hostnameOrUser != null ? port.hostnameOrUser : '—'}">Sophia</div>
+                        <div class="text-muted small mt-auto" th:text="${port.deviceCategory != null ? port.deviceCategory : 'Workstation PC'}">Workstation PC</div>
+                    </div>
+                </div>
+
+                <div class="col-6 col-md-3">
+                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+                        <div class="text-muted small fw-semibold mb-1">Active IP Address</div>
+                        <div class="fw-bold text-primary fs-5 text-truncate" th:text="${port.ipAddress != null ? port.ipAddress : '—'}">10.10.15.250</div>
+                        <div class="text-muted small mt-auto">
+                            <span th:if="${port.ipAddress != null}">
+                                <a href="javascript:void(0)" th:data-ip="${port.ipAddress}" onclick="runLivePing(this.getAttribute('data-ip'))" class="text-decoration-none text-info fw-bold">
+                                    <i class="fas fa-bolt me-1"></i> Ping Diagnostics
+                                </a>
+                            </span>
+                            <span th:if="${port.ipAddress == null}">No IP Binding</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-6 col-md-3">
+                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+                        <div class="text-muted small fw-semibold mb-1">Hardware MAC Address</div>
+                        <div class="fw-bold text-dark font-monospace text-truncate" th:text="${port.macAddress != null ? port.macAddress : '—'}">34:5A:60:17:D1:26</div>
+                        <div class="text-muted small mt-auto">Physical Adapter</div>
+                    </div>
+                </div>
+
+                <div class="col-6 col-md-3">
+                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+                        <div class="text-muted small fw-semibold mb-1">Negotiation & PoE</div>
+                        <div class="fw-bold text-success fs-5 text-truncate" th:text="${port.speedNegotiation != null ? port.speedNegotiation : '1 Gbps Full'}">1 Gbps Full</div>
+                        <div class="text-muted small mt-auto" th:text="${(device != null and device.name.contains('PoE')) ? 'PoE Active (15.4W)' : 'Standard RJ45'}">Standard RJ45</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Diagnostics Alert Box (Hidden until triggered) -->
+            <div id="pingDiagContainer" class="alert d-none shadow-sm rounded-4 mb-4 p-3 border-0 bg-dark text-white">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="fw-bold mb-0 text-info"><i class="fas fa-terminal me-2"></i> Live ICMP Ping Diagnostics</h6>
+                    <button type="button" class="btn-close btn-close-white btn-sm" onclick="document.getElementById('pingDiagContainer').classList.add('d-none')"></button>
+                </div>
+                <div id="pingDiagOutput" class="font-monospace small bg-black bg-opacity-50 p-3 rounded-3 text-light" style="max-height: 160px; overflow-y: auto;">
+                    Sending ping probes...
+                </div>
+            </div>
+
+            <!-- Hardware Diagnostics & Tools Row (TDR Cable Tester & PoE Power Management) -->
+            <div class="row g-3 mb-4">
+                <!-- Virtual Cable Diagnostics (TDR) -->
+                <div class="col-lg-7">
+                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="rounded-circle p-2 bg-primary-subtle text-primary" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-ruler-combined"></i>
+                                </div>
+                                <div>
+                                    <h6 class="fw-bold text-dark mb-0">Virtual Cable Tester (TDR)</h6>
+                                    <div class="text-muted small">Cisco Time Domain Reflectometry for cable length & fault locator</div>
+                                </div>
+                            </div>
+                            <button class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold shadow-sm" onclick="runCableTdrTest()">
+                                <i class="fas fa-play me-1"></i> Run TDR Test
+                            </button>
+                        </div>
+
+                        <div id="tdrResultContainer" class="p-3 bg-light rounded-3 border">
+                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                                <div>
+                                    <span class="badge bg-secondary" id="tdrOverallBadge">READY FOR TEST</span>
+                                    <span class="small text-muted ms-2" id="tdrSummaryText">Click 'Run TDR Test' to calculate cable length & pinout status.</span>
+                                </div>
+                                <div class="fw-bold text-dark small" id="tdrLengthDisplay">Cable Length: <span class="text-primary fw-bold" id="tdrLengthVal">—</span></div>
+                            </div>
+
+                            <!-- 4-Pair Status Badges -->
+                            <div class="row g-2 text-center small mt-2">
+                                <div class="col-3">
+                                    <div class="p-2 rounded-2 bg-white border shadow-sm" id="pair12Box">
+                                        <div class="text-muted" style="font-size:0.7rem;">Pair 1-2</div>
+                                        <strong id="pair12Val" class="text-secondary">—</strong>
+                                    </div>
+                                </div>
+                                <div class="col-3">
+                                    <div class="p-2 rounded-2 bg-white border shadow-sm" id="pair36Box">
+                                        <div class="text-muted" style="font-size:0.7rem;">Pair 3-6</div>
+                                        <strong id="pair36Val" class="text-secondary">—</strong>
+                                    </div>
+                                </div>
+                                <div class="col-3">
+                                    <div class="p-2 rounded-2 bg-white border shadow-sm" id="pair45Box">
+                                        <div class="text-muted" style="font-size:0.7rem;">Pair 4-5</div>
+                                        <strong id="pair45Val" class="text-secondary">—</strong>
+                                    </div>
+                                </div>
+                                <div class="col-3">
+                                    <div class="p-2 rounded-2 bg-white border shadow-sm" id="pair78Box">
+                                        <div class="text-muted" style="font-size:0.7rem;">Pair 7-8</div>
+                                        <strong id="pair78Val" class="text-secondary">—</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PoE Power Delivery & Remote Cycle -->
+                <div class="col-lg-5">
+                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="rounded-circle p-2 bg-warning-subtle text-warning" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-bolt"></i>
+                                </div>
+                                <div>
+                                    <h6 class="fw-bold text-dark mb-0">PoE Power Management</h6>
+                                    <div class="text-muted small" th:text="${(device != null and device.name.contains('PoE')) ? 'Active 802.3af/at Power Delivery' : 'Non-PoE Switch Port'}">PoE Power Delivery</div>
+                                </div>
+                            </div>
+                            <span class="badge" th:classappend="${(device != null and device.name.contains('PoE')) ? 'bg-success text-white' : 'bg-secondary-subtle text-secondary'}"
+                                  th:text="${(device != null and device.name.contains('PoE')) ? 'PoE Enabled' : 'Disabled'}">PoE</span>
+                        </div>
+
+                        <div class="p-3 bg-light rounded-3 border d-flex flex-column justify-content-between">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted small">Power Consumed:</span>
+                                <strong class="text-dark" th:text="${(device != null and device.name.contains('PoE') and port.portStatus.name() == 'ACTIVE_CONNECTED') ? '15.4 Watts (Active)' : '0.0 Watts'}">0.0 Watts</strong>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <span class="text-muted small">Power Priority:</span>
+                                <span class="badge bg-light text-dark border">Low (Class 0)</span>
+                            </div>
+
+                            <button th:if="${device != null and device.name.contains('PoE')}"
+                                    class="btn btn-outline-warning text-dark btn-sm rounded-pill w-100 fw-bold shadow-sm"
+                                    onclick="triggerPoeCycle()">
+                                <i class="fas fa-sync-alt me-1"></i> Power Cycle (Reboot Device)
+                            </button>
+                            <div th:if="${device == null or !device.name.contains('PoE')}" class="text-muted small text-center py-1">
+                                PoE power cycling is only supported on Switch 01 (PoE).
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION: Previous Users & IP Assignment Lifecycle Table -->
+            <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white overflow-hidden">
+                <div class="card-header bg-white border-0 py-3 px-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                        <h5 class="fw-bold text-dark mb-0">
+                            <i class="fas fa-user-clock text-primary me-2"></i> Device & IP Assignment Lifecycle
+                        </h5>
+                        <div class="text-muted small">
+                            Complete historical record of users, workstations, and IP leases that have occupied this port.
+                        </div>
+                    </div>
+                    <span class="badge bg-primary-subtle text-primary border px-3 py-2 rounded-pill fw-bold" th:text="${#lists.size(sessions)} + ' Recorded Sessions'">
+                        1 Recorded Session
+                    </span>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-4">User / Hostname</th>
+                                <th>Category</th>
+                                <th>Assigned IP</th>
+                                <th>MAC Address</th>
+                                <th>Connected Date</th>
+                                <th>Released Date</th>
+                                <th>Active Duration</th>
+                                <th>Release Reason / Status</th>
+                                <th class="text-end pe-4">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="sess : ${sessions}" th:classappend="${sess.active ? 'table-success bg-opacity-25' : ''}">
+                                <td class="ps-4">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="rounded-circle p-2 bg-light text-primary border" style="width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;">
+                                            <i class="fas" th:classappend="${sess.active ? 'fa-desktop text-success' : 'fa-history text-secondary'}"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold text-dark" th:text="${sess.hostnameOrUser}">Sophia</div>
+                                            <span class="badge" th:classappend="${sess.active ? 'bg-success text-white' : 'bg-secondary text-white'}" th:text="${sess.active ? 'LIVE' : 'PAST'}">LIVE</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark border" th:text="${sess.deviceCategory}">Workstation PC</span>
+                                </td>
+                                <td>
+                                    <strong class="text-primary font-monospace" th:text="${sess.ipAddress}">10.10.15.250</strong>
+                                </td>
+                                <td>
+                                    <code th:text="${sess.macAddress}">34:5A:60:17:D1:26</code>
+                                </td>
+                                <td class="text-muted small">
+                                    <i class="far fa-clock me-1"></i>
+                                    <span th:text="${sess.connectedAt != null ? #temporals.format(sess.connectedAt, 'yyyy-MM-dd HH:mm') : '—'}">2026-08-26 12:00</span>
+                                </td>
+                                <td class="text-muted small">
+                                    <span th:if="${sess.releasedAt != null}">
+                                        <i class="far fa-clock me-1"></i>
+                                        <span th:text="${#temporals.format(sess.releasedAt, 'yyyy-MM-dd HH:mm')}">2026-08-27 18:30</span>
+                                    </span>
+                                    <span th:if="${sess.releasedAt == null}" class="badge bg-success-subtle text-success border border-success fw-bold">
+                                        <i class="fas fa-check-circle me-1"></i> Currently Active
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark border fw-bold" th:text="${sess.durationFormatted}">2d 4h</span>
+                                </td>
+                                <td>
+                                    <span class="small fw-medium"
+                                          th:classappend="${sess.active ? 'text-success fw-bold' : 'text-muted'}"
+                                          th:text="${sess.releaseReason}">
+                                        Currently Active & Connected (🟢 Live)
+                                    </span>
+                                </td>
+                                <td class="text-end pe-4">
+                                    <button th:if="${sess.ipAddress != null and sess.ipAddress != '—'}"
+                                            th:data-ip="${sess.ipAddress}"
+                                            onclick="runLivePing(this.getAttribute('data-ip'))"
+                                            class="btn btn-outline-primary btn-sm rounded-pill px-2 py-1" title="Ping IP">
+                                        <i class="fas fa-bolt"></i> Ping
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr th:if="${#lists.isEmpty(sessions)}">
+                                <td colspan="9" class="text-center text-muted py-4">
+                                    <i class="fas fa-info-circle me-1"></i> No prior connection sessions recorded on this port yet.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Two-Column Layout: Physical Specs & Chronological Event Timeline -->
+            <div class="row g-4 mb-4">
+                <!-- Left: Physical Specs & Infrastructure Details -->
+                <div class="col-lg-5">
+                    <div class="card border-0 shadow-sm rounded-4 bg-white p-4 h-100">
+                        <h5 class="fw-bold text-dark mb-3">
+                            <i class="fas fa-sliders-h text-primary me-2"></i> Port Infrastructure & Config
+                        </h5>
+
+                        <div class="table-responsive">
+                            <table class="table table-borderless table-sm mb-0">
+                                <tbody>
+                                    <tr class="border-bottom">
+                                        <td class="text-muted py-2" style="width: 45%;">Switch / Device</td>
+                                        <td class="fw-bold text-dark py-2" th:text="${device != null ? device.name : '—'}">Switch 01</td>
+                                    </tr>
+                                    <tr class="border-bottom">
+                                        <td class="text-muted py-2">Port Designation</td>
+                                        <td class="fw-bold text-dark py-2">
+                                            <span class="badge bg-dark" th:text="${port.portNumber}">GE08</span>
+                                        </td>
+                                    </tr>
+                                    <tr class="border-bottom">
+                                        <td class="text-muted py-2">Operating Mode</td>
+                                        <td class="fw-bold text-dark py-2">
+                                            <span class="badge" th:classappend="${port.isTrunk ? 'bg-primary' : 'bg-light text-dark border'}" th:text="${port.portMode}">ACCESS</span>
+                                        </td>
+                                    </tr>
+                                    <tr class="border-bottom">
+                                        <td class="text-muted py-2">Assigned VLAN</td>
+                                        <td class="fw-bold text-dark py-2" th:text="${port.vlan != null ? port.vlan : 'Default (1)'}">15</td>
+                                    </tr>
+                                    <tr class="border-bottom">
+                                        <td class="text-muted py-2">Negotiated Speed</td>
+                                        <td class="fw-bold text-dark py-2" th:text="${port.speedNegotiation != null ? port.speedNegotiation : '1 Gbps Full'}">1 Gbps</td>
+                                    </tr>
+                                    <tr class="border-bottom">
+                                        <td class="text-muted py-2">PoE Power Delivery</td>
+                                        <td class="fw-bold text-dark py-2" th:text="${(device != null and device.name.contains('PoE')) ? 'Enabled (Active PoE)' : 'Disabled / Standard'}">Disabled</td>
+                                    </tr>
+                                    <tr class="border-bottom">
+                                        <td class="text-muted py-2">Uplink Target Device</td>
+                                        <td class="fw-bold text-primary py-2" th:text="${port.targetDeviceName != null ? (port.targetDeviceName + ' (' + (port.targetPortName != null ? port.targetPortName : '') + ')') : '—'}">—</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted py-2">Admin Notes</td>
+                                        <td class="text-dark py-2" th:text="${port.notes != null && !port.notes.isBlank() ? port.notes : 'No custom notes logged.'}">No custom notes logged.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="mt-4 pt-3 border-top d-flex gap-2">
+                            <button class="btn btn-outline-primary btn-sm rounded-pill w-100 fw-bold" onclick="openEditModal()">
+                                <i class="fas fa-wrench me-1"></i> Modify Port Settings
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Granular Event Timeline -->
+                <div class="col-lg-7">
+                    <div class="card border-0 shadow-sm rounded-4 bg-white p-4 h-100">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="fw-bold text-dark mb-0">
+                                <i class="fas fa-history text-primary me-2"></i> Chronological Event Audit Trail
+                            </h5>
+                            <span class="badge bg-light text-dark border" th:text="${#lists.size(historyList)} + ' Total Events'">0 Events</span>
+                        </div>
+
+                        <div class="port-timeline" style="max-height: 520px; overflow-y: auto; padding-right: 8px;">
+                            <div th:each="h : ${historyList}" class="timeline-item">
+                                <div class="timeline-marker"
+                                     th:classappend="${h.eventType.name() == 'LINK_UP' ? 'marker-link-up' : (h.eventType.name() == 'LINK_DOWN' ? 'marker-link-down' : (h.eventType.name() == 'SPEED_CHANGE' ? 'marker-speed' : (h.eventType.name() == 'MAC_LEARNED' ? 'marker-mac' : (h.eventType.name() == 'IP_CHANGED' ? 'marker-ip' : (h.eventType.name() == 'USER_HOSTNAME_CHANGED' ? 'marker-host' : (h.eventType.name() == 'VLAN_CHANGED' ? 'marker-vlan' : 'marker-config'))))))}">
+                                    <i class="fas"
+                                       th:classappend="${h.eventType.name() == 'LINK_UP' ? 'fa-plug' : (h.eventType.name() == 'LINK_DOWN' ? 'fa-power-off' : (h.eventType.name() == 'SPEED_CHANGE' ? 'fa-tachometer-alt' : (h.eventType.name() == 'MAC_LEARNED' ? 'fa-fingerprint' : (h.eventType.name() == 'IP_CHANGED' ? 'fa-globe' : (h.eventType.name() == 'USER_HOSTNAME_CHANGED' ? 'fa-user' : (h.eventType.name() == 'VLAN_CHANGED' ? 'fa-layer-group' : 'fa-edit'))))))}">
+                                    </i>
+                                </div>
+
+                                <div class="timeline-content">
+                                    <div class="d-flex justify-content-between align-items-center mb-1 flex-wrap gap-2">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="badge fw-bold"
+                                                  th:classappend="${h.eventType.name() == 'LINK_UP' ? 'bg-success text-white' : (h.eventType.name() == 'LINK_DOWN' ? 'bg-secondary text-white' : (h.eventType.name() == 'SPEED_CHANGE' ? 'bg-info text-dark' : (h.eventType.name() == 'MAC_LEARNED' ? 'bg-primary text-white' : (h.eventType.name() == 'IP_CHANGED' ? 'bg-teal text-dark border' : (h.eventType.name() == 'USER_HOSTNAME_CHANGED' ? 'bg-primary-subtle text-primary border border-primary' : 'bg-dark text-white')))))}"
+                                                  th:text="${h.eventType.name().replace('_', ' ')}">
+                                                LINK UP
+                                            </span>
+
+                                            <span class="small text-muted" th:if="${h.oldValue != null and h.newValue != null}">
+                                                <code th:text="${h.oldValue}">OLD</code> <i class="fas fa-arrow-right mx-1 text-secondary" style="font-size: 0.7rem;"></i> <strong class="text-dark"><code th:text="${h.newValue}">NEW</code></strong>
+                                            </span>
+                                        </div>
+                                        <span class="text-muted small" style="font-size: 0.75rem;">
+                                            <i class="far fa-clock me-1"></i>
+                                            <span th:text="${h.recordedAt != null ? #temporals.format(h.recordedAt, 'yyyy-MM-dd HH:mm:ss') : '—'}">2026-08-27 12:00:00</span>
+                                        </span>
+                                    </div>
+
+                                    <div class="text-dark small fw-medium mt-1" th:text="${h.summary}">Carrier link established</div>
+
+                                    <div class="d-flex justify-content-between align-items-center mt-2 pt-1 border-top" style="font-size: 0.72rem;">
+                                        <span class="text-muted">
+                                            <i class="fas fa-microchip me-1 text-secondary"></i> Source: <strong th:text="${h.source}">Cisco SNMP Poller</strong>
+                                        </span>
+                                        <span class="badge bg-light text-dark border" th:text="'Port ' + ${port.portNumber}">Port GE08</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div th:if="${#lists.isEmpty(historyList)}" class="text-center text-muted py-4">
+                                <i class="fas fa-info-circle me-1"></i> No audit events recorded yet for this port.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Incident & Problem Ticket Ledger -->
+            <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden mb-4">
+                <div class="card-header bg-white border-0 py-3 px-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                        <h5 class="fw-bold text-dark mb-0">
+                            <i class="fas fa-ticket-alt text-danger me-2"></i> Problem Logs & CRC Fault Tickets
+                        </h5>
+                        <div class="text-muted small">Cable faults, CRC errors, and open maintenance tickets on this port.</div>
+                    </div>
+                    <button class="btn btn-outline-danger btn-sm rounded-pill px-3 fw-bold" onclick="openLogIssueModal()">
+                        <i class="fas fa-plus me-1"></i> Log New Ticket
+                    </button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-4">Reported Date</th>
+                                <th>Issue Type</th>
+                                <th>Severity</th>
+                                <th>Status</th>
+                                <th>Summary & Description</th>
+                                <th class="text-end pe-4">Resolution</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="iss : ${issues}">
+                                <td class="ps-4 text-muted small" th:text="${iss.reportedAt != null ? #temporals.format(iss.reportedAt, 'yyyy-MM-dd HH:mm') : '—'}">2026-08-27</td>
+                                <td><span class="badge bg-light text-dark border" th:text="${iss.issueType}">CRC_ERROR</span></td>
+                                <td>
+                                    <span class="badge" th:classappend="${iss.severity.name() == 'CRITICAL' ? 'bg-danger' : (iss.severity.name() == 'HIGH' ? 'bg-warning text-dark' : 'bg-info text-dark')}" th:text="${iss.severity}">HIGH</span>
+                                </td>
+                                <td>
+                                    <span class="badge" th:classappend="${iss.status.name() == 'RESOLVED' ? 'bg-success' : 'bg-danger'}" th:text="${iss.status}">OPEN</span>
+                                </td>
+                                <td>
+                                    <strong class="text-dark" th:text="${iss.title}">CRC Error Burst Detected</strong>
+                                    <div class="text-muted small" th:text="${iss.description}">High packet drops detected on port.</div>
+                                </td>
+                                <td class="text-end pe-4">
+                                    <span th:if="${iss.status.name() == 'RESOLVED'}" class="text-success small fw-medium">
+                                        <i class="fas fa-check-circle me-1"></i> <span th:text="${iss.resolutionNotes != null ? iss.resolutionNotes : 'Resolved'}">Resolved</span>
+                                    </span>
+                                    <button th:if="${iss.status.name() != 'RESOLVED'}"
+                                            th:data-issue-id="${iss.id}"
+                                            onclick="openResolveIssueModal(this.getAttribute('data-issue-id'))"
+                                            class="btn btn-success btn-sm rounded-pill px-3 fw-bold">
+                                        <i class="fas fa-check me-1"></i> Resolve
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr th:if="${#lists.isEmpty(issues)}">
+                                <td colspan="6" class="text-center text-muted py-4">
+                                    <i class="fas fa-check-circle text-success me-1"></i> No issues or fault tickets reported on this port.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Modals -->
+
+            <!-- Edit Port Modal -->
+            <div class="modal fade" id="editPortModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content border-0 shadow-lg rounded-4">
+                        <div class="modal-header bg-dark text-white p-4">
+                            <h5 class="modal-title fw-bold">Edit Port Settings: <span th:text="${port.portNumber}">GE08</span></h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <form id="editPortForm" onsubmit="submitPortEdit(event)">
+                            <input type="hidden" id="editPortId" th:value="${port.id}">
+                            <div class="modal-body p-4">
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold">Port Operating Status</label>
+                                    <select class="form-select" id="editPortStatus">
+                                        <option th:each="st : ${portStatuses}" th:value="${st}" th:text="${st}" th:selected="${st == port.portStatus}">ACTIVE_CONNECTED</option>
+                                    </select>
+                                </div>
+                                <div class="row g-2 mb-3">
+                                    <div class="col-6">
+                                        <label class="form-label small fw-bold">Port Mode</label>
+                                        <select class="form-select" id="editPortMode">
+                                            <option th:each="pm : ${portModes}" th:value="${pm}" th:text="${pm}" th:selected="${pm == port.portMode}">ACCESS</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label small fw-bold">VLAN ID / Tag</label>
+                                        <input type="text" class="form-control" id="editPortVlan" th:value="${port.vlan}">
+                                    </div>
+                                </div>
+                                <div class="row g-2 mb-3">
+                                    <div class="col-6">
+                                        <label class="form-label small fw-bold">Assigned User / Persona</label>
+                                        <input type="text" class="form-control" id="editPortUser" th:value="${port.hostnameOrUser}">
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label small fw-bold">Device Category</label>
+                                        <input type="text" class="form-control" id="editPortCategory" th:value="${port.deviceCategory}">
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold">Administrative Notes</label>
+                                    <textarea class="form-control" id="editPortNotes" rows="3" th:text="${port.notes}"></textarea>
+                                </div>
+                            </div>
+                            <div class="modal-footer bg-light border-0 p-3">
+                                <button type="button" class="btn btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold">Save Changes</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Log Issue Modal -->
+            <div class="modal fade" id="logIssueModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content border-0 shadow-lg rounded-4">
+                        <div class="modal-header bg-dark text-white p-4">
+                            <h5 class="modal-title fw-bold">Log Ticket for Port <span th:text="${port.portNumber}">GE08</span></h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <form id="logIssueForm" onsubmit="submitLogIssue(event)">
+                            <input type="hidden" id="issuePortId" th:value="${port.id}">
+                            <input type="hidden" id="issueDeviceId" th:value="${device != null ? device.id : ''}">
+                            <div class="modal-body p-4">
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold">Issue Title *</label>
+                                    <input type="text" class="form-control" id="issueTitle" required placeholder="e.g. CRC errors detected on wall jack">
+                                </div>
+                                <div class="row g-2 mb-3">
+                                    <div class="col-6">
+                                        <label class="form-label small fw-bold">Issue Type</label>
+                                        <select class="form-select" id="issueType">
+                                            <option th:each="it : ${issueTypes}" th:value="${it}" th:text="${it}">CRC_ERROR</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label small fw-bold">Severity</label>
+                                        <select class="form-select" id="issueSeverity">
+                                            <option th:each="sev : ${issueSeverities}" th:value="${sev}" th:text="${sev}">HIGH</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold">Problem Description</label>
+                                    <textarea class="form-control" id="issueDescription" rows="3" placeholder="Provide details about symptoms, packet loss, or cable issues..."></textarea>
+                                </div>
+                            </div>
+                            <div class="modal-footer bg-light border-0 p-3">
+                                <button type="button" class="btn btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn btn-danger rounded-pill px-4 fw-bold">Log Ticket</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resolve Issue Modal -->
+            <div class="modal fade" id="resolveIssueModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content border-0 shadow-lg rounded-4">
+                        <div class="modal-header bg-success text-white p-4">
+                            <h5 class="modal-title fw-bold">Resolve Ticket</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <form id="resolveIssueForm" onsubmit="submitResolveIssue(event)">
+                            <input type="hidden" id="resolveIssueId">
+                            <div class="modal-body p-4">
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold">Resolution Notes *</label>
+                                    <textarea class="form-control" id="resolveNotes" rows="3" required placeholder="e.g. Replaced patch cable, CRC errors cleared, link steady at 1Gbps."></textarea>
+                                </div>
+                            </div>
+                            <div class="modal-footer bg-light border-0 p-3">
+                                <button type="button" class="btn btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn btn-success rounded-pill px-4 fw-bold">Mark Resolved</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+    </div>
+
+    <!-- Scripts Section -->
+    <script th:inline="javascript">
+        const currentPortId = /*[[${port.id}]]*/ 0;
+
+        function openEditModal() {
+            const modal = new bootstrap.Modal(document.getElementById('editPortModal'));
+            modal.show();
+        }
+
+        function openLogIssueModal() {
+            const modal = new bootstrap.Modal(document.getElementById('logIssueModal'));
+            modal.show();
+        }
+
+        function openResolveIssueModal(issueId) {
+            document.getElementById('resolveIssueId').value = issueId;
+            const modal = new bootstrap.Modal(document.getElementById('resolveIssueModal'));
+            modal.show();
+        }
+
+        function runLivePing(ip) {
+            if (!ip || ip === '—') {
+                alert("No IP address configured for this target.");
+                return;
+            }
+
+            const diagContainer = document.getElementById('pingDiagContainer');
+            const diagOutput = document.getElementById('pingDiagOutput');
+            diagContainer.classList.remove('d-none');
+            diagOutput.innerHTML = `<i class="fas fa-spinner fa-spin me-2"></i> Pinging <strong>${ip}</strong> via gateway...`;
+
+            fetch('/api/network/ping?ip=' + encodeURIComponent(ip))
+                .then(res => res.json())
+                .then(data => {
+                    if (data.reachable) {
+                        diagOutput.innerHTML = `
+                            <div class="text-success fw-bold mb-1"><i class="fas fa-check-circle me-1"></i> Target ${ip} is ONLINE & REACHABLE</div>
+                            <div>Round-trip latency: <strong>${data.responseTimeMs} ms</strong></div>
+                            <div class="text-muted mt-1" style="font-size:0.75rem;">Gateway status: ${data.message || 'Connected'}</div>
+                        `;
+                    } else {
+                        diagOutput.innerHTML = `
+                            <div class="text-danger fw-bold mb-1"><i class="fas fa-times-circle me-1"></i> Target ${ip} is UNREACHABLE (Request Timed Out)</div>
+                            <div class="text-muted">Host did not respond to ICMP ping echo probes via router gateway.</div>
+                        `;
+                    }
+                })
+                .catch(err => {
+                    diagOutput.innerHTML = `<div class="text-danger">Ping diagnostic failed: ${err}</div>`;
+                });
+        }
+
+        function submitPortEdit(e) {
+            e.preventDefault();
+            const payload = {
+                portStatus: document.getElementById('editPortStatus').value,
+                portMode: document.getElementById('editPortMode').value,
+                vlan: document.getElementById('editPortVlan').value,
+                hostnameOrUser: document.getElementById('editPortUser').value,
+                deviceCategory: document.getElementById('editPortCategory').value,
+                notes: document.getElementById('editPortNotes').value
+            };
+
+            fetch('/api/network/ports/' + currentPortId, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                alert("✅ Port settings updated successfully!");
+                window.location.reload();
+            })
+            .catch(err => alert("Error updating port: " + err));
+        }
+
+        function submitLogIssue(e) {
+            e.preventDefault();
+            const payload = {
+                title: document.getElementById('issueTitle').value,
+                issueType: document.getElementById('issueType').value,
+                severity: document.getElementById('issueSeverity').value,
+                description: document.getElementById('issueDescription').value,
+                portId: currentPortId,
+                deviceId: document.getElementById('issueDeviceId').value || null
+            };
+
+            fetch('/api/network/issues', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                alert("✅ Issue ticket logged successfully!");
+                window.location.reload();
+            })
+            .catch(err => alert("Error logging issue: " + err));
+        }
+
+        function submitResolveIssue(e) {
+            e.preventDefault();
+            const issueId = document.getElementById('resolveIssueId').value;
+            const payload = {
+                resolutionNotes: document.getElementById('resolveNotes').value
+            };
+
+            fetch('/api/network/issues/' + issueId + '/resolve', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                alert("✅ Issue resolved!");
+                window.location.reload();
+            })
+            .catch(err => alert("Error resolving issue: " + err));
+        }
+
+        function runCableTdrTest() {
+            const summaryText = document.getElementById('tdrSummaryText');
+            const overallBadge = document.getElementById('tdrOverallBadge');
+            const lengthVal = document.getElementById('tdrLengthVal');
+
+            summaryText.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Running Cisco TDR pulse reflections...';
+            overallBadge.className = 'badge bg-warning text-dark';
+            overallBadge.innerText = 'TESTING...';
+
+            fetch('/api/network/ports/' + currentPortId + '/tdr-test', { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    summaryText.innerText = data.diagnosticSummary;
+                    lengthVal.innerText = data.estimatedLengthMeters > 0 ? (data.estimatedLengthMeters + ' Meters') : 'No Link';
+
+                    if (data.overallStatus === 'NORMAL_OK') {
+                        overallBadge.className = 'badge bg-success text-white';
+                        overallBadge.innerText = 'NORMAL (OK)';
+                    } else if (data.overallStatus === 'CABLE_FAULT') {
+                        overallBadge.className = 'badge bg-danger text-white';
+                        overallBadge.innerText = 'FAULT DETECTED';
+                    } else {
+                        overallBadge.className = 'badge bg-secondary text-white';
+                        overallBadge.innerText = data.overallStatus;
+                    }
+
+                    // Update pair badges
+                    updatePairBox('pair12Val', 'pair12Box', data.pair12Status);
+                    updatePairBox('pair36Val', 'pair36Box', data.pair36Status);
+                    updatePairBox('pair45Val', 'pair45Box', data.pair45Status);
+                    updatePairBox('pair78Val', 'pair78Box', data.pair78Status);
+                })
+                .catch(err => {
+                    summaryText.innerText = "TDR test failed: " + err;
+                    overallBadge.className = 'badge bg-danger text-white';
+                    overallBadge.innerText = 'ERROR';
+                });
+        }
+
+        function updatePairBox(valId, boxId, status) {
+            const valEl = document.getElementById(valId);
+            const boxEl = document.getElementById(boxId);
+            if (!valEl || !boxEl) return;
+
+            valEl.innerText = status || 'N/A';
+            if (status === 'OK') {
+                valEl.className = 'text-success fw-bold';
+                boxEl.className = 'p-2 rounded-2 bg-success bg-opacity-10 border border-success';
+            } else if (status === 'OPEN' || status === 'SHORT' || status === 'IMPEDANCE_MISMATCH') {
+                valEl.className = 'text-danger fw-bold';
+                boxEl.className = 'p-2 rounded-2 bg-danger bg-opacity-10 border border-danger';
+            } else {
+                valEl.className = 'text-secondary';
+                boxEl.className = 'p-2 rounded-2 bg-white border';
+            }
+        }
+
+        function triggerPoeCycle() {
+            if (!confirm("⚠️ Are you sure you want to power-cycle this PoE port? The connected device (IP Phone / AP / Camera) will reboot immediately.")) {
+                return;
+            }
+
+            fetch('/api/network/ports/' + currentPortId + '/poe-cycle', { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    alert("⚡ " + data.message);
+                })
+                .catch(err => alert("Error power cycling PoE port: " + err));
+        }
+
+        function exportCurrentPortCsv() {
+            window.location.href = '/api/network/history/export?portId=' + currentPortId;
+        }
+    </script>
+</body>
+</html>

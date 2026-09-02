@@ -30,7 +30,7 @@ public class SecurityConfig {
                                                 .requestMatchers("/iclock/**").permitAll() // Allow ADMS Device
                                                                                            // Communication
                                                 // Admin Only Areas
-                                                .requestMatchers("/users/**", "/devices/**")
+                                                .requestMatchers("/users/**", "/devices/**", "/network/**", "/api/network/**")
                                                 .hasRole("ADMIN")
                                                 .requestMatchers("/settings/**").hasAnyRole("ADMIN", "HR")
                                                 .requestMatchers("/employees/**")

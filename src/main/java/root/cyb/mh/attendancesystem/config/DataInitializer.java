@@ -60,6 +60,21 @@ public class DataInitializer {
                 System.out.println("Created default HR user: hr / hr123");
             }
 
+            // Purge demo personas if any exist in the database
+            try {
+                java.util.List<root.cyb.mh.attendancesystem.model.Employee> demoEmps = employeeRepository.findAll().stream()
+                        .filter(e -> e.getId() != null && e.getId().startsWith("demo_"))
+                        .toList();
+                if (!demoEmps.isEmpty()) {
+                    for (root.cyb.mh.attendancesystem.model.Employee demoEmp : demoEmps) {
+                        employeeRepository.delete(demoEmp);
+                    }
+                    System.out.println("Purged " + demoEmps.size() + " demo employees from database.");
+                }
+            } catch (Exception e) {
+                System.out.println("Demo cleanup: " + e.getMessage());
+            }
+
             // Test Data injection
             if (appTesting) {
                 System.out.println("TESTING MODE ACTIVE: Injecting dummy Work Status records for all statuses...");

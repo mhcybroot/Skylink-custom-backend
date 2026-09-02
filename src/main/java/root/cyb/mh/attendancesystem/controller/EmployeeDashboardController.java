@@ -5,6 +5,9 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import jakarta.servlet.http.HttpServletResponse;
 
 import root.cyb.mh.attendancesystem.model.*;
@@ -313,11 +316,11 @@ public class EmployeeDashboardController {
     }
 
     @GetMapping("/employee/report/monthly/download")
-    public void downloadAttendanceReport(
+    public ResponseEntity<byte[]> downloadAttendanceReport(
             @RequestParam(name = "period", required = false) String period,
             @RequestParam(name = "year", required = false) Integer year,
             @RequestParam(name = "month", required = false) Integer month,
-            HttpServletResponse response, Principal principal) throws Exception {
+            Principal principal) throws Exception {
 
         String employeeId = principal.getName();
         LocalDate now = LocalDate.now();
@@ -351,22 +354,18 @@ public class EmployeeDashboardController {
                 .getEmployeeRangeReport(employeeId, startDate, endDate);
 
         if (reportData == null) {
-            response.sendError(HttpServletResponse.SC_NOT_FOUND, "Employee data not found");
-            return;
+            return ResponseEntity.notFound().build();
         }
 
         // 2. Generate PDF using Range Export
-        // Note: Even for a single month, we now use the Range logic (List of 1 report)
-        // via exportEmployeeRangeReport
-        // or we could keep the old one. But Range logic is cleaner as it handles the
-        // list loop.
         byte[] pdfBytes = pdfExportService.exportEmployeeRangeReport(reportData);
 
-        // 3. Write Response
-        response.setContentType("application/pdf");
-        response.setHeader("Content-Disposition",
-                "attachment; filename=Attendance_Report_" + period + "_" + System.currentTimeMillis() + ".pdf");
-        response.getOutputStream().write(pdfBytes);
+        // 3. Return ResponseEntity
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=Attendance_Report_" + period + "_" + System.currentTimeMillis() + ".pdf")
+                .body(pdfBytes);
     }
 
     @PostMapping("/employee/profile/upload")

@@ -1,6 +1,10 @@
 package root.cyb.mh.attendancesystem.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
@@ -177,11 +181,11 @@ public class PaymentRequestController {
     }
 
     @GetMapping("/export")
-    public void exportRequests(
-            @RequestParam(required = false) String view,
-            @RequestParam(required = false, defaultValue = "lastModified") String sortField,
-            @RequestParam(required = false, defaultValue = "desc") String sortDir,
+    public ResponseEntity<byte[]> exportPaymentRequests(
             @RequestParam(defaultValue = "pdf") String format,
+            @RequestParam(required = false, defaultValue = "requestDate") String sortField,
+            @RequestParam(required = false, defaultValue = "desc") String sortDir,
+            @RequestParam(required = false, defaultValue = "all") String view,
             @RequestParam(required = false) List<String> columns,
 
             // Filters
@@ -197,7 +201,6 @@ public class PaymentRequestController {
             @RequestParam(required = false) List<PaymentStatus> paymentStatus,
             @RequestParam(required = false) List<PPWStatus> ppwUpdateStatus,
 
-            jakarta.servlet.http.HttpServletResponse response,
             @AuthenticationPrincipal UserDetails userDetails) throws java.io.IOException {
 
         boolean isAdminOrHr = userDetails.getAuthorities().stream()
@@ -217,14 +220,22 @@ public class PaymentRequestController {
         List<PaymentRequest> requests = paymentRequestRepository.findAll(spec, sort);
 
         if ("csv".equalsIgnoreCase(format)) {
-            response.setContentType("text/csv");
-            response.setHeader("Content-Disposition", "attachment; filename=payment_requests.csv");
-            dataImportExportService.exportPaymentRequestsToCsv(response.getWriter(), requests, columns);
+            java.io.StringWriter stringWriter = new java.io.StringWriter();
+            java.io.PrintWriter writer = new java.io.PrintWriter(stringWriter);
+            dataImportExportService.exportPaymentRequestsToCsv(writer, requests, columns);
+            writer.flush();
+            byte[] csvBytes = stringWriter.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType("text/csv"))
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=payment_requests.csv")
+                    .body(csvBytes);
         } else {
-            response.setContentType("application/pdf");
-            response.setHeader("Content-Disposition", "attachment; filename=payment_requests.pdf");
-            dataImportExportService.exportPaymentRequestsToPdf(response.getOutputStream(), requests,
-                    "Payment Requests Export", columns);
+            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+            dataImportExportService.exportPaymentRequestsToPdf(baos, requests, "Payment Requests Export", columns);
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=payment_requests.pdf")
+                    .body(baos.toByteArray());
         }
     }
 
@@ -626,8 +637,7 @@ public class PaymentRequestController {
     }
 
     @GetMapping("/{id}/invoice")
-    public void downloadInvoice(@PathVariable Long id,
-            jakarta.servlet.http.HttpServletResponse response,
+    public ResponseEntity<byte[]> downloadInvoice(@PathVariable Long id,
             @AuthenticationPrincipal UserDetails userDetails) throws java.io.IOException {
         Optional<PaymentRequest> requestOpt = paymentRequestService.getRequestById(id);
         if (requestOpt.isPresent()) {
@@ -652,22 +662,23 @@ public class PaymentRequestController {
             }
 
             if (!isAdminOrHr && !isRequester) {
-                response.sendError(jakarta.servlet.http.HttpServletResponse.SC_FORBIDDEN, "Access Denied");
-                return;
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
             }
 
             // Check Status
             if (request.getPaymentStatus() != PaymentStatus.PAID) {
-                response.sendError(jakarta.servlet.http.HttpServletResponse.SC_BAD_REQUEST,
-                        "Invoice available only for PAID requests");
-                return;
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
             }
 
-            response.setContentType("application/pdf");
-            response.setHeader("Content-Disposition", "attachment; filename=\"invoice_" + id + ".pdf\"");
+            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+            dataImportExportService.generateInvoicePdf(baos, request);
 
-            dataImportExportService.generateInvoicePdf(response.getOutputStream(), request);
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"invoice_" + id + ".pdf\"")
+                    .body(baos.toByteArray());
         }
+        return ResponseEntity.notFound().build();
     }
 
     @PostMapping("/{id}/send-email")

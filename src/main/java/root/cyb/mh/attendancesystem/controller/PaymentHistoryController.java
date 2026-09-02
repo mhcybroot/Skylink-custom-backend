@@ -7,6 +7,9 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -37,7 +40,7 @@ public class PaymentHistoryController {
         private root.cyb.mh.attendancesystem.service.DataImportExportService dataImportExportService;
 
         @RequestMapping("/export")
-        public void exportHistory(
+        public ResponseEntity<byte[]> exportHistory(
                         @RequestParam(defaultValue = "pdf") String format,
                         @RequestParam(required = false) List<String> columns,
                         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
@@ -53,8 +56,7 @@ public class PaymentHistoryController {
                         @RequestParam(required = false) PaymentPriority priority,
                         @RequestParam(required = false) RequestStatus status,
                         @RequestParam(required = false) PaymentStatus paymentStatus,
-                        @RequestParam(required = false) PPWStatus ppwUpdateStatus,
-                        jakarta.servlet.http.HttpServletResponse response) throws java.io.IOException {
+                        @RequestParam(required = false) PPWStatus ppwUpdateStatus) throws java.io.IOException {
 
                 // Determine Date Range based on parameters
                 LocalDate rangeStart = null;
@@ -95,14 +97,22 @@ public class PaymentHistoryController {
                                 Sort.by(Sort.Direction.DESC, "requestDate", "lastModified"));
 
                 if ("csv".equalsIgnoreCase(format)) {
-                        response.setContentType("text/csv");
-                        response.setHeader("Content-Disposition", "attachment; filename=\"payment_history.csv\"");
-                        dataImportExportService.exportPaymentRequestsToCsv(response.getWriter(), requests, columns);
+                        java.io.StringWriter stringWriter = new java.io.StringWriter();
+                        java.io.PrintWriter writer = new java.io.PrintWriter(stringWriter);
+                        dataImportExportService.exportPaymentRequestsToCsv(writer, requests, columns);
+                        writer.flush();
+                        byte[] bytes = stringWriter.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                        return ResponseEntity.ok()
+                                        .contentType(MediaType.parseMediaType("text/csv"))
+                                        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"payment_history.csv\"")
+                                        .body(bytes);
                 } else {
-                        response.setContentType("application/pdf");
-                        response.setHeader("Content-Disposition", "attachment; filename=\"payment_history.pdf\"");
-                        dataImportExportService.exportPaymentRequestsToPdf(response.getOutputStream(), requests, title,
-                                        columns);
+                        java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+                        dataImportExportService.exportPaymentRequestsToPdf(baos, requests, title, columns);
+                        return ResponseEntity.ok()
+                                        .contentType(MediaType.APPLICATION_PDF)
+                                        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"payment_history.pdf\"")
+                                        .body(baos.toByteArray());
                 }
         }
 
