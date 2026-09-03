@@ -348,9 +348,17 @@
                                     <td th:text="${wo.contractor != null ? wo.contractor.name : (wo.originalContractorString != null ? wo.originalContractorString : '-')}">Contractor</td>
                                     <td th:text="${wo.address}">Address</td>
                                     <td th:text="${wo.dateDue}">Jan 1</td>
-                                    <td class="fw-bold"
-                                        th:text="${wo.clientInvoiceTotal != null ? '$' + #numbers.formatDecimal(wo.clientInvoiceTotal, 1, 2) : '-'}">
-                                        $0.00</td>
+                                    <td class="text-nowrap">
+                                        <div class="fw-bold text-dark"
+                                            th:text="${wo.effectiveClientTotal != null ? '$' + #numbers.formatDecimal(wo.effectiveClientTotal, 1, 2) : '-'}">
+                                            $0.00
+                                        </div>
+                                        <div th:if="${wo.clientDiscountTotal != null && wo.clientDiscountTotal.compareTo(java.math.BigDecimal.ZERO) > 0 && wo.clientInvoiceTotal != null && wo.clientDiscountTotal.compareTo(wo.clientInvoiceTotal) < 0}" 
+                                             class="text-muted text-decoration-line-through" style="font-size: 0.72rem;"
+                                             th:text="'$' + ${#numbers.formatDecimal(wo.clientInvoiceTotal, 1, 2)}"
+                                             title="Original gross invoice total before discount">
+                                        </div>
+                                    </td>
                                     <td th:text="${wo.contractorInvoiceTotal != null ? '$' + #numbers.formatDecimal(wo.contractorInvoiceTotal, 1, 2) : '-'}">
                                         $0.00</td>
                                 </tr>

@@ -137,6 +137,21 @@ class ClientDueAgingServiceTest {
     }
 
     @Test
+    void testCalculateAgingSummaryAlwaysUsesClientDiscountTotal() {
+        EmployeeWorkOrder wo = new EmployeeWorkOrder();
+        wo.setClientInvoicePaid(false);
+        wo.setInvoiceDate(LocalDate.now().minusDays(45));
+        wo.setClientInvoiceTotal(new BigDecimal("100.00")); // Gross invoice total
+        wo.setClientDiscountTotal(new BigDecimal("80.00")); // Net discounted total (20% discount)
+
+        AgingSummaryDTO summary = clientDueAgingService.calculateAgingSummary(List.of(wo));
+
+        assertEquals(1, summary.getTotalUnpaidCount());
+        assertEquals(new BigDecimal("80.00"), summary.getTotalUnpaidAmount(), "Should calculate based on clientDiscountTotal not gross invoice total");
+        assertEquals(new BigDecimal("80.00"), summary.getStandardDueAmount());
+    }
+
+    @Test
     void testInvalidThresholdsValidationThrowsException() {
         assertThrows(IllegalArgumentException.class, () -> {
             clientDueAgingService.saveOrUpdateConfig("DEFAULT", "Default", 50, 40, 60, "admin");

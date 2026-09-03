@@ -120,4 +120,11 @@ public abstract class BaseWorkOrder {
         }
         return true;
     }
+
+    public BigDecimal getEffectiveClientTotal() {
+        if (clientDiscountTotal != null && clientDiscountTotal.compareTo(BigDecimal.ZERO) > 0) {
+            return clientDiscountTotal;
+        }
+        return clientInvoiceTotal != null ? clientInvoiceTotal : BigDecimal.ZERO;
+    }
 }

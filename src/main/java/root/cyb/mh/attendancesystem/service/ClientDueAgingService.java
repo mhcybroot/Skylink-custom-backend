@@ -145,7 +145,7 @@ public class ClientDueAgingService {
                 continue;
             }
 
-            BigDecimal amount = wo.getClientInvoiceTotal() != null ? wo.getClientInvoiceTotal() : BigDecimal.ZERO;
+            BigDecimal amount = wo.getEffectiveClientTotal();
             String bucket = getAgingBucket(wo, configMap, defaultConfig);
 
             summary.setTotalUnpaidCount(summary.getTotalUnpaidCount() + 1);

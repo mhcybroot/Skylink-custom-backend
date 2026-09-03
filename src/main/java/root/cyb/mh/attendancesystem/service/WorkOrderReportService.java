@@ -94,7 +94,11 @@ public class WorkOrderReportService {
                                 .filter(Objects::nonNull)
                                 .reduce(BigDecimal.ZERO, BigDecimal::add);
                 stats.setRealizedRevenue(realizedRevenue);
-                stats.setUnrealizedRevenue(totalRevenue.subtract(realizedRevenue));
+                BigDecimal unrealizedRevenue = workOrders.stream()
+                                .filter(wo -> wo.getClientPaidAmount() == null || wo.getClientPaidAmount().compareTo(BigDecimal.ZERO) == 0)
+                                .map(this::getEffectiveRevenue)
+                                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                stats.setUnrealizedRevenue(unrealizedRevenue);
 
                 // Paid/Unpaid Counts
                 long clientPaidCount = workOrders.stream()
