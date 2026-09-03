@@ -213,7 +213,7 @@
                                         <!-- Stacked Risk Distribution Bar -->
                                         <td>
                                             <div class="progress" style="height: 9px; border-radius: 6px;" 
-                                                 th:title="'Current: ' + ${#numbers.formatDecimal(cStat.withinTermsPercent, 1, 1)} + '% | Standard: ' + ${#numbers.formatDecimal(cStat.standardPercent, 1, 1)} + '% | Past Due: ' + ${#numbers.formatDecimal(cStat.overduePercent, 1, 1)} + '% | Critical: ' + ${#numbers.formatDecimal(cStat.criticalPercent, 1, 1)} + '%'">
+                                                 th:title="${cStat.pendingInvoiceAmount ? 'Based on Work Order counts (no invoice dollar amounts recorded): ' : ''} + 'Current: ' + ${#numbers.formatDecimal(cStat.withinTermsPercent, 1, 1)} + '% | Standard: ' + ${#numbers.formatDecimal(cStat.standardPercent, 1, 1)} + '% | Past Due: ' + ${#numbers.formatDecimal(cStat.overduePercent, 1, 1)} + '% | Critical: ' + ${#numbers.formatDecimal(cStat.criticalPercent, 1, 1)} + '%'">
                                                 <div class="progress-bar bg-success" role="progressbar" 
                                                      th:style="'width: ' + ${cStat.withinTermsPercent} + '%;'" aria-label="Current"></div>
                                                 <div class="progress-bar bg-warning" role="progressbar" 
@@ -245,9 +245,9 @@
                                         </td>
 
                                         <!-- Total Unpaid Balance -->
-                                        <td class="text-end fw-bold text-dark font-monospace"
-                                            th:text="'$' + ${#numbers.formatDecimal(cStat.totalUnpaidAmount, 1, 2)}">
-                                            $0.00
+                                        <td class="text-end font-monospace">
+                                            <div class="fw-bold text-dark" th:text="'$' + ${#numbers.formatDecimal(cStat.totalUnpaidAmount, 1, 2)}">$0.00</div>
+                                            <span th:if="${cStat.pendingInvoiceAmount}" class="badge bg-light text-muted border" style="font-size: 0.6rem;" title="Work order imported without invoice dollar amounts">$0 / Unpriced</span>
                                         </td>
 
                                         <!-- Current (<40d) -->

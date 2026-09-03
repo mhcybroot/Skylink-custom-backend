@@ -70,23 +70,47 @@ public class AgingSummaryDTO {
         private BigDecimal withinTermsAmount = BigDecimal.ZERO;
 
         public double getWithinTermsPercent() {
-            if (totalUnpaidAmount == null || totalUnpaidAmount.compareTo(BigDecimal.ZERO) <= 0 || withinTermsAmount == null) return 0.0;
-            return withinTermsAmount.divide(totalUnpaidAmount, 4, java.math.RoundingMode.HALF_UP).doubleValue() * 100.0;
+            if (totalUnpaidAmount != null && totalUnpaidAmount.compareTo(BigDecimal.ZERO) > 0 && withinTermsAmount != null) {
+                return withinTermsAmount.divide(totalUnpaidAmount, 4, java.math.RoundingMode.HALF_UP).doubleValue() * 100.0;
+            }
+            if (totalUnpaidCount > 0) {
+                return ((double) withinTermsCount / totalUnpaidCount) * 100.0;
+            }
+            return 0.0;
         }
 
         public double getStandardPercent() {
-            if (totalUnpaidAmount == null || totalUnpaidAmount.compareTo(BigDecimal.ZERO) <= 0 || standardDueAmount == null) return 0.0;
-            return standardDueAmount.divide(totalUnpaidAmount, 4, java.math.RoundingMode.HALF_UP).doubleValue() * 100.0;
+            if (totalUnpaidAmount != null && totalUnpaidAmount.compareTo(BigDecimal.ZERO) > 0 && standardDueAmount != null) {
+                return standardDueAmount.divide(totalUnpaidAmount, 4, java.math.RoundingMode.HALF_UP).doubleValue() * 100.0;
+            }
+            if (totalUnpaidCount > 0) {
+                return ((double) standardDueCount / totalUnpaidCount) * 100.0;
+            }
+            return 0.0;
         }
 
         public double getOverduePercent() {
-            if (totalUnpaidAmount == null || totalUnpaidAmount.compareTo(BigDecimal.ZERO) <= 0 || pastDueAmount == null) return 0.0;
-            return pastDueAmount.divide(totalUnpaidAmount, 4, java.math.RoundingMode.HALF_UP).doubleValue() * 100.0;
+            if (totalUnpaidAmount != null && totalUnpaidAmount.compareTo(BigDecimal.ZERO) > 0 && pastDueAmount != null) {
+                return pastDueAmount.divide(totalUnpaidAmount, 4, java.math.RoundingMode.HALF_UP).doubleValue() * 100.0;
+            }
+            if (totalUnpaidCount > 0) {
+                return ((double) pastDueCount / totalUnpaidCount) * 100.0;
+            }
+            return 0.0;
         }
 
         public double getCriticalPercent() {
-            if (totalUnpaidAmount == null || totalUnpaidAmount.compareTo(BigDecimal.ZERO) <= 0 || criticalDueAmount == null) return 0.0;
-            return criticalDueAmount.divide(totalUnpaidAmount, 4, java.math.RoundingMode.HALF_UP).doubleValue() * 100.0;
+            if (totalUnpaidAmount != null && totalUnpaidAmount.compareTo(BigDecimal.ZERO) > 0 && criticalDueAmount != null) {
+                return criticalDueAmount.divide(totalUnpaidAmount, 4, java.math.RoundingMode.HALF_UP).doubleValue() * 100.0;
+            }
+            if (totalUnpaidCount > 0) {
+                return ((double) criticalDueCount / totalUnpaidCount) * 100.0;
+            }
+            return 0.0;
+        }
+
+        public boolean isPendingInvoiceAmount() {
+            return totalUnpaidCount > 0 && (totalUnpaidAmount == null || totalUnpaidAmount.compareTo(BigDecimal.ZERO) == 0);
         }
     }
 }
