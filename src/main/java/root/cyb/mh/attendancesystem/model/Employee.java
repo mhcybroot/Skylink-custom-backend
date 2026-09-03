@@ -60,6 +60,9 @@ public class Employee {
     @jakarta.persistence.Column(columnDefinition = "boolean default false")
     private boolean canViewAllPaymentRequests = false;
 
+    @jakarta.persistence.Column(columnDefinition = "boolean default false")
+    private boolean canAccessWorkOrders = false;
+
     private java.time.LocalDate joiningDate;
     private java.time.LocalDate dateOfBirth;
 

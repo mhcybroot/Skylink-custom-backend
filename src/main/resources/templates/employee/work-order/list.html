@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <title>Employee Work Orders</title>
+</head>
+
+<body>
+    <div th:replace="~{layout :: layout(~{::section}, ~{::script}, 'employee-work-orders')}">
+        <section>
+            <!-- Alert Messages -->
+            <div th:if="${param.success != null and param.success[0] == 'import'}" class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="fas fa-check-circle me-2"></i><strong>Success!</strong> Employee Work Orders CSV imported successfully into your table.
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            <div th:if="${param.error != null and param.error[0] == 'emptyfile'}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fas fa-exclamation-circle me-2"></i><strong>Error:</strong> Please select a valid non-empty CSV file.
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3 class="d-flex align-items-center">
+                    <span th:text="${currentFilter != null ? currentFilter : 'Employee Work Orders'}">Employee Work Orders</span>
+                    <a th:if="${(currentFilter != null && currentFilter != 'All Employee Work Orders') || (search != null && !search.isEmpty())}"
+                        href="/employee/work-orders" class="btn btn-sm btn-outline-secondary ms-3 rounded-circle"
+                        title="Clear Filter"
+                        style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;"><i
+                            class="fas fa-times"></i></a>
+                </h3>
+                <div>
+                    <button class="btn btn-outline-dark btn-sm me-2" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#advancedSearchPanel">
+                        <i class="fas fa-search me-1"></i> Advanced Search
+                    </button>
+                    <a href="/employee/imports" class="btn btn-outline-secondary btn-sm me-2">
+                        <i class="fas fa-history me-1"></i> Import History
+                    </a>
+                    <button class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#importWorkOrderModal">
+                        <i class="fas fa-file-import me-1"></i> Import CSV
+                    </button>
+                </div>
+            </div>
+
+            <!-- Advanced Search Panel -->
+            <div class="collapse mb-4" id="advancedSearchPanel"
+                th:classappend="${(search != null && !search.isEmpty()) || (workType != null && !workType.isEmpty()) ? 'show' : ''}">
+                <div class="card shadow-sm border-0 bg-light">
+                    <div class="card-body">
+                        <form action="/employee/work-orders" method="get" class="row g-3">
+                            <!-- Global Text Search -->
+                            <div class="col-md-12">
+                                <label class="form-label small fw-bold text-uppercase text-muted">Search (WO#, Inv#,
+                                    PPW#, Loan#, Address)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white"><i class="fas fa-search"></i></span>
+                                    <input type="text" class="form-control" name="search" th:value="${search}"
+                                        placeholder="Type to search...">
+                                </div>
+                            </div>
+
+                            <!-- Status -->
+                            <div class="col-md-3">
+                                <label class="form-label small fw-bold text-uppercase text-muted">Status</label>
+                                <select class="form-select" name="status">
+                                    <option value="" th:selected="${status == null || status == ''}">All Statuses
+                                    </option>
+                                    <option value="open" th:selected="${status == 'open'}">Open / In Progress</option>
+                                    <option value="complete" th:selected="${status == 'complete'}">Complete</option>
+                                    <option value="closed" th:selected="${status == 'closed'}">Closed</option>
+                                    <option value="cancelled" th:selected="${status == 'cancelled'}">Cancelled</option>
+                                </select>
+                            </div>
+
+                            <!-- Work Type -->
+                            <div class="col-md-3">
+                                <label class="form-label small fw-bold text-uppercase text-muted">Work Type</label>
+                                <input type="text" class="form-control" name="workType" th:value="${workType}"
+                                    placeholder="e.g. Grass Cut">
+                            </div>
+
+                            <!-- Client -->
+                            <div class="col-md-3">
+                                <label class="form-label small fw-bold text-uppercase text-muted">Client</label>
+                                <input type="text" class="form-control" name="client" th:value="${client}"
+                                    placeholder="Client Name">
+                            </div>
+
+                            <!-- Contractor -->
+                            <div class="col-md-3">
+                                <label class="form-label small fw-bold text-uppercase text-muted">Contractor</label>
+                                <input type="text" class="form-control" name="contractor" th:value="${contractor}"
+                                    placeholder="Contractor Name">
+                            </div>
+
+                            <!-- Date Due Range -->
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-uppercase text-muted">Due Date Range</label>
+                                <div class="input-group">
+                                    <input type="date" class="form-control" name="startDate" th:value="${startDate}">
+                                    <span class="input-group-text">to</span>
+                                    <input type="date" class="form-control" name="endDate" th:value="${endDate}">
+                                </div>
+                            </div>
+
+                            <!-- Buttons -->
+                            <div class="col-12 text-end mt-4">
+                                <a href="/employee/work-orders" class="btn btn-outline-secondary btn-sm me-2">Clear</a>
+                                <button type="submit" class="btn btn-dark btn-sm me-2"
+                                    formaction="/employee/work-orders/report" formtarget="_blank">
+                                    <i class="fas fa-file-pdf me-1"></i> Generate Report
+                                </button>
+                                <button type="submit" class="btn btn-primary btn-sm px-4">Apply Filters</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0 align-middle">
+                            <thead class="bg-light text-nowrap">
+                                <tr>
+                                    <th class="ps-3">Status</th>
+                                    <th>Invoice #</th>
+                                    <th>WO #</th>
+                                    <th>PPW #</th>
+                                    <th>Loan #</th>
+                                    <th>Work Type</th>
+                                    <th>Cust/Bank</th>
+                                    <th>Client</th>
+                                    <th>Contractor</th>
+                                    <th>Address</th>
+                                    <th>City</th>
+                                    <th>State</th>
+                                    <th>Due Date</th>
+                                    <th>Due Client</th>
+                                    <th>Sent Client</th>
+                                    <th>Client Total</th>
+                                    <th>Cont. Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="wo : ${workOrders.content}" class="text-nowrap">
+                                    <td class="ps-3">
+                                        <span class="badge"
+                                            th:classappend="${wo.status == 'Complete' ? 'bg-success' : (wo.status == 'Imported' ? 'bg-info text-dark' : 'bg-secondary')}"
+                                            th:text="${wo.status}">Status</span>
+                                    </td>
+                                    <td class="fw-bold text-primary" th:text="${wo.invoiceNumber}">INV-123</td>
+                                    <td class="fw-bold" th:text="${wo.woNumber}">WO-101</td>
+                                    <td th:text="${wo.ppwNumber}">PPW-001</td>
+                                    <td th:text="${wo.loanNumber}">LOAN-001</td>
+                                    <td th:text="${wo.workType}">Work Type</td>
+                                    <td th:text="${wo.customerBank}">Bank</td>
+                                    <td
+                                        th:text="${wo.client != null ? wo.client.name : (wo.originalClientString != null ? wo.originalClientString : '-')}">
+                                        Client</td>
+                                    <td
+                                        th:text="${wo.contractor != null ? wo.contractor.name : (wo.originalContractorString != null ? wo.originalContractorString : '-')}">
+                                        Contractor</td>
+                                    <td th:text="${wo.address}">Address</td>
+                                    <td th:text="${wo.city}">City</td>
+                                    <td th:text="${wo.state}">State</td>
+                                    <td th:text="${wo.dateDue}">Jan 1</td>
+                                    <td th:text="${wo.dateDueClient}">Jan 5</td>
+                                    <td th:text="${wo.sentToClientDate}">Jan 8</td>
+                                    <td class="fw-bold"
+                                        th:text="${wo.clientInvoiceTotal != null ? '$' + #numbers.formatDecimal(wo.clientInvoiceTotal, 1, 2) : '-'}">
+                                        $0.00</td>
+                                    <td
+                                        th:text="${wo.contractorInvoiceTotal != null ? '$' + #numbers.formatDecimal(wo.contractorInvoiceTotal, 1, 2) : '-'}">
+                                        $0.00</td>
+                                </tr>
+                                <tr th:if="${workOrders.content.isEmpty()}">
+                                    <td colspan="17" class="text-center py-4 text-muted">
+                                        <i class="fas fa-inbox fa-3x mb-3 d-block opacity-50"></i>
+                                        No employee work orders found. Import a new CSV to start.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- Pagination Controls -->
+                <div th:replace="~{fragments/pagination :: pagination(page=${workOrders}, baseUrl='/employee/work-orders')}">
+                </div>
+            </div>
+
+            <!-- Import Modal -->
+            <div class="modal fade" id="importWorkOrderModal" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content border rounded-1 shadow">
+                        <div class="modal-header bg-dark text-white py-3 rounded-top-1">
+                            <h6 class="modal-title fw-bold"><i class="fas fa-file-import me-2"></i>Import Employee Work Orders
+                            </h6>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body p-4">
+                            <form action="/employee/work-orders/import" method="post" enctype="multipart/form-data">
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold text-muted text-uppercase">Select CSV
+                                        File</label>
+                                    <input type="file" name="file" class="form-control rounded-1" accept=".csv"
+                                        required>
+                                    <div class="form-text small">Upload your Work Orders CSV file. Data will be saved into the dedicated Employee Work Orders table.</div>
+                                </div>
+                                <div class="text-end border-top pt-3 mt-4">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-1 me-1"
+                                        data-bs-dismiss="modal">Cancel</button>
+                                    <button type="submit" class="btn btn-sm btn-dark rounded-1 px-4">Import
+                                        Data</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+        <script th:inline="javascript">
+        </script>
+    </div>
+</body>
+
+</html>

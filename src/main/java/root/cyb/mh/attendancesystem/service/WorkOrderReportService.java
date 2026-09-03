@@ -40,6 +40,15 @@ public class WorkOrderReportService {
                 return w.getOriginalContractorString() != null ? w.getOriginalContractorString() : "Unknown";
         }
 
+        public WorkOrderDashboardDTO calculateEmployeeStatistics(List<root.cyb.mh.attendancesystem.model.EmployeeWorkOrder> workOrders) {
+                List<WorkOrder> converted = workOrders.stream().map(empWo -> {
+                        WorkOrder w = new WorkOrder();
+                        org.springframework.beans.BeanUtils.copyProperties(empWo, w);
+                        return w;
+                }).collect(Collectors.toList());
+                return calculateStatistics(converted);
+        }
+
         public WorkOrderDashboardDTO calculateStatistics(List<WorkOrder> workOrders) {
                 WorkOrderDashboardDTO stats = new WorkOrderDashboardDTO();
 

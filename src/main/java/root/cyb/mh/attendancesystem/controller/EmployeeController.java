@@ -83,6 +83,7 @@ public class EmployeeController {
                 existing.setAnalyst(employee.isAnalyst());
                 existing.setAnalystController(employee.isAnalystController());
                 existing.setCanViewAllPaymentRequests(employee.isCanViewAllPaymentRequests());
+                existing.setCanAccessWorkOrders(employee.isCanAccessWorkOrders());
                 existing.setAnnualLeaveQuota(employee.getAnnualLeaveQuota()); // Update Quota
                 existing.setJoiningDate(employee.getJoiningDate()); // Update Joining Date
                 existing.setDateOfBirth(employee.getDateOfBirth()); // Update Date of Birth

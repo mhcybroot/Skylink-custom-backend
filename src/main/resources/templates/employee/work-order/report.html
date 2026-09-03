@@ -1,0 +1,1600 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(~{::content}, ~{::scripts}, 'employee-work-orders')}">
+
+<div th:fragment="content">
+    <style>
+        .report-header {
+            border-bottom: 2px solid #000;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+        }
+
+        .stat-card {
+            background: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .print-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+
+            /* HIDE LAYOUT ELEMENTS */
+            #sidebar-wrapper,
+            .navbar,
+            .topbar,
+            #sidebarToggle {
+                display: none !important;
+            }
+
+            #page-content-wrapper {
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100% !important;
+                min-width: 100% !important;
+            }
+
+            #wrapper {
+                padding-left: 0 !important;
+                background: #fff !important;
+            }
+
+            body {
+                background-color: #fff;
+                margin: 0;
+                padding: 0;
+            }
+
+            .container,
+            .container-fluid {
+                max-width: 100% !important;
+                width: 100% !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+
+            .card {
+                border: 1px solid #ccc !important;
+                break-inside: avoid;
+                box-shadow: none !important;
+            }
+
+            table {
+                font-size: 11px;
+                width: 100% !important;
+            }
+
+            .bg-light {
+                background-color: #fff !important;
+            }
+        }
+
+        .metric-card {
+            padding: 1.5rem 1rem;
+            border-right: 1px solid #dee2e6;
+        }
+
+        .metric-card:last-child {
+            border-right: none;
+        }
+
+        .metric-card h6 {
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+        }
+
+        .metric-card h3 {
+            font-size: 1.5rem;
+        }
+
+        @media print {
+            .metric-card {
+                border-right: 1px solid #000;
+            }
+        }
+    </style>
+
+    <div class="container-fluid">
+        <!-- HEADER -->
+        <div class="report-header d-flex justify-content-between align-items-end mt-3">
+            <div>
+                <h1 class="h3 fw-bold text-uppercase mb-0">Work Order Report</h1>
+                <p class="text-muted mb-0" th:text="${reportTitle}">Custom Report</p>
+                <small class="text-muted">Generated on <span
+                        th:text="${#temporals.format(generatedDate, 'MMM dd, yyyy HH:mm')}">Date</span></small>
+            </div>
+            <div class="text-end">
+                <span class="d-block fw-bold h4 mb-0" th:text="${stats.totalWorkOrders}">0</span>
+                <span class="text-uppercase small text-muted">Total Records</span>
+            </div>
+        </div>
+
+        <!-- ADMIN PERFORMANCE SUMMARY -->
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Performance</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-2 metric-card">
+                        <h6 class="text-muted small text-uppercase">Number of WOs</h6>
+                        <h3 class="fw-bold text-primary mb-0" th:text="${stats.totalWorkOrders}">0</h3>
+                    </div>
+                    <div class="col-md-2 metric-card">
+                        <h6 class="text-muted small text-uppercase">Value</h6>
+                        <h3 class="fw-bold text-success mb-0" th:text="${#numbers.formatCurrency(stats.totalRevenue)}">
+                            $0</h3>
+                    </div>
+                    <div class="col-md-2 metric-card">
+                        <h6 class="text-muted small text-uppercase">Total Profit</h6>
+                        <h3 class="fw-bold text-success mb-0" th:text="${#numbers.formatCurrency(stats.totalMargin)}">
+                            $0</h3>
+                    </div>
+                    <div class="col-md-2 metric-card">
+                        <h6 class="text-muted small text-uppercase">Gross Margin %</h6>
+                        <h3 class="fw-bold text-info mb-0"
+                            th:text="${#numbers.formatDecimal(stats.globalGrossMarginPercent, 1, 2) + '%'}">0%</h3>
+                    </div>
+                    <div class="col-md-2 metric-card">
+                        <h6 class="text-muted small text-uppercase">Client Count</h6>
+                        <h3 class="fw-bold text-warning mb-0" th:text="${stats.uniqueClientCount}">0</h3>
+                    </div>
+                    <div class="col-md-2 metric-card">
+                        <h6 class="text-muted small text-uppercase">State Count</h6>
+                        <h3 class="fw-bold text-danger mb-0" th:text="${stats.uniqueStateCount}">0</h3>
+                    </div>
+                </div>
+                <!-- Second Row: Payment Status -->
+                <div class="row text-center border-top">
+                    <div class="col-md-2 metric-card">
+                        <h6 class="text-muted small text-uppercase">Paid Count</h6>
+                        <button class="btn btn-link p-0 fw-bold metric-filter text-success h3 mb-0"
+                            style="font-size: 1.5rem; text-decoration: none;" data-filter-payment-status="paid"
+                            th:text="${stats.clientPaidCount}">0</button>
+                    </div>
+                    <div class="col-md-2 metric-card">
+                        <h6 class="text-muted small text-uppercase">Unpaid Count</h6>
+                        <button class="btn btn-link p-0 fw-bold metric-filter text-danger h3 mb-0"
+                            style="font-size: 1.5rem; text-decoration: none;" data-filter-payment-status="unpaid"
+                            th:text="${stats.clientUnpaidCount}">0</button>
+                    </div>
+                    <div class="col-md-2 metric-card">
+                        <h6 class="text-muted small text-uppercase">Realized Rev</h6>
+                        <h3 class="fw-bold text-success mb-0"
+                            th:text="${#numbers.formatCurrency(stats.realizedRevenue)}">$0</h3>
+                    </div>
+                    <div class="col-md-2 metric-card">
+                        <h6 class="text-muted small text-uppercase">Unrealized Rev</h6>
+                        <h3 class="fw-bold text-warning mb-0"
+                            th:text="${#numbers.formatCurrency(stats.unrealizedRevenue)}">$0</h3>
+                    </div>
+                    <div class="col-md-2 metric-card">
+                        <h6 class="text-muted small text-uppercase">Cont. Paid</h6>
+                        <h3 class="fw-bold text-primary mb-0" th:text="${#numbers.formatCurrency(stats.realizedCost)}">
+                            $0</h3>
+                    </div>
+                    <div class="col-md-2 metric-card">
+                        <h6 class="text-muted small text-uppercase">Cont. Balance</h6>
+                        <h3 class="fw-bold text-danger mb-0"
+                            th:text="${#numbers.formatCurrency(stats.contractorUnpaidAmount)}">$0</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- LLC PERFORMANCE PANEL -->
+        <h5 class="fw-bold text-uppercase border-bottom pb-2 mb-3">LLC Performance</h5>
+        <div class="card shadow-sm border-0 mb-5">
+            <div class="card-body">
+                <div class="row">
+                    <!-- Key Metrics -->
+                    <!-- Key Metrics -->
+                    <div class="col-md-4 border-end">
+                        <h6 class="text-uppercase text-muted fw-bold small mb-3">Key Metrics</h6>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Open WOs:</span>
+                            <button class="btn btn-link p-0 fw-bold metric-filter" data-filter-type="open"
+                                th:text="${stats.openWorkOrders}">0</button>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Closed WOs:</span>
+                            <button class="btn btn-link p-0 fw-bold metric-filter" data-filter-type="closed"
+                                th:text="${stats.closedWorkOrders}">91</button>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Invoiced WOs:</span>
+                            <button class="btn btn-link p-0 fw-bold metric-filter" data-filter-type="invoiced"
+                                th:text="${stats.invoicedWorkOrders}">0</button>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Contractor Cost:</span>
+                            <span class="fw-bold" th:text="${#numbers.formatCurrency(stats.totalCost)}">$6,665</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Client Value:</span>
+                            <span class="fw-bold"
+                                th:text="${#numbers.formatCurrency(stats.totalRevenue)}">$12,614.71</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Gross Profit:</span>
+                            <span class="fw-bold text-success"
+                                th:text="${#numbers.formatCurrency(stats.totalMargin)}">$5,949.71</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Gross Margin:</span>
+                            <span class="fw-bold text-success"
+                                th:text="${#numbers.formatDecimal(stats.globalGrossMarginPercent, 1, 1) + '%'}">47.2%</span>
+                        </div>
+                    </div>
+
+                    <!-- Operational Metrics -->
+                    <div class="col-md-4 ps-md-4 border-end">
+                        <h6 class="text-uppercase text-muted fw-bold small mb-3">Operational Metrics</h6>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Avg Cost / WO:</span>
+                            <span class="fw-bold" th:text="${#numbers.formatCurrency(stats.avgCost)}">~$73</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Avg Value / WO:</span>
+                            <span class="fw-bold" th:text="${#numbers.formatCurrency(stats.avgRevenue)}">~$139</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Avg Gross Profit / WO:</span>
+                            <span class="fw-bold" th:text="${#numbers.formatCurrency(stats.avgMargin)}">~$65</span>
+                        </div>
+                    </div>
+
+                    <!-- Financial Detail -->
+                    <div class="col-md-4 ps-md-4">
+                        <h6 class="text-uppercase text-muted fw-bold small mb-3">Financial Detail</h6>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Realized Rev:</span>
+                            <span class="fw-bold text-primary"
+                                th:text="${#numbers.formatCurrency(stats.grandTotalSeries.totalClientPaid)}">$0</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Unrealized Rev:</span>
+                            <span class="fw-bold"
+                                th:text="${#numbers.formatCurrency(stats.grandTotalSeries.clientInvoiceTotal - stats.grandTotalSeries.totalClientPaid)}">$0</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Client Disc:</span>
+                            <span class="fw-bold text-secondary"
+                                th:text="${#numbers.formatCurrency(stats.grandTotalSeries.totalClientDiscount)}">$0</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Write Offs:</span>
+                            <span class="fw-bold text-warning"
+                                th:text="${#numbers.formatCurrency(stats.grandTotalSeries.totalWriteOffs)}">$0</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Cont. Paid:</span>
+                            <span class="fw-bold text-danger"
+                                th:text="${#numbers.formatCurrency(stats.grandTotalSeries.totalContractorPaid)}">$0</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Cont. Balance:</span>
+                            <span class="fw-bold text-danger"
+                                th:text="${#numbers.formatCurrency(stats.grandTotalSeries.contractorInvoiceTotal - stats.grandTotalSeries.totalContractorPaid)}">$0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dynamic Series Performance Panels -->
+        <div th:each="series : ${stats.seriesStats}" class="mb-5">
+            <h5 class="fw-bold text-uppercase border-bottom pb-2 mb-3">
+                <i class="fas fa-layer-group me-2 text-info"></i><span
+                    th:text="${series.seriesName} + ' Performance'">Series Performance</span>
+            </h5>
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Series Key Metrics -->
+                        <!-- Series Key Metrics -->
+                        <div class="col-md-4 border-end">
+                            <h6 class="text-uppercase text-muted fw-bold small mb-3">Key Metrics</h6>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Open WOs:</span>
+                                <button class="btn btn-link p-0 fw-bold metric-filter" data-filter-type="open"
+                                    th:attr="data-filter-series=${series.seriesName}"
+                                    th:text="${series.openWorkOrders}">0</button>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Closed WOs:</span>
+                                <button class="btn btn-link p-0 fw-bold metric-filter" data-filter-type="closed"
+                                    th:attr="data-filter-series=${series.seriesName}"
+                                    th:text="${series.closedWorkOrders}">0</button>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Invoiced WOs:</span>
+                                <button class="btn btn-link p-0 fw-bold metric-filter" data-filter-type="invoiced"
+                                    th:attr="data-filter-series=${series.seriesName}"
+                                    th:text="${series.invoicedWorkOrders}">0</button>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Contractor Cost:</span>
+                                <span class="fw-bold text-danger"
+                                    th:text="${#numbers.formatCurrency(series.contractorInvoiceTotal)}">$0.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Client Value:</span>
+                                <span class="fw-bold text-primary"
+                                    th:text="${#numbers.formatCurrency(series.clientInvoiceTotal)}">$0.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Gross Profit:</span>
+                                <span class="fw-bold text-success"
+                                    th:text="${#numbers.formatCurrency(series.profitLoss)}">$0.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Gross Margin:</span>
+                                <span class="fw-bold text-success"
+                                    th:text="${#numbers.formatDecimal(series.profitMarginPercent, 1, 1) + '%'}">0.0%</span>
+                            </div>
+                        </div>
+
+                        <!-- Series Operational Metrics -->
+                        <div class="col-md-4 ps-md-4 border-end">
+                            <h6 class="text-uppercase text-muted fw-bold small mb-3">Operational Metrics</h6>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Avg Cost / WO:</span>
+                                <span class="fw-bold" th:text="${#numbers.formatCurrency(series.avgCost)}">$0.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Avg Value / WO:</span>
+                                <span class="fw-bold"
+                                    th:text="${#numbers.formatCurrency(series.avgRevenue)}">$0.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Avg Gross Profit / WO:</span>
+                                <span class="fw-bold"
+                                    th:text="${#numbers.formatCurrency(series.avgMargin)}">$0.00</span>
+                            </div>
+                        </div>
+
+                        <!-- Series Financial Detail -->
+                        <div class="col-md-4 ps-md-4">
+                            <h6 class="text-uppercase text-muted fw-bold small mb-3">Financial Detail</h6>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Realized Rev:</span>
+                                <span class="fw-bold text-primary"
+                                    th:text="${#numbers.formatCurrency(series.totalClientPaid)}">$0</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Unrealized Rev:</span>
+                                <span class="fw-bold"
+                                    th:text="${#numbers.formatCurrency(series.clientInvoiceTotal - series.totalClientPaid)}">$0</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Client Disc:</span>
+                                <span class="fw-bold text-secondary"
+                                    th:text="${#numbers.formatCurrency(series.totalClientDiscount)}">$0</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Write Offs:</span>
+                                <span class="fw-bold text-warning"
+                                    th:text="${#numbers.formatCurrency(series.totalWriteOffs)}">$0</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Cont. Paid:</span>
+                                <span class="fw-bold text-danger"
+                                    th:text="${#numbers.formatCurrency(series.totalContractorPaid)}">$0</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Cont. Balance:</span>
+                                <span class="fw-bold text-danger"
+                                    th:text="${#numbers.formatCurrency(series.contractorInvoiceTotal - series.totalContractorPaid)}">$0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- LLC / SERIES PROFIT TABLE -->
+        <h5 class="fw-bold text-uppercase border-bottom pb-2 mb-3">LLC wise Profit/Loss Calculation</h5>
+        <div class="row mb-5">
+            <div class="col-12">
+                <div class="card shadow-sm border-0">
+                    <div class="card-body p-0">
+                        <table class="table table-hover table-striped mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th class="py-2">LLC / Series</th>
+                                    <th class="py-2 text-end">Client Invoice Total</th>
+                                    <th class="py-2 text-end">Contractor Invoice Total</th>
+                                    <th class="py-2 text-end">Profit/Loss</th>
+                                    <th class="py-2 text-end">Profit Margin</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="series : ${stats.seriesStats}">
+                                    <td class="fw-bold text-start ps-4" th:text="${series.seriesName}">Series 100</td>
+                                    <td class="text-end"
+                                        th:text="${#numbers.formatCurrency(series.clientInvoiceTotal)}">$0.00</td>
+                                    <td class="text-end"
+                                        th:text="${#numbers.formatCurrency(series.contractorInvoiceTotal)}">$0.00</td>
+                                    <td class="text-end" th:text="${#numbers.formatCurrency(series.profitLoss)}"
+                                        th:classappend="${series.profitLoss >= 0} ? 'text-success' : 'text-danger fw-bold'">
+                                        $0.00</td>
+                                    <td class="text-end"
+                                        th:text="${#numbers.formatDecimal(series.profitMarginPercent, 1, 1) + '%'}">0.0%
+                                    </td>
+                                </tr>
+                            </tbody>
+                            <tfoot class="table-light fw-bold">
+                                <tr th:if="${stats.grandTotalSeries != null}">
+                                    <td class="text-start ps-4">Grand Total</td>
+                                    <td class="text-end"
+                                        th:text="${#numbers.formatCurrency(stats.grandTotalSeries.clientInvoiceTotal)}">
+                                        $0.00</td>
+                                    <td class="text-end"
+                                        th:text="${#numbers.formatCurrency(stats.grandTotalSeries.contractorInvoiceTotal)}">
+                                        $0.00</td>
+                                    <td class="text-end"
+                                        th:text="${#numbers.formatCurrency(stats.grandTotalSeries.profitLoss)}">$0.00
+                                    </td>
+                                    <td class="text-end"
+                                        th:text="${#numbers.formatDecimal(stats.grandTotalSeries.profitMarginPercent, 1, 1) + '%'}">
+                                        0.0%</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ADMIN PERFORMANCE BY USER TABLE -->
+        <h5 class="fw-bold text-uppercase border-bottom pb-2 mb-3">Admin Performance</h5>
+        <div class="card shadow-sm border-0 mb-5">
+            <div class="card-body p-0">
+                <table class="table table-hover table-striped mb-0" id="adminPerformanceTable">
+                    <thead class="table-dark">
+                        <tr>
+                            <th class="sortable" data-sort="name" style="cursor: pointer;">
+                                Admin Name <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="text-end sortable" data-sort="count" style="cursor: pointer;">
+                                Number of WOs <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="text-end sortable" data-sort="value" style="cursor: pointer;">
+                                Value <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="text-end sortable" data-sort="margin" style="cursor: pointer;">
+                                Gross Margin % <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="text-end sortable" data-sort="clients" style="cursor: pointer;">
+                                Client Count <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="text-end sortable" data-sort="states" style="cursor: pointer;">
+                                State Count <i class="fas fa-sort"></i>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="admin : ${stats.adminPerformanceStats}">
+                            <td class="fw-bold" th:text="${admin.adminName}">Admin Name</td>
+                            <td class="text-end">
+                                <button class="btn btn-link p-0 fw-bold metric-filter"
+                                    th:attr="data-filter-admin=${admin.adminName}"
+                                    th:text="${admin.workOrderCount}">0</button>
+                            </td>
+                            <td class="text-end text-success fw-bold"
+                                th:text="${#numbers.formatCurrency(admin.totalRevenue)}">$0</td>
+                            <td class="text-end fw-bold" th:classappend="${admin.grossMargin >= 40 ? 'text-success' : 
+                                                (admin.grossMargin >= 30 ? 'text-warning' : 'text-danger')}"
+                                th:text="${#numbers.formatDecimal(admin.grossMargin, 1, 2) + '%'}">0%</td>
+                            <td class="text-end" th:text="${admin.uniqueClientCount}">0</td>
+                            <td class="text-end" th:text="${admin.uniqueStateCount}">0</td>
+                        </tr>
+                    </tbody>
+                    <tfoot class="table-light fw-bold">
+                        <tr>
+                            <td>TOTAL</td>
+                            <td class="text-end" th:text="${stats.totalWorkOrders}">0</td>
+                            <td class="text-end text-success" th:text="${#numbers.formatCurrency(stats.totalRevenue)}">
+                                $0</td>
+                            <td class="text-end"
+                                th:text="${#numbers.formatDecimal(stats.globalGrossMarginPercent, 1, 2) + '%'}">0%</td>
+                            <td class="text-end" th:text="${stats.uniqueClientCount}">0</td>
+                            <td class="text-end" th:text="${stats.uniqueStateCount}">0</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <!-- WORK TYPE PERFORMANCE TABLE -->
+        <h5 class="fw-bold text-uppercase border-bottom pb-2 mb-3">Work Type Performance</h5>
+        <div class="card shadow-sm border-0 mb-5">
+            <div class="card-body p-0">
+                <table class="table table-hover table-striped mb-0" id="workTypePerformanceTable">
+                    <thead class="table-dark">
+                        <tr>
+                            <th class="sortable" data-sort="type" style="cursor: pointer;">
+                                Work Type <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="text-end sortable" data-sort="count" style="cursor: pointer;">
+                                Work Orders <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="text-end sortable" data-sort="revenue" style="cursor: pointer;">
+                                Revenue <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="text-end sortable" data-sort="cost" style="cursor: pointer;">
+                                Cost <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="text-end sortable" data-sort="profit" style="cursor: pointer;">
+                                Profit <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="text-end sortable" data-sort="margin" style="cursor: pointer;">
+                                Margin % <i class="fas fa-sort"></i>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="type : ${stats.workTypePerformanceStats}">
+                            <td class="fw-bold" th:text="${type.workType}">Type</td>
+                            <td class="text-end">
+                                <button class="btn btn-link p-0 fw-bold metric-filter"
+                                    th:attr="data-filter-work-type=${type.workType}"
+                                    th:text="${type.workOrderCount}">0</button>
+                            </td>
+                            <td class="text-end text-success fw-bold"
+                                th:text="${#numbers.formatCurrency(type.totalRevenue)}">$0</td>
+                            <td class="text-end text-danger" th:text="${#numbers.formatCurrency(type.totalCost)}">$0
+                            </td>
+                            <td class="text-end fw-bold"
+                                th:classappend="${type.profit >= 0 ? 'text-success' : 'text-danger'}"
+                                th:text="${#numbers.formatCurrency(type.profit)}">$0</td>
+                            <td class="text-end fw-bold" th:classappend="${type.marginPercent >= 40 ? 'text-success' : 
+                                                (type.marginPercent >= 30 ? 'text-warning' : 'text-danger')}"
+                                th:text="${#numbers.formatDecimal(type.marginPercent, 1, 2) + '%'}">0%</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- CONTRACTOR SCORECARD TABLE -->
+        <h5 class="fw-bold text-uppercase border-bottom pb-2 mb-3">Contractor Scorecard</h5>
+        <div class="card shadow-sm border-0 mb-5">
+            <div class="card-body p-0">
+                <table class="table table-hover table-striped mb-0" id="contractorScorecardTable">
+                    <thead class="table-dark">
+                        <tr>
+                            <th class="sortable" data-sort="contractor" style="cursor: pointer;">
+                                Contractor <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="text-end sortable" data-sort="volume" style="cursor: pointer;">
+                                Volume <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="text-end sortable" data-sort="avgCost" style="cursor: pointer;">
+                                Avg Cost <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="text-end sortable" data-sort="totalCost" style="cursor: pointer;">
+                                Total Cost <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="text-end sortable" data-sort="totalRevenue" style="cursor: pointer;">
+                                Total Revenue <i class="fas fa-sort"></i>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="stat : ${stats.contractorScorecardStats}">
+                            <td class="fw-bold" th:text="${stat.contractorName}">Contractor</td>
+                            <td class="text-end">
+                                <button class="btn btn-link p-0 fw-bold metric-filter"
+                                    th:attr="data-filter-contractor=${stat.contractorName}"
+                                    th:text="${stat.volume}">0</button>
+                            </td>
+                            <td class="text-end" th:text="${#numbers.formatCurrency(stat.avgCost)}">$0</td>
+                            <td class="text-end text-danger" th:text="${#numbers.formatCurrency(stat.totalCost)}">$0
+                            </td>
+                            <td class="text-end text-success fw-bold"
+                                th:text="${#numbers.formatCurrency(stat.totalRevenue)}">$0</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Monthly Performance Comparison -->
+        <h5 class="fw-bold text-uppercase border-bottom pb-2 mb-3">Monthly Performance Comparison</h5>
+        <div class="row mb-5">
+            <div class="col-12">
+                <div class="card shadow-sm border-0">
+                    <div class="card-body p-0">
+                        <table class="table table-hover table-striped mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th class="py-2 ps-4">Month</th>
+                                    <th class="py-2 text-end">Work Orders</th>
+                                    <th class="py-2 text-end">Revenue</th>
+                                    <th class="py-2 text-end">Cost</th>
+                                    <th class="py-2 text-end">Profit</th>
+                                    <th class="py-2 text-end">Margin</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="month : ${stats.monthlyStats}">
+                                    <td class="fw-bold text-start ps-4" th:text="${month.month}">Jan 2025</td>
+                                    <td class="text-end" th:text="${month.totalWorkOrders}">0</td>
+                                    <td class="text-end" th:text="${#numbers.formatCurrency(month.revenue)}">$0.00</td>
+                                    <td class="text-end" th:text="${#numbers.formatCurrency(month.cost)}">$0.00</td>
+                                    <td class="text-end" th:text="${#numbers.formatCurrency(month.profit)}"
+                                        th:classappend="${month.profit >= 0} ? 'text-success' : 'text-danger fw-bold'">
+                                        $0.00</td>
+                                    <td class="text-end" th:text="${#numbers.formatDecimal(month.margin, 1, 1) + '%'}">
+                                        0.0%</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Monthly Performance by Series -->
+        <h5 class="fw-bold text-uppercase border-bottom pb-2 mb-3">Monthly Performance by Series</h5>
+        <div class="card shadow-sm border-0 mb-5">
+            <div class="card-body p-0">
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th class="ps-4">Month</th>
+                            <th>Series</th>
+                            <th class="text-end">Work Orders</th>
+                            <th class="text-end">Revenue</th>
+                            <th class="text-end">Cost</th>
+                            <th class="text-end">Profit</th>
+                            <th class="text-end">Margin %</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <th:block th:each="item, iterStat : ${stats.monthlySeriesPerformance}">
+                            <!-- Month header when month changes -->
+                            <tr th:if="${iterStat.index == 0 || stats.monthlySeriesPerformance[iterStat.index - 1].yearMonth != item.yearMonth}"
+                                class="table-secondary fw-bold">
+                                <td colspan="7" class="text-start ps-3">
+                                    <i class="bi bi-calendar3"></i> <span th:text="${item.month}">Jan 2026</span>
+                                </td>
+                            </tr>
+
+                            <!-- Series row -->
+                            <tr>
+                                <td></td>
+                                <td class="ps-4" th:text="${item.seriesName}">Series 100</td>
+                                <td class="text-end" th:text="${item.workOrderCount}">10</td>
+                                <td class="text-end" th:text="${#numbers.formatCurrency(item.revenue)}">$10,000</td>
+                                <td class="text-end text-muted" th:text="${#numbers.formatCurrency(item.cost)}">$7,000
+                                </td>
+                                <td class="text-end fw-bold"
+                                    th:classappend="${item.profit.compareTo(T(java.math.BigDecimal).ZERO) >= 0 ? 'text-success' : 'text-danger'}"
+                                    th:text="${#numbers.formatCurrency(item.profit)}">$3,000</td>
+                                <td class="text-end fw-bold"
+                                    th:classappend="${item.margin.compareTo(new java.math.BigDecimal('40')) >= 0 ? 'text-success' : (item.margin.compareTo(new java.math.BigDecimal('30')) >= 0 ? 'text-warning' : 'text-danger')}"
+                                    th:text="${#numbers.formatDecimal(item.margin, 1, 1) + '%'}">30.0%</td>
+                            </tr>
+                        </th:block>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Geographic Performance by Series -->
+        <h5 class="fw-bold text-uppercase border-bottom pb-2 mb-3">Geographic Performance by Series</h5>
+        <div class="card shadow-sm border-0 mb-5">
+            <div class="card-body p-0">
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th class="ps-4">State</th>
+                            <th class>Series</th>
+                            <th class="text-end">Work Orders</th>
+                            <th class="text-end">Revenue</th>
+                            <th class="text-end">Profit</th>
+                            <th class="text-end">Margin %</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <th:block th:each="item, iterStat : ${stats.stateSeriesBreakdown}">
+                            <!-- State header when state changes -->
+                            <tr th:if="${iterStat.index == 0 || stats.stateSeriesBreakdown[iterStat.index - 1].location != item.location}"
+                                class="table-primary fw-bold">
+                                <td colspan="6" class="text-start ps-3">
+                                    <i class="bi bi-geo-alt-fill"></i> <span th:text="${item.location}">NEW YORK</span>
+                                </td>
+                            </tr>
+
+                            <!-- Series row -->
+                            <tr>
+                                <td></td>
+                                <td class="ps-4" th:text="${item.seriesName}">Series 100</td>
+                                <td class="text-end">
+                                    <button class="btn btn-link p-0 fw-bold metric-filter"
+                                        th:attr="data-filter-state=${item.location}, data-filter-series=${item.seriesName}"
+                                        th:text="${item.workOrderCount}">15</button>
+                                </td>
+                                <td class="text-end" th:text="${#numbers.formatCurrency(item.revenue)}">$10,000</td>
+                                <td class="text-end fw-bold"
+                                    th:classappend="${item.profit.compareTo(T(java.math.BigDecimal).ZERO) >= 0 ? 'text-success' : 'text-danger'}"
+                                    th:text="${#numbers.formatCurrency(item.profit)}">$4,000</td>
+                                <td class="text-end fw-bold"
+                                    th:classappend="${item.margin.compareTo(new java.math.BigDecimal('40')) >= 0 ? 'text-success' : (item.margin.compareTo(new java.math.BigDecimal('30')) >= 0 ? 'text-warning' : 'text-danger')}"
+                                    th:text="${#numbers.formatDecimal(item.margin, 1, 1) + '%'}">40.0%</td>
+                            </tr>
+                        </th:block>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Geographic Analysis -->
+        <h5 class="fw-bold text-uppercase border-bottom pb-2 mb-3">Geographic Analysis</h5>
+        <div class="row g-4 mb-5">
+            <!-- Top States -->
+            <div class="col-md-6">
+                <div class="card h-100 shadow-sm border-0">
+                    <div class="card-header bg-dark text-white fw-bold text-uppercase small">Top States by Volume
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm table-striped mb-0">
+                            <thead>
+                                <tr>
+                                    <th>State</th>
+                                    <th class="text-end">Work Orders</th>
+                                    <th class="text-end">Revenue</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="state : ${stats.topStatesByVolume}">
+                                    <td th:text="${state.state}">TX</td>
+                                    <td class="text-end">
+                                        <button class="btn btn-link p-0 fw-bold metric-filter"
+                                            th:attr="data-filter-state=${state.state}"
+                                            th:text="${state.count}">0</button>
+                                    </td>
+                                    <td class="text-end text-muted" th:text="${#numbers.formatCurrency(state.revenue)}">
+                                        $0</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card h-100 shadow-sm border-0">
+                    <div class="card-header bg-dark text-white fw-bold text-uppercase small">Top States by Value
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm table-striped mb-0">
+                            <thead>
+                                <tr>
+                                    <th>State</th>
+                                    <th class="text-end">Revenue</th>
+                                    <th class="text-end">Work Orders</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="state : ${stats.topStatesByRevenue}">
+                                    <td th:text="${state.state}">NY</td>
+                                    <td class="text-end fw-bold text-primary"
+                                        th:text="${#numbers.formatCurrency(state.revenue)}">$0</td>
+                                    <td class="text-end">
+                                        <button class="btn btn-link p-0 text-muted metric-filter"
+                                            th:attr="data-filter-state=${state.state}"
+                                            th:text="${state.count}">0</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+
+        </div>
+
+        <!-- Client Code Analysis -->
+        <h5 class="fw-bold text-uppercase border-bottom pb-2 mb-3">Client Code Analysis</h5>
+        <div class="row g-4 mb-5">
+            <!-- Top Clients by Volume (Code) -->
+            <div class="col-md-6">
+                <div class="card h-100 shadow-sm border-0">
+                    <div class="card-header bg-dark text-white fw-bold text-uppercase small">Top Clients by Volume
+                        (Code)
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm table-striped mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Client Name</th>
+                                    <th class="text-end">Work Orders</th>
+                                    <th class="text-end">Revenue</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="client : ${stats.topClientsByVolume}">
+                                    <td class="fw-bold" th:text="${client.code}">C100</td>
+                                    <td class="small" th:text="${client.name}">Client Name</td>
+                                    <td class="text-end">
+                                        <button class="btn btn-link p-0 fw-bold metric-filter"
+                                            th:attr="data-filter-client=${client.code}"
+                                            th:text="${client.count}">0</button>
+                                    </td>
+                                    <td class="text-end text-muted"
+                                        th:text="${#numbers.formatCurrency(client.totalRevenue)}">
+                                        $0</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top Clients by Value (Code) -->
+            <div class="col-md-6">
+                <div class="card h-100 shadow-sm border-0">
+                    <div class="card-header bg-dark text-white fw-bold text-uppercase small">Top Clients by Value
+                        (Code)
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm table-striped mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Client Name</th>
+                                    <th class="text-end">Revenue</th>
+                                    <th class="text-end">Work Orders</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="client : ${stats.topClientsByRevenue}">
+                                    <td class="fw-bold" th:text="${client.code}">C100</td>
+                                    <td class="small" th:text="${client.name}">Client Name</td>
+                                    <td class="text-end fw-bold text-success"
+                                        th:text="${#numbers.formatCurrency(client.totalRevenue)}">$0</td>
+                                    <td class="text-end">
+                                        <button class="btn btn-link p-0 text-muted metric-filter"
+                                            th:attr="data-filter-client=${client.code}"
+                                            th:text="${client.count}">0</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- State Margin & Efficiency Snapshot -->
+        <h5 class="fw-bold text-uppercase border-bottom pb-2 mb-3">State Margin & Efficiency Snapshot</h5>
+        <div class="row g-4 mb-5">
+            <!-- High Margin -->
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm border-0">
+                    <div class="card-header bg-success text-white fw-bold text-uppercase small text-center">High-Margin
+                        States (≥50%)</div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm table-striped mb-0 text-center">
+                            <thead>
+                                <tr>
+                                    <th>State</th>
+                                    <th>Margin</th>
+                                    <th>Profit</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="state : ${stats.highMarginStates}">
+                                    <td class="fw-bold" th:text="${state.state}">IN</td>
+                                    <td class="text-success fw-bold"
+                                        th:text="${#numbers.formatDecimal(state.margin, 1, 1) + '%'}">60.0%</td>
+                                    <td class="small" th:text="${#numbers.formatCurrency(state.profit)}">$500</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Moderate Margin / High Volume -->
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm border-0">
+                    <div class="card-header bg-primary text-white fw-bold text-uppercase small text-center">Moderate
+                        Margin / High Vol</div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm table-striped mb-0 text-center">
+                            <thead>
+                                <tr>
+                                    <th>State</th>
+                                    <th>Volume</th>
+                                    <th>Margin</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="state : ${stats.moderateMarginHighVolumeStates}">
+                                    <td class="fw-bold" th:text="${state.state}">TX</td>
+                                    <td class="fw-bold" th:text="${state.count}">100</td>
+                                    <td class="text-primary"
+                                        th:text="${#numbers.formatDecimal(state.margin, 1, 1) + '%'}">40.0%</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Low / Risk -->
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm border-0">
+                    <div class="card-header bg-danger text-white fw-bold text-uppercase small text-center">Low or
+                        RiskStates </div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm table-striped mb-0 text-center">
+                            <thead>
+                                <tr>
+                                    <th>State</th>
+                                    <th>Margin</th>
+                                    <th>Profit/Loss</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="state : ${stats.lowRiskStates}">
+                                    <td class="fw-bold" th:text="${state.state}">WY</td>
+                                    <td class="text-danger fw-bold"
+                                        th:text="${#numbers.formatDecimal(state.margin, 1, 1) + '%'}">10.0%</td>
+                                    <td class="small text-danger" th:text="${#numbers.formatCurrency(state.profit)}">
+                                        -$200</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECONDARY STATS ROW -->
+        <div class="row g-4 mb-5">
+
+            <div class="col-12">
+                <!-- Status Breakdown -->
+                <div class="card h-100 shadow-sm border-0">
+                    <div class="card-header bg-dark text-white fw-bold text-uppercase small">Status Distribution</div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm table-striped mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Status</th>
+                                    <th class="text-end">Count</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="entry : ${stats.statusDistribution}">
+                                    <td th:text="${entry.key}">Status</td>
+                                    <td class="text-end">
+                                        <button class="btn btn-link p-0 fw-bold metric-filter"
+                                            th:attr="data-filter-status=${entry.key}"
+                                            th:text="${entry.value}">0</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DETAILED DATA TABLE -->
+        <h5 class="fw-bold border-bottom pb-2 mb-3" id="work-orders-table">Included Work Orders</h5>
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped table-hover table-sm" style="font-size: 0.7rem;">
+                <thead class="table-dark" style="cursor: pointer;">
+                    <tr id="woTableHeader">
+                        <th class="sortable" data-sort="woNumber">WO # <i class="fas fa-sort"></i></th>
+                        <th class="sortable" data-sort="invoiceNumber">Inv # <i class="fas fa-sort"></i></th>
+                        <th class="sortable" data-sort="invoiceDate">Inv Date <i class="fas fa-sort"></i></th>
+                        <th class="sortable" data-sort="ppwNumber">PPW # <i class="fas fa-sort"></i></th>
+                        <th class="sortable" data-sort="contractor">Contractor <i class="fas fa-sort"></i></th>
+                        <th class="sortable" data-sort="admin">Admin <i class="fas fa-sort"></i></th>
+                        <th class="sortable" data-sort="address">Address <i class="fas fa-sort"></i></th>
+                        <th class="sortable" data-sort="city">City <i class="fas fa-sort"></i></th>
+                        <th class="sortable" data-sort="state">State <i class="fas fa-sort"></i></th>
+                        <th class="sortable" data-sort="zip">Zip <i class="fas fa-sort"></i></th>
+                        <th class="sortable" data-sort="loanNumber">Loan # <i class="fas fa-sort"></i></th>
+                        <th class="sortable" data-sort="workType">Type <i class="fas fa-sort"></i></th>
+                        <th class="sortable" data-sort="status">Status <i class="fas fa-sort"></i></th>
+                        <th class="sortable" data-sort="client">Client <i class="fas fa-sort"></i></th>
+                        <th class="sortable" data-sort="bank">Bank <i class="fas fa-sort"></i></th>
+                        <th class="sortable" data-sort="dateDue">Date Due <i class="fas fa-sort"></i></th>
+                        <th class="sortable" data-sort="dateDueClient">Due Client <i class="fas fa-sort"></i></th>
+                        <th class="sortable" data-sort="sentToClientDate">Sent Client <i class="fas fa-sort"></i></th>
+
+                        <th class="text-end sortable" data-sort="contractorInvoiceTotal">Cont. Total <i
+                                class="fas fa-sort"></i></th>
+                        <th class="text-end sortable" data-sort="contractorPaidAmount">Cont. Paid <i
+                                class="fas fa-sort"></i></th>
+                        <th class="text-end sortable" data-sort="contractorDiscountPercent">Cont. Disc% <i
+                                class="fas fa-sort"></i></th>
+
+                        <th class="text-end sortable" data-sort="clientInvoiceTotal">Client Total <i
+                                class="fas fa-sort"></i></th>
+                        <th class="text-end sortable" data-sort="clientPaidAmount">Client Paid <i
+                                class="fas fa-sort"></i></th>
+                        <th class="sortable" data-sort="clientPaidDate">Paid Date <i class="fas fa-sort"></i></th>
+                        <th class="text-end sortable" data-sort="clientDiscountPercent">Client Disc% <i
+                                class="fas fa-sort"></i></th>
+                        <th class="text-end sortable" data-sort="clientDiscountTotal">Disc Total <i
+                                class="fas fa-sort"></i></th>
+                        <th class="text-end sortable" data-sort="writeOffAmount">Write Off <i class="fas fa-sort"></i>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="wo : ${reportData}"
+                        th:attr="data-status=${wo.status}, data-series=${wo.series}, data-state=${wo.state}, data-client-code=${wo.client != null ? wo.client.code : ''}, data-admin=${wo.admin}, data-work-type=${wo.workType}, data-contractor=${wo.contractor != null ? wo.contractor.name : (wo.originalContractorString != null ? wo.originalContractorString : '')}, data-payment-status=${(wo.clientPaidAmount != null && wo.clientPaidAmount > 0) ? 'paid' : 'unpaid'}">
+                        <td th:text="${wo.woNumber}">WO-1</td>
+                        <td th:text="${wo.invoiceNumber}">INV-1</td>
+                        <td th:text="${wo.invoiceDate}">Jan 1</td>
+                        <td th:text="${wo.ppwNumber}">PPW-1</td>
+                        <td th:text="${wo.contractor != null ? wo.contractor.name : (wo.originalContractorString)}">
+                            Contr</td>
+                        <td th:text="${wo.admin}">Admin</td>
+                        <td th:text="${wo.address}">Address</td>
+                        <td th:text="${wo.city}">City</td>
+                        <td th:text="${wo.state}">ST</td>
+                        <td th:text="${wo.zip}">12345</td>
+                        <td th:text="${wo.loanNumber}">Loan-1</td>
+                        <td th:text="${wo.workType}">Cut</td>
+                        <td th:text="${wo.status}">Open</td>
+                        <td th:text="${wo.client != null ? wo.client.code : (wo.originalClientString)}">Client</td>
+                        <td th:text="${wo.customerBank}">Bank</td>
+
+                        <td th:text="${wo.dateDue}">Jan 1</td>
+                        <td th:text="${wo.dateDueClient}">Jan 5</td>
+                        <td th:text="${wo.sentToClientDate}">Jan 6</td>
+
+                        <td class="text-end text-danger"
+                            th:text="${wo.contractorInvoiceTotal != null ? #numbers.formatCurrency(wo.contractorInvoiceTotal) : '-'}">
+                            $50</td>
+                        <td class="text-end"
+                            th:text="${wo.contractorPaidAmount != null ? #numbers.formatCurrency(wo.contractorPaidAmount) : '-'}">
+                            $50</td>
+                        <td class="text-end"
+                            th:text="${wo.contractorDiscountPercent != null ? wo.contractorDiscountPercent + '%' : '-'}">
+                            0%</td>
+
+                        <td class="text-end text-primary"
+                            th:text="${wo.clientInvoiceTotal != null ? #numbers.formatCurrency(wo.clientInvoiceTotal) : '-'}">
+                            $100</td>
+                        <td class="text-end"
+                            th:text="${wo.clientPaidAmount != null ? #numbers.formatCurrency(wo.clientPaidAmount) : '-'}">
+                            $100</td>
+                        <td th:text="${wo.clientPaidDate}">Jan 10</td>
+                        <td class="text-end"
+                            th:text="${wo.clientDiscountPercent != null ? wo.clientDiscountPercent + '%' : '-'}">
+                            0%</td>
+                        <td class="text-end"
+                            th:text="${(wo.clientInvoiceTotal != null && wo.clientDiscountPercent != null) ? #numbers.formatCurrency(wo.clientInvoiceTotal * wo.clientDiscountPercent / 100) : '$0.00'}">
+                            $0</td>
+                        <td class="text-end text-warning"
+                            th:text="${wo.writeOffAmount != null ? #numbers.formatCurrency(wo.writeOffAmount) : '-'}">
+                            $0</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- PRINT BUTTON (Hidden in Print) -->
+    <!-- <div class="print-btn no-print">
+        <button onclick="window.print()" class="btn btn-primary shadow rounded-pill px-4">
+            <i class="fas fa-print me-2"></i> Print / Save PDF
+        </button>
+        <!-- <button onclick="window.history.back()" class="btn btn-secondary shadow rounded-pill px-4 ms-2">
+            Back
+        </button> -->
+</div> -->
+</div>
+
+
+
+<th:block th:fragment="scripts">
+    <style>
+        .metric-filter {
+            color: #0d6efd;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .metric-filter:hover {
+            text-decoration: underline;
+            color: #0a58ca;
+        }
+
+        .metric-filter.active {
+            color: #198754;
+            text-decoration: underline;
+            font-weight: bold;
+        }
+
+        .wo-row-hidden {
+            display: none;
+        }
+    </style>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const filterButtons = document.querySelectorAll('.metric-filter');
+            const tableRows = document.querySelectorAll('tbody tr[data-status]');
+            let activeFilter = null;
+            let activeFilterSeries = null;
+            let activeFilterState = null;
+            let activeFilterClient = null;
+            let activeFilterStatus = null;
+            let activeFilterAdmin = null;
+            let activeFilterWorkType = null;
+            let activeFilterContractor = null;
+            let activeFilterPaymentStatus = null;
+
+            filterButtons.forEach(button => {
+                button.addEventListener('click', function () {
+                    const filterType = this.getAttribute('data-filter-type');
+                    const filterSeries = this.getAttribute('data-filter-series');
+                    const filterState = this.getAttribute('data-filter-state');
+                    const filterClient = this.getAttribute('data-filter-client');
+                    const filterStatus = this.getAttribute('data-filter-status');
+                    const filterAdmin = this.getAttribute('data-filter-admin');
+                    const filterWorkType = this.getAttribute('data-filter-work-type');
+                    const filterContractor = this.getAttribute('data-filter-contractor');
+                    const filterPaymentStatus = this.getAttribute('data-filter-payment-status');
+
+                    // If clicking the same filter, clear it
+                    if (activeFilter === filterType &&
+                        activeFilterSeries === filterSeries &&
+                        activeFilterState === filterState &&
+                        activeFilterClient === filterClient &&
+                        activeFilterStatus === filterStatus &&
+                        activeFilterAdmin === filterAdmin &&
+                        activeFilterWorkType === filterWorkType &&
+                        activeFilterContractor === filterContractor &&
+                        activeFilterPaymentStatus === filterPaymentStatus) {
+                        clearFilter();
+                        return;
+                    }
+
+                    // Set new filter
+                    activeFilter = filterType;
+                    activeFilterSeries = filterSeries;
+                    activeFilterState = filterState;
+                    activeFilterClient = filterClient;
+                    activeFilterStatus = filterStatus;
+                    activeFilterAdmin = filterAdmin;
+                    activeFilterWorkType = filterWorkType;
+                    activeFilterContractor = filterContractor;
+                    activeFilterPaymentStatus = filterPaymentStatus;
+
+                    // Update button states
+                    filterButtons.forEach(btn => btn.classList.remove('active'));
+                    this.classList.add('active');
+
+                    // Filter table rows
+                    tableRows.forEach(row => {
+                        const rowStatus = row.getAttribute('data-status');
+                        const rowSeries = row.getAttribute('data-series');
+                        const rowState = row.getAttribute('data-state');
+                        const rowClientCode = row.getAttribute('data-client-code');
+                        const rowAdmin = row.getAttribute('data-admin');
+                        const rowWorkType = row.getAttribute('data-work-type');
+                        const rowContractor = row.getAttribute('data-contractor');
+                        const rowPaymentStatus = row.getAttribute('data-payment-status');
+
+                        if (!rowStatus) {
+                            row.classList.add('wo-row-hidden');
+                            return;
+                        }
+
+                        let matchesStatus = false;
+
+                        // Direct status filter (from Status Distribution)
+                        if (filterStatus) {
+                            matchesStatus = rowStatus.toLowerCase() === filterStatus.toLowerCase();
+                        } else if (filterType === 'open') {
+                            matchesStatus = !['completed', 'closed', 'cancelled', 'invoiced'].includes(rowStatus.toLowerCase());
+                        } else if (filterType === 'closed') {
+                            matchesStatus = ['closed', 'completed'].includes(rowStatus.toLowerCase());
+                        } else if (filterType === 'invoiced') {
+                            matchesStatus = rowStatus.toLowerCase() === 'invoiced';
+                        }
+
+                        // If Series/State/Client/Admin/WorkType/Contractor/PaymentStatus filter is set, check match
+                        let shouldShow = matchesStatus || (!filterType && !filterStatus && !filterSeries && !filterState && !filterClient && !filterAdmin && !filterWorkType && !filterContractor && !filterPaymentStatus);
+
+                        // Special case: if we only have one of these category filters, we should show the row if it matches
+                        if (!filterType && !filterStatus) {
+                            shouldShow = true;
+                        }
+
+                        if (filterSeries) shouldShow = shouldShow && (rowSeries === filterSeries);
+                        if (filterState) shouldShow = shouldShow && (rowState === filterState);
+                        if (filterClient) shouldShow = shouldShow && (rowClientCode === filterClient);
+                        if (filterAdmin) shouldShow = shouldShow && (rowAdmin === filterAdmin);
+                        if (filterWorkType) shouldShow = shouldShow && (rowWorkType === filterWorkType);
+                        if (filterContractor) shouldShow = shouldShow && (rowContractor === filterContractor);
+                        if (filterPaymentStatus) shouldShow = shouldShow && (rowPaymentStatus === filterPaymentStatus);
+
+                        if (shouldShow) {
+                            row.classList.remove('wo-row-hidden');
+                        } else {
+                            row.classList.add('wo-row-hidden');
+                        }
+                    });
+
+                    // Scroll to the work orders table
+                    setTimeout(() => {
+                        document.getElementById('work-orders-table').scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }, 100);
+                });
+            });
+
+            function clearFilter() {
+                activeFilter = null;
+                activeFilterSeries = null;
+                activeFilterState = null;
+                activeFilterClient = null;
+                activeFilterStatus = null;
+                activeFilterAdmin = null;
+                activeFilterWorkType = null;
+                activeFilterContractor = null;
+                activeFilterPaymentStatus = null;
+                filterButtons.forEach(btn => btn.classList.remove('active'));
+                tableRows.forEach(row => row.classList.remove('wo-row-hidden'));
+            }
+
+            // Admin Performance Table Sorting
+            const adminTable = document.getElementById('adminPerformanceTable');
+            if (adminTable) {
+                const headers = adminTable.querySelectorAll('th.sortable');
+                let currentSort = { column: null, ascending: true };
+
+                headers.forEach(header => {
+                    header.addEventListener('click', function () {
+                        const sortType = this.getAttribute('data-sort');
+                        const tbody = adminTable.querySelector('tbody');
+                        const rows = Array.from(tbody.querySelectorAll('tr'));
+
+                        // Toggle sort direction if clicking same column
+                        if (currentSort.column === sortType) {
+                            currentSort.ascending = !currentSort.ascending;
+                        } else {
+                            currentSort.column = sortType;
+                            currentSort.ascending = true;
+                        }
+
+                        // Sort rows
+                        rows.sort((a, b) => {
+                            let aVal, bVal;
+
+                            switch (sortType) {
+                                case 'name':
+                                    aVal = a.cells[0].textContent.trim();
+                                    bVal = b.cells[0].textContent.trim();
+                                    return currentSort.ascending
+                                        ? aVal.localeCompare(bVal)
+                                        : bVal.localeCompare(aVal);
+
+                                case 'count':
+                                    aVal = parseInt(a.cells[1].textContent.trim());
+                                    bVal = parseInt(b.cells[1].textContent.trim());
+                                    break;
+
+                                case 'value':
+                                    aVal = parseFloat(a.cells[2].textContent.replace(/[$,]/g, ''));
+                                    bVal = parseFloat(b.cells[2].textContent.replace(/[$,]/g, ''));
+                                    break;
+
+                                case 'margin':
+                                    aVal = parseFloat(a.cells[3].textContent.replace('%', ''));
+                                    bVal = parseFloat(b.cells[3].textContent.replace('%', ''));
+                                    break;
+
+                                case 'clients':
+                                    aVal = parseInt(a.cells[4].textContent.trim());
+                                    bVal = parseInt(b.cells[4].textContent.trim());
+                                    break;
+
+                                case 'states':
+                                    aVal = parseInt(a.cells[5].textContent.trim());
+                                    bVal = parseInt(b.cells[5].textContent.trim());
+                                    break;
+                            }
+
+                            return currentSort.ascending ? aVal - bVal : bVal - aVal;
+                        });
+
+                        // Re-append sorted rows
+                        rows.forEach(row => tbody.appendChild(row));
+
+                        // Update sort icons
+                        headers.forEach(h => {
+                            const icon = h.querySelector('i');
+                            if (h === header) {
+                                icon.className = currentSort.ascending
+                                    ? 'fas fa-sort-up'
+                                    : 'fas fa-sort-down';
+                            } else {
+                                icon.className = 'fas fa-sort';
+                            }
+                        });
+                    });
+                });
+            }
+
+            // Work Type Performance Table Sorting
+            const workTypeTable = document.getElementById('workTypePerformanceTable');
+            if (workTypeTable) {
+                const headers = workTypeTable.querySelectorAll('th.sortable');
+                let currentSort = { column: null, ascending: true };
+
+                headers.forEach(header => {
+                    header.addEventListener('click', function () {
+                        const sortType = this.getAttribute('data-sort');
+                        const tbody = workTypeTable.querySelector('tbody');
+                        const rows = Array.from(tbody.querySelectorAll('tr'));
+
+                        // Toggle sort direction
+                        if (currentSort.column === sortType) {
+                            currentSort.ascending = !currentSort.ascending;
+                        } else {
+                            currentSort.column = sortType;
+                            currentSort.ascending = true;
+                        }
+
+                        // Sort rows
+                        rows.sort((a, b) => {
+                            let aVal, bVal;
+
+                            switch (sortType) {
+                                case 'type':
+                                    aVal = a.cells[0].textContent.trim();
+                                    bVal = b.cells[0].textContent.trim();
+                                    return currentSort.ascending
+                                        ? aVal.localeCompare(bVal)
+                                        : bVal.localeCompare(aVal);
+
+                                case 'count':
+                                    aVal = parseInt(a.cells[1].textContent.trim());
+                                    bVal = parseInt(b.cells[1].textContent.trim());
+                                    break;
+
+                                case 'revenue':
+                                case 'cost':
+                                case 'profit':
+                                    const colIndex = sortType === 'revenue' ? 2 : sortType === 'cost' ? 3 : 4;
+                                    aVal = parseFloat(a.cells[colIndex].textContent.replace(/[$,]/g, ''));
+                                    bVal = parseFloat(b.cells[colIndex].textContent.replace(/[$,]/g, ''));
+                                    break;
+
+                                case 'margin':
+                                    aVal = parseFloat(a.cells[5].textContent.replace('%', ''));
+                                    bVal = parseFloat(b.cells[5].textContent.replace('%', ''));
+                                    break;
+                            }
+
+                            return currentSort.ascending ? aVal - bVal : bVal - aVal;
+                        });
+
+                        // Re-append sorted rows
+                        rows.forEach(row => tbody.appendChild(row));
+
+                        // Update sort icons
+                        headers.forEach(h => {
+                            const icon = h.querySelector('i');
+                            if (h === header) {
+                                icon.className = currentSort.ascending
+                                    ? 'fas fa-sort-up'
+                                    : 'fas fa-sort-down';
+                            } else {
+                                icon.className = 'fas fa-sort';
+                            }
+                        });
+                    });
+                });
+            }
+
+            // Included Work Orders Table Sorting
+            const woTable = document.querySelector('#work-orders-table').nextElementSibling.querySelector('table');
+            if (woTable) {
+                const headers = woTable.querySelectorAll('th.sortable');
+                let currentSort = { column: null, ascending: true };
+
+                headers.forEach(header => {
+                    header.addEventListener('click', function () {
+                        const sortType = this.getAttribute('data-sort');
+                        const tbody = woTable.querySelector('tbody');
+                        const rows = Array.from(tbody.querySelectorAll('tr'));
+
+                        // Toggle sort direction
+                        if (currentSort.column === sortType) {
+                            currentSort.ascending = !currentSort.ascending;
+                        } else {
+                            currentSort.column = sortType;
+                            currentSort.ascending = true;
+                        }
+
+                        // Map sortType to column index
+                        const colMap = {
+                            'woNumber': 0, 'invoiceNumber': 1, 'invoiceDate': 2,
+                            'ppwNumber': 3, 'contractor': 4, 'admin': 5, 'address': 6, 'city': 7, 'state': 8, 'zip': 9, 'loanNumber': 10,
+                            'workType': 11, 'status': 12, 'client': 13, 'bank': 14,
+                            'dateDue': 15, 'dateDueClient': 16, 'sentToClientDate': 17,
+                            'contractorInvoiceTotal': 18, 'contractorPaidAmount': 19, 'contractorDiscountPercent': 20,
+                            'clientInvoiceTotal': 21, 'clientPaidAmount': 22, 'clientPaidDate': 23,
+                            'clientDiscountPercent': 24, 'clientDiscountTotal': 25, 'writeOffAmount': 26
+                        };
+
+                        const colIndex = colMap[sortType];
+
+                        // Sort rows
+                        rows.sort((a, b) => {
+                            let aVal = a.cells[colIndex].textContent.trim();
+                            let bVal = b.cells[colIndex].textContent.trim();
+
+                            // Numeric/Currency handling
+                            if (['contractorInvoiceTotal', 'contractorPaidAmount', 'clientInvoiceTotal', 'clientPaidAmount', 'clientDiscountTotal', 'writeOffAmount'].includes(sortType)) {
+                                aVal = parseFloat(aVal.replace(/[$,]/g, '').replace('-', '0')) || 0;
+                                bVal = parseFloat(bVal.replace(/[$,]/g, '').replace('-', '0')) || 0;
+                            }
+                            // Percentage handling
+                            else if (['contractorDiscountPercent', 'clientDiscountPercent'].includes(sortType)) {
+                                aVal = parseFloat(aVal.replace('%', '').replace('-', '0')) || 0;
+                                bVal = parseFloat(bVal.replace('%', '').replace('-', '0')) || 0;
+                            }
+                            // Date handling
+                            else if (['invoiceDate', 'dateDue', 'dateDueClient', 'sentToClientDate', 'clientPaidDate'].includes(sortType)) {
+                                let d1 = new Date(aVal);
+                                let d2 = new Date(bVal);
+                                if (!isNaN(d1) && !isNaN(d2)) {
+                                    aVal = d1.getTime();
+                                    bVal = d2.getTime();
+                                }
+                            }
+
+                            if (currentSort.ascending) {
+                                return aVal > bVal ? 1 : (aVal < bVal ? -1 : 0);
+                            } else {
+                                return aVal < bVal ? 1 : (aVal > bVal ? -1 : 0);
+                            }
+                        });
+
+                        // Re-append sorted rows
+                        rows.forEach(row => tbody.appendChild(row));
+
+                        // Update icons
+                        headers.forEach(h => {
+                            const icon = h.querySelector('i');
+                            if (h === header) {
+                                icon.className = currentSort.ascending ? 'fas fa-sort-up' : 'fas fa-sort-down';
+                            } else {
+                                icon.className = 'fas fa-sort';
+                            }
+                        });
+                    });
+                });
+            }
+
+            // Contractor Scorecard Table Sorting
+            const contractorTable = document.getElementById('contractorScorecardTable');
+            if (contractorTable) {
+                const headers = contractorTable.querySelectorAll('th.sortable');
+                let currentSort = { column: null, ascending: true };
+
+                headers.forEach(header => {
+                    header.addEventListener('click', function () {
+                        const sortType = this.getAttribute('data-sort');
+                        const tbody = contractorTable.querySelector('tbody');
+                        const rows = Array.from(tbody.querySelectorAll('tr'));
+
+                        // Toggle sort direction
+                        if (currentSort.column === sortType) {
+                            currentSort.ascending = !currentSort.ascending;
+                        } else {
+                            currentSort.column = sortType;
+                            currentSort.ascending = true;
+                        }
+
+                        // Sort rows
+                        rows.sort((a, b) => {
+                            let aVal, bVal;
+
+                            switch (sortType) {
+                                case 'contractor':
+                                    aVal = a.cells[0].textContent.trim();
+                                    bVal = b.cells[0].textContent.trim();
+                                    return currentSort.ascending
+                                        ? aVal.localeCompare(bVal)
+                                        : bVal.localeCompare(aVal);
+
+                                case 'volume':
+                                    aVal = parseInt(a.cells[1].textContent.trim());
+                                    bVal = parseInt(b.cells[1].textContent.trim());
+                                    break;
+
+                                case 'avgCost':
+                                case 'totalCost':
+                                case 'totalRevenue':
+                                    const colIndex = sortType === 'avgCost' ? 2 : sortType === 'totalCost' ? 3 : 4;
+                                    aVal = parseFloat(a.cells[colIndex].textContent.replace(/[$,]/g, ''));
+                                    bVal = parseFloat(b.cells[colIndex].textContent.replace(/[$,]/g, ''));
+                                    break;
+                            }
+
+                            return currentSort.ascending ? aVal - bVal : bVal - aVal;
+                        });
+
+                        // Re-append sorted rows
+                        rows.forEach(row => tbody.appendChild(row));
+
+                        // Update sort icons
+                        headers.forEach(h => {
+                            const icon = h.querySelector('i');
+                            if (h === header) {
+                                icon.className = currentSort.ascending
+                                    ? 'fas fa-sort-up'
+                                    : 'fas fa-sort-down';
+                            } else {
+                                icon.className = 'fas fa-sort';
+                            }
+                        });
+                    });
+                });
+            }
+
+
+        });
+
+        // Scroll to Top Button (New Implementation)
+        const scrollBtn = document.createElement("button");
+        scrollBtn.innerHTML = '<i class="fas fa-arrow-up"></i>';
+        scrollBtn.id = "scrollTop";
+        scrollBtn.title = "Go to top";
+        scrollBtn.className = "btn btn-primary shadow no-print";
+        scrollBtn.style.cssText = "display: none; position: fixed; bottom: 30px; right: 30px; z-index: 9999; border-radius: 50%; width: 50px; height: 50px; font-size: 20px; text-align: center; line-height: 1.5; cursor: pointer;";
+
+        document.body.appendChild(scrollBtn);
+
+        window.onscroll = function () {
+            if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+                scrollBtn.style.display = "block";
+            } else {
+                scrollBtn.style.display = "none";
+            }
+        };
+
+        scrollBtn.addEventListener("click", function () {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    </script>
+</th:block>
+
+</html>

@@ -117,6 +117,8 @@
                                                 class="badge bg-info text-dark ms-1">Guest</span>
                                             <span th:if="${emp.canViewAllPaymentRequests}"
                                                 class="badge bg-primary text-white ms-1" title="Can View/Filter All Payment Requests"><i class="fas fa-file-invoice-dollar me-1"></i>Pay Access</span>
+                                            <span th:if="${emp.canAccessWorkOrders}"
+                                                class="badge text-white ms-1" style="background-color: #6366f1;" title="Can Access Work Orders & Imports"><i class="fas fa-file-invoice me-1"></i>WO Access</span>
                                         </td>
                                         <td th:text="${emp.department != null ? emp.department.name : 'Unassigned'}">
                                             Engineering
@@ -159,6 +161,7 @@
                                                 th:data-is-analyst="${emp.isAnalyst}"
                                                 th:data-is-analyst-controller="${emp.isAnalystController}"
                                                 th:data-can-view-all-payment-requests="${emp.canViewAllPaymentRequests}"
+                                                th:data-can-access-work-orders="${emp.canAccessWorkOrders}"
                                                 onclick="editEmployee(this)">
                                                 <i class="fas fa-edit fa-sm"></i>
                                             </button>
@@ -253,6 +256,10 @@
                                             <div class="form-check form-switch mt-2">
                                                 <input class="form-check-input" type="checkbox" id="empCanViewAllPaymentRequests" name="canViewAllPaymentRequests">
                                                 <label class="form-check-label" for="empCanViewAllPaymentRequests">Can View/Filter All Payment Requests?</label>
+                                            </div>
+                                            <div class="form-check form-switch mt-2">
+                                                <input class="form-check-input" type="checkbox" id="empCanAccessWorkOrders" name="canAccessWorkOrders">
+                                                <label class="form-check-label" for="empCanAccessWorkOrders">Can Access Work Orders & Imports?</label>
                                             </div>
                                         </div>
                                         <label class="form-label">Email</label>
@@ -405,6 +412,7 @@
                 document.getElementById('empIsAnalyst').checked = btn.getAttribute('data-is-analyst') === 'true';
                 document.getElementById('empIsAnalystController').checked = btn.getAttribute('data-is-analyst-controller') === 'true';
                 document.getElementById('empCanViewAllPaymentRequests').checked = btn.getAttribute('data-can-view-all-payment-requests') === 'true';
+                document.getElementById('empCanAccessWorkOrders').checked = btn.getAttribute('data-can-access-work-orders') === 'true';
                 document.getElementById('empModalTitle').innerText = 'Edit Employee';
                 new bootstrap.Modal(document.getElementById('addEmployeeModal')).show();
             }
@@ -423,6 +431,7 @@
                 document.getElementById('empIsAnalyst').checked = false;
                 document.getElementById('empIsAnalystController').checked = false;
                 document.getElementById('empCanViewAllPaymentRequests').checked = false;
+                document.getElementById('empCanAccessWorkOrders').checked = false;
                 document.getElementById('empQuota').value = '';
                 document.getElementById('monthlySalary').value = '';
                 document.getElementById('fixedAllowance').value = '';
