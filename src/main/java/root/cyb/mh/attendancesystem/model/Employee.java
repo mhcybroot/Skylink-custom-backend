@@ -82,4 +82,20 @@ public class Employee {
     public int getEffectiveQuota(int globalDefault) {
         return annualLeaveQuota != null ? annualLeaveQuota : globalDefault;
     }
+
+    public boolean isCanAccessWorkOrders() {
+        return canAccessWorkOrders;
+    }
+
+    public boolean getCanAccessWorkOrders() {
+        return canAccessWorkOrders;
+    }
+
+    public boolean isCanViewAllPaymentRequests() {
+        return canViewAllPaymentRequests;
+    }
+
+    public boolean getCanViewAllPaymentRequests() {
+        return canViewAllPaymentRequests;
+    }
 }
