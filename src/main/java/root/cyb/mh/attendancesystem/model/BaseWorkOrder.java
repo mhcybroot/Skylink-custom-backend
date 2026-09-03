@@ -111,11 +111,52 @@ public abstract class BaseWorkOrder {
         return java.time.temporal.ChronoUnit.DAYS.between(invoiceDate, java.time.LocalDate.now());
     }
 
-    public boolean isUnpaid() {
-        if (Boolean.TRUE.equals(clientInvoicePaid) || clientPaidDate != null) {
+    public BigDecimal getRemainingClientBalance() {
+        if (Boolean.TRUE.equals(clientInvoicePaid)) {
+            return BigDecimal.ZERO;
+        }
+        BigDecimal total = getEffectiveClientTotal();
+        BigDecimal paid = clientPaidAmount != null ? clientPaidAmount : BigDecimal.ZERO;
+        BigDecimal writeOff = writeOffAmount != null ? writeOffAmount : BigDecimal.ZERO;
+        BigDecimal remaining = total.subtract(paid).subtract(writeOff);
+        return remaining.compareTo(BigDecimal.ZERO) > 0 ? remaining : BigDecimal.ZERO;
+    }
+
+    public boolean isPartiallyPaid() {
+        if (Boolean.TRUE.equals(clientInvoicePaid) || (status != null && status.equalsIgnoreCase("Cancelled"))) {
             return false;
         }
+        BigDecimal remaining = getRemainingClientBalance();
+        return clientPaidAmount != null
+                && clientPaidAmount.compareTo(BigDecimal.ZERO) > 0
+                && remaining.compareTo(BigDecimal.ZERO) > 0;
+    }
+
+    public double getPaidPercentage() {
+        BigDecimal total = getEffectiveClientTotal();
+        if (total == null || total.compareTo(BigDecimal.ZERO) <= 0) {
+            return (clientPaidAmount != null && clientPaidAmount.compareTo(BigDecimal.ZERO) > 0) ? 100.0 : 0.0;
+        }
+        if (clientPaidAmount == null || clientPaidAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            return 0.0;
+        }
+        double pct = clientPaidAmount.doubleValue() / total.doubleValue() * 100.0;
+        return Math.min(100.0, Math.max(0.0, pct));
+    }
+
+    public boolean isUnpaid() {
         if (status != null && status.equalsIgnoreCase("Cancelled")) {
+            return false;
+        }
+        if (Boolean.TRUE.equals(clientInvoicePaid)) {
+            return false;
+        }
+        if (clientPaidAmount != null && clientPaidAmount.compareTo(BigDecimal.ZERO) > 0) {
+            if (getRemainingClientBalance().compareTo(BigDecimal.ZERO) <= 0) {
+                return false;
+            }
+        }
+        if (clientPaidDate != null && (clientPaidAmount == null || clientPaidAmount.compareTo(BigDecimal.ZERO) <= 0)) {
             return false;
         }
         return true;

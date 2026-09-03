@@ -46,6 +46,10 @@ public class AgingSummaryDTO {
     // Series Portfolio Aging Breakdown (100-199, 200-299, etc.)
     private List<SeriesAgingStat> seriesStats = new ArrayList<>();
 
+    // Partial Payments Tracking
+    private long partiallyPaidCount = 0;
+    private BigDecimal totalPartialPaidCollected = BigDecimal.ZERO;
+
     // Portfolio Weighted Average Days
     private double portfolioAverageDays = 0.0;
 
@@ -62,6 +66,8 @@ public class AgingSummaryDTO {
 
         private long totalUnpaidCount = 0;
         private BigDecimal totalUnpaidAmount = BigDecimal.ZERO;
+        private long partiallyPaidCount = 0;
+        private BigDecimal totalPartialPaidCollected = BigDecimal.ZERO;
 
         private long standardDueCount = 0;
         private BigDecimal standardDueAmount = BigDecimal.ZERO;
@@ -183,6 +189,8 @@ public class AgingSummaryDTO {
 
         private long totalUnpaidCount = 0;
         private BigDecimal totalUnpaidAmount = BigDecimal.ZERO;
+        private long partiallyPaidCount = 0;
+        private BigDecimal totalPartialPaidCollected = BigDecimal.ZERO;
 
         private long withinTermsCount = 0;
         private BigDecimal withinTermsAmount = BigDecimal.ZERO;

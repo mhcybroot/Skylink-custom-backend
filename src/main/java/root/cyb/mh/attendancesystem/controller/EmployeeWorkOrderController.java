@@ -108,16 +108,7 @@ public class EmployeeWorkOrderController {
         // If dueBucket filter is active, filter based on client-specific aging calculations
         if (dueBucket != null && !dueBucket.trim().isEmpty()) {
             List<EmployeeWorkOrder> matching = employeeWorkOrderRepository.findAll(spec, Sort.by(Sort.Direction.DESC, "id"));
-            List<EmployeeWorkOrder> filteredList = matching.stream().filter(wo -> {
-                if (!clientDueAgingService.isUnpaid(wo)) {
-                    return false;
-                }
-                String bucket = clientDueAgingService.getAgingBucket(wo, configMap, defaultConfig);
-                if ("all_unpaid".equalsIgnoreCase(dueBucket)) {
-                    return true;
-                }
-                return dueBucket.equalsIgnoreCase(bucket);
-            }).collect(Collectors.toList());
+            List<EmployeeWorkOrder> filteredList = clientDueAgingService.filterOrdersByDueBucket(matching, dueBucket.trim());
 
             int start = Math.min((int) pageable.getOffset(), filteredList.size());
             int end = Math.min((start + pageable.getPageSize()), filteredList.size());
@@ -140,6 +131,10 @@ public class EmployeeWorkOrderController {
                     break;
                 case "within_terms":
                     filterName = "🟢 Within Terms (<40 Days Due)";
+                    break;
+                case "partial":
+                case "partially_paid":
+                    filterName = "🟡 Partially Paid Work Orders";
                     break;
                 case "all_unpaid":
                     filterName = "📋 All Unpaid Work Orders";

@@ -86,18 +86,7 @@ public class ClientDueAgingService {
 
     public boolean isUnpaid(BaseWorkOrder wo) {
         if (wo == null) return false;
-        if (wo.isClientInvoicePaid()) {
-            return false;
-        }
-        if (wo.getClientPaidDate() != null) {
-            return false;
-        }
-        String status = wo.getStatus();
-        if (status != null && (status.equalsIgnoreCase("Closed") || status.equalsIgnoreCase("Complete") || status.equalsIgnoreCase("Cancelled"))) {
-            // Cancelled work orders are not due
-            if (status.equalsIgnoreCase("Cancelled")) return false;
-        }
-        return true;
+        return wo.isUnpaid();
     }
 
     public String getAgingBucket(BaseWorkOrder wo, Map<String, ClientDueConfig> configMap, ClientDueConfig defaultConfig) {
@@ -149,12 +138,19 @@ public class ClientDueAgingService {
                 continue;
             }
 
-            BigDecimal amount = wo.getEffectiveClientTotal();
+            BigDecimal amount = wo.getRemainingClientBalance();
+            boolean isPartial = wo.isPartiallyPaid();
             String bucket = getAgingBucket(wo, configMap, defaultConfig);
             long daysElapsed = wo.getDaysElapsed();
 
             summary.setTotalUnpaidCount(summary.getTotalUnpaidCount() + 1);
             summary.setTotalUnpaidAmount(summary.getTotalUnpaidAmount().add(amount));
+            if (isPartial) {
+                summary.setPartiallyPaidCount(summary.getPartiallyPaidCount() + 1);
+                if (wo.getClientPaidAmount() != null) {
+                    summary.setTotalPartialPaidCollected(summary.getTotalPartialPaidCollected().add(wo.getClientPaidAmount()));
+                }
+            }
 
             portfolioTotalDaysSum += daysElapsed;
             if (amount != null && amount.compareTo(BigDecimal.ZERO) > 0) {
@@ -210,6 +206,12 @@ public class ClientDueAgingService {
 
             cStat.setTotalUnpaidCount(cStat.getTotalUnpaidCount() + 1);
             cStat.setTotalUnpaidAmount(cStat.getTotalUnpaidAmount().add(amount));
+            if (isPartial) {
+                cStat.setPartiallyPaidCount(cStat.getPartiallyPaidCount() + 1);
+                if (wo.getClientPaidAmount() != null) {
+                    cStat.setTotalPartialPaidCollected(cStat.getTotalPartialPaidCollected().add(wo.getClientPaidAmount()));
+                }
+            }
             cStat.setTotalDaysSum(cStat.getTotalDaysSum() + daysElapsed);
             if (amount != null && amount.compareTo(BigDecimal.ZERO) > 0) {
                 cStat.setTotalWeightedDays(cStat.getTotalWeightedDays().add(BigDecimal.valueOf(daysElapsed).multiply(amount)));
@@ -261,6 +263,12 @@ public class ClientDueAgingService {
 
             sStat.setTotalUnpaidCount(sStat.getTotalUnpaidCount() + 1);
             sStat.setTotalUnpaidAmount(sStat.getTotalUnpaidAmount().add(amount));
+            if (isPartial) {
+                sStat.setPartiallyPaidCount(sStat.getPartiallyPaidCount() + 1);
+                if (wo.getClientPaidAmount() != null) {
+                    sStat.setTotalPartialPaidCollected(sStat.getTotalPartialPaidCollected().add(wo.getClientPaidAmount()));
+                }
+            }
             sStat.setTotalDaysSum(sStat.getTotalDaysSum() + daysElapsed);
             if (amount != null && amount.compareTo(BigDecimal.ZERO) > 0) {
                 sStat.setTotalWeightedDays(sStat.getTotalWeightedDays().add(BigDecimal.valueOf(daysElapsed).multiply(amount)));
@@ -360,6 +368,9 @@ public class ClientDueAgingService {
         return orders.stream().filter(wo -> {
             if (!isUnpaid(wo)) {
                 return false;
+            }
+            if ("partial".equalsIgnoreCase(dueBucket) || "partially_paid".equalsIgnoreCase(dueBucket)) {
+                return wo.isPartiallyPaid();
             }
             String bucket = getAgingBucket(wo, configMap, defaultConfig);
             if ("all_unpaid".equalsIgnoreCase(dueBucket)) {

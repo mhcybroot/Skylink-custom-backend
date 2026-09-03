@@ -249,4 +249,72 @@ class ClientDueAgingServiceTest {
         assertEquals(new BigDecimal("500.00"), s300.getCriticalDueAmount());
         assertEquals("HIGH", s300.getRiskScore());
     }
+
+    @Test
+    void testPartialPaymentAgingCalculation() {
+        // WO 1: Partial payment: $500 total, $200 paid -> $300 remaining due
+        EmployeeWorkOrder woPartial = new EmployeeWorkOrder();
+        woPartial.setClientInvoicePaid(false);
+        woPartial.setInvoiceDate(LocalDate.now().minusDays(45)); // Standard Due
+        woPartial.setClientInvoiceTotal(new BigDecimal("500.00"));
+        woPartial.setClientPaidAmount(new BigDecimal("200.00"));
+        woPartial.setOriginalClientString("105");
+
+        // WO 2: Fully paid via clientPaidAmount = 300 on 300 total -> remaining = 0
+        EmployeeWorkOrder woFullPaid = new EmployeeWorkOrder();
+        woFullPaid.setClientInvoicePaid(false);
+        woFullPaid.setInvoiceDate(LocalDate.now().minusDays(55));
+        woFullPaid.setClientInvoiceTotal(new BigDecimal("300.00"));
+        woFullPaid.setClientPaidAmount(new BigDecimal("300.00"));
+        woFullPaid.setOriginalClientString("105");
+
+        // WO 3: Zero payment: $400 total -> $400 remaining due
+        EmployeeWorkOrder woUnpaid = new EmployeeWorkOrder();
+        woUnpaid.setClientInvoicePaid(false);
+        woUnpaid.setInvoiceDate(LocalDate.now().minusDays(20)); // Within Terms
+        woUnpaid.setClientInvoiceTotal(new BigDecimal("400.00"));
+        woUnpaid.setOriginalClientString("105");
+
+        assertTrue(woPartial.isPartiallyPaid());
+        assertTrue(woPartial.isUnpaid());
+        assertEquals(new BigDecimal("300.00"), woPartial.getRemainingClientBalance());
+        assertEquals(40.0, woPartial.getPaidPercentage(), 0.01);
+
+        assertFalse(woFullPaid.isPartiallyPaid());
+        assertFalse(woFullPaid.isUnpaid());
+        assertEquals(BigDecimal.ZERO, woFullPaid.getRemainingClientBalance());
+
+        assertFalse(woUnpaid.isPartiallyPaid());
+        assertTrue(woUnpaid.isUnpaid());
+
+        AgingSummaryDTO summary = clientDueAgingService.calculateAgingSummary(List.of(woPartial, woFullPaid, woUnpaid));
+
+        // Only woPartial ($300 rem) and woUnpaid ($400 rem) should be counted = $700 total! (woFullPaid excluded)
+        assertEquals(2, summary.getTotalUnpaidCount());
+        assertEquals(new BigDecimal("700.00"), summary.getTotalUnpaidAmount());
+        assertEquals(1, summary.getStandardDueCount());
+        assertEquals(new BigDecimal("300.00"), summary.getStandardDueAmount());
+        assertEquals(1, summary.getWithinTermsCount());
+        assertEquals(new BigDecimal("400.00"), summary.getWithinTermsAmount());
+
+        assertEquals(1, summary.getPartiallyPaidCount());
+        assertEquals(new BigDecimal("200.00"), summary.getTotalPartialPaidCollected());
+    }
+
+    @Test
+    void testFilterOrdersByPartialDueBucket() {
+        EmployeeWorkOrder wo1 = new EmployeeWorkOrder();
+        wo1.setInvoiceDate(LocalDate.now().minusDays(20));
+        wo1.setClientInvoiceTotal(new BigDecimal("500.00"));
+        wo1.setClientPaidAmount(new BigDecimal("150.00")); // Partial
+
+        EmployeeWorkOrder wo2 = new EmployeeWorkOrder();
+        wo2.setInvoiceDate(LocalDate.now().minusDays(20));
+        wo2.setClientInvoiceTotal(new BigDecimal("300.00"));
+        wo2.setClientPaidAmount(BigDecimal.ZERO); // Fully unpaid
+
+        List<EmployeeWorkOrder> partials = clientDueAgingService.filterOrdersByDueBucket(List.of(wo1, wo2), "partial");
+        assertEquals(1, partials.size());
+        assertEquals(wo1, partials.get(0));
+    }
 }

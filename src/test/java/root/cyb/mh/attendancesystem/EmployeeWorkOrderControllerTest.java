@@ -324,4 +324,31 @@ class EmployeeWorkOrderControllerTest {
                 .andExpect(model().attribute("reportTitle", org.hamcrest.Matchers.containsString("Series 100")))
                 .andExpect(view().name("employee/work-order/report"));
     }
+
+    @Test
+    void filterByPartialDueBucketEndpoint() throws Exception {
+        when(employeeWorkOrderRepository.findAll(org.mockito.ArgumentMatchers.<Specification<EmployeeWorkOrder>>any(), any(Sort.class)))
+                .thenReturn(List.of());
+        when(clientDueAgingService.filterOrdersByDueBucket(any(), any())).thenReturn(List.of());
+        when(clientDueAgingService.calculateAgingSummary(any())).thenReturn(sampleSummary);
+
+        mockMvc.perform(get("/employee/work-orders?dueBucket=partial").with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("dueBucket", "partial"))
+                .andExpect(model().attribute("currentFilter", org.hamcrest.Matchers.containsString("Partially Paid Work Orders")))
+                .andExpect(view().name("employee/work-order/list"));
+    }
+
+    @Test
+    void exportPartialWorkOrdersEndpoint() throws Exception {
+        when(employeeWorkOrderRepository.findAll(org.mockito.ArgumentMatchers.<Specification<EmployeeWorkOrder>>any(), any(Sort.class)))
+                .thenReturn(List.of());
+        when(clientDueAgingService.filterOrdersByDueBucket(any(), any())).thenReturn(List.of());
+        when(exportService.exportDueWorkOrdersExcel(any())).thenReturn(new byte[]{1, 2, 3});
+
+        mockMvc.perform(get("/employee/work-orders/export?dueBucket=partial&format=excel").with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.containsString("attachment; filename=\"Due_Orders_partial_")))
+                .andExpect(content().contentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+    }
 }

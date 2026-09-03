@@ -712,6 +712,7 @@
                                 <select class="form-select" name="dueBucket">
                                     <option value="" th:selected="${dueBucket == null || dueBucket == ''}">All Records</option>
                                     <option value="all_unpaid" th:selected="${dueBucket == 'all_unpaid'}">📋 All Unpaid Orders</option>
+                                    <option value="partial" th:selected="${dueBucket == 'partial'}">🟡 Partially Paid Orders</option>
                                     <option value="critical" th:selected="${dueBucket == 'critical'}">🔴 Critical Delinquent (60+ Days)</option>
                                     <option value="overdue" th:selected="${dueBucket == 'overdue'}">🟠 Past Due (50–59 Days)</option>
                                     <option value="standard" th:selected="${dueBucket == 'standard'}">🟡 Standard Due (40–49 Days)</option>
@@ -819,6 +820,12 @@
                                     <td>
                                         <!-- Aging Status Badge -->
                                         <th:block th:if="${wo.isUnpaid()}">
+                                            <div th:if="${wo.isPartiallyPaid()}" class="mb-1">
+                                                <span class="badge bg-warning text-dark border border-warning shadow-sm"
+                                                      th:title="'Paid: $' + ${#numbers.formatDecimal(wo.clientPaidAmount, 1, 2)} + ' / Rem: $' + ${#numbers.formatDecimal(wo.remainingClientBalance, 1, 2)} + ' (' + ${#numbers.formatDecimal(wo.paidPercentage, 1, 0)} + '% paid)'">
+                                                    <i class="fas fa-adjust me-1 text-primary"></i>Partial (<span th:text="${#numbers.formatDecimal(wo.paidPercentage, 1, 0)}">50</span>%)
+                                                </span>
+                                            </div>
                                             <th:block th:with="bucket=${agingService.getAgingBucket(wo, configMap, defaultConfig)}">
                                                 <span th:if="${bucket == 'critical'}" class="badge bg-danger text-white shadow-sm" title="Critical Delinquent">
                                                     <i class="fas fa-exclamation-circle me-1"></i>Critical (<span th:text="${wo.daysElapsed}">0</span>d)
@@ -850,15 +857,27 @@
                                     <td th:text="${wo.address}">Address</td>
                                     <td th:text="${wo.dateDue}">Jan 1</td>
                                     <td class="text-nowrap">
-                                        <div class="fw-bold text-dark"
-                                            th:text="${wo.effectiveClientTotal != null ? '$' + #numbers.formatDecimal(wo.effectiveClientTotal, 1, 2) : '-'}">
-                                            $0.00
-                                        </div>
-                                        <div th:if="${wo.discountApplied}" 
-                                             class="text-muted text-decoration-line-through" style="font-size: 0.72rem;"
-                                             th:text="'$' + ${#numbers.formatDecimal(wo.clientInvoiceTotal, 1, 2)}"
-                                             title="Original gross invoice total before discount">
-                                        </div>
+                                        <th:block th:if="${wo.isPartiallyPaid()}">
+                                            <div class="fw-bold text-danger" title="Remaining balance due">
+                                                $<span th:text="${#numbers.formatDecimal(wo.remainingClientBalance, 1, 2)}">0.00</span>
+                                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle ms-1" style="font-size: 0.65rem;">Rem</span>
+                                            </div>
+                                            <div class="text-muted" style="font-size: 0.72rem;">
+                                                <span title="Total Invoice">$<span th:text="${#numbers.formatDecimal(wo.effectiveClientTotal, 1, 2)}">0.00</span></span>
+                                                | <span class="text-success" title="Amount Paid">-$<span th:text="${#numbers.formatDecimal(wo.clientPaidAmount, 1, 2)}">0.00</span></span>
+                                            </div>
+                                        </th:block>
+                                        <th:block th:unless="${wo.isPartiallyPaid()}">
+                                            <div class="fw-bold text-dark"
+                                                th:text="${wo.effectiveClientTotal != null ? '$' + #numbers.formatDecimal(wo.effectiveClientTotal, 1, 2) : '-'}">
+                                                $0.00
+                                            </div>
+                                            <div th:if="${wo.discountApplied}" 
+                                                 class="text-muted text-decoration-line-through" style="font-size: 0.72rem;"
+                                                 th:text="'$' + ${#numbers.formatDecimal(wo.clientInvoiceTotal, 1, 2)}"
+                                                 title="Original gross invoice total before discount">
+                                            </div>
+                                        </th:block>
                                     </td>
                                     <td th:text="${wo.contractorInvoiceTotal != null ? '$' + #numbers.formatDecimal(wo.contractorInvoiceTotal, 1, 2) : '-'}">
                                         $0.00</td>

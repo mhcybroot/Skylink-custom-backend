@@ -967,7 +967,8 @@ public class ExportService {
             Row headerRow = sheet.createRow(0);
             String[] headers = {
                     "Work Order #", "Client", "Invoice Date", "Days Elapsed", "Gross Invoice ($)",
-                    "Discounted Net ($)", "Paid Amount ($)", "Work Type", "Category", "Address", "City", "State", "Zip"
+                    "Discounted Net ($)", "Paid Amount ($)", "Remaining Due ($)", "Payment Status",
+                    "Work Type", "Category", "Address", "City", "State", "Zip"
             };
 
             for (int i = 0; i < headers.length; i++) {
@@ -998,6 +999,13 @@ public class ExportService {
                     cPaid.setCellValue(wo.getClientPaidAmount() != null ? wo.getClientPaidAmount().doubleValue() : 0.0);
                     cPaid.setCellStyle(currencyStyle);
 
+                    Cell cRem = row.createCell(c++);
+                    cRem.setCellValue(wo.getRemainingClientBalance() != null ? wo.getRemainingClientBalance().doubleValue() : 0.0);
+                    cRem.setCellStyle(currencyStyle);
+
+                    String payStatus = wo.isPartiallyPaid() ? "Partial" : (wo.isUnpaid() ? "Unpaid" : "Paid");
+                    row.createCell(c++).setCellValue(payStatus);
+
                     row.createCell(c++).setCellValue(wo.getWorkType() != null ? wo.getWorkType() : "-");
                     row.createCell(c++).setCellValue(wo.getCategory() != null ? wo.getCategory() : "-");
                     row.createCell(c++).setCellValue(wo.getAddress() != null ? wo.getAddress() : "-");
@@ -1020,12 +1028,14 @@ public class ExportService {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream(); PrintWriter writer = new PrintWriter(out)) {
             CSVFormat format = CSVFormat.DEFAULT.builder()
                     .setHeader("Work Order #", "Client", "Invoice Date", "Days Elapsed", "Gross Invoice ($)",
-                            "Discounted Net ($)", "Paid Amount ($)", "Work Type", "Category", "Address", "City", "State", "Zip")
+                            "Discounted Net ($)", "Paid Amount ($)", "Remaining Due ($)", "Payment Status",
+                            "Work Type", "Category", "Address", "City", "State", "Zip")
                     .build();
 
             try (CSVPrinter printer = new CSVPrinter(writer, format)) {
                 if (orders != null) {
                     for (EmployeeWorkOrder wo : orders) {
+                        String payStatus = wo.isPartiallyPaid() ? "Partial" : (wo.isUnpaid() ? "Unpaid" : "Paid");
                         printer.printRecord(
                                 wo.getWoNumber() != null ? wo.getWoNumber() : "-",
                                 wo.getClient() != null ? wo.getClient().getName() : (wo.getOriginalClientString() != null ? wo.getOriginalClientString() : "-"),
@@ -1034,6 +1044,8 @@ public class ExportService {
                                 wo.getClientInvoiceTotal() != null ? wo.getClientInvoiceTotal() : BigDecimal.ZERO,
                                 wo.getEffectiveClientTotal() != null ? wo.getEffectiveClientTotal() : BigDecimal.ZERO,
                                 wo.getClientPaidAmount() != null ? wo.getClientPaidAmount() : BigDecimal.ZERO,
+                                wo.getRemainingClientBalance() != null ? wo.getRemainingClientBalance() : BigDecimal.ZERO,
+                                payStatus,
                                 wo.getWorkType() != null ? wo.getWorkType() : "-",
                                 wo.getCategory() != null ? wo.getCategory() : "-",
                                 wo.getAddress() != null ? wo.getAddress() : "-",

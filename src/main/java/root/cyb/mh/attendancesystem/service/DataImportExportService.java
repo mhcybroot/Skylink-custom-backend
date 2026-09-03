@@ -835,7 +835,12 @@ public class DataImportExportService {
                 // Derived Booleans
                 wo.setContractorInvoicePaid(wo.getContractorPaidAmount() != null
                         && wo.getContractorPaidAmount().compareTo(java.math.BigDecimal.ZERO) > 0);
-                wo.setClientInvoicePaid(wo.getClientPaidDate() != null);
+                if (wo.getClientPaidAmount() != null && wo.getClientInvoiceTotal() != null) {
+                    java.math.BigDecimal remaining = wo.getRemainingClientBalance();
+                    wo.setClientInvoicePaid(remaining.compareTo(java.math.BigDecimal.ZERO) <= 0);
+                } else {
+                    wo.setClientInvoicePaid(wo.getClientPaidDate() != null);
+                }
 
                 // Relationships
                 String clientName = record.get("Client");
