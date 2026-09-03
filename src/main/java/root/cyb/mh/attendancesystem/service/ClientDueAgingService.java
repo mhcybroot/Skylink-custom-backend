@@ -184,10 +184,13 @@ public class ClientDueAgingService {
             ClientDueConfig clientCfg = getConfigForWorkOrder(wo, configMap, defaultConfig);
             boolean isCustom = clientCfg != null && !"DEFAULT".equalsIgnoreCase(clientCfg.getClientIdentifier());
 
+            final String finalIdentifier = clientIdentifier;
+            final String finalName = clientName;
+
             AgingSummaryDTO.ClientAgingStat cStat = clientStatsMap.computeIfAbsent(clientIdentifier.toLowerCase(), k -> {
                 AgingSummaryDTO.ClientAgingStat stat = new AgingSummaryDTO.ClientAgingStat();
-                stat.setClientIdentifier(clientCfg != null ? clientCfg.getClientIdentifier() : k);
-                stat.setClientName(clientCfg != null && clientCfg.getClientName() != null ? clientCfg.getClientName() : k);
+                stat.setClientIdentifier(finalIdentifier);
+                stat.setClientName(finalName);
                 stat.setNormalDueDays(clientCfg != null ? clientCfg.getNormalDueDays() : defaultConfig.getNormalDueDays());
                 stat.setOverdueDays(clientCfg != null ? clientCfg.getOverdueDays() : defaultConfig.getOverdueDays());
                 stat.setCriticalDueDays(clientCfg != null ? clientCfg.getCriticalDueDays() : defaultConfig.getCriticalDueDays());
