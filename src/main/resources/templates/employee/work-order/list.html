@@ -80,12 +80,12 @@
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end shadow-sm small">
                             <li>
-                                <a class="dropdown-item" th:href="@{/employee/work-orders/export(status=${status},clientInvoicePaid=${clientInvoicePaid},startDate=${startDate},endDate=${endDate},search=${search},workType=${workType},client=${client},dueBucket=${dueBucket},format='excel')}">
+                                <a class="dropdown-item" th:href="@{/employee/work-orders/export(status=${status},clientInvoicePaid=${clientInvoicePaid},startDate=${startDate},endDate=${endDate},search=${search},workType=${workType},client=${client},dueBucket=${dueBucket},series=${series},format='excel')}">
                                     <i class="fas fa-file-excel me-2 text-success"></i>Export to Excel (.xlsx)
                                 </a>
                             </li>
                             <li>
-                                <a class="dropdown-item" th:href="@{/employee/work-orders/export(status=${status},clientInvoicePaid=${clientInvoicePaid},startDate=${startDate},endDate=${endDate},search=${search},workType=${workType},client=${client},dueBucket=${dueBucket},format='csv')}">
+                                <a class="dropdown-item" th:href="@{/employee/work-orders/export(status=${status},clientInvoicePaid=${clientInvoicePaid},startDate=${startDate},endDate=${endDate},search=${search},workType=${workType},client=${client},dueBucket=${dueBucket},series=${series},format='csv')}">
                                     <i class="fas fa-file-csv me-2 text-info"></i>Export to CSV (.csv)
                                 </a>
                             </li>
@@ -537,7 +537,7 @@
                                                 <i class="fas fa-sort text-muted opacity-50 sort-icon ms-1"></i>
                                             </div>
                                         </th>
-                                        <th class="text-center pe-3" style="min-width: 100px;">Actions</th>
+                                        <th class="text-center pe-3" style="min-width: 155px;">Download / Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -636,11 +636,23 @@
 
                                         <!-- Action Buttons -->
                                         <td class="text-center pe-3">
-                                            <a th:href="@{/employee/work-orders(series=${sStat.seriesBase},dueBucket='all_unpaid')}" 
-                                               class="btn btn-outline-primary btn-sm py-0 px-2" style="font-size: 0.72rem;"
-                                               title="View all unpaid work orders for this series">
-                                                <i class="fas fa-filter me-1"></i>View WOs
-                                            </a>
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                <a th:href="@{/employee/work-orders(series=${sStat.seriesBase},dueBucket='all_unpaid')}" 
+                                                   class="btn btn-outline-primary py-0 px-2" style="font-size: 0.72rem;"
+                                                   title="View all unpaid work orders in table">
+                                                    <i class="fas fa-eye me-1"></i>View
+                                                </a>
+                                                <a th:href="@{/employee/work-orders/export(series=${sStat.seriesBase},dueBucket='all_unpaid',format='excel')}" 
+                                                   class="btn btn-outline-success py-0 px-2" style="font-size: 0.72rem;"
+                                                   th:title="'Download ' + ${sStat.seriesName} + ' Work Orders in Excel (.xlsx)'">
+                                                    <i class="fas fa-file-excel text-success me-1"></i>Excel
+                                                </a>
+                                                <a th:href="@{/employee/work-orders/export(series=${sStat.seriesBase},dueBucket='all_unpaid',format='csv')}" 
+                                                   class="btn btn-outline-info py-0 px-2" style="font-size: 0.72rem;"
+                                                   th:title="'Download ' + ${sStat.seriesName} + ' Work Orders in CSV (.csv)'">
+                                                    <i class="fas fa-file-csv text-info me-1"></i>CSV
+                                                </a>
+                                            </div>
                                         </td>
                                     </tr>
                                 </tbody>
@@ -657,7 +669,20 @@
                                         <td class="text-end text-warning-emphasis" th:text="'$' + ${#numbers.formatDecimal(agingSummary.standardDueAmount, 1, 2)}">$47,177.50</td>
                                         <td class="text-end" style="color: #ea580c;" th:text="'$' + ${#numbers.formatDecimal(agingSummary.pastDueAmount, 1, 2)}">$52,314.76</td>
                                         <td class="text-end text-danger" th:text="'$' + ${#numbers.formatDecimal(agingSummary.criticalDueAmount, 1, 2)}">$42,117.48</td>
-                                        <td></td>
+                                        <td class="text-center pe-3">
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                <a th:href="@{/employee/work-orders/export(dueBucket='all_unpaid',format='excel')}" 
+                                                   class="btn btn-outline-success py-0 px-1.5" style="font-size: 0.7rem;"
+                                                   title="Download all 460 unpaid work orders in Excel (.xlsx)">
+                                                    <i class="fas fa-file-excel text-success me-1"></i>All Excel
+                                                </a>
+                                                <a th:href="@{/employee/work-orders/export(dueBucket='all_unpaid',format='csv')}" 
+                                                   class="btn btn-outline-info py-0 px-1.5" style="font-size: 0.7rem;"
+                                                   title="Download all 460 unpaid work orders in CSV (.csv)">
+                                                    <i class="fas fa-file-csv text-info me-1"></i>All CSV
+                                                </a>
+                                            </div>
+                                        </td>
                                     </tr>
                                 </tfoot>
                             </table>
