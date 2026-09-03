@@ -80,6 +80,7 @@ public class EmployeeWorkOrderController {
             @RequestParam(required = false) String client,
             @RequestParam(required = false) String contractor,
             @RequestParam(required = false) String dueBucket,
+            @RequestParam(required = false) Integer series,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             Authentication authentication,
@@ -99,7 +100,7 @@ public class EmployeeWorkOrderController {
         Map<String, ClientDueConfig> configMap = clientDueAgingService.getConfigMap();
 
         Specification<EmployeeWorkOrder> spec = EmployeeWorkOrderSpecifications.withFilters(
-                status, clientInvoicePaid, contractorInvoicePaid, startDate, endDate, search, workType, client, contractor);
+                status, clientInvoicePaid, contractorInvoicePaid, startDate, endDate, search, workType, client, contractor, series);
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
         Page<EmployeeWorkOrder> workOrders;
@@ -164,6 +165,10 @@ public class EmployeeWorkOrderController {
             filterName += " (" + startDate + " to " + endDate + ")";
         }
 
+        if (series != null) {
+            filterName = "📁 Series " + series + " (" + series + "–" + (series + 99) + ")";
+        }
+
         if (search != null && !search.isEmpty()) {
             filterName += " | Search: " + search;
         }
@@ -183,6 +188,7 @@ public class EmployeeWorkOrderController {
         model.addAttribute("startDate", startDate);
         model.addAttribute("endDate", endDate);
         model.addAttribute("dueBucket", dueBucket);
+        model.addAttribute("series", series);
 
         model.addAttribute("search", search);
         model.addAttribute("workType", workType);
@@ -349,6 +355,38 @@ public class EmployeeWorkOrderController {
                 .body(data);
     }
 
+    @GetMapping("/aging/export-series")
+    public org.springframework.http.ResponseEntity<byte[]> exportSeriesAgingPortfolio(
+            @RequestParam(defaultValue = "excel") String format,
+            Authentication authentication) throws IOException {
+
+        if (!checkAccess(authentication)) {
+            return org.springframework.http.ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN).build();
+        }
+
+        List<EmployeeWorkOrder> allOrders = employeeWorkOrderRepository.findAll();
+        AgingSummaryDTO summary = clientDueAgingService.calculateAgingSummary(allOrders);
+
+        byte[] data;
+        String filename;
+        String contentType;
+
+        if ("csv".equalsIgnoreCase(format)) {
+            data = exportService.exportSeriesAgingCsv(summary);
+            filename = "AR_Series_Aging_Portfolio_" + LocalDate.now() + ".csv";
+            contentType = "text/csv; charset=UTF-8";
+        } else {
+            data = exportService.exportSeriesAgingExcel(summary);
+            filename = "AR_Series_Aging_Portfolio_" + LocalDate.now() + ".xlsx";
+            contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+        }
+
+        return org.springframework.http.ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .header(org.springframework.http.HttpHeaders.CONTENT_TYPE, contentType)
+                .body(data);
+    }
+
     @GetMapping("/export")
     public org.springframework.http.ResponseEntity<byte[]> exportFilteredWorkOrders(
             @RequestParam(required = false) String status,
@@ -361,6 +399,7 @@ public class EmployeeWorkOrderController {
             @RequestParam(required = false) String client,
             @RequestParam(required = false) String contractor,
             @RequestParam(required = false) String dueBucket,
+            @RequestParam(required = false) Integer series,
             @RequestParam(defaultValue = "excel") String format,
             Authentication authentication) throws IOException {
 
@@ -369,7 +408,7 @@ public class EmployeeWorkOrderController {
         }
 
         Specification<EmployeeWorkOrder> spec = EmployeeWorkOrderSpecifications.withFilters(
-                status, clientInvoicePaid, contractorInvoicePaid, startDate, endDate, search, workType, client, contractor);
+                status, clientInvoicePaid, contractorInvoicePaid, startDate, endDate, search, workType, client, contractor, series);
 
         List<EmployeeWorkOrder> orders = employeeWorkOrderRepository.findAll(spec, Sort.by(Sort.Direction.DESC, "invoiceDate"));
 
@@ -381,7 +420,13 @@ public class EmployeeWorkOrderController {
         String filename;
         String contentType;
 
-        String prefix = (dueBucket != null && !dueBucket.trim().isEmpty()) ? "Due_Orders_" + dueBucket.trim() : "Work_Orders";
+        String prefix = "Work_Orders";
+        if (series != null) {
+            prefix = "Series_" + series + "_Orders";
+        } else if (dueBucket != null && !dueBucket.trim().isEmpty()) {
+            prefix = "Due_Orders_" + dueBucket.trim();
+        }
+
         if ("csv".equalsIgnoreCase(format)) {
             data = exportService.exportDueWorkOrdersCsv(orders);
             filename = prefix + "_" + LocalDate.now() + ".csv";

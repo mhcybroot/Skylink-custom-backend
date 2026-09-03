@@ -139,6 +139,8 @@ public class ClientDueAgingService {
         summary.setClientConfigs(clientConfigs);
 
         Map<String, AgingSummaryDTO.ClientAgingStat> clientStatsMap = new LinkedHashMap<>();
+        Map<String, AgingSummaryDTO.SeriesAgingStat> seriesStatsMap = new LinkedHashMap<>();
+        Map<String, Set<String>> seriesClientsMap = new HashMap<>();
         BigDecimal portfolioTotalWeightedDays = BigDecimal.ZERO;
         long portfolioTotalDaysSum = 0;
 
@@ -231,6 +233,59 @@ public class ClientDueAgingService {
                     cStat.setWithinTermsAmount(cStat.getWithinTermsAmount().add(amount));
                     break;
             }
+
+            // Series Stats grouping (e.g. 100-199 -> Series 100)
+            int seriesBase = extractSeriesBase(clientIdentifier);
+            String seriesName;
+            String seriesRange;
+            if (seriesBase >= 0) {
+                seriesName = "Series " + seriesBase;
+                seriesRange = seriesBase + "–" + (seriesBase + 99);
+            } else {
+                seriesBase = 99999;
+                seriesName = "Other Series";
+                seriesRange = "Other";
+            }
+
+            final int fSeriesBase = seriesBase;
+            final String fSeriesName = seriesName;
+            final String fSeriesRange = seriesRange;
+
+            AgingSummaryDTO.SeriesAgingStat sStat = seriesStatsMap.computeIfAbsent(seriesName, k -> {
+                AgingSummaryDTO.SeriesAgingStat stat = new AgingSummaryDTO.SeriesAgingStat();
+                stat.setSeriesName(fSeriesName);
+                stat.setSeriesRange(fSeriesRange);
+                stat.setSeriesBase(fSeriesBase);
+                return stat;
+            });
+
+            sStat.setTotalUnpaidCount(sStat.getTotalUnpaidCount() + 1);
+            sStat.setTotalUnpaidAmount(sStat.getTotalUnpaidAmount().add(amount));
+            sStat.setTotalDaysSum(sStat.getTotalDaysSum() + daysElapsed);
+            if (amount != null && amount.compareTo(BigDecimal.ZERO) > 0) {
+                sStat.setTotalWeightedDays(sStat.getTotalWeightedDays().add(BigDecimal.valueOf(daysElapsed).multiply(amount)));
+            }
+
+            switch (bucket) {
+                case BUCKET_CRITICAL:
+                    sStat.setCriticalDueCount(sStat.getCriticalDueCount() + 1);
+                    sStat.setCriticalDueAmount(sStat.getCriticalDueAmount().add(amount));
+                    break;
+                case BUCKET_OVERDUE:
+                    sStat.setPastDueCount(sStat.getPastDueCount() + 1);
+                    sStat.setPastDueAmount(sStat.getPastDueAmount().add(amount));
+                    break;
+                case BUCKET_STANDARD:
+                    sStat.setStandardDueCount(sStat.getStandardDueCount() + 1);
+                    sStat.setStandardDueAmount(sStat.getStandardDueAmount().add(amount));
+                    break;
+                case BUCKET_WITHIN_TERMS:
+                    sStat.setWithinTermsCount(sStat.getWithinTermsCount() + 1);
+                    sStat.setWithinTermsAmount(sStat.getWithinTermsAmount().add(amount));
+                    break;
+            }
+
+            seriesClientsMap.computeIfAbsent(seriesName, k -> new TreeSet<>(String.CASE_INSENSITIVE_ORDER)).add(finalIdentifier);
         }
 
         if (summary.getTotalUnpaidAmount().compareTo(BigDecimal.ZERO) > 0) {
@@ -243,6 +298,16 @@ public class ClientDueAgingService {
         List<AgingSummaryDTO.ClientAgingStat> sortedStats = new ArrayList<>(clientStatsMap.values());
         sortedStats.sort((a, b) -> b.getTotalUnpaidAmount().compareTo(a.getTotalUnpaidAmount()));
         summary.setClientStats(sortedStats);
+
+        // Finalize and sort series stats by series base ascending (Series 100, Series 200, Series 300...)
+        List<AgingSummaryDTO.SeriesAgingStat> sortedSeries = new ArrayList<>(seriesStatsMap.values());
+        for (AgingSummaryDTO.SeriesAgingStat s : sortedSeries) {
+            Set<String> clients = seriesClientsMap.getOrDefault(s.getSeriesName(), Collections.emptySet());
+            s.setClientCount(clients.size());
+            s.setClientCodes(new ArrayList<>(clients));
+        }
+        sortedSeries.sort(Comparator.comparingInt(AgingSummaryDTO.SeriesAgingStat::getSeriesBase));
+        summary.setSeriesStats(sortedSeries);
 
         return summary;
     }
@@ -302,5 +367,34 @@ public class ClientDueAgingService {
             }
             return dueBucket.equalsIgnoreCase(bucket);
         }).collect(Collectors.toList());
+    }
+
+    public static int extractSeriesBase(String clientString) {
+        if (clientString == null) return -1;
+        String digits = clientString.replaceAll("[^0-9]", "");
+        if (digits.isEmpty()) return -1;
+        try {
+            int num = Integer.parseInt(digits);
+            return (num / 100) * 100;
+        } catch (NumberFormatException e) {
+            return -1;
+        }
+    }
+
+    public List<EmployeeWorkOrder> filterOrdersBySeries(List<EmployeeWorkOrder> orders, Integer seriesBase) {
+        if (orders == null || seriesBase == null) {
+            return orders != null ? orders : Collections.emptyList();
+        }
+        return orders.stream()
+                .filter(wo -> {
+                    String clientStr = null;
+                    if (wo.getClient() != null && wo.getClient().getCode() != null) {
+                        clientStr = wo.getClient().getCode();
+                    } else if (wo.getOriginalClientString() != null) {
+                        clientStr = wo.getOriginalClientString();
+                    }
+                    return extractSeriesBase(clientStr) == seriesBase;
+                })
+                .collect(Collectors.toList());
     }
 }

@@ -268,4 +268,40 @@ class EmployeeWorkOrderControllerTest {
                 .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.containsString("AR_Aging_Portfolio_")))
                 .andExpect(content().contentType("text/csv; charset=UTF-8"));
     }
+
+    @Test
+    void exportSeriesAgingPortfolioExcel() throws Exception {
+        when(employeeWorkOrderRepository.findAll()).thenReturn(List.of());
+        when(clientDueAgingService.calculateAgingSummary(any())).thenReturn(sampleSummary);
+        when(exportService.exportSeriesAgingExcel(any())).thenReturn(new byte[]{4, 5, 6});
+
+        mockMvc.perform(get("/employee/work-orders/aging/export-series?format=excel").with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.containsString("AR_Series_Aging_Portfolio_")))
+                .andExpect(content().contentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+    }
+
+    @Test
+    void exportSeriesAgingPortfolioCsv() throws Exception {
+        when(employeeWorkOrderRepository.findAll()).thenReturn(List.of());
+        when(clientDueAgingService.calculateAgingSummary(any())).thenReturn(sampleSummary);
+        when(exportService.exportSeriesAgingCsv(any())).thenReturn("series,range".getBytes());
+
+        mockMvc.perform(get("/employee/work-orders/aging/export-series?format=csv").with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.containsString("AR_Series_Aging_Portfolio_")))
+                .andExpect(content().contentType("text/csv; charset=UTF-8"));
+    }
+
+    @Test
+    void filterBySeriesEndpoint() throws Exception {
+        when(employeeWorkOrderRepository.findAll(org.mockito.ArgumentMatchers.<Specification<EmployeeWorkOrder>>any(), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of()));
+        when(clientDueAgingService.calculateAgingSummary(any())).thenReturn(sampleSummary);
+
+        mockMvc.perform(get("/employee/work-orders?series=100").with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("series", 100))
+                .andExpect(view().name("employee/work-order/list"));
+    }
 }

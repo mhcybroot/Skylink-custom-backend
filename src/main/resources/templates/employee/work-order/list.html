@@ -63,6 +63,10 @@
                         data-bs-target="#clientPortfolioCollapse">
                         <i class="fas fa-building me-1"></i> Client Portfolio
                     </button>
+                    <button class="btn btn-outline-info btn-sm" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#seriesPortfolioCollapse" aria-expanded="false" aria-controls="seriesPortfolioCollapse">
+                        <i class="fas fa-layer-group me-1"></i> Series Portfolio
+                    </button>
                     <button class="btn btn-primary btn-sm" type="button" data-bs-toggle="modal"
                         data-bs-target="#agingConfigModal">
                         <i class="fas fa-sliders-h me-1"></i> Configure Intervals
@@ -421,6 +425,232 @@
                                         <td></td>
                                         <td class="text-center text-primary" th:text="${agingSummary.portfolioAverageDays} + 'd'">47.2d</td>
                                         <td class="text-center text-muted">Active Overrides</td>
+                                        <td class="text-center text-primary" th:text="${agingSummary.totalUnpaidCount}">460</td>
+                                        <td class="text-end text-dark" th:text="'$' + ${#numbers.formatDecimal(agingSummary.totalUnpaidAmount, 1, 2)}">$156,422.21</td>
+                                        <td class="text-end text-success" th:text="'$' + ${#numbers.formatDecimal(agingSummary.withinTermsAmount, 1, 2)}">$14,812.47</td>
+                                        <td class="text-end text-warning-emphasis" th:text="'$' + ${#numbers.formatDecimal(agingSummary.standardDueAmount, 1, 2)}">$47,177.50</td>
+                                        <td class="text-end" style="color: #ea580c;" th:text="'$' + ${#numbers.formatDecimal(agingSummary.pastDueAmount, 1, 2)}">$52,314.76</td>
+                                        <td class="text-end text-danger" th:text="'$' + ${#numbers.formatDecimal(agingSummary.criticalDueAmount, 1, 2)}">$42,117.48</td>
+                                        <td></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Client Series Portfolio Aging Collapse (100-199, 200-299, 300-399...) -->
+            <div class="collapse mb-4" id="seriesPortfolioCollapse" th:classappend="${series != null ? 'show' : ''}">
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-2.5">
+                        <div class="d-flex align-items-center gap-2">
+                            <h6 class="mb-0 fw-bold"><i class="fas fa-layer-group me-2 text-info"></i>Client Series Accounts Receivable Aging Portfolio</h6>
+                            <span class="badge bg-info text-dark" th:text="${agingSummary.seriesStats.size()} + ' Active Series (100–199, 200–299...)'">0 Series</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <input type="text" id="seriesPortfolioSearch" class="form-control form-control-sm border-0 shadow-none"
+                                   placeholder="🔍 Search series or client..." onkeyup="filterSeriesPortfolioTable()"
+                                   style="max-width: 220px; font-size: 0.8rem;">
+                            <div class="btn-group btn-group-sm">
+                                <a th:href="@{/employee/work-orders/aging/export-series(format='excel')}" class="btn btn-outline-light py-0 px-2" style="font-size: 0.75rem;" title="Export Series Portfolio to Excel">
+                                    <i class="fas fa-file-excel me-1 text-success"></i>Excel
+                                </a>
+                                <a th:href="@{/employee/work-orders/aging/export-series(format='csv')}" class="btn btn-outline-light py-0 px-2" style="font-size: 0.75rem;" title="Export Series Portfolio to CSV">
+                                    <i class="fas fa-file-csv me-1 text-info"></i>CSV
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0 small" id="seriesPortfolioTable">
+                                <thead class="bg-light text-muted text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.5px;">
+                                    <tr>
+                                        <th class="ps-3 sortable-th-series" style="min-width: 175px; cursor: pointer; user-select: none;" 
+                                            onclick="sortSeriesPortfolioTable(0, 'string')" title="Click to sort by Series Name">
+                                            <div class="d-flex align-items-center justify-content-between">
+                                                <span>Series &amp; Range</span>
+                                                <i class="fas fa-sort text-muted opacity-50 sort-icon ms-1"></i>
+                                            </div>
+                                        </th>
+                                        <th class="sortable-th-series" style="min-width: 135px; cursor: pointer; user-select: none;" 
+                                            onclick="sortSeriesPortfolioTable(1, 'number')" title="Click to sort by Critical Delinquency Risk %">
+                                            <div class="d-flex align-items-center justify-content-between">
+                                                <span>Risk Profile</span>
+                                                <i class="fas fa-sort text-muted opacity-50 sort-icon ms-1"></i>
+                                            </div>
+                                        </th>
+                                        <th class="text-center sortable-th-series" style="min-width: 90px; cursor: pointer; user-select: none;" 
+                                            onclick="sortSeriesPortfolioTable(2, 'number')" title="Click to sort by Weighted Average Overdue Days">
+                                            <div class="d-flex align-items-center justify-content-center">
+                                                <span>Avg Age</span>
+                                                <i class="fas fa-sort text-muted opacity-50 sort-icon ms-1"></i>
+                                            </div>
+                                        </th>
+                                        <th class="text-center sortable-th-series" style="min-width: 90px; cursor: pointer; user-select: none;" 
+                                            onclick="sortSeriesPortfolioTable(3, 'number')" title="Click to sort by Client Count">
+                                            <div class="d-flex align-items-center justify-content-center">
+                                                <span>Clients</span>
+                                                <i class="fas fa-sort text-muted opacity-50 sort-icon ms-1"></i>
+                                            </div>
+                                        </th>
+                                        <th class="text-center sortable-th-series" style="min-width: 100px; cursor: pointer; user-select: none;" 
+                                            onclick="sortSeriesPortfolioTable(4, 'number')" title="Click to sort by Unpaid Work Orders Count">
+                                            <div class="d-flex align-items-center justify-content-center">
+                                                <span>Unpaid WOs</span>
+                                                <i class="fas fa-sort text-muted opacity-50 sort-icon ms-1"></i>
+                                            </div>
+                                        </th>
+                                        <th class="text-end sortable-th-series" style="min-width: 120px; cursor: pointer; user-select: none;" 
+                                            onclick="sortSeriesPortfolioTable(5, 'number')" title="Click to sort by Total Unpaid Amount">
+                                            <div class="d-flex align-items-center justify-content-end">
+                                                <span>Total Unpaid</span>
+                                                <i class="fas fa-sort text-muted opacity-50 sort-icon ms-1"></i>
+                                            </div>
+                                        </th>
+                                        <th class="text-end text-success sortable-th-series" style="min-width: 115px; cursor: pointer; user-select: none;" 
+                                            onclick="sortSeriesPortfolioTable(6, 'number')" title="Click to sort by Current (<40d) Amount">
+                                            <div class="d-flex align-items-center justify-content-end">
+                                                <span>Current (&lt;40d)</span>
+                                                <i class="fas fa-sort text-muted opacity-50 sort-icon ms-1"></i>
+                                            </div>
+                                        </th>
+                                        <th class="text-end text-warning-emphasis sortable-th-series" style="min-width: 110px; cursor: pointer; user-select: none;" 
+                                            onclick="sortSeriesPortfolioTable(7, 'number')" title="Click to sort by Standard Due Amount">
+                                            <div class="d-flex align-items-center justify-content-end">
+                                                <span>Standard Due</span>
+                                                <i class="fas fa-sort text-muted opacity-50 sort-icon ms-1"></i>
+                                            </div>
+                                        </th>
+                                        <th class="text-end sortable-th-series" style="min-width: 105px; color: #ea580c; cursor: pointer; user-select: none;" 
+                                            onclick="sortSeriesPortfolioTable(8, 'number')" title="Click to sort by Past Due Amount">
+                                            <div class="d-flex align-items-center justify-content-end">
+                                                <span>Past Due</span>
+                                                <i class="fas fa-sort text-muted opacity-50 sort-icon ms-1"></i>
+                                            </div>
+                                        </th>
+                                        <th class="text-end text-danger sortable-th-series" style="min-width: 120px; cursor: pointer; user-select: none;" 
+                                            onclick="sortSeriesPortfolioTable(9, 'number')" title="Click to sort by Critical Delinquent Amount">
+                                            <div class="d-flex align-items-center justify-content-end">
+                                                <span>Critical (60+d)</span>
+                                                <i class="fas fa-sort text-muted opacity-50 sort-icon ms-1"></i>
+                                            </div>
+                                        </th>
+                                        <th class="text-center pe-3" style="min-width: 100px;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="sStat : ${agingSummary.seriesStats}">
+                                        <!-- Series & Range & Included Clients -->
+                                        <td class="ps-3" th:data-sort="${sStat.seriesBase}">
+                                            <div class="d-flex align-items-center justify-content-between">
+                                                <span class="fw-bold text-dark" th:text="${sStat.seriesName}">Series 100</span>
+                                                <span class="badge" th:classappend="${sStat.riskBadgeClass}" style="font-size: 0.65rem;"
+                                                      th:text="${sStat.riskScoreLabel}">Low Risk</span>
+                                            </div>
+                                            <div class="d-flex align-items-center gap-1 mt-0.5">
+                                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle font-monospace" style="font-size: 0.65rem;"
+                                                      th:text="${sStat.seriesRange}">100–199</span>
+                                                <span class="badge bg-light text-secondary border" style="font-size: 0.62rem;"
+                                                      th:title="'Clients: ' + ${sStat.clientsSummary}"
+                                                      th:text="${sStat.clientCount} + ' Clients'">8 Clients</span>
+                                            </div>
+                                            <div class="text-muted text-truncate mt-0.5" style="font-size: 0.62rem; max-width: 170px;"
+                                                 th:title="${sStat.clientsSummary}" th:text="${sStat.clientsSummary}">
+                                                100, 101, 105...
+                                            </div>
+                                        </td>
+
+                                        <!-- Stacked Risk Distribution Bar -->
+                                        <td th:data-sort="${sStat.criticalPercent}">
+                                            <div class="progress" style="height: 9px; border-radius: 6px;" 
+                                                 th:title="${sStat.pendingInvoiceAmount ? 'Based on Work Order counts: ' : ''} + 'Current: ' + ${#numbers.formatDecimal(sStat.withinTermsPercent, 1, 1)} + '% | Standard: ' + ${#numbers.formatDecimal(sStat.standardPercent, 1, 1)} + '% | Past Due: ' + ${#numbers.formatDecimal(sStat.overduePercent, 1, 1)} + '% | Critical: ' + ${#numbers.formatDecimal(sStat.criticalPercent, 1, 1)} + '%'">
+                                                <div class="progress-bar bg-success" role="progressbar" 
+                                                     th:style="'width: ' + ${sStat.withinTermsPercent} + '%;'" aria-label="Current"></div>
+                                                <div class="progress-bar bg-warning" role="progressbar" 
+                                                     th:style="'width: ' + ${sStat.standardPercent} + '%;'" aria-label="Standard"></div>
+                                                <div class="progress-bar" role="progressbar" style="background-color: #ea580c;" 
+                                                     th:style="'width: ' + ${sStat.overduePercent} + '%; background-color: #ea580c;'" aria-label="Past Due"></div>
+                                                <div class="progress-bar bg-danger" role="progressbar" 
+                                                     th:style="'width: ' + ${sStat.criticalPercent} + '%;'" aria-label="Critical"></div>
+                                            </div>
+                                            <div class="d-flex justify-content-between text-muted mt-1" style="font-size: 0.65rem;">
+                                                <span class="text-success" th:text="${#numbers.formatDecimal(sStat.withinTermsPercent, 1, 0)} + '%'">0%</span>
+                                                <span class="text-warning-emphasis" th:text="${#numbers.formatDecimal(sStat.standardPercent, 1, 0)} + '%'">0%</span>
+                                                <span style="color: #ea580c;" th:text="${#numbers.formatDecimal(sStat.overduePercent, 1, 0)} + '%'">0%</span>
+                                                <span class="text-danger" th:text="${#numbers.formatDecimal(sStat.criticalPercent, 1, 0)} + '%'">0%</span>
+                                            </div>
+                                        </td>
+
+                                        <!-- Dollar-Weighted Average Days Elapsed -->
+                                        <td class="text-center font-monospace" th:data-sort="${sStat.weightedAverageDays}">
+                                            <span class="badge px-2 py-1"
+                                                  th:classappend="${sStat.weightedAverageDays >= 60 ? 'bg-danger text-white' : (sStat.weightedAverageDays >= 50 ? 'text-white' : (sStat.weightedAverageDays >= 40 ? 'bg-warning text-dark' : 'bg-success text-white'))}"
+                                                  th:style="${sStat.weightedAverageDays >= 50 && sStat.weightedAverageDays < 60 ? 'background-color: #ea580c;' : ''}"
+                                                  style="font-size: 0.72rem;"
+                                                  th:text="${sStat.weightedAverageDays} + 'd'">
+                                                40.0d
+                                            </span>
+                                        </td>
+
+                                        <!-- Clients Count -->
+                                        <td class="text-center" th:data-sort="${sStat.clientCount}">
+                                            <span class="badge bg-light text-dark border px-2 py-1" th:text="${sStat.clientCount}">0</span>
+                                        </td>
+
+                                        <!-- Unpaid WOs Count -->
+                                        <td class="text-center" th:data-sort="${sStat.totalUnpaidCount}">
+                                            <span class="badge bg-light text-dark border px-2 py-1 fw-bold" th:text="${sStat.totalUnpaidCount}">0</span>
+                                        </td>
+
+                                        <!-- Total Unpaid Balance -->
+                                        <td class="text-end font-monospace" th:data-sort="${sStat.totalUnpaidAmount}">
+                                            <div class="fw-bold text-dark" th:text="'$' + ${#numbers.formatDecimal(sStat.totalUnpaidAmount, 1, 2)}">$0.00</div>
+                                            <span th:if="${sStat.pendingInvoiceAmount}" class="badge bg-light text-muted border" style="font-size: 0.6rem;">$0 / Unpriced</span>
+                                        </td>
+
+                                        <!-- Current (<40d) -->
+                                        <td class="text-end text-success fw-semibold font-monospace" th:data-sort="${sStat.withinTermsAmount}"
+                                            th:text="'$' + ${#numbers.formatDecimal(sStat.withinTermsAmount, 1, 2)}">
+                                            $0.00
+                                        </td>
+
+                                        <!-- Standard Due (40-49d) -->
+                                        <td class="text-end text-warning-emphasis fw-semibold font-monospace" th:data-sort="${sStat.standardDueAmount}"
+                                            th:text="'$' + ${#numbers.formatDecimal(sStat.standardDueAmount, 1, 2)}">
+                                            $0.00
+                                        </td>
+
+                                        <!-- Past Due (50-59d) -->
+                                        <td class="text-end fw-semibold font-monospace" style="color: #ea580c;" th:data-sort="${sStat.pastDueAmount}"
+                                            th:text="'$' + ${#numbers.formatDecimal(sStat.pastDueAmount, 1, 2)}">
+                                            $0.00
+                                        </td>
+
+                                        <!-- Critical Delinquent (60+d) -->
+                                        <td class="text-end text-danger fw-bold font-monospace" th:data-sort="${sStat.criticalDueAmount}"
+                                            th:text="'$' + ${#numbers.formatDecimal(sStat.criticalDueAmount, 1, 2)}">
+                                            $0.00
+                                        </td>
+
+                                        <!-- Action Buttons -->
+                                        <td class="text-center pe-3">
+                                            <a th:href="@{/employee/work-orders(series=${sStat.seriesBase},dueBucket='all_unpaid')}" 
+                                               class="btn btn-outline-primary btn-sm py-0 px-2" style="font-size: 0.72rem;"
+                                               title="View all unpaid work orders for this series">
+                                                <i class="fas fa-filter me-1"></i>View WOs
+                                            </a>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                                <!-- Series Portfolio Totals Summary Footer -->
+                                <tfoot class="bg-light fw-bold border-top" th:if="${!agingSummary.seriesStats.isEmpty()}">
+                                    <tr class="font-monospace small">
+                                        <td class="ps-3 text-uppercase">Total Portfolio</td>
+                                        <td></td>
+                                        <td class="text-center text-primary" th:text="${agingSummary.portfolioAverageDays} + 'd'">47.2d</td>
+                                        <td class="text-center text-muted" th:text="${agingSummary.clientStats.size()} + ' Clients'">40 Clients</td>
                                         <td class="text-center text-primary" th:text="${agingSummary.totalUnpaidCount}">460</td>
                                         <td class="text-end text-dark" th:text="'$' + ${#numbers.formatDecimal(agingSummary.totalUnpaidAmount, 1, 2)}">$156,422.21</td>
                                         <td class="text-end text-success" th:text="'$' + ${#numbers.formatDecimal(agingSummary.withinTermsAmount, 1, 2)}">$14,812.47</td>
@@ -914,6 +1144,88 @@
                         return portfolioSortAsc ? (numA - numB) : (numB - numA);
                     } else {
                         return portfolioSortAsc 
+                            ? valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' })
+                            : valB.localeCompare(valA, undefined, { numeric: true, sensitivity: 'base' });
+                    }
+                });
+
+                rows.forEach(function(row) {
+                    tbody.appendChild(row);
+                });
+            }
+
+            // Filter series portfolio table
+            function filterSeriesPortfolioTable() {
+                var input = document.getElementById("seriesPortfolioSearch");
+                if (!input) return;
+                var filter = input.value.toLowerCase().trim();
+                var table = document.getElementById("seriesPortfolioTable");
+                if (!table) return;
+                var trs = table.getElementsByTagName("tbody")[0].getElementsByTagName("tr");
+
+                for (var i = 0; i < trs.length; i++) {
+                    var text = trs[i].textContent.toLowerCase();
+                    if (text.indexOf(filter) > -1) {
+                        trs[i].style.display = "";
+                    } else {
+                        trs[i].style.display = "none";
+                    }
+                }
+            }
+
+            // Interactive sort for series portfolio table
+            var seriesSortCol = 0;
+            var seriesSortAsc = true;
+
+            function sortSeriesPortfolioTable(colIndex, type) {
+                var table = document.getElementById('seriesPortfolioTable');
+                if (!table) return;
+                var tbody = table.querySelector('tbody');
+                if (!tbody) return;
+
+                if (seriesSortCol === colIndex) {
+                    seriesSortAsc = !seriesSortAsc;
+                } else {
+                    seriesSortCol = colIndex;
+                    seriesSortAsc = (type === 'string');
+                }
+
+                // Update sort icons on series headers
+                var ths = table.querySelectorAll('thead th.sortable-th-series');
+                ths.forEach(function(th, idx) {
+                    var icon = th.querySelector('.sort-icon');
+                    if (icon) {
+                        if (idx === colIndex) {
+                            icon.className = seriesSortAsc 
+                                ? 'fas fa-sort-up text-info sort-icon ms-1' 
+                                : 'fas fa-sort-down text-info sort-icon ms-1';
+                        } else {
+                            icon.className = 'fas fa-sort text-muted opacity-50 sort-icon ms-1';
+                        }
+                    }
+                });
+
+                var rows = Array.from(tbody.querySelectorAll('tr')).filter(function(r) {
+                    return !r.querySelector('td[colspan]');
+                });
+
+                rows.sort(function(rowA, rowB) {
+                    var cellA = rowA.children[colIndex];
+                    var cellB = rowB.children[colIndex];
+                    if (!cellA || !cellB) return 0;
+
+                    var valA = cellA.getAttribute('data-sort');
+                    var valB = cellB.getAttribute('data-sort');
+
+                    if (valA === null) valA = cellA.textContent.trim();
+                    if (valB === null) valB = cellB.textContent.trim();
+
+                    if (type === 'number') {
+                        var numA = parseFloat(valA) || 0;
+                        var numB = parseFloat(valB) || 0;
+                        return seriesSortAsc ? (numA - numB) : (numB - numA);
+                    } else {
+                        return seriesSortAsc 
                             ? valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' })
                             : valB.localeCompare(valA, undefined, { numeric: true, sensitivity: 'base' });
                     }

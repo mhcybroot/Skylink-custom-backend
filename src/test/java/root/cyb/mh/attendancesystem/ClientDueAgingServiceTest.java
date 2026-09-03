@@ -201,4 +201,52 @@ class ClientDueAgingServiceTest {
         assertEquals(1, withinTerms.size());
         assertEquals(wo1, withinTerms.get(0));
     }
+
+    @Test
+    void testSeriesAgingPortfolioGrouping() {
+        EmployeeWorkOrder wo100 = new EmployeeWorkOrder();
+        wo100.setClientInvoicePaid(false);
+        wo100.setInvoiceDate(LocalDate.now().minusDays(20)); // Within Terms (<40)
+        wo100.setClientInvoiceTotal(new BigDecimal("150.00"));
+        wo100.setOriginalClientString("105");
+
+        EmployeeWorkOrder wo100b = new EmployeeWorkOrder();
+        wo100b.setClientInvoicePaid(false);
+        wo100b.setInvoiceDate(LocalDate.now().minusDays(45)); // Standard Due (40-49)
+        wo100b.setClientInvoiceTotal(new BigDecimal("250.00"));
+        wo100b.setOriginalClientString("120");
+
+        EmployeeWorkOrder wo300 = new EmployeeWorkOrder();
+        wo300.setClientInvoicePaid(false);
+        wo300.setInvoiceDate(LocalDate.now().minusDays(70)); // Critical (60+)
+        wo300.setClientInvoiceTotal(new BigDecimal("500.00"));
+        wo300.setOriginalClientString("370");
+
+        AgingSummaryDTO summary = clientDueAgingService.calculateAgingSummary(List.of(wo100, wo100b, wo300));
+
+        assertNotNull(summary.getSeriesStats());
+        assertEquals(2, summary.getSeriesStats().size());
+
+        // Series 100
+        AgingSummaryDTO.SeriesAgingStat s100 = summary.getSeriesStats().get(0);
+        assertEquals("Series 100", s100.getSeriesName());
+        assertEquals("100–199", s100.getSeriesRange());
+        assertEquals(100, s100.getSeriesBase());
+        assertEquals(2, s100.getClientCount());
+        assertEquals(2, s100.getTotalUnpaidCount());
+        assertEquals(new BigDecimal("400.00"), s100.getTotalUnpaidAmount());
+        assertEquals(new BigDecimal("150.00"), s100.getWithinTermsAmount());
+        assertEquals(new BigDecimal("250.00"), s100.getStandardDueAmount());
+
+        // Series 300
+        AgingSummaryDTO.SeriesAgingStat s300 = summary.getSeriesStats().get(1);
+        assertEquals("Series 300", s300.getSeriesName());
+        assertEquals("300–399", s300.getSeriesRange());
+        assertEquals(300, s300.getSeriesBase());
+        assertEquals(1, s300.getClientCount());
+        assertEquals(1, s300.getTotalUnpaidCount());
+        assertEquals(new BigDecimal("500.00"), s300.getTotalUnpaidAmount());
+        assertEquals(new BigDecimal("500.00"), s300.getCriticalDueAmount());
+        assertEquals("HIGH", s300.getRiskScore());
+    }
 }

@@ -19,8 +19,28 @@ public class EmployeeWorkOrderSpecifications {
             String workType,
             String clientName,
             String contractorName) {
+        return withFilters(status, clientInvoicePaid, contractorInvoicePaid, startDate, endDate, search, workType, clientName, contractorName, null);
+    }
+
+    public static Specification<EmployeeWorkOrder> withFilters(String status,
+            Boolean clientInvoicePaid,
+            Boolean contractorInvoicePaid,
+            LocalDate startDate,
+            LocalDate endDate,
+            String search,
+            String workType,
+            String clientName,
+            String contractorName,
+            Integer series) {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
+
+            // Series Filter (e.g. 100 -> 100-199)
+            if (series != null) {
+                int prefix = series / 100;
+                Predicate rawClientSeries = criteriaBuilder.like(root.get("originalClientString"), prefix + "%");
+                predicates.add(rawClientSeries);
+            }
 
             // Date Range Filter
             if (startDate != null && endDate != null) {

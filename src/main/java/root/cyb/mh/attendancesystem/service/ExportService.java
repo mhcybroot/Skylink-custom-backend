@@ -765,6 +765,188 @@ public class ExportService {
         }
     }
 
+    public byte[] exportSeriesAgingExcel(AgingSummaryDTO agingSummary) throws IOException {
+        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet sheet = workbook.createSheet("Series Aging Portfolio");
+
+            CellStyle headerStyle = workbook.createCellStyle();
+            Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerFont.setColor(IndexedColors.WHITE.getIndex());
+            headerStyle.setFont(headerFont);
+            headerStyle.setFillForegroundColor(IndexedColors.DARK_BLUE.getIndex());
+            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            headerStyle.setAlignment(HorizontalAlignment.CENTER);
+
+            CellStyle currencyStyle = workbook.createCellStyle();
+            DataFormat dataFormat = workbook.createDataFormat();
+            currencyStyle.setDataFormat(dataFormat.getFormat("$#,##0.00"));
+
+            CellStyle boldCurrencyStyle = workbook.createCellStyle();
+            Font boldFont = workbook.createFont();
+            boldFont.setBold(true);
+            boldCurrencyStyle.setFont(boldFont);
+            boldCurrencyStyle.setDataFormat(dataFormat.getFormat("$#,##0.00"));
+            boldCurrencyStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+            boldCurrencyStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+            CellStyle boldText = workbook.createCellStyle();
+            boldText.setFont(boldFont);
+            boldText.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+            boldText.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+            Row headerRow = sheet.createRow(0);
+            String[] headers = {
+                    "Series", "Code Range", "Clients Count", "Included Clients", "Risk Rating", "Avg Age (Days)",
+                    "Unpaid WOs", "Total Unpaid ($)", "Current (<40d) ($)", "Standard Due ($)", "Past Due ($)", "Critical Delinquent ($)"
+            };
+
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
+            }
+
+            int rowIdx = 1;
+            if (agingSummary != null && agingSummary.getSeriesStats() != null) {
+                for (AgingSummaryDTO.SeriesAgingStat stat : agingSummary.getSeriesStats()) {
+                    Row row = sheet.createRow(rowIdx++);
+                    int c = 0;
+                    row.createCell(c++).setCellValue(stat.getSeriesName());
+                    row.createCell(c++).setCellValue(stat.getSeriesRange());
+                    row.createCell(c++).setCellValue(stat.getClientCount());
+                    row.createCell(c++).setCellValue(stat.getClientsSummary());
+                    row.createCell(c++).setCellValue(stat.getRiskScoreLabel());
+                    row.createCell(c++).setCellValue(stat.getWeightedAverageDays());
+                    row.createCell(c++).setCellValue(stat.getTotalUnpaidCount());
+
+                    Cell cTot = row.createCell(c++);
+                    cTot.setCellValue(stat.getTotalUnpaidAmount() != null ? stat.getTotalUnpaidAmount().doubleValue() : 0.0);
+                    cTot.setCellStyle(currencyStyle);
+
+                    Cell cCur = row.createCell(c++);
+                    cCur.setCellValue(stat.getWithinTermsAmount() != null ? stat.getWithinTermsAmount().doubleValue() : 0.0);
+                    cCur.setCellStyle(currencyStyle);
+
+                    Cell cStd = row.createCell(c++);
+                    cStd.setCellValue(stat.getStandardDueAmount() != null ? stat.getStandardDueAmount().doubleValue() : 0.0);
+                    cStd.setCellStyle(currencyStyle);
+
+                    Cell cPast = row.createCell(c++);
+                    cPast.setCellValue(stat.getPastDueAmount() != null ? stat.getPastDueAmount().doubleValue() : 0.0);
+                    cPast.setCellStyle(currencyStyle);
+
+                    Cell cCrit = row.createCell(c++);
+                    cCrit.setCellValue(stat.getCriticalDueAmount() != null ? stat.getCriticalDueAmount().doubleValue() : 0.0);
+                    cCrit.setCellStyle(currencyStyle);
+                }
+
+                // Summary Total Row
+                Row totalRow = sheet.createRow(rowIdx);
+                int c = 0;
+                Cell t1 = totalRow.createCell(c++);
+                t1.setCellValue("TOTAL PORTFOLIO");
+                t1.setCellStyle(boldText);
+
+                Cell t2 = totalRow.createCell(c++);
+                t2.setCellValue("");
+                t2.setCellStyle(boldText);
+
+                Cell t3 = totalRow.createCell(c++);
+                t3.setCellValue(agingSummary.getClientStats() != null ? agingSummary.getClientStats().size() : 0);
+                t3.setCellStyle(boldText);
+
+                Cell t4 = totalRow.createCell(c++);
+                t4.setCellValue("Active Series: " + agingSummary.getSeriesStats().size());
+                t4.setCellStyle(boldText);
+
+                Cell t5 = totalRow.createCell(c++);
+                t5.setCellValue("");
+                t5.setCellStyle(boldText);
+
+                Cell tDays = totalRow.createCell(c++);
+                tDays.setCellValue(agingSummary.getPortfolioAverageDays());
+                tDays.setCellStyle(boldText);
+
+                Cell tCount = totalRow.createCell(c++);
+                tCount.setCellValue(agingSummary.getTotalUnpaidCount());
+                tCount.setCellStyle(boldText);
+
+                Cell tTot = totalRow.createCell(c++);
+                tTot.setCellValue(agingSummary.getTotalUnpaidAmount() != null ? agingSummary.getTotalUnpaidAmount().doubleValue() : 0.0);
+                tTot.setCellStyle(boldCurrencyStyle);
+
+                Cell tCur = totalRow.createCell(c++);
+                tCur.setCellValue(agingSummary.getWithinTermsAmount() != null ? agingSummary.getWithinTermsAmount().doubleValue() : 0.0);
+                tCur.setCellStyle(boldCurrencyStyle);
+
+                Cell tStd = totalRow.createCell(c++);
+                tStd.setCellValue(agingSummary.getStandardDueAmount() != null ? agingSummary.getStandardDueAmount().doubleValue() : 0.0);
+                tStd.setCellStyle(boldCurrencyStyle);
+
+                Cell tPast = totalRow.createCell(c++);
+                tPast.setCellValue(agingSummary.getPastDueAmount() != null ? agingSummary.getPastDueAmount().doubleValue() : 0.0);
+                tPast.setCellStyle(boldCurrencyStyle);
+
+                Cell tCrit = totalRow.createCell(c++);
+                tCrit.setCellValue(agingSummary.getCriticalDueAmount() != null ? agingSummary.getCriticalDueAmount().doubleValue() : 0.0);
+                tCrit.setCellStyle(boldCurrencyStyle);
+            }
+
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            workbook.write(out);
+            return out.toByteArray();
+        }
+    }
+
+    public byte[] exportSeriesAgingCsv(AgingSummaryDTO agingSummary) throws IOException {
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream(); PrintWriter writer = new PrintWriter(out)) {
+            CSVFormat format = CSVFormat.DEFAULT.builder()
+                    .setHeader("Series", "Code Range", "Clients Count", "Included Clients", "Risk Rating", "Avg Age (Days)",
+                            "Unpaid WOs", "Total Unpaid ($)", "Current (<40d) ($)", "Standard Due ($)", "Past Due ($)", "Critical Delinquent ($)")
+                    .build();
+
+            try (CSVPrinter printer = new CSVPrinter(writer, format)) {
+                if (agingSummary != null && agingSummary.getSeriesStats() != null) {
+                    for (AgingSummaryDTO.SeriesAgingStat stat : agingSummary.getSeriesStats()) {
+                        printer.printRecord(
+                                stat.getSeriesName(),
+                                stat.getSeriesRange(),
+                                stat.getClientCount(),
+                                stat.getClientsSummary(),
+                                stat.getRiskScoreLabel(),
+                                stat.getWeightedAverageDays(),
+                                stat.getTotalUnpaidCount(),
+                                stat.getTotalUnpaidAmount(),
+                                stat.getWithinTermsAmount(),
+                                stat.getStandardDueAmount(),
+                                stat.getPastDueAmount(),
+                                stat.getCriticalDueAmount()
+                        );
+                    }
+                    printer.printRecord(
+                            "TOTAL PORTFOLIO",
+                            "",
+                            agingSummary.getClientStats() != null ? agingSummary.getClientStats().size() : 0,
+                            "Active Series: " + agingSummary.getSeriesStats().size(),
+                            "",
+                            agingSummary.getPortfolioAverageDays(),
+                            agingSummary.getTotalUnpaidCount(),
+                            agingSummary.getTotalUnpaidAmount(),
+                            agingSummary.getWithinTermsAmount(),
+                            agingSummary.getStandardDueAmount(),
+                            agingSummary.getPastDueAmount(),
+                            agingSummary.getCriticalDueAmount()
+                    );
+                }
+            }
+            return out.toByteArray();
+        }
+    }
+
     public byte[] exportDueWorkOrdersExcel(List<EmployeeWorkOrder> orders) throws IOException {
         try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Sheet sheet = workbook.createSheet("Due Work Orders");
