@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org">
 
 <head>
-    <title>Employee Work Orders</title>
+    <title>Employee Work Orders & Aging Analysis</title>
 </head>
 
 <body>
@@ -13,26 +13,47 @@
                 <i class="fas fa-check-circle me-2"></i><strong>Success!</strong> Employee Work Orders CSV imported successfully into your table.
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
+            <div th:if="${param.success != null and param.success[0] == 'config_saved'}" class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="fas fa-check-circle me-2"></i><strong>Configuration Updated!</strong> Due intervals and aging thresholds have been saved successfully.
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            <div th:if="${param.success != null and param.success[0] == 'config_deleted'}" class="alert alert-info alert-dismissible fade show" role="alert">
+                <i class="fas fa-info-circle me-2"></i><strong>Reset to Default!</strong> Client override was removed. That client now follows the Global Default thresholds.
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            <div th:if="${param.error != null and param.error[0] == 'invalid_thresholds'}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fas fa-exclamation-triangle me-2"></i><strong>Invalid Thresholds!</strong> Days must be strictly increasing positive numbers (e.g. Standard < Past Due < Critical).
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
             <div th:if="${param.error != null and param.error[0] == 'emptyfile'}" class="alert alert-danger alert-dismissible fade show" role="alert">
                 <i class="fas fa-exclamation-circle me-2"></i><strong>Error:</strong> Please select a valid non-empty CSV file.
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
 
+            <!-- Page Title & Header Actions -->
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h3 class="d-flex align-items-center">
+                <h3 class="d-flex align-items-center mb-0">
                     <span th:text="${currentFilter != null ? currentFilter : 'Employee Work Orders'}">Employee Work Orders</span>
-                    <a th:if="${(currentFilter != null && currentFilter != 'All Employee Work Orders') || (search != null && !search.isEmpty())}"
+                    <a th:if="${(currentFilter != null && currentFilter != 'All Employee Work Orders') || (search != null && !search.isEmpty()) || (dueBucket != null && !dueBucket.isEmpty())}"
                         href="/employee/work-orders" class="btn btn-sm btn-outline-secondary ms-3 rounded-circle"
-                        title="Clear Filter"
+                        title="Clear All Filters"
                         style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;"><i
                             class="fas fa-times"></i></a>
                 </h3>
-                <div>
-                    <button class="btn btn-outline-dark btn-sm me-2" type="button" data-bs-toggle="collapse"
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-dark btn-sm" type="button" data-bs-toggle="collapse"
                         data-bs-target="#advancedSearchPanel">
-                        <i class="fas fa-search me-1"></i> Advanced Search
+                        <i class="fas fa-search me-1"></i> Search & Filter
                     </button>
-                    <a href="/employee/imports" class="btn btn-outline-secondary btn-sm me-2">
+                    <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#clientPortfolioCollapse">
+                        <i class="fas fa-building me-1"></i> Client Portfolio
+                    </button>
+                    <button class="btn btn-primary btn-sm" type="button" data-bs-toggle="modal"
+                        data-bs-target="#agingConfigModal">
+                        <i class="fas fa-sliders-h me-1"></i> Configure Intervals
+                    </button>
+                    <a href="/employee/imports" class="btn btn-outline-secondary btn-sm">
                         <i class="fas fa-history me-1"></i> Import History
                     </a>
                     <button class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#importWorkOrderModal">
@@ -41,29 +62,179 @@
                 </div>
             </div>
 
+            <!-- Due Payment Aging Analysis Cards (Click-to-Filter) -->
+            <div class="row g-3 mb-4" th:if="${agingSummary != null}">
+                <!-- Card 1: Standard Due -->
+                <div class="col-md-3">
+                    <a th:href="@{/employee/work-orders(dueBucket='standard')}" class="text-decoration-none">
+                        <div class="card h-100 shadow-sm border-0 border-start border-4 hover-shadow transition"
+                             style="border-color: #f59e0b !important;"
+                             th:classappend="${dueBucket == 'standard' ? 'bg-warning bg-opacity-10 ring-2 ring-warning' : 'bg-white'}">
+                            <div class="card-body p-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="small text-uppercase fw-bold text-muted">Standard Due</span>
+                                    <span class="badge bg-warning text-dark px-2 py-1 rounded-pill small"
+                                          th:text="${agingSummary.defaultConfig.normalDueDays + '–' + (agingSummary.defaultConfig.overdueDays - 1) + ' Days'}">40-49d</span>
+                                </div>
+                                <div class="h3 fw-bold mb-0 text-dark" th:text="${agingSummary.standardDueCount}">0</div>
+                                <div class="small fw-semibold text-warning" th:text="'$' + ${#numbers.formatDecimal(agingSummary.standardDueAmount, 1, 2)}">$0.00</div>
+                                <div class="text-muted" style="font-size: 0.72rem;">Early billing follow-up</div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Card 2: Past Due -->
+                <div class="col-md-3">
+                    <a th:href="@{/employee/work-orders(dueBucket='overdue')}" class="text-decoration-none">
+                        <div class="card h-100 shadow-sm border-0 border-start border-4 hover-shadow transition"
+                             style="border-color: #ea580c !important;"
+                             th:classappend="${dueBucket == 'overdue' ? 'bg-danger bg-opacity-10 ring-2 ring-danger' : 'bg-white'}">
+                            <div class="card-body p-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="small text-uppercase fw-bold text-muted">Past Due</span>
+                                    <span class="badge text-white px-2 py-1 rounded-pill small" style="background-color: #ea580c;"
+                                          th:text="${agingSummary.defaultConfig.overdueDays + '–' + (agingSummary.defaultConfig.criticalDueDays - 1) + ' Days'}">50-59d</span>
+                                </div>
+                                <div class="h3 fw-bold mb-0 text-dark" th:text="${agingSummary.pastDueCount}">0</div>
+                                <div class="small fw-semibold" style="color: #ea580c;" th:text="'$' + ${#numbers.formatDecimal(agingSummary.pastDueAmount, 1, 2)}">$0.00</div>
+                                <div class="text-muted" style="font-size: 0.72rem;">Escalated follow-up required</div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Card 3: Critical Delinquent -->
+                <div class="col-md-3">
+                    <a th:href="@{/employee/work-orders(dueBucket='critical')}" class="text-decoration-none">
+                        <div class="card h-100 shadow-sm border-0 border-start border-4 border-danger hover-shadow transition"
+                             th:classappend="${dueBucket == 'critical' ? 'bg-danger bg-opacity-10 ring-2 ring-danger' : 'bg-white'}">
+                            <div class="card-body p-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="small text-uppercase fw-bold text-danger">Critical Delinquent</span>
+                                    <span class="badge bg-danger text-white px-2 py-1 rounded-pill small"
+                                          th:text="${agingSummary.defaultConfig.criticalDueDays + '+ Days'}">60+d</span>
+                                </div>
+                                <div class="h3 fw-bold mb-0 text-danger" th:text="${agingSummary.criticalDueCount}">0</div>
+                                <div class="small fw-semibold text-danger" th:text="'$' + ${#numbers.formatDecimal(agingSummary.criticalDueAmount, 1, 2)}">$0.00</div>
+                                <div class="text-muted" style="font-size: 0.72rem;">Urgent collections risk</div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Card 4: Within Terms & Total Unpaid Portfolio -->
+                <div class="col-md-3">
+                    <a th:href="@{/employee/work-orders(dueBucket='all_unpaid')}" class="text-decoration-none">
+                        <div class="card h-100 shadow-sm border-0 border-start border-4 border-primary hover-shadow transition"
+                             th:classappend="${dueBucket == 'all_unpaid' ? 'bg-primary bg-opacity-10 ring-2 ring-primary' : 'bg-white'}">
+                            <div class="card-body p-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="small text-uppercase fw-bold text-primary">Total Unpaid AR</span>
+                                    <span class="badge bg-primary text-white px-2 py-1 rounded-pill small"
+                                          th:text="${agingSummary.totalUnpaidCount + ' WOs'}">0 WOs</span>
+                                </div>
+                                <div class="h3 fw-bold mb-0 text-dark" th:text="'$' + ${#numbers.formatDecimal(agingSummary.totalUnpaidAmount, 1, 2)}">$0.00</div>
+                                <div class="small text-muted d-flex justify-content-between mt-1">
+                                    <span>Within Terms (&lt;<span th:text="${agingSummary.defaultConfig.normalDueDays}">40</span>d):</span>
+                                    <strong class="text-success" th:text="'$' + ${#numbers.formatDecimal(agingSummary.withinTermsAmount, 1, 2)}">$0.00</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Client Portfolio Aging Collapse -->
+            <div class="collapse mb-4" id="clientPortfolioCollapse">
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-2.5">
+                        <h6 class="mb-0 fw-bold"><i class="fas fa-chart-pie me-2"></i>Client Accounts Receivable Aging Breakdown</h6>
+                        <span class="badge bg-secondary" th:text="${agingSummary.clientStats.size()} + ' Clients with Unpaid WOs'">0 Clients</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0 small">
+                                <thead class="bg-light text-muted text-uppercase" style="font-size: 0.75rem;">
+                                    <tr>
+                                        <th class="ps-3">Client</th>
+                                        <th>Configured Thresholds</th>
+                                        <th class="text-center">Unpaid WOs</th>
+                                        <th class="text-end">Total Unpaid</th>
+                                        <th class="text-end">Standard Due</th>
+                                        <th class="text-end">Past Due</th>
+                                        <th class="text-end">Critical Delinquent</th>
+                                        <th class="text-center pe-3">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="cStat : ${agingSummary.clientStats}">
+                                        <td class="ps-3 fw-bold">
+                                            <span th:text="${cStat.clientName}">Client Name</span>
+                                            <span th:if="${cStat.customConfig}" class="badge bg-info text-dark ms-1" style="font-size: 0.65rem;">Custom</span>
+                                            <span th:unless="${cStat.customConfig}" class="badge bg-light text-muted border ms-1" style="font-size: 0.65rem;">Default</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-warning text-dark" th:text="${cStat.normalDueDays} + 'd'">40d</span>
+                                            <span class="badge text-white" style="background-color: #ea580c;" th:text="${cStat.overdueDays} + 'd'">50d</span>
+                                            <span class="badge bg-danger text-white" th:text="${cStat.criticalDueDays} + 'd'">60d</span>
+                                        </td>
+                                        <td class="text-center fw-bold" th:text="${cStat.totalUnpaidCount}">0</td>
+                                        <td class="text-end fw-bold text-primary" th:text="'$' + ${#numbers.formatDecimal(cStat.totalUnpaidAmount, 1, 2)}">$0.00</td>
+                                        <td class="text-end text-warning fw-semibold" th:text="'$' + ${#numbers.formatDecimal(cStat.standardDueAmount, 1, 2)}">$0.00</td>
+                                        <td class="text-end fw-semibold" style="color: #ea580c;" th:text="'$' + ${#numbers.formatDecimal(cStat.pastDueAmount, 1, 2)}">$0.00</td>
+                                        <td class="text-end text-danger fw-bold" th:text="'$' + ${#numbers.formatDecimal(cStat.criticalDueAmount, 1, 2)}">$0.00</td>
+                                        <td class="text-center pe-3">
+                                            <a th:href="@{/employee/work-orders(client=${cStat.clientName},dueBucket='all_unpaid')}" class="btn btn-xs btn-outline-dark py-0 px-2" style="font-size: 0.72rem;">
+                                                <i class="fas fa-search me-1"></i>View Due
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    <tr th:if="${agingSummary.clientStats.isEmpty()}">
+                                        <td colspan="8" class="text-center py-3 text-muted">
+                                            No unpaid client balances found.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Advanced Search Panel -->
             <div class="collapse mb-4" id="advancedSearchPanel"
-                th:classappend="${(search != null && !search.isEmpty()) || (workType != null && !workType.isEmpty()) ? 'show' : ''}">
+                th:classappend="${(search != null && !search.isEmpty()) || (workType != null && !workType.isEmpty()) || (dueBucket != null && !dueBucket.isEmpty()) ? 'show' : ''}">
                 <div class="card shadow-sm border-0 bg-light">
                     <div class="card-body">
                         <form action="/employee/work-orders" method="get" class="row g-3">
                             <!-- Global Text Search -->
                             <div class="col-md-12">
-                                <label class="form-label small fw-bold text-uppercase text-muted">Search (WO#, Inv#,
-                                    PPW#, Loan#, Address)</label>
+                                <label class="form-label small fw-bold text-uppercase text-muted">Search (WO#, Inv#, PPW#, Loan#, Address)</label>
                                 <div class="input-group">
                                     <span class="input-group-text bg-white"><i class="fas fa-search"></i></span>
-                                    <input type="text" class="form-control" name="search" th:value="${search}"
-                                        placeholder="Type to search...">
+                                    <input type="text" class="form-control" name="search" th:value="${search}" placeholder="Type to search...">
                                 </div>
+                            </div>
+
+                            <!-- Due Status Filter -->
+                            <div class="col-md-3">
+                                <label class="form-label small fw-bold text-uppercase text-muted">Aging / Due Status</label>
+                                <select class="form-select" name="dueBucket">
+                                    <option value="" th:selected="${dueBucket == null || dueBucket == ''}">All Records</option>
+                                    <option value="all_unpaid" th:selected="${dueBucket == 'all_unpaid'}">📋 All Unpaid Orders</option>
+                                    <option value="critical" th:selected="${dueBucket == 'critical'}">🔴 Critical Delinquent (60+ Days)</option>
+                                    <option value="overdue" th:selected="${dueBucket == 'overdue'}">🟠 Past Due (50–59 Days)</option>
+                                    <option value="standard" th:selected="${dueBucket == 'standard'}">🟡 Standard Due (40–49 Days)</option>
+                                    <option value="within_terms" th:selected="${dueBucket == 'within_terms'}">🟢 Within Terms (&lt;40 Days)</option>
+                                </select>
                             </div>
 
                             <!-- Status -->
                             <div class="col-md-3">
                                 <label class="form-label small fw-bold text-uppercase text-muted">Status</label>
                                 <select class="form-select" name="status">
-                                    <option value="" th:selected="${status == null || status == ''}">All Statuses
-                                    </option>
+                                    <option value="" th:selected="${status == null || status == ''}">All Statuses</option>
                                     <option value="open" th:selected="${status == 'open'}">Open / In Progress</option>
                                     <option value="complete" th:selected="${status == 'complete'}">Complete</option>
                                     <option value="closed" th:selected="${status == 'closed'}">Closed</option>
@@ -71,29 +242,26 @@
                                 </select>
                             </div>
 
-                            <!-- Work Type -->
-                            <div class="col-md-3">
-                                <label class="form-label small fw-bold text-uppercase text-muted">Work Type</label>
-                                <input type="text" class="form-control" name="workType" th:value="${workType}"
-                                    placeholder="e.g. Grass Cut">
-                            </div>
-
                             <!-- Client -->
                             <div class="col-md-3">
                                 <label class="form-label small fw-bold text-uppercase text-muted">Client</label>
-                                <input type="text" class="form-control" name="client" th:value="${client}"
-                                    placeholder="Client Name">
+                                <input type="text" class="form-control" name="client" th:value="${client}" placeholder="Client Name">
                             </div>
 
                             <!-- Contractor -->
                             <div class="col-md-3">
                                 <label class="form-label small fw-bold text-uppercase text-muted">Contractor</label>
-                                <input type="text" class="form-control" name="contractor" th:value="${contractor}"
-                                    placeholder="Contractor Name">
+                                <input type="text" class="form-control" name="contractor" th:value="${contractor}" placeholder="Contractor Name">
+                            </div>
+
+                            <!-- Work Type -->
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold text-uppercase text-muted">Work Type</label>
+                                <input type="text" class="form-control" name="workType" th:value="${workType}" placeholder="e.g. Grass Cut">
                             </div>
 
                             <!-- Date Due Range -->
-                            <div class="col-md-6">
+                            <div class="col-md-8">
                                 <label class="form-label small fw-bold text-uppercase text-muted">Due Date Range</label>
                                 <div class="input-group">
                                     <input type="date" class="form-control" name="startDate" th:value="${startDate}">
@@ -103,10 +271,9 @@
                             </div>
 
                             <!-- Buttons -->
-                            <div class="col-12 text-end mt-4">
-                                <a href="/employee/work-orders" class="btn btn-outline-secondary btn-sm me-2">Clear</a>
-                                <button type="submit" class="btn btn-dark btn-sm me-2"
-                                    formaction="/employee/work-orders/report" formtarget="_blank">
+                            <div class="col-12 text-end mt-3">
+                                <a href="/employee/work-orders" class="btn btn-outline-secondary btn-sm me-2">Clear All</a>
+                                <button type="submit" class="btn btn-dark btn-sm me-2" formaction="/employee/work-orders/report" formtarget="_blank">
                                     <i class="fas fa-file-pdf me-1"></i> Generate Report
                                 </button>
                                 <button type="submit" class="btn btn-primary btn-sm px-4">Apply Filters</button>
@@ -116,6 +283,7 @@
                 </div>
             </div>
 
+            <!-- Main Work Orders Table -->
             <div class="card shadow-sm">
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -124,19 +292,16 @@
                                 <tr>
                                     <th class="ps-3">Status</th>
                                     <th>Invoice #</th>
+                                    <th>Invoice Date</th>
+                                    <th>Aging / Due</th>
                                     <th>WO #</th>
                                     <th>PPW #</th>
                                     <th>Loan #</th>
                                     <th>Work Type</th>
-                                    <th>Cust/Bank</th>
                                     <th>Client</th>
                                     <th>Contractor</th>
                                     <th>Address</th>
-                                    <th>City</th>
-                                    <th>State</th>
                                     <th>Due Date</th>
-                                    <th>Due Client</th>
-                                    <th>Sent Client</th>
                                     <th>Client Total</th>
                                     <th>Cont. Total</th>
                                 </tr>
@@ -149,34 +314,50 @@
                                             th:text="${wo.status}">Status</span>
                                     </td>
                                     <td class="fw-bold text-primary" th:text="${wo.invoiceNumber}">INV-123</td>
+                                    <td th:text="${wo.invoiceDate != null ? #temporals.format(wo.invoiceDate, 'yyyy-MM-dd') : '-'}">2026-01-01</td>
+                                    <td>
+                                        <!-- Aging Status Badge -->
+                                        <th:block th:if="${wo.isUnpaid()}">
+                                            <th:block th:with="bucket=${agingService.getAgingBucket(wo, configMap, defaultConfig)}">
+                                                <span th:if="${bucket == 'critical'}" class="badge bg-danger text-white shadow-sm" title="Critical Delinquent">
+                                                    <i class="fas fa-exclamation-circle me-1"></i>Critical (<span th:text="${wo.daysElapsed}">0</span>d)
+                                                </span>
+                                                <span th:if="${bucket == 'overdue'}" class="badge text-white shadow-sm" style="background-color: #ea580c;" title="Past Due">
+                                                    <i class="fas fa-clock me-1"></i>Past Due (<span th:text="${wo.daysElapsed}">0</span>d)
+                                                </span>
+                                                <span th:if="${bucket == 'standard'}" class="badge bg-warning text-dark shadow-sm" title="Standard Due">
+                                                    <i class="fas fa-hourglass-half me-1"></i>Standard (<span th:text="${wo.daysElapsed}">0</span>d)
+                                                </span>
+                                                <span th:if="${bucket == 'within_terms'}" class="badge bg-success bg-opacity-25 text-success border border-success" title="Within Terms">
+                                                    <i class="fas fa-check me-1"></i>Current (<span th:text="${wo.daysElapsed}">0</span>d)
+                                                </span>
+                                                <span th:if="${bucket == 'NO_INVOICE_DATE'}" class="badge bg-secondary text-white-50">
+                                                    No Inv Date
+                                                </span>
+                                            </th:block>
+                                        </th:block>
+                                        <span th:unless="${wo.isUnpaid()}" class="badge bg-light text-muted border">
+                                            <i class="fas fa-check-double text-success me-1"></i>Paid
+                                        </span>
+                                    </td>
                                     <td class="fw-bold" th:text="${wo.woNumber}">WO-101</td>
                                     <td th:text="${wo.ppwNumber}">PPW-001</td>
                                     <td th:text="${wo.loanNumber}">LOAN-001</td>
                                     <td th:text="${wo.workType}">Work Type</td>
-                                    <td th:text="${wo.customerBank}">Bank</td>
-                                    <td
-                                        th:text="${wo.client != null ? wo.client.name : (wo.originalClientString != null ? wo.originalClientString : '-')}">
-                                        Client</td>
-                                    <td
-                                        th:text="${wo.contractor != null ? wo.contractor.name : (wo.originalContractorString != null ? wo.originalContractorString : '-')}">
-                                        Contractor</td>
+                                    <td th:text="${wo.client != null ? wo.client.name : (wo.originalClientString != null ? wo.originalClientString : '-')}">Client</td>
+                                    <td th:text="${wo.contractor != null ? wo.contractor.name : (wo.originalContractorString != null ? wo.originalContractorString : '-')}">Contractor</td>
                                     <td th:text="${wo.address}">Address</td>
-                                    <td th:text="${wo.city}">City</td>
-                                    <td th:text="${wo.state}">State</td>
                                     <td th:text="${wo.dateDue}">Jan 1</td>
-                                    <td th:text="${wo.dateDueClient}">Jan 5</td>
-                                    <td th:text="${wo.sentToClientDate}">Jan 8</td>
                                     <td class="fw-bold"
                                         th:text="${wo.clientInvoiceTotal != null ? '$' + #numbers.formatDecimal(wo.clientInvoiceTotal, 1, 2) : '-'}">
                                         $0.00</td>
-                                    <td
-                                        th:text="${wo.contractorInvoiceTotal != null ? '$' + #numbers.formatDecimal(wo.contractorInvoiceTotal, 1, 2) : '-'}">
+                                    <td th:text="${wo.contractorInvoiceTotal != null ? '$' + #numbers.formatDecimal(wo.contractorInvoiceTotal, 1, 2) : '-'}">
                                         $0.00</td>
                                 </tr>
                                 <tr th:if="${workOrders.content.isEmpty()}">
-                                    <td colspan="17" class="text-center py-4 text-muted">
+                                    <td colspan="14" class="text-center py-4 text-muted">
                                         <i class="fas fa-inbox fa-3x mb-3 d-block opacity-50"></i>
-                                        No employee work orders found. Import a new CSV to start.
+                                        No employee work orders found matching the filter criteria.
                                     </td>
                                 </tr>
                             </tbody>
@@ -185,6 +366,161 @@
                 </div>
                 <!-- Pagination Controls -->
                 <div th:replace="~{fragments/pagination :: pagination(page=${workOrders}, baseUrl='/employee/work-orders')}">
+                </div>
+            </div>
+
+            <!-- Aging Configuration Modal -->
+            <div class="modal fade" id="agingConfigModal" tabindex="-1" aria-labelledby="agingConfigModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg modal-dialog-centered">
+                    <div class="modal-content border-0 shadow-lg">
+                        <div class="modal-header bg-dark text-white py-3">
+                            <h5 class="modal-title fw-bold" id="agingConfigModalLabel">
+                                <i class="fas fa-sliders-h me-2 text-primary"></i>Configure Due Payment Timing & Intervals
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body p-4">
+                            <!-- Nav tabs -->
+                            <ul class="nav nav-pills mb-4 nav-justified" id="configTabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active fw-bold" id="global-tab" data-bs-toggle="pill" data-bs-target="#global-config" type="button" role="tab">
+                                        <i class="fas fa-globe me-1"></i> Global Default (All Clients)
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link fw-bold" id="client-tab" data-bs-toggle="pill" data-bs-target="#client-config" type="button" role="tab">
+                                        <i class="fas fa-building me-1"></i> Per-Client Overrides
+                                    </button>
+                                </li>
+                            </ul>
+
+                            <div class="tab-content" id="configTabsContent">
+                                <!-- Tab 1: Global Default Thresholds -->
+                                <div class="tab-pane fade show active" id="global-config" role="tabpanel">
+                                    <div class="alert alert-light border small text-muted mb-4">
+                                        <i class="fas fa-info-circle me-1 text-primary"></i>
+                                        These 3 intervals apply to <strong>all clients</strong> unless a specific client override is set. Default timing: <strong>40, 50, 60 days</strong> from invoice date.
+                                    </div>
+
+                                    <form th:action="@{/employee/work-orders/aging-config}" method="post">
+                                        <input type="hidden" name="clientIdentifier" value="DEFAULT">
+                                        <input type="hidden" name="clientName" value="Global Default Configuration">
+
+                                        <div class="row g-3">
+                                            <div class="col-md-4">
+                                                <label class="form-label small fw-bold text-muted text-uppercase">🟡 Standard Due (Tier 1)</label>
+                                                <div class="input-group">
+                                                    <input type="number" class="form-control" name="normalDueDays" min="1" max="180"
+                                                           th:value="${agingSummary != null ? agingSummary.defaultConfig.normalDueDays : 40}" required>
+                                                    <span class="input-group-text">days</span>
+                                                </div>
+                                                <div class="form-text small">Early notice threshold (Default: 40)</div>
+                                            </div>
+
+                                            <div class="col-md-4">
+                                                <label class="form-label small fw-bold text-muted text-uppercase">🟠 Past Due (Tier 2)</label>
+                                                <div class="input-group">
+                                                    <input type="number" class="form-control" name="overdueDays" min="2" max="240"
+                                                           th:value="${agingSummary != null ? agingSummary.defaultConfig.overdueDays : 50}" required>
+                                                    <span class="input-group-text">days</span>
+                                                </div>
+                                                <div class="form-text small">Escalated threshold (Default: 50)</div>
+                                            </div>
+
+                                            <div class="col-md-4">
+                                                <label class="form-label small fw-bold text-muted text-uppercase">🔴 Critical Delinquent (Tier 3)</label>
+                                                <div class="input-group">
+                                                    <input type="number" class="form-control" name="criticalDueDays" min="3" max="365"
+                                                           th:value="${agingSummary != null ? agingSummary.defaultConfig.criticalDueDays : 60}" required>
+                                                    <span class="input-group-text">days</span>
+                                                </div>
+                                                <div class="form-text small">High risk threshold (Default: 60)</div>
+                                            </div>
+                                        </div>
+
+                                        <div class="text-end mt-4 pt-3 border-top">
+                                            <button type="submit" class="btn btn-primary px-4">
+                                                <i class="fas fa-save me-1"></i> Save Global Defaults
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+
+                                <!-- Tab 2: Client-Specific Overrides -->
+                                <div class="tab-pane fade" id="client-config" role="tabpanel">
+                                    <div class="card bg-light border-0 mb-4">
+                                        <div class="card-body p-3">
+                                            <h6 class="fw-bold mb-2"><i class="fas fa-plus-circle me-1 text-success"></i> Add / Edit Client Override</h6>
+                                            <form th:action="@{/employee/work-orders/aging-config}" method="post" class="row g-2 align-items-end" id="clientOverrideForm">
+                                                <div class="col-md-3">
+                                                    <label class="form-label small fw-bold text-muted text-uppercase">Select Client</label>
+                                                    <select class="form-select form-select-sm" name="clientIdentifier" id="modalClientSelect" required>
+                                                        <option value="">-- Choose Client --</option>
+                                                        <option th:each="cl : ${allClients}" th:value="${cl.name}" th:text="${cl.name} + (${cl.code != null ? ' (' + cl.code + ')' : ''})">Client</option>
+                                                    </select>
+                                                    <input type="hidden" name="clientName" id="modalClientName">
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <label class="form-label small fw-bold text-muted text-uppercase">Standard (d)</label>
+                                                    <input type="number" class="form-control form-control-sm" name="normalDueDays" id="modalNormalDays" value="40" min="1" required>
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <label class="form-label small fw-bold text-muted text-uppercase">Past Due (d)</label>
+                                                    <input type="number" class="form-control form-control-sm" name="overdueDays" id="modalOverdueDays" value="50" min="2" required>
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <label class="form-label small fw-bold text-muted text-uppercase">Critical (d)</label>
+                                                    <input type="number" class="form-control form-control-sm" name="criticalDueDays" id="modalCriticalDays" value="60" min="3" required>
+                                                </div>
+                                                <div class="col-md-3 text-end">
+                                                    <button type="submit" class="btn btn-success btn-sm w-100">
+                                                        <i class="fas fa-check me-1"></i> Save Override
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+
+                                    <!-- Table of Configured Overrides -->
+                                    <h6 class="fw-bold mb-2 small text-uppercase text-muted">Active Client Overrides</h6>
+                                    <div class="table-responsive border rounded-2">
+                                        <table class="table table-sm table-hover align-middle mb-0">
+                                            <thead class="bg-light small text-muted text-uppercase">
+                                                <tr>
+                                                    <th class="ps-3">Client</th>
+                                                    <th>Standard (Tier 1)</th>
+                                                    <th>Past Due (Tier 2)</th>
+                                                    <th>Critical (Tier 3)</th>
+                                                    <th class="text-end pe-3">Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr th:each="cfg : ${agingSummary.clientConfigs}">
+                                                    <td class="ps-3 fw-bold" th:text="${cfg.clientName != null ? cfg.clientName : cfg.clientIdentifier}">Client</td>
+                                                    <td><span class="badge bg-warning text-dark" th:text="${cfg.normalDueDays} + ' days'">40d</span></td>
+                                                    <td><span class="badge text-white" style="background-color: #ea580c;" th:text="${cfg.overdueDays} + ' days'">50d</span></td>
+                                                    <td><span class="badge bg-danger text-white" th:text="${cfg.criticalDueDays} + ' days'">60d</span></td>
+                                                    <td class="text-end pe-3">
+                                                        <form th:action="@{'/employee/work-orders/aging-config/' + ${cfg.id} + '/delete'}" method="post" style="display:inline;"
+                                                              onsubmit="return confirm('Reset this client to global defaults?');">
+                                                            <button type="submit" class="btn btn-xs btn-outline-danger py-0 px-2" title="Reset to Global Default">
+                                                                <i class="fas fa-trash-alt"></i> Reset
+                                                            </button>
+                                                        </form>
+                                                    </td>
+                                                </tr>
+                                                <tr th:if="${agingSummary.clientConfigs.isEmpty()}">
+                                                    <td colspan="5" class="text-center py-3 text-muted small">
+                                                        No client-specific overrides configured yet. All clients currently use the Global Default (40, 50, 60 days).
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -220,6 +556,16 @@
 
         </section>
         <script th:inline="javascript">
+            document.addEventListener('DOMContentLoaded', function() {
+                var selectEl = document.getElementById('modalClientSelect');
+                var nameEl = document.getElementById('modalClientName');
+                if (selectEl && nameEl) {
+                    selectEl.addEventListener('change', function() {
+                        var selectedText = selectEl.options[selectEl.selectedIndex].text;
+                        nameEl.value = selectEl.value;
+                    });
+                }
+            });
         </script>
     </div>
 </body>

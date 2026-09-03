@@ -1,10 +1,7 @@
 package root.cyb.mh.attendancesystem.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.Authentication;
@@ -12,11 +9,16 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import root.cyb.mh.attendancesystem.dto.AgingSummaryDTO;
 import root.cyb.mh.attendancesystem.dto.WorkOrderDashboardDTO;
+import root.cyb.mh.attendancesystem.model.Client;
+import root.cyb.mh.attendancesystem.model.ClientDueConfig;
 import root.cyb.mh.attendancesystem.model.Employee;
 import root.cyb.mh.attendancesystem.model.EmployeeWorkOrder;
+import root.cyb.mh.attendancesystem.repository.ClientRepository;
 import root.cyb.mh.attendancesystem.repository.EmployeeRepository;
 import root.cyb.mh.attendancesystem.repository.EmployeeWorkOrderRepository;
+import root.cyb.mh.attendancesystem.service.ClientDueAgingService;
 import root.cyb.mh.attendancesystem.service.EmployeeWorkOrderService;
 import root.cyb.mh.attendancesystem.service.WorkOrderReportService;
 import root.cyb.mh.attendancesystem.specification.EmployeeWorkOrderSpecifications;
@@ -43,6 +45,12 @@ public class EmployeeWorkOrderController {
     @Autowired
     private EmployeeRepository employeeRepository;
 
+    @Autowired
+    private ClientDueAgingService clientDueAgingService;
+
+    @Autowired
+    private ClientRepository clientRepository;
+
     private boolean checkAccess(Authentication authentication) {
         if (authentication == null) return false;
         boolean isAdmin = authentication.getAuthorities().stream()
@@ -68,6 +76,7 @@ public class EmployeeWorkOrderController {
             @RequestParam(required = false) String workType,
             @RequestParam(required = false) String client,
             @RequestParam(required = false) String contractor,
+            @RequestParam(required = false) String dueBucket,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             Authentication authentication,
@@ -77,14 +86,62 @@ public class EmployeeWorkOrderController {
             return "redirect:/access-denied";
         }
 
+        // Calculate Aging Summary on all current orders
+        List<EmployeeWorkOrder> allOrders = employeeWorkOrderRepository.findAll();
+        AgingSummaryDTO agingSummary = clientDueAgingService.calculateAgingSummary(allOrders);
+        model.addAttribute("agingSummary", agingSummary);
+
+        // Load configs for bucket mapping
+        ClientDueConfig defaultConfig = clientDueAgingService.getDefaultConfig();
+        Map<String, ClientDueConfig> configMap = clientDueAgingService.getConfigMap();
+
         Specification<EmployeeWorkOrder> spec = EmployeeWorkOrderSpecifications.withFilters(
                 status, clientInvoicePaid, contractorInvoicePaid, startDate, endDate, search, workType, client, contractor);
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
-        Page<EmployeeWorkOrder> workOrders = employeeWorkOrderRepository.findAll(spec, pageable);
+        Page<EmployeeWorkOrder> workOrders;
+
+        // If dueBucket filter is active, filter based on client-specific aging calculations
+        if (dueBucket != null && !dueBucket.trim().isEmpty()) {
+            List<EmployeeWorkOrder> matching = employeeWorkOrderRepository.findAll(spec, Sort.by(Sort.Direction.DESC, "id"));
+            List<EmployeeWorkOrder> filteredList = matching.stream().filter(wo -> {
+                if (!clientDueAgingService.isUnpaid(wo)) {
+                    return false;
+                }
+                String bucket = clientDueAgingService.getAgingBucket(wo, configMap, defaultConfig);
+                if ("all_unpaid".equalsIgnoreCase(dueBucket)) {
+                    return true;
+                }
+                return dueBucket.equalsIgnoreCase(bucket);
+            }).collect(Collectors.toList());
+
+            int start = Math.min((int) pageable.getOffset(), filteredList.size());
+            int end = Math.min((start + pageable.getPageSize()), filteredList.size());
+            workOrders = new PageImpl<>(filteredList.subList(start, end), pageable, filteredList.size());
+        } else {
+            workOrders = employeeWorkOrderRepository.findAll(spec, pageable);
+        }
 
         String filterName = "All Employee Work Orders";
-        if (status != null && !status.isEmpty()) {
+        if (dueBucket != null && !dueBucket.trim().isEmpty()) {
+            switch (dueBucket.toLowerCase()) {
+                case "critical":
+                    filterName = "🔴 Critical Delinquent (60+ Days Due)";
+                    break;
+                case "overdue":
+                    filterName = "🟠 Past Due (50–59 Days Due)";
+                    break;
+                case "standard":
+                    filterName = "🟡 Standard Due (40–49 Days Due)";
+                    break;
+                case "within_terms":
+                    filterName = "🟢 Within Terms (<40 Days Due)";
+                    break;
+                case "all_unpaid":
+                    filterName = "📋 All Unpaid Work Orders";
+                    break;
+            }
+        } else if (status != null && !status.isEmpty()) {
             if ("closed".equalsIgnoreCase(status)) {
                 filterName = "Closed / Complete Work Orders";
             } else if ("cancelled".equalsIgnoreCase(status)) {
@@ -122,13 +179,54 @@ public class EmployeeWorkOrderController {
         model.addAttribute("contractorInvoicePaid", contractorInvoicePaid);
         model.addAttribute("startDate", startDate);
         model.addAttribute("endDate", endDate);
+        model.addAttribute("dueBucket", dueBucket);
 
         model.addAttribute("search", search);
         model.addAttribute("workType", workType);
         model.addAttribute("client", client);
         model.addAttribute("contractor", contractor);
 
+        // All active clients for dropdown in config modal
+        List<Client> clients = clientRepository.findAll();
+        model.addAttribute("allClients", clients);
+
+        // Pass aging service and config map for row-level badge calculation
+        model.addAttribute("agingService", clientDueAgingService);
+        model.addAttribute("configMap", configMap);
+        model.addAttribute("defaultConfig", defaultConfig);
+
         return "employee/work-order/list";
+    }
+
+    @PostMapping("/aging-config")
+    public String saveAgingConfig(
+            @RequestParam(required = false) String clientIdentifier,
+            @RequestParam(required = false) String clientName,
+            @RequestParam int normalDueDays,
+            @RequestParam int overdueDays,
+            @RequestParam int criticalDueDays,
+            Authentication authentication) {
+
+        if (!checkAccess(authentication)) {
+            return "redirect:/access-denied";
+        }
+
+        try {
+            clientDueAgingService.saveOrUpdateConfig(clientIdentifier, clientName, normalDueDays, overdueDays, criticalDueDays, authentication.getName());
+            return "redirect:/employee/work-orders?success=config_saved";
+        } catch (IllegalArgumentException e) {
+            return "redirect:/employee/work-orders?error=invalid_thresholds";
+        }
+    }
+
+    @PostMapping("/aging-config/{id}/delete")
+    public String deleteAgingConfig(@PathVariable Long id, Authentication authentication) {
+        if (!checkAccess(authentication)) {
+            return "redirect:/access-denied";
+        }
+
+        clientDueAgingService.deleteConfig(id);
+        return "redirect:/employee/work-orders?success=config_deleted";
     }
 
     @GetMapping("/report")

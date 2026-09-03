@@ -105,4 +105,19 @@ public abstract class BaseWorkOrder {
         }
         return "Unknown";
     }
+
+    public long getDaysElapsed() {
+        if (invoiceDate == null) return -1;
+        return java.time.temporal.ChronoUnit.DAYS.between(invoiceDate, java.time.LocalDate.now());
+    }
+
+    public boolean isUnpaid() {
+        if (Boolean.TRUE.equals(clientInvoicePaid) || clientPaidDate != null) {
+            return false;
+        }
+        if (status != null && status.equalsIgnoreCase("Cancelled")) {
+            return false;
+        }
+        return true;
+    }
 }
