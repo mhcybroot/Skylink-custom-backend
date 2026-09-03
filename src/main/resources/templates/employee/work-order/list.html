@@ -135,9 +135,12 @@
                                           th:text="${agingSummary.totalUnpaidCount + ' WOs'}">0 WOs</span>
                                 </div>
                                 <div class="h3 fw-bold mb-0 text-dark" th:text="'$' + ${#numbers.formatDecimal(agingSummary.totalUnpaidAmount, 1, 2)}">$0.00</div>
-                                <div class="small text-muted d-flex justify-content-between mt-1">
-                                    <span>Within Terms (&lt;<span th:text="${agingSummary.defaultConfig.normalDueDays}">40</span>d):</span>
-                                    <strong class="text-success" th:text="'$' + ${#numbers.formatDecimal(agingSummary.withinTermsAmount, 1, 2)}">$0.00</strong>
+                                <div class="small text-muted d-flex justify-content-between align-items-center mt-1 pt-1 border-top">
+                                    <span>Current (&lt;<span th:text="${agingSummary.defaultConfig.normalDueDays}">40</span>d):</span>
+                                    <span>
+                                        <span class="badge bg-success bg-opacity-10 text-success fw-bold me-1" th:text="${agingSummary.withinTermsCount} + ' WOs'">77 WOs</span>
+                                        <strong class="text-success" th:text="'$' + ${#numbers.formatDecimal(agingSummary.withinTermsAmount, 1, 2)}">$14,812.47</strong>
+                                    </span>
                                 </div>
                             </div>
                         </div>
