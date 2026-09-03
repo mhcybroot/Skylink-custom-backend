@@ -139,6 +139,8 @@ public class ClientDueAgingService {
         summary.setClientConfigs(clientConfigs);
 
         Map<String, AgingSummaryDTO.ClientAgingStat> clientStatsMap = new LinkedHashMap<>();
+        BigDecimal portfolioTotalWeightedDays = BigDecimal.ZERO;
+        long portfolioTotalDaysSum = 0;
 
         for (EmployeeWorkOrder wo : allOrders) {
             if (!isUnpaid(wo) || wo.getInvoiceDate() == null) {
@@ -147,9 +149,15 @@ public class ClientDueAgingService {
 
             BigDecimal amount = wo.getEffectiveClientTotal();
             String bucket = getAgingBucket(wo, configMap, defaultConfig);
+            long daysElapsed = wo.getDaysElapsed();
 
             summary.setTotalUnpaidCount(summary.getTotalUnpaidCount() + 1);
             summary.setTotalUnpaidAmount(summary.getTotalUnpaidAmount().add(amount));
+
+            portfolioTotalDaysSum += daysElapsed;
+            if (amount != null && amount.compareTo(BigDecimal.ZERO) > 0) {
+                portfolioTotalWeightedDays = portfolioTotalWeightedDays.add(BigDecimal.valueOf(daysElapsed).multiply(amount));
+            }
 
             switch (bucket) {
                 case BUCKET_CRITICAL:
@@ -200,6 +208,10 @@ public class ClientDueAgingService {
 
             cStat.setTotalUnpaidCount(cStat.getTotalUnpaidCount() + 1);
             cStat.setTotalUnpaidAmount(cStat.getTotalUnpaidAmount().add(amount));
+            cStat.setTotalDaysSum(cStat.getTotalDaysSum() + daysElapsed);
+            if (amount != null && amount.compareTo(BigDecimal.ZERO) > 0) {
+                cStat.setTotalWeightedDays(cStat.getTotalWeightedDays().add(BigDecimal.valueOf(daysElapsed).multiply(amount)));
+            }
 
             switch (bucket) {
                 case BUCKET_CRITICAL:
@@ -219,6 +231,12 @@ public class ClientDueAgingService {
                     cStat.setWithinTermsAmount(cStat.getWithinTermsAmount().add(amount));
                     break;
             }
+        }
+
+        if (summary.getTotalUnpaidAmount().compareTo(BigDecimal.ZERO) > 0) {
+            summary.setPortfolioAverageDays(portfolioTotalWeightedDays.divide(summary.getTotalUnpaidAmount(), 1, java.math.RoundingMode.HALF_UP).doubleValue());
+        } else if (summary.getTotalUnpaidCount() > 0) {
+            summary.setPortfolioAverageDays(Math.round(((double) portfolioTotalDaysSum / summary.getTotalUnpaidCount()) * 10.0) / 10.0);
         }
 
         // Sort client stats by total unpaid amount descending
@@ -265,5 +283,24 @@ public class ClientDueAgingService {
                 clientDueConfigRepository.delete(cfg);
             }
         });
+    }
+
+    public List<EmployeeWorkOrder> filterOrdersByDueBucket(List<EmployeeWorkOrder> orders, String dueBucket) {
+        if (dueBucket == null || dueBucket.trim().isEmpty()) {
+            return orders;
+        }
+        ClientDueConfig defaultConfig = getDefaultConfig();
+        Map<String, ClientDueConfig> configMap = getConfigMap();
+
+        return orders.stream().filter(wo -> {
+            if (!isUnpaid(wo)) {
+                return false;
+            }
+            String bucket = getAgingBucket(wo, configMap, defaultConfig);
+            if ("all_unpaid".equalsIgnoreCase(dueBucket)) {
+                return true;
+            }
+            return dueBucket.equalsIgnoreCase(bucket);
+        }).collect(Collectors.toList());
     }
 }

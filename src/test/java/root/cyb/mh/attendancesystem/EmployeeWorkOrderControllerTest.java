@@ -30,6 +30,7 @@ import root.cyb.mh.attendancesystem.repository.EmployeeRepository;
 import root.cyb.mh.attendancesystem.repository.EmployeeWorkOrderRepository;
 import root.cyb.mh.attendancesystem.service.ClientDueAgingService;
 import root.cyb.mh.attendancesystem.service.EmployeeWorkOrderService;
+import root.cyb.mh.attendancesystem.service.ExportService;
 import root.cyb.mh.attendancesystem.service.WorkOrderReportService;
 
 import java.math.BigDecimal;
@@ -76,6 +77,9 @@ class EmployeeWorkOrderControllerTest {
 
     @MockBean
     private CustomAuthenticationSuccessHandler successHandler;
+
+    @MockBean
+    private ExportService exportService;
 
     private ClientDueConfig defaultConfig;
     private AgingSummaryDTO sampleSummary;
@@ -239,5 +243,29 @@ class EmployeeWorkOrderControllerTest {
         mockMvc.perform(get("/employee/imports").with(user("EMP04").roles("EMPLOYEE")))
                 .andExpect(status().isOk())
                 .andExpect(view().name("employee/import-history"));
+    }
+
+    @Test
+    void exportAgingPortfolioExcel() throws Exception {
+        when(employeeWorkOrderRepository.findAll()).thenReturn(List.of());
+        when(clientDueAgingService.calculateAgingSummary(any())).thenReturn(sampleSummary);
+        when(exportService.exportClientAgingExcel(any())).thenReturn(new byte[]{1, 2, 3});
+
+        mockMvc.perform(get("/employee/work-orders/aging/export?format=excel").with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.containsString("AR_Aging_Portfolio_")))
+                .andExpect(content().contentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+    }
+
+    @Test
+    void exportAgingPortfolioCsv() throws Exception {
+        when(employeeWorkOrderRepository.findAll()).thenReturn(List.of());
+        when(clientDueAgingService.calculateAgingSummary(any())).thenReturn(sampleSummary);
+        when(exportService.exportClientAgingCsv(any())).thenReturn("col1,col2".getBytes());
+
+        mockMvc.perform(get("/employee/work-orders/aging/export?format=csv").with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.containsString("AR_Aging_Portfolio_")))
+                .andExpect(content().contentType("text/csv; charset=UTF-8"));
     }
 }

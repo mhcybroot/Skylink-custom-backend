@@ -43,6 +43,9 @@ public class AgingSummaryDTO {
     // Client Portfolio Aging Breakdown
     private List<ClientAgingStat> clientStats = new ArrayList<>();
 
+    // Portfolio Weighted Average Days
+    private double portfolioAverageDays = 0.0;
+
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
@@ -68,6 +71,9 @@ public class AgingSummaryDTO {
 
         private long withinTermsCount = 0;
         private BigDecimal withinTermsAmount = BigDecimal.ZERO;
+
+        private BigDecimal totalWeightedDays = BigDecimal.ZERO;
+        private long totalDaysSum = 0;
 
         public double getWithinTermsPercent() {
             if (totalUnpaidAmount != null && totalUnpaidAmount.compareTo(BigDecimal.ZERO) > 0 && withinTermsAmount != null) {
@@ -111,6 +117,54 @@ public class AgingSummaryDTO {
 
         public boolean isPendingInvoiceAmount() {
             return totalUnpaidCount > 0 && (totalUnpaidAmount == null || totalUnpaidAmount.compareTo(BigDecimal.ZERO) == 0);
+        }
+
+        public double getWeightedAverageDays() {
+            if (totalUnpaidAmount != null && totalUnpaidAmount.compareTo(BigDecimal.ZERO) > 0 && totalWeightedDays != null) {
+                return totalWeightedDays.divide(totalUnpaidAmount, 1, java.math.RoundingMode.HALF_UP).doubleValue();
+            }
+            if (totalUnpaidCount > 0) {
+                return Math.round(((double) totalDaysSum / totalUnpaidCount) * 10.0) / 10.0;
+            }
+            return 0.0;
+        }
+
+        public String getRiskScore() {
+            double critPct = getCriticalPercent();
+            double overduePct = getOverduePercent();
+            double avgDays = getWeightedAverageDays();
+
+            if (critPct >= 30.0 || avgDays >= 60.0) {
+                return "HIGH";
+            } else if (critPct >= 10.0 || overduePct >= 25.0 || avgDays >= 48.0) {
+                return "MODERATE";
+            } else {
+                return "LOW";
+            }
+        }
+
+        public String getRiskScoreLabel() {
+            String score = getRiskScore();
+            switch (score) {
+                case "HIGH":
+                    return "High Risk";
+                case "MODERATE":
+                    return "Moderate";
+                default:
+                    return "Low Risk";
+            }
+        }
+
+        public String getRiskBadgeClass() {
+            String score = getRiskScore();
+            switch (score) {
+                case "HIGH":
+                    return "bg-danger bg-opacity-10 text-danger border border-danger-subtle";
+                case "MODERATE":
+                    return "bg-warning bg-opacity-10 text-warning-emphasis border border-warning-subtle";
+                default:
+                    return "bg-success bg-opacity-10 text-success border border-success-subtle";
+            }
         }
     }
 }

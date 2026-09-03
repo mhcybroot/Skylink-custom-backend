@@ -157,4 +157,48 @@ class ClientDueAgingServiceTest {
             clientDueAgingService.saveOrUpdateConfig("DEFAULT", "Default", 50, 40, 60, "admin");
         });
     }
+
+    @Test
+    void testWeightedAverageDaysAndRiskScoring() {
+        EmployeeWorkOrder wo1 = new EmployeeWorkOrder();
+        wo1.setClientInvoicePaid(false);
+        wo1.setInvoiceDate(LocalDate.now().minusDays(20)); // 20 days old
+        wo1.setClientInvoiceTotal(new BigDecimal("100.00")); // $100
+        wo1.setOriginalClientString("Client A");
+
+        EmployeeWorkOrder wo2 = new EmployeeWorkOrder();
+        wo2.setClientInvoicePaid(false);
+        wo2.setInvoiceDate(LocalDate.now().minusDays(80)); // 80 days old -> Critical
+        wo2.setClientInvoiceTotal(new BigDecimal("300.00")); // $300
+        wo2.setOriginalClientString("Client A");
+
+        AgingSummaryDTO summary = clientDueAgingService.calculateAgingSummary(List.of(wo1, wo2));
+
+        // Total unpaid = $400. Weighted days = (20*100 + 80*300) / 400 = (2000 + 24000) / 400 = 26000 / 400 = 65.0 days
+        assertEquals(65.0, summary.getPortfolioAverageDays(), 0.1);
+
+        AgingSummaryDTO.ClientAgingStat stat = summary.getClientStats().get(0);
+        assertEquals(65.0, stat.getWeightedAverageDays(), 0.1);
+        assertEquals("HIGH", stat.getRiskScore());
+        assertEquals("High Risk", stat.getRiskScoreLabel());
+    }
+
+    @Test
+    void testFilterOrdersByDueBucket() {
+        EmployeeWorkOrder wo1 = new EmployeeWorkOrder();
+        wo1.setClientInvoicePaid(false);
+        wo1.setInvoiceDate(LocalDate.now().minusDays(20)); // Within Terms (<40)
+
+        EmployeeWorkOrder wo2 = new EmployeeWorkOrder();
+        wo2.setClientInvoicePaid(false);
+        wo2.setInvoiceDate(LocalDate.now().minusDays(65)); // Critical (60+)
+
+        List<EmployeeWorkOrder> criticalOrders = clientDueAgingService.filterOrdersByDueBucket(List.of(wo1, wo2), "critical");
+        assertEquals(1, criticalOrders.size());
+        assertEquals(wo2, criticalOrders.get(0));
+
+        List<EmployeeWorkOrder> withinTerms = clientDueAgingService.filterOrdersByDueBucket(List.of(wo1, wo2), "within_terms");
+        assertEquals(1, withinTerms.size());
+        assertEquals(wo1, withinTerms.get(0));
+    }
 }

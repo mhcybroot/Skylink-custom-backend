@@ -51,6 +51,9 @@ public class EmployeeWorkOrderController {
     @Autowired
     private ClientRepository clientRepository;
 
+    @Autowired
+    private root.cyb.mh.attendancesystem.service.ExportService exportService;
+
     private boolean checkAccess(Authentication authentication) {
         if (authentication == null) return false;
         boolean isAdmin = authentication.getAuthorities().stream()
@@ -312,5 +315,86 @@ public class EmployeeWorkOrderController {
         employeeWorkOrderService.importWorkOrders(file.getInputStream(), employee);
 
         return "redirect:/employee/work-orders?success=import";
+    }
+
+    @GetMapping("/aging/export")
+    public org.springframework.http.ResponseEntity<byte[]> exportAgingPortfolio(
+            @RequestParam(defaultValue = "excel") String format,
+            Authentication authentication) throws IOException {
+
+        if (!checkAccess(authentication)) {
+            return org.springframework.http.ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN).build();
+        }
+
+        List<EmployeeWorkOrder> allOrders = employeeWorkOrderRepository.findAll();
+        AgingSummaryDTO summary = clientDueAgingService.calculateAgingSummary(allOrders);
+
+        byte[] data;
+        String filename;
+        String contentType;
+
+        if ("csv".equalsIgnoreCase(format)) {
+            data = exportService.exportClientAgingCsv(summary);
+            filename = "AR_Aging_Portfolio_" + LocalDate.now() + ".csv";
+            contentType = "text/csv; charset=UTF-8";
+        } else {
+            data = exportService.exportClientAgingExcel(summary);
+            filename = "AR_Aging_Portfolio_" + LocalDate.now() + ".xlsx";
+            contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+        }
+
+        return org.springframework.http.ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .header(org.springframework.http.HttpHeaders.CONTENT_TYPE, contentType)
+                .body(data);
+    }
+
+    @GetMapping("/export")
+    public org.springframework.http.ResponseEntity<byte[]> exportFilteredWorkOrders(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Boolean clientInvoicePaid,
+            @RequestParam(required = false) Boolean contractorInvoicePaid,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String workType,
+            @RequestParam(required = false) String client,
+            @RequestParam(required = false) String contractor,
+            @RequestParam(required = false) String dueBucket,
+            @RequestParam(defaultValue = "excel") String format,
+            Authentication authentication) throws IOException {
+
+        if (!checkAccess(authentication)) {
+            return org.springframework.http.ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN).build();
+        }
+
+        Specification<EmployeeWorkOrder> spec = EmployeeWorkOrderSpecifications.withFilters(
+                status, clientInvoicePaid, contractorInvoicePaid, startDate, endDate, search, workType, client, contractor);
+
+        List<EmployeeWorkOrder> orders = employeeWorkOrderRepository.findAll(spec, Sort.by(Sort.Direction.DESC, "invoiceDate"));
+
+        if (dueBucket != null && !dueBucket.trim().isEmpty()) {
+            orders = clientDueAgingService.filterOrdersByDueBucket(orders, dueBucket.trim());
+        }
+
+        byte[] data;
+        String filename;
+        String contentType;
+
+        String prefix = (dueBucket != null && !dueBucket.trim().isEmpty()) ? "Due_Orders_" + dueBucket.trim() : "Work_Orders";
+        if ("csv".equalsIgnoreCase(format)) {
+            data = exportService.exportDueWorkOrdersCsv(orders);
+            filename = prefix + "_" + LocalDate.now() + ".csv";
+            contentType = "text/csv; charset=UTF-8";
+        } else {
+            data = exportService.exportDueWorkOrdersExcel(orders);
+            filename = prefix + "_" + LocalDate.now() + ".xlsx";
+            contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+        }
+
+        return org.springframework.http.ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .header(org.springframework.http.HttpHeaders.CONTENT_TYPE, contentType)
+                .body(data);
     }
 }
