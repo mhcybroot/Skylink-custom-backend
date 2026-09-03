@@ -62,6 +62,10 @@ public class EmployeeWorkOrderService {
                 .appendOptional(DateTimeFormatter.ofPattern("M-d-yy"))
                 .appendOptional(DateTimeFormatter.ofPattern("MM/dd/yy"))
                 .appendOptional(DateTimeFormatter.ofPattern("M/d/yy"))
+                .appendOptional(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+                .appendOptional(DateTimeFormatter.ofPattern("MM/dd/yyyy"))
+                .appendOptional(DateTimeFormatter.ofPattern("M/d/yyyy"))
+                .appendOptional(DateTimeFormatter.ofPattern("yyyy/MM/dd"))
                 .toFormatter();
 
         int count = 0;
@@ -127,7 +131,12 @@ public class EmployeeWorkOrderService {
                 // Derived booleans
                 wo.setContractorInvoicePaid(wo.getContractorPaidAmount() != null
                         && wo.getContractorPaidAmount().compareTo(BigDecimal.ZERO) > 0);
-                wo.setClientInvoicePaid(wo.getClientPaidDate() != null);
+                if (wo.getClientPaidAmount() != null && wo.getClientInvoiceTotal() != null) {
+                    BigDecimal remaining = wo.getRemainingClientBalance();
+                    wo.setClientInvoicePaid(remaining.compareTo(BigDecimal.ZERO) <= 0);
+                } else {
+                    wo.setClientInvoicePaid(wo.getClientPaidDate() != null);
+                }
 
                 // Client Relationship
                 String clientName = getRecordValue(record, "Client");

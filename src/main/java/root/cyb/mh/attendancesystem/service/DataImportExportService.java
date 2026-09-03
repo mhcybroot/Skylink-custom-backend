@@ -769,6 +769,10 @@ public class DataImportExportService {
                 .appendOptional(java.time.format.DateTimeFormatter.ofPattern("M-d-yy"))
                 .appendOptional(java.time.format.DateTimeFormatter.ofPattern("MM/dd/yy"))
                 .appendOptional(java.time.format.DateTimeFormatter.ofPattern("M/d/yy"))
+                .appendOptional(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+                .appendOptional(java.time.format.DateTimeFormatter.ofPattern("MM/dd/yyyy"))
+                .appendOptional(java.time.format.DateTimeFormatter.ofPattern("M/d/yyyy"))
+                .appendOptional(java.time.format.DateTimeFormatter.ofPattern("yyyy/MM/dd"))
                 .toFormatter();
         int count = 0;
 
