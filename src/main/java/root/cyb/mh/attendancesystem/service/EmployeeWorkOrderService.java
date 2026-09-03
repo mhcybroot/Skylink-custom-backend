@@ -25,7 +25,9 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class EmployeeWorkOrderService {
@@ -71,6 +73,8 @@ public class EmployeeWorkOrderService {
         int count = 0;
         List<EmployeeWorkOrder> batchToSave = new ArrayList<>();
 
+        Map<String, EmployeeWorkOrder> seenInBatch = new HashMap<>();
+
         try {
             for (CSVRecord record : records) {
                 String woNum = record.get("WO #");
@@ -78,11 +82,20 @@ public class EmployeeWorkOrderService {
                     continue;
                 }
 
-                EmployeeWorkOrder wo = employeeWorkOrderRepository.findByWoNumber(woNum.trim())
+                String baseWo = woNum.trim();
+                String effectiveWo = baseWo;
+                int suffix = 1;
+
+                while (seenInBatch.containsKey(effectiveWo)) {
+                    suffix++;
+                    effectiveWo = baseWo + " (" + suffix + ")";
+                }
+
+                EmployeeWorkOrder wo = employeeWorkOrderRepository.findByWoNumber(effectiveWo)
                         .orElse(new EmployeeWorkOrder());
 
                 wo.setImportBatchId(log.getId());
-                wo.setWoNumber(woNum.trim());
+                wo.setWoNumber(effectiveWo);
                 wo.setImportedBy(employee);
 
                 // Basic Fields
@@ -163,6 +176,7 @@ public class EmployeeWorkOrderService {
                             .ifPresent(wo::setContractor);
                 }
 
+                seenInBatch.put(effectiveWo, wo);
                 batchToSave.add(wo);
                 count++;
 

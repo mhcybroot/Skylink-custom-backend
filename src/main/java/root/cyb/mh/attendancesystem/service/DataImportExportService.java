@@ -11,7 +11,7 @@ import root.cyb.mh.attendancesystem.repository.*;
 import java.io.*;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.List;
+import java.util.*;
 
 @Service
 public class DataImportExportService {
@@ -777,16 +777,27 @@ public class DataImportExportService {
         int count = 0;
 
         try {
+            Map<String, WorkOrder> seenInBatch = new java.util.HashMap<>();
+
             for (CSVRecord record : records) {
                 String woNum = record.get("WO #");
                 if (woNum == null || woNum.trim().isEmpty())
                     continue;
 
-                WorkOrder wo = workOrderRepository.findByWoNumber(woNum).orElse(new WorkOrder());
+                String baseWo = woNum.trim();
+                String effectiveWo = baseWo;
+                int suffix = 1;
+
+                while (seenInBatch.containsKey(effectiveWo)) {
+                    suffix++;
+                    effectiveWo = baseWo + " (" + suffix + ")";
+                }
+
+                WorkOrder wo = workOrderRepository.findByWoNumber(effectiveWo).orElse(new WorkOrder());
 
                 // Set Import Batch ID
                 wo.setImportBatchId(log.getId());
-                wo.setWoNumber(woNum);
+                wo.setWoNumber(effectiveWo);
 
                 // Basic Fields
                 wo.setInvoiceNumber(record.get("Invoice #"));
@@ -871,6 +882,7 @@ public class DataImportExportService {
                 }
 
                 workOrderRepository.save(wo);
+                seenInBatch.put(effectiveWo, wo);
                 count++;
             }
 
