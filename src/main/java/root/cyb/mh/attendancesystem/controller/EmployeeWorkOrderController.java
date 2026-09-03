@@ -249,6 +249,7 @@ public class EmployeeWorkOrderController {
             @RequestParam(required = false) String workType,
             @RequestParam(required = false) String client,
             @RequestParam(required = false) String contractor,
+            @RequestParam(required = false) Integer series,
             Authentication authentication,
             Model model) {
 
@@ -257,12 +258,15 @@ public class EmployeeWorkOrderController {
         }
 
         Specification<EmployeeWorkOrder> spec = EmployeeWorkOrderSpecifications.withFilters(
-                status, clientInvoicePaid, contractorInvoicePaid, startDate, endDate, search, workType, client, contractor);
+                status, clientInvoicePaid, contractorInvoicePaid, startDate, endDate, search, workType, client, contractor, series);
 
         List<EmployeeWorkOrder> reportData = employeeWorkOrderRepository.findAll(spec, Sort.by(Sort.Direction.DESC, "id"));
         WorkOrderDashboardDTO stats = workOrderReportService.calculateEmployeeStatistics(reportData);
 
         String reportTitle = "Employee Work Order Report";
+        if (series != null) {
+            reportTitle += " - Series " + series + " (" + series + "–" + (series + 99) + ")";
+        }
         if (startDate != null && endDate != null) {
             reportTitle += " (" + startDate + " - " + endDate + ")";
         }
@@ -270,6 +274,7 @@ public class EmployeeWorkOrderController {
         model.addAttribute("stats", stats);
         model.addAttribute("reportData", reportData);
         model.addAttribute("reportTitle", reportTitle);
+        model.addAttribute("series", series);
         model.addAttribute("generatedDate", java.time.LocalDateTime.now());
         model.addAttribute("activeLink", "employee-work-orders");
 

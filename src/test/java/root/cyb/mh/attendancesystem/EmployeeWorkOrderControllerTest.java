@@ -304,4 +304,24 @@ class EmployeeWorkOrderControllerTest {
                 .andExpect(model().attribute("series", 100))
                 .andExpect(view().name("employee/work-order/list"));
     }
+
+    @Test
+    void reportWithSeriesEndpoint() throws Exception {
+        when(employeeWorkOrderRepository.findAll(org.mockito.ArgumentMatchers.<Specification<EmployeeWorkOrder>>any(), any(Sort.class)))
+                .thenReturn(List.of());
+        WorkOrderDashboardDTO dto = new WorkOrderDashboardDTO();
+        WorkOrderDashboardDTO.SeriesStat seriesStat = new WorkOrderDashboardDTO.SeriesStat(
+                "Grand Total", BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
+                0L, 0L, 0L, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
+                BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
+        dto.setGrandTotalSeries(seriesStat);
+        dto.setSeriesStats(List.of());
+        when(workOrderReportService.calculateEmployeeStatistics(any())).thenReturn(dto);
+
+        mockMvc.perform(get("/employee/work-orders/report?series=100").with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("series", 100))
+                .andExpect(model().attribute("reportTitle", org.hamcrest.Matchers.containsString("Series 100")))
+                .andExpect(view().name("employee/work-order/report"));
+    }
 }

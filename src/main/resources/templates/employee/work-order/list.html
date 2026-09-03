@@ -693,7 +693,7 @@
 
             <!-- Advanced Search Panel -->
             <div class="collapse mb-4" id="advancedSearchPanel"
-                th:classappend="${(search != null && !search.isEmpty()) || (workType != null && !workType.isEmpty()) || (dueBucket != null && !dueBucket.isEmpty()) ? 'show' : ''}">
+                th:classappend="${(search != null && !search.isEmpty()) || (workType != null && !workType.isEmpty()) || (dueBucket != null && !dueBucket.isEmpty()) || (series != null) ? 'show' : ''}">
                 <div class="card shadow-sm border-0 bg-light">
                     <div class="card-body">
                         <form action="/employee/work-orders" method="get" class="row g-3">
@@ -719,8 +719,20 @@
                                 </select>
                             </div>
 
-                            <!-- Status -->
+                            <!-- Client Series Filter -->
                             <div class="col-md-3">
+                                <label class="form-label small fw-bold text-uppercase text-muted">Client Series</label>
+                                <select class="form-select" name="series">
+                                    <option value="" th:selected="${series == null}">All Series</option>
+                                    <option th:each="s : ${agingSummary.seriesStats}" 
+                                            th:value="${s.seriesBase}" 
+                                            th:selected="${series == s.seriesBase}"
+                                            th:text="${s.seriesName} + ' (' + ${s.seriesRange} + ')'">Series 100 (100–199)</option>
+                                </select>
+                            </div>
+
+                            <!-- Status -->
+                            <div class="col-md-2">
                                 <label class="form-label small fw-bold text-uppercase text-muted">Status</label>
                                 <select class="form-select" name="status">
                                     <option value="" th:selected="${status == null || status == ''}">All Statuses</option>
@@ -732,13 +744,13 @@
                             </div>
 
                             <!-- Client -->
-                            <div class="col-md-3">
+                            <div class="col-md-2">
                                 <label class="form-label small fw-bold text-uppercase text-muted">Client</label>
                                 <input type="text" class="form-control" name="client" th:value="${client}" placeholder="Client Name">
                             </div>
 
                             <!-- Contractor -->
-                            <div class="col-md-3">
+                            <div class="col-md-2">
                                 <label class="form-label small fw-bold text-uppercase text-muted">Contractor</label>
                                 <input type="text" class="form-control" name="contractor" th:value="${contractor}" placeholder="Contractor Name">
                             </div>
