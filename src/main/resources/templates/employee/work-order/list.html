@@ -353,7 +353,7 @@
                                             th:text="${wo.effectiveClientTotal != null ? '$' + #numbers.formatDecimal(wo.effectiveClientTotal, 1, 2) : '-'}">
                                             $0.00
                                         </div>
-                                        <div th:if="${wo.clientDiscountTotal != null && wo.clientDiscountTotal.compareTo(java.math.BigDecimal.ZERO) > 0 && wo.clientInvoiceTotal != null && wo.clientDiscountTotal.compareTo(wo.clientInvoiceTotal) < 0}" 
+                                        <div th:if="${wo.discountApplied}" 
                                              class="text-muted text-decoration-line-through" style="font-size: 0.72rem;"
                                              th:text="'$' + ${#numbers.formatDecimal(wo.clientInvoiceTotal, 1, 2)}"
                                              title="Original gross invoice total before discount">

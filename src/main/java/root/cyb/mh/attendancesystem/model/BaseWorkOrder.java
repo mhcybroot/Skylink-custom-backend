@@ -127,4 +127,11 @@ public abstract class BaseWorkOrder {
         }
         return clientInvoiceTotal != null ? clientInvoiceTotal : BigDecimal.ZERO;
     }
+
+    public boolean isDiscountApplied() {
+        return clientDiscountTotal != null
+                && clientDiscountTotal.compareTo(BigDecimal.ZERO) > 0
+                && clientInvoiceTotal != null
+                && clientDiscountTotal.compareTo(clientInvoiceTotal) < 0;
+    }
 }
