@@ -63,9 +63,29 @@
             </div>
 
             <!-- Due Payment Aging Analysis Cards (Click-to-Filter) -->
-            <div class="row g-3 mb-4" th:if="${agingSummary != null}">
-                <!-- Card 1: Standard Due -->
-                <div class="col-md-3">
+            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-5 g-3 mb-4" th:if="${agingSummary != null}">
+                <!-- Card 1: Within Terms (Current) -->
+                <div class="col">
+                    <a th:href="@{/employee/work-orders(dueBucket='within_terms')}" class="text-decoration-none">
+                        <div class="card h-100 shadow-sm border-0 border-start border-4 hover-shadow transition"
+                             style="border-color: #10b981 !important;"
+                             th:classappend="${dueBucket == 'within_terms' ? 'bg-success bg-opacity-10 ring-2 ring-success' : 'bg-white'}">
+                            <div class="card-body p-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="small text-uppercase fw-bold text-success">Within Terms</span>
+                                    <span class="badge bg-success text-white px-2 py-1 rounded-pill small"
+                                          th:text="'<' + ${agingSummary.defaultConfig.normalDueDays} + ' Days'">&lt;40d</span>
+                                </div>
+                                <div class="h3 fw-bold mb-0 text-success" th:text="${agingSummary.withinTermsCount}">0</div>
+                                <div class="small fw-semibold text-success" th:text="'$' + ${#numbers.formatDecimal(agingSummary.withinTermsAmount, 1, 2)}">$0.00</div>
+                                <div class="text-muted" style="font-size: 0.72rem;">Current / Within billing terms</div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Card 2: Standard Due -->
+                <div class="col">
                     <a th:href="@{/employee/work-orders(dueBucket='standard')}" class="text-decoration-none">
                         <div class="card h-100 shadow-sm border-0 border-start border-4 hover-shadow transition"
                              style="border-color: #f59e0b !important;"
@@ -84,8 +104,8 @@
                     </a>
                 </div>
 
-                <!-- Card 2: Past Due -->
-                <div class="col-md-3">
+                <!-- Card 3: Past Due -->
+                <div class="col">
                     <a th:href="@{/employee/work-orders(dueBucket='overdue')}" class="text-decoration-none">
                         <div class="card h-100 shadow-sm border-0 border-start border-4 hover-shadow transition"
                              style="border-color: #ea580c !important;"
@@ -104,8 +124,8 @@
                     </a>
                 </div>
 
-                <!-- Card 3: Critical Delinquent -->
-                <div class="col-md-3">
+                <!-- Card 4: Critical Delinquent -->
+                <div class="col">
                     <a th:href="@{/employee/work-orders(dueBucket='critical')}" class="text-decoration-none">
                         <div class="card h-100 shadow-sm border-0 border-start border-4 border-danger hover-shadow transition"
                              th:classappend="${dueBucket == 'critical' ? 'bg-danger bg-opacity-10 ring-2 ring-danger' : 'bg-white'}">
@@ -123,25 +143,19 @@
                     </a>
                 </div>
 
-                <!-- Card 4: Within Terms & Total Unpaid Portfolio -->
-                <div class="col-md-3">
+                <!-- Card 5: Total Unpaid AR Portfolio -->
+                <div class="col">
                     <a th:href="@{/employee/work-orders(dueBucket='all_unpaid')}" class="text-decoration-none">
                         <div class="card h-100 shadow-sm border-0 border-start border-4 border-primary hover-shadow transition"
                              th:classappend="${dueBucket == 'all_unpaid' ? 'bg-primary bg-opacity-10 ring-2 ring-primary' : 'bg-white'}">
                             <div class="card-body p-3">
                                 <div class="d-flex justify-content-between align-items-center mb-1">
                                     <span class="small text-uppercase fw-bold text-primary">Total Unpaid AR</span>
-                                    <span class="badge bg-primary text-white px-2 py-1 rounded-pill small"
-                                          th:text="${agingSummary.totalUnpaidCount + ' WOs'}">0 WOs</span>
+                                    <span class="badge bg-primary text-white px-2 py-1 rounded-pill small">Portfolio</span>
                                 </div>
-                                <div class="h3 fw-bold mb-0 text-dark" th:text="'$' + ${#numbers.formatDecimal(agingSummary.totalUnpaidAmount, 1, 2)}">$0.00</div>
-                                <div class="small text-muted d-flex justify-content-between align-items-center mt-1 pt-1 border-top">
-                                    <span>Current (&lt;<span th:text="${agingSummary.defaultConfig.normalDueDays}">40</span>d):</span>
-                                    <span>
-                                        <span class="badge bg-success bg-opacity-10 text-success fw-bold me-1" th:text="${agingSummary.withinTermsCount} + ' WOs'">77 WOs</span>
-                                        <strong class="text-success" th:text="'$' + ${#numbers.formatDecimal(agingSummary.withinTermsAmount, 1, 2)}">$14,812.47</strong>
-                                    </span>
-                                </div>
+                                <div class="h3 fw-bold mb-0 text-primary" th:text="${agingSummary.totalUnpaidCount}">0</div>
+                                <div class="small fw-semibold text-dark" th:text="'$' + ${#numbers.formatDecimal(agingSummary.totalUnpaidAmount, 1, 2)}">$0.00</div>
+                                <div class="text-muted" style="font-size: 0.72rem;">All unpaid receivables</div>
                             </div>
                         </div>
                     </a>
