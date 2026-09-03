@@ -26,6 +26,7 @@ public class SecurityConfig {
                                                 .permitAll()
                                                 .requestMatchers("/login", "/error").permitAll()
                                                 .requestMatchers("/api/v1/monitor/**").permitAll() // Allow monitor endpoints
+                                                .requestMatchers("/ws-skylink/**").permitAll() // Allow notification STOMP/SockJS handshake
                                                 .requestMatchers("/api/v1/ppw-mapping").authenticated()
                                                 .requestMatchers("/iclock/**").permitAll() // Allow ADMS Device
                                                                                            // Communication

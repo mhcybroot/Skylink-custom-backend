@@ -20,6 +20,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        registry.addEndpoint("/ws-skylink").withSockJS();
+        registry.addEndpoint("/ws-skylink")
+                .setAllowedOriginPatterns("*")
+                .withSockJS();
     }
 }
