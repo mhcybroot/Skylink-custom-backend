@@ -121,6 +121,53 @@
             </div>
         </div>
 
+        <!-- ACTIVE FILTER BAR (NO-PRINT) -->
+        <div class="card shadow-sm border-0 mb-4 bg-light no-print">
+            <div class="card-body py-2 px-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <div class="d-flex flex-wrap align-items-center gap-1.5">
+                    <span class="small fw-bold text-muted text-uppercase me-1"><i class="fas fa-filter me-1 text-primary"></i>Applied Criteria:</span>
+                    <span th:if="${!hasActiveFilters}" class="badge bg-secondary text-white py-1.5 px-2.5 rounded-pill">Global Portfolio (All Work Orders)</span>
+                    <span th:if="${search != null && !search.isEmpty()}" class="badge bg-dark text-white py-1.5 px-2.5 rounded-pill" th:text="'Search: ' + ${search}">Search</span>
+                    <span th:if="${archiveStatus == 'active'}" class="badge bg-primary text-white py-1.5 px-2.5 rounded-pill">⚡ Active Operations Only</span>
+                    <span th:if="${archiveStatus == 'archived'}" class="badge bg-secondary text-white py-1.5 px-2.5 rounded-pill">📦 Archived History</span>
+                    <span th:if="${client != null && !client.isEmpty()}" class="badge bg-info text-dark py-1.5 px-2.5 rounded-pill" th:text="'Client: ' + ${client}">Client</span>
+                    <span th:if="${contractor != null && !contractor.isEmpty()}" class="badge bg-info text-dark py-1.5 px-2.5 rounded-pill" th:text="'Contractor: ' + ${contractor}">Contractor</span>
+                    <span th:if="${workType != null && !workType.isEmpty()}" class="badge bg-info text-dark py-1.5 px-2.5 rounded-pill" th:text="'Type: ' + ${workType}">Type</span>
+                    <span th:if="${admin != null && !admin.isEmpty()}" class="badge bg-info text-dark py-1.5 px-2.5 rounded-pill" th:text="'Admin: ' + ${admin}">Admin</span>
+                    <span th:if="${customerBank != null && !customerBank.isEmpty()}" class="badge bg-info text-dark py-1.5 px-2.5 rounded-pill" th:text="'Bank: ' + ${customerBank}">Bank</span>
+                    <span th:if="${state != null && !state.isEmpty()}" class="badge bg-info text-dark py-1.5 px-2.5 rounded-pill" th:text="'State: ' + ${state}">State</span>
+                    <span th:if="${series != null}" class="badge bg-primary text-white py-1.5 px-2.5 rounded-pill" th:text="'Series: ' + ${series} + 's'">Series</span>
+                    <span th:if="${dueBucket != null && !dueBucket.isEmpty()}" class="badge bg-warning text-dark py-1.5 px-2.5 rounded-pill" th:text="'Due Bucket: ' + ${dueBucket}">Due Bucket</span>
+                    <span th:if="${status != null && !status.isEmpty()}" class="badge bg-secondary text-white py-1.5 px-2.5 rounded-pill" th:text="'Status: ' + ${status}">Status</span>
+                    <span th:if="${clientInvoicePaid != null}" class="badge py-1.5 px-2.5 rounded-pill" th:classappend="${clientInvoicePaid ? 'bg-success text-white' : 'bg-danger text-white'}" th:text="${clientInvoicePaid ? 'Client Paid' : 'Client Unpaid'}">Client Paid</span>
+                    <span th:if="${contractorInvoicePaid != null}" class="badge py-1.5 px-2.5 rounded-pill" th:classappend="${contractorInvoicePaid ? 'bg-success text-white' : 'bg-danger text-white'}" th:text="${contractorInvoicePaid ? 'Cont. Paid' : 'Cont. Unpaid'}">Cont. Paid</span>
+                    <span th:if="${startDate != null && endDate != null}" class="badge bg-dark text-white py-1.5 px-2.5 rounded-pill" th:text="${startDate} + ' to ' + ${endDate}">Dates</span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <a th:href="@{/employee/work-orders(status=${status},clientInvoicePaid=${clientInvoicePaid},contractorInvoicePaid=${contractorInvoicePaid},startDate=${startDate},endDate=${endDate},search=${search},workType=${workType},client=${client},contractor=${contractor},series=${series},admin=${admin},customerBank=${customerBank},state=${state},dateType=${dateType},archiveStatus=${archiveStatus},dueBucket=${dueBucket})}"
+                       class="btn btn-outline-primary btn-sm py-1 px-2.5" title="Modify filter parameters">
+                        <i class="fas fa-sliders-h me-1"></i> Edit Filters
+                    </a>
+                    <a href="/employee/work-orders" class="btn btn-outline-secondary btn-sm py-1 px-2.5" title="Return to Work Orders Table">
+                        <i class="fas fa-arrow-left me-1"></i> Work Orders
+                    </a>
+                    <button onclick="window.print()" class="btn btn-dark btn-sm py-1 px-2.5">
+                        <i class="fas fa-print me-1"></i> Print / PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- EMPTY STATE WARNING IF NO RESULTS -->
+        <div th:if="${stats.totalWorkOrders == 0}" class="alert alert-warning text-center py-5 shadow-sm rounded-3 my-4">
+            <i class="fas fa-filter fa-3x text-warning mb-3"></i>
+            <h4 class="fw-bold text-dark">No Work Orders Found</h4>
+            <p class="text-muted">No records match the active filter criteria. Try adjusting or clearing your filters.</p>
+            <a th:href="@{/employee/work-orders}" class="btn btn-primary btn-sm px-4">
+                <i class="fas fa-undo me-1"></i> Reset Filters & Return to Orders
+            </a>
+        </div>
+
         <!-- ADMIN PERFORMANCE SUMMARY -->
         <div class="card shadow-sm border-0 mb-4">
             <div class="card-header bg-dark text-white">
@@ -189,6 +236,383 @@
                         <h6 class="text-muted small text-uppercase">Cont. Balance</h6>
                         <h3 class="fw-bold text-danger mb-0"
                             th:text="${#numbers.formatCurrency(stats.contractorUnpaidAmount)}">$0</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================================== -->
+        <!-- CLIENT DUE & AGING PORTFOLIO ANALYSIS (EXECUTIVE DASHBOARD)                    -->
+        <!-- ============================================================================== -->
+        <div class="card shadow-sm border-0 mb-4" th:if="${agingSummary != null}">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-2">
+                <h5 class="mb-0">
+                    <i class="fas fa-file-invoice-dollar me-2 text-warning"></i>Accounts Receivable & Client Due Aging Analysis
+                </h5>
+                <div>
+                    <span class="badge bg-light text-dark fw-bold me-1" th:text="${agingSummary.totalUnpaidCount + ' Total Unpaid'}">0 Unpaid</span>
+                    <span class="badge bg-warning text-dark fw-bold" th:text="'Avg Overdue: ' + ${agingSummary.portfolioAverageDays} + ' Days'">Avg: 0d</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-6 g-3 text-center">
+                    <!-- Within Terms (<40d) -->
+                    <div class="col">
+                        <div class="p-3 border rounded h-100 bg-light">
+                            <div class="small text-uppercase fw-bold text-success mb-1">
+                                <i class="fas fa-check-circle me-1"></i>Within Terms
+                            </div>
+                            <div class="badge bg-success text-white mb-2"
+                                 th:text="'<' + ${agingSummary.defaultConfig.normalDueDays} + ' Days'">&lt;40 Days</div>
+                            <button class="btn btn-link p-0 fw-bold metric-filter text-success d-block w-100 h3 mb-1"
+                                    style="font-size: 1.5rem; text-decoration: none;"
+                                    data-filter-due-bucket="within_terms"
+                                    title="Click to filter Within Terms orders"
+                                    th:text="${agingSummary.withinTermsCount}">0</button>
+                            <div class="fw-bold text-dark" th:text="${#numbers.formatCurrency(agingSummary.withinTermsAmount)}">$0.00</div>
+                        </div>
+                    </div>
+
+                    <!-- Standard Due (40-49d) -->
+                    <div class="col">
+                        <div class="p-3 border rounded h-100 bg-light">
+                            <div class="small text-uppercase fw-bold text-warning mb-1">
+                                <i class="fas fa-clock me-1"></i>Standard Due
+                            </div>
+                            <div class="badge bg-warning text-dark mb-2"
+                                 th:text="${agingSummary.defaultConfig.normalDueDays + '–' + (agingSummary.defaultConfig.overdueDays - 1) + ' Days'}">40–49 Days</div>
+                            <button class="btn btn-link p-0 fw-bold metric-filter text-dark d-block w-100 h3 mb-1"
+                                    style="font-size: 1.5rem; text-decoration: none;"
+                                    data-filter-due-bucket="standard"
+                                    title="Click to filter Standard Due orders"
+                                    th:text="${agingSummary.standardDueCount}">0</button>
+                            <div class="fw-bold text-dark" th:text="${#numbers.formatCurrency(agingSummary.standardDueAmount)}">$0.00</div>
+                        </div>
+                    </div>
+
+                    <!-- Past Due (50-59d) -->
+                    <div class="col">
+                        <div class="p-3 border rounded h-100 bg-light">
+                            <div class="small text-uppercase fw-bold mb-1" style="color: #ea580c;">
+                                <i class="fas fa-exclamation-circle me-1"></i>Past Due
+                            </div>
+                            <div class="badge text-white mb-2" style="background-color: #ea580c;"
+                                 th:text="${agingSummary.defaultConfig.overdueDays + '–' + (agingSummary.defaultConfig.criticalDueDays - 1) + ' Days'}">50–59 Days</div>
+                            <button class="btn btn-link p-0 fw-bold metric-filter d-block w-100 h3 mb-1"
+                                    style="font-size: 1.5rem; text-decoration: none; color: #ea580c;"
+                                    data-filter-due-bucket="overdue"
+                                    title="Click to filter Past Due orders"
+                                    th:text="${agingSummary.pastDueCount}">0</button>
+                            <div class="fw-bold" style="color: #ea580c;" th:text="${#numbers.formatCurrency(agingSummary.pastDueAmount)}">$0.00</div>
+                        </div>
+                    </div>
+
+                    <!-- Critical Delinquent (60+d) -->
+                    <div class="col">
+                        <div class="p-3 border rounded h-100 bg-light border-danger">
+                            <div class="small text-uppercase fw-bold text-danger mb-1">
+                                <i class="fas fa-fire me-1"></i>Critical (60+d)
+                            </div>
+                            <div class="badge bg-danger text-white mb-2"
+                                 th:text="${agingSummary.defaultConfig.criticalDueDays + '+ Days'}">60+ Days</div>
+                            <button class="btn btn-link p-0 fw-bold metric-filter text-danger d-block w-100 h3 mb-1"
+                                    style="font-size: 1.5rem; text-decoration: none;"
+                                    data-filter-due-bucket="critical"
+                                    title="Click to filter Critical orders"
+                                    th:text="${agingSummary.criticalDueCount}">0</button>
+                            <div class="fw-bold text-danger" th:text="${#numbers.formatCurrency(agingSummary.criticalDueAmount)}">$0.00</div>
+                        </div>
+                    </div>
+
+                    <!-- Partially Paid -->
+                    <div class="col">
+                        <div class="p-3 border rounded h-100 bg-light">
+                            <div class="small text-uppercase fw-bold text-primary mb-1">
+                                <i class="fas fa-adjust me-1"></i>Partially Paid
+                            </div>
+                            <div class="badge bg-primary text-white mb-2">Partial Balance</div>
+                            <button class="btn btn-link p-0 fw-bold metric-filter text-primary d-block w-100 h3 mb-1"
+                                    style="font-size: 1.5rem; text-decoration: none;"
+                                    data-filter-due-bucket="partial"
+                                    title="Click to filter Partially Paid orders"
+                                    th:text="${agingSummary.partiallyPaidCount}">0</button>
+                            <div class="small text-muted" th:text="'Paid: ' + ${#numbers.formatCurrency(agingSummary.totalPartialPaidCollected)}">Paid: $0.00</div>
+                        </div>
+                    </div>
+
+                    <!-- Total Outstanding Due (AR) -->
+                    <div class="col">
+                        <div class="p-3 border rounded h-100 bg-dark text-white">
+                            <div class="small text-uppercase fw-bold text-light mb-1">
+                                <i class="fas fa-calculator me-1"></i>Total Unpaid AR
+                            </div>
+                            <div class="badge bg-secondary mb-2">Remaining Balance</div>
+                            <button class="btn btn-link p-0 fw-bold metric-filter text-white d-block w-100 h3 mb-1"
+                                    style="font-size: 1.5rem; text-decoration: none;"
+                                    data-filter-due-bucket="all_unpaid"
+                                    title="Click to filter All Unpaid orders"
+                                    th:text="${agingSummary.totalUnpaidCount}">0</button>
+                            <div class="fw-bold text-warning" th:text="${#numbers.formatCurrency(agingSummary.totalUnpaidAmount)}">$0.00</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CLIENT WISE DUE & AGING BREAKDOWN TABLE -->
+        <div class="mb-5" th:if="${agingSummary != null && !agingSummary.clientStats.isEmpty()}">
+            <h5 class="fw-bold text-uppercase border-bottom pb-2 mb-3">
+                <i class="fas fa-users text-primary me-2"></i>Client-Wise Accounts Receivable & Aging Matrix
+            </h5>
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped mb-0 table-sm" style="font-size: 0.8rem;" id="clientAgingTable">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th class="py-2 ps-3 sortable" data-sort="client">Client Code & Name <i class="fas fa-sort ms-1"></i></th>
+                                    <th class="py-2 text-center sortable" data-sort="terms">Terms (d) <i class="fas fa-sort ms-1"></i></th>
+                                    <th class="py-2 text-end sortable" data-sort="unpaidCount">Unpaid WOs <i class="fas fa-sort ms-1"></i></th>
+                                    <th class="py-2 text-end sortable" data-sort="totalDue">Total Due ($) <i class="fas fa-sort ms-1"></i></th>
+                                    <th class="py-2 text-end text-success sortable" data-sort="withinTerms">Within Terms <i class="fas fa-sort ms-1"></i></th>
+                                    <th class="py-2 text-end text-warning sortable" data-sort="standardDue">Standard Due <i class="fas fa-sort ms-1"></i></th>
+                                    <th class="py-2 text-end sortable" style="color: #ea580c;" data-sort="pastDue">Past Due <i class="fas fa-sort ms-1"></i></th>
+                                    <th class="py-2 text-end text-danger sortable" data-sort="criticalDue">Critical (60+d) <i class="fas fa-sort ms-1"></i></th>
+                                    <th class="py-2 text-end text-info sortable" data-sort="partialRecv">Partial Recv. <i class="fas fa-sort ms-1"></i></th>
+                                    <th class="py-2 text-center sortable" data-sort="avgOverdue">Avg Overdue <i class="fas fa-sort ms-1"></i></th>
+                                    <th class="py-2 text-center pe-3 sortable" data-sort="riskRating">Risk Rating <i class="fas fa-sort ms-1"></i></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="cStat : ${agingSummary.clientStats}">
+                                    <td class="fw-bold ps-3">
+                                        <button class="btn btn-link p-0 fw-bold metric-filter text-start text-primary"
+                                                th:attr="data-filter-client=${cStat.clientIdentifier}"
+                                                style="text-decoration: none;"
+                                                th:text="${cStat.clientIdentifier + ' - ' + cStat.clientName}">Client</button>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-light text-dark border"
+                                              th:text="${cStat.normalDueDays + ' / ' + cStat.overdueDays + ' / ' + cStat.criticalDueDays}">40/50/60</span>
+                                    </td>
+                                    <td class="text-end">
+                                        <button class="btn btn-link p-0 fw-bold metric-filter text-primary"
+                                                th:attr="data-filter-client=${cStat.clientIdentifier}, data-filter-due-bucket='all_unpaid'"
+                                                title="Filter all unpaid for this client"
+                                                th:text="${cStat.totalUnpaidCount}">0</button>
+                                    </td>
+                                    <td class="text-end fw-bold text-dark" th:text="${#numbers.formatCurrency(cStat.totalUnpaidAmount)}">$0.00</td>
+                                    <td class="text-end">
+                                        <button class="btn btn-link p-0 text-success metric-filter"
+                                                th:attr="data-filter-client=${cStat.clientIdentifier}, data-filter-due-bucket='within_terms'"
+                                                title="Filter Within Terms for this client"
+                                                th:text="${#numbers.formatCurrency(cStat.withinTermsAmount)}">$0.00</button>
+                                    </td>
+                                    <td class="text-end">
+                                        <button class="btn btn-link p-0 text-warning-emphasis metric-filter"
+                                                th:attr="data-filter-client=${cStat.clientIdentifier}, data-filter-due-bucket='standard'"
+                                                title="Filter Standard Due for this client"
+                                                th:text="${#numbers.formatCurrency(cStat.standardDueAmount)}">$0.00</button>
+                                    </td>
+                                    <td class="text-end">
+                                        <button class="btn btn-link p-0 metric-filter" style="color: #ea580c;"
+                                                th:attr="data-filter-client=${cStat.clientIdentifier}, data-filter-due-bucket='overdue'"
+                                                title="Filter Past Due for this client"
+                                                th:text="${#numbers.formatCurrency(cStat.pastDueAmount)}">$0.00</button>
+                                    </td>
+                                    <td class="text-end">
+                                        <button class="btn btn-link p-0 fw-bold text-danger metric-filter"
+                                                th:attr="data-filter-client=${cStat.clientIdentifier}, data-filter-due-bucket='critical'"
+                                                title="Filter Critical for this client"
+                                                th:text="${#numbers.formatCurrency(cStat.criticalDueAmount)}">$0.00</button>
+                                    </td>
+                                    <td class="text-end">
+                                        <button class="btn btn-link p-0 text-info metric-filter"
+                                                th:attr="data-filter-client=${cStat.clientIdentifier}, data-filter-due-bucket='partial'"
+                                                title="Filter Partial Paid for this client"
+                                                th:text="${#numbers.formatCurrency(cStat.totalPartialPaidCollected)}">$0.00</button>
+                                    </td>
+                                    <td class="text-center fw-bold" th:text="${cStat.weightedAverageDays + 'd'}">0d</td>
+                                    <td class="text-center pe-3">
+                                        <span class="badge"
+                                              th:classappend="${cStat.riskScore == 'HIGH' ? 'bg-danger' : (cStat.riskScore == 'MODERATE' ? 'bg-warning text-dark' : 'bg-success')}"
+                                              th:text="${cStat.riskScore}">LOW</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                            <tfoot class="table-light fw-bold border-top">
+                                <tr>
+                                    <td class="ps-3">PORTFOLIO TOTAL</td>
+                                    <td class="text-center">-</td>
+                                    <td class="text-end">
+                                        <button class="btn btn-link p-0 fw-bold metric-filter text-primary"
+                                                data-filter-due-bucket="all_unpaid"
+                                                title="Filter all unpaid work orders"
+                                                th:text="${agingSummary.totalUnpaidCount}">0</button>
+                                    </td>
+                                    <td class="text-end text-dark" th:text="${#numbers.formatCurrency(agingSummary.totalUnpaidAmount)}">$0.00</td>
+                                    <td class="text-end">
+                                        <button class="btn btn-link p-0 text-success metric-filter"
+                                                data-filter-due-bucket="within_terms"
+                                                title="Filter Within Terms work orders"
+                                                th:text="${#numbers.formatCurrency(agingSummary.withinTermsAmount)}">$0.00</button>
+                                    </td>
+                                    <td class="text-end">
+                                        <button class="btn btn-link p-0 text-warning-emphasis metric-filter"
+                                                data-filter-due-bucket="standard"
+                                                title="Filter Standard Due work orders"
+                                                th:text="${#numbers.formatCurrency(agingSummary.standardDueAmount)}">$0.00</button>
+                                    </td>
+                                    <td class="text-end">
+                                        <button class="btn btn-link p-0 metric-filter" style="color: #ea580c;"
+                                                data-filter-due-bucket="overdue"
+                                                title="Filter Past Due work orders"
+                                                th:text="${#numbers.formatCurrency(agingSummary.pastDueAmount)}">$0.00</button>
+                                    </td>
+                                    <td class="text-end">
+                                        <button class="btn btn-link p-0 fw-bold text-danger metric-filter"
+                                                data-filter-due-bucket="critical"
+                                                title="Filter Critical work orders"
+                                                th:text="${#numbers.formatCurrency(agingSummary.criticalDueAmount)}">$0.00</button>
+                                    </td>
+                                    <td class="text-end">
+                                        <button class="btn btn-link p-0 text-info metric-filter"
+                                                data-filter-due-bucket="partial"
+                                                title="Filter Partial Paid work orders"
+                                                th:text="${#numbers.formatCurrency(agingSummary.totalPartialPaidCollected)}">$0.00</button>
+                                    </td>
+                                    <td class="text-center text-primary" th:text="${agingSummary.portfolioAverageDays + 'd'}">0d</td>
+                                    <td class="text-center pe-3">-</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SERIES WISE DUE & AGING BREAKDOWN TABLE -->
+        <div class="mb-5" th:if="${agingSummary != null && !agingSummary.seriesStats.isEmpty()}">
+            <h5 class="fw-bold text-uppercase border-bottom pb-2 mb-3">
+                <i class="fas fa-layer-group text-info me-2"></i>Series-Wise Accounts Receivable & Aging Matrix
+            </h5>
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped mb-0 table-sm" style="font-size: 0.8rem;" id="seriesAgingTable">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th class="py-2 ps-3 sortable" data-sort="series">Series Group <i class="fas fa-sort ms-1"></i></th>
+                                    <th class="py-2 text-center sortable" data-sort="clients">Clients <i class="fas fa-sort ms-1"></i></th>
+                                    <th class="py-2 text-end sortable" data-sort="unpaidCount">Unpaid WOs <i class="fas fa-sort ms-1"></i></th>
+                                    <th class="py-2 text-end sortable" data-sort="totalDue">Total Due ($) <i class="fas fa-sort ms-1"></i></th>
+                                    <th class="py-2 text-end text-success sortable" data-sort="withinTerms">Within Terms <i class="fas fa-sort ms-1"></i></th>
+                                    <th class="py-2 text-end text-warning sortable" data-sort="standardDue">Standard Due <i class="fas fa-sort ms-1"></i></th>
+                                    <th class="py-2 text-end sortable" style="color: #ea580c;" data-sort="pastDue">Past Due <i class="fas fa-sort ms-1"></i></th>
+                                    <th class="py-2 text-end text-danger sortable" data-sort="criticalDue">Critical (60+d) <i class="fas fa-sort ms-1"></i></th>
+                                    <th class="py-2 text-end text-info sortable" data-sort="partialRecv">Partial Recv. <i class="fas fa-sort ms-1"></i></th>
+                                    <th class="py-2 text-center pe-3 sortable" data-sort="avgOverdue">Avg Overdue <i class="fas fa-sort ms-1"></i></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="sStat : ${agingSummary.seriesStats}">
+                                    <td class="fw-bold ps-3">
+                                        <button class="btn btn-link p-0 fw-bold metric-filter text-start text-info"
+                                                th:attr="data-filter-series=${sStat.seriesName}"
+                                                style="text-decoration: none;"
+                                                th:text="${sStat.seriesName + ' (' + sStat.seriesRange + ')'}">Series 100</button>
+                                    </td>
+                                    <td class="text-center">
+                                        <button class="btn btn-link p-0 fw-bold metric-filter text-secondary"
+                                                th:attr="data-filter-series=${sStat.seriesName}"
+                                                title="Filter work orders in this series"
+                                                th:text="${sStat.clientCount}">0</button>
+                                    </td>
+                                    <td class="text-end">
+                                        <button class="btn btn-link p-0 fw-bold metric-filter text-primary"
+                                                th:attr="data-filter-series=${sStat.seriesName}, data-filter-due-bucket='all_unpaid'"
+                                                title="Filter all unpaid for this series"
+                                                th:text="${sStat.totalUnpaidCount}">0</button>
+                                    </td>
+                                    <td class="text-end fw-bold text-dark" th:text="${#numbers.formatCurrency(sStat.totalUnpaidAmount)}">$0.00</td>
+                                    <td class="text-end">
+                                        <button class="btn btn-link p-0 text-success metric-filter"
+                                                th:attr="data-filter-series=${sStat.seriesName}, data-filter-due-bucket='within_terms'"
+                                                title="Filter Within Terms for this series"
+                                                th:text="${#numbers.formatCurrency(sStat.withinTermsAmount)}">$0.00</button>
+                                    </td>
+                                    <td class="text-end">
+                                        <button class="btn btn-link p-0 text-warning-emphasis metric-filter"
+                                                th:attr="data-filter-series=${sStat.seriesName}, data-filter-due-bucket='standard'"
+                                                title="Filter Standard Due for this series"
+                                                th:text="${#numbers.formatCurrency(sStat.standardDueAmount)}">$0.00</button>
+                                    </td>
+                                    <td class="text-end">
+                                        <button class="btn btn-link p-0 metric-filter" style="color: #ea580c;"
+                                                th:attr="data-filter-series=${sStat.seriesName}, data-filter-due-bucket='overdue'"
+                                                title="Filter Past Due for this series"
+                                                th:text="${#numbers.formatCurrency(sStat.pastDueAmount)}">$0.00</button>
+                                    </td>
+                                    <td class="text-end">
+                                        <button class="btn btn-link p-0 fw-bold text-danger metric-filter"
+                                                th:attr="data-filter-series=${sStat.seriesName}, data-filter-due-bucket='critical'"
+                                                title="Filter Critical for this series"
+                                                th:text="${#numbers.formatCurrency(sStat.criticalDueAmount)}">$0.00</button>
+                                    </td>
+                                    <td class="text-end">
+                                        <button class="btn btn-link p-0 text-info metric-filter"
+                                                th:attr="data-filter-series=${sStat.seriesName}, data-filter-due-bucket='partial'"
+                                                title="Filter Partial for this series"
+                                                th:text="${#numbers.formatCurrency(sStat.totalPartialPaidCollected)}">$0.00</button>
+                                    </td>
+                                    <td class="text-center pe-3 fw-bold" th:text="${sStat.weightedAverageDays + 'd'}">0d</td>
+                                </tr>
+                            </tbody>
+                            <tfoot class="table-light fw-bold border-top">
+                                <tr>
+                                    <td class="ps-3">PORTFOLIO TOTAL</td>
+                                    <td class="text-center" th:text="${agingSummary.clientStats.size()}">0</td>
+                                    <td class="text-end">
+                                        <button class="btn btn-link p-0 fw-bold metric-filter text-primary"
+                                                data-filter-due-bucket="all_unpaid"
+                                                title="Filter all unpaid work orders"
+                                                th:text="${agingSummary.totalUnpaidCount}">0</button>
+                                    </td>
+                                    <td class="text-end text-dark" th:text="${#numbers.formatCurrency(agingSummary.totalUnpaidAmount)}">$0.00</td>
+                                    <td class="text-end">
+                                        <button class="btn btn-link p-0 text-success metric-filter"
+                                                data-filter-due-bucket="within_terms"
+                                                title="Filter Within Terms work orders"
+                                                th:text="${#numbers.formatCurrency(agingSummary.withinTermsAmount)}">$0.00</button>
+                                    </td>
+                                    <td class="text-end">
+                                        <button class="btn btn-link p-0 text-warning-emphasis metric-filter"
+                                                data-filter-due-bucket="standard"
+                                                title="Filter Standard Due work orders"
+                                                th:text="${#numbers.formatCurrency(agingSummary.standardDueAmount)}">$0.00</button>
+                                    </td>
+                                    <td class="text-end">
+                                        <button class="btn btn-link p-0 metric-filter" style="color: #ea580c;"
+                                                data-filter-due-bucket="overdue"
+                                                title="Filter Past Due work orders"
+                                                th:text="${#numbers.formatCurrency(agingSummary.pastDueAmount)}">$0.00</button>
+                                    </td>
+                                    <td class="text-end">
+                                        <button class="btn btn-link p-0 fw-bold text-danger metric-filter"
+                                                data-filter-due-bucket="critical"
+                                                title="Filter Critical work orders"
+                                                th:text="${#numbers.formatCurrency(agingSummary.criticalDueAmount)}">$0.00</button>
+                                    </td>
+                                    <td class="text-end">
+                                        <button class="btn btn-link p-0 text-info metric-filter"
+                                                data-filter-due-bucket="partial"
+                                                title="Filter Partial Paid work orders"
+                                                th:text="${#numbers.formatCurrency(agingSummary.totalPartialPaidCollected)}">$0.00</button>
+                                    </td>
+                                    <td class="text-center pe-3 text-primary" th:text="${agingSummary.portfolioAverageDays + 'd'}">0d</td>
+                                </tr>
+                            </tfoot>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -499,8 +923,18 @@
                             <td class="text-end fw-bold" th:classappend="${admin.grossMargin >= 40 ? 'text-success' : 
                                                 (admin.grossMargin >= 30 ? 'text-warning' : 'text-danger')}"
                                 th:text="${#numbers.formatDecimal(admin.grossMargin, 1, 2) + '%'}">0%</td>
-                            <td class="text-end" th:text="${admin.uniqueClientCount}">0</td>
-                            <td class="text-end" th:text="${admin.uniqueStateCount}">0</td>
+                            <td class="text-end">
+                                <button class="btn btn-link p-0 fw-bold metric-filter"
+                                    th:attr="data-filter-admin=${admin.adminName}"
+                                    title="Filter work orders by admin"
+                                    th:text="${admin.uniqueClientCount}">0</button>
+                            </td>
+                            <td class="text-end">
+                                <button class="btn btn-link p-0 fw-bold metric-filter"
+                                    th:attr="data-filter-admin=${admin.adminName}"
+                                    title="Filter work orders by admin"
+                                    th:text="${admin.uniqueStateCount}">0</button>
+                            </td>
                         </tr>
                     </tbody>
                     <tfoot class="table-light fw-bold">
@@ -679,7 +1113,12 @@
                             <tr>
                                 <td></td>
                                 <td class="ps-4" th:text="${item.seriesName}">Series 100</td>
-                                <td class="text-end" th:text="${item.workOrderCount}">10</td>
+                                <td class="text-end">
+                                    <button class="btn btn-link p-0 fw-bold metric-filter"
+                                        th:attr="data-filter-series=${item.seriesName}"
+                                        title="Filter work orders in this series"
+                                        th:text="${item.workOrderCount}">10</button>
+                                </td>
                                 <td class="text-end" th:text="${#numbers.formatCurrency(item.revenue)}">$10,000</td>
                                 <td class="text-end text-muted" th:text="${#numbers.formatCurrency(item.cost)}">$7,000
                                 </td>
@@ -1002,7 +1441,20 @@
         </div>
 
         <!-- DETAILED DATA TABLE -->
-        <h5 class="fw-bold border-bottom pb-2 mb-3" id="work-orders-table">Included Work Orders</h5>
+        <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+            <div>
+                <h5 class="fw-bold mb-0 d-inline" id="work-orders-table">Included Work Orders</h5>
+                <span id="activeFilterBadge" class="badge bg-primary ms-2 d-none">
+                    <span id="activeFilterText">Filtered</span>
+                    <i class="fas fa-times ms-1" style="cursor: pointer;" id="clearFilterIcon" title="Clear Filter"></i>
+                </span>
+            </div>
+            <div>
+                <button type="button" id="clearFilterBtn" class="btn btn-sm btn-outline-secondary d-none">
+                    <i class="fas fa-undo me-1"></i>Reset Filter
+                </button>
+            </div>
+        </div>
         <div class="table-responsive">
             <table class="table table-bordered table-striped table-hover table-sm" style="font-size: 0.7rem;">
                 <thead class="table-dark" style="cursor: pointer;">
@@ -1026,11 +1478,16 @@
                         <th class="sortable" data-sort="dateDueClient">Due Client <i class="fas fa-sort"></i></th>
                         <th class="sortable" data-sort="sentToClientDate">Sent Client <i class="fas fa-sort"></i></th>
 
+                        <!-- Aging Status -->
+                        <th class="text-center sortable" data-sort="agingStatus">Aging Status <i class="fas fa-sort"></i></th>
+
                         <th class="text-end sortable" data-sort="contractorInvoiceTotal">Cont. Total <i
                                 class="fas fa-sort"></i></th>
                         <th class="text-end sortable" data-sort="contractorPaidAmount">Cont. Paid <i
                                 class="fas fa-sort"></i></th>
                         <th class="text-end sortable" data-sort="contractorDiscountPercent">Cont. Disc% <i
+                                class="fas fa-sort"></i></th>
+                        <th class="text-end sortable text-danger" data-sort="contractorBalance">Cont. Balance <i
                                 class="fas fa-sort"></i></th>
 
                         <th class="text-end sortable" data-sort="clientInvoiceTotal">Client Total <i
@@ -1042,13 +1499,14 @@
                                 class="fas fa-sort"></i></th>
                         <th class="text-end sortable" data-sort="clientDiscountTotal">Disc Total <i
                                 class="fas fa-sort"></i></th>
-                        <th class="text-end sortable" data-sort="writeOffAmount">Write Off <i class="fas fa-sort"></i>
-                        </th>
+                        <th class="text-end sortable" data-sort="writeOffAmount">Write Off <i class="fas fa-sort"></i></th>
+                        <th class="text-end sortable fw-bold text-danger" data-sort="remainingDue">Remaining Due <i class="fas fa-sort"></i></th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr th:each="wo : ${reportData}"
-                        th:attr="data-status=${wo.status}, data-series=${wo.series}, data-state=${wo.state}, data-client-code=${wo.client != null ? wo.client.code : ''}, data-admin=${wo.admin}, data-work-type=${wo.workType}, data-contractor=${wo.contractor != null ? wo.contractor.name : (wo.originalContractorString != null ? wo.originalContractorString : '')}, data-payment-status=${(wo.clientPaidAmount != null && wo.clientPaidAmount > 0) ? 'paid' : 'unpaid'}">
+                        th:with="woBucket=${!wo.unpaid ? 'paid' : (wo.partiallyPaid ? 'partial' : (clientDueAgingService != null ? clientDueAgingService.getAgingBucket(wo, configMap, defaultConfig) : 'unpaid'))}"
+                        th:attr="data-status=${wo.status}, data-series=${wo.series}, data-state=${wo.state}, data-client-code=${wo.client != null ? wo.client.code : (wo.originalClientString != null ? wo.originalClientString : '')}, data-client-name=${wo.client != null ? wo.client.name : ''}, data-admin=${wo.admin}, data-work-type=${wo.workType}, data-contractor=${wo.contractor != null ? wo.contractor.name : (wo.originalContractorString != null ? wo.originalContractorString : '')}, data-payment-status=${(wo.clientPaidAmount != null && wo.clientPaidAmount > 0) ? 'paid' : 'unpaid'}, data-due-bucket=${woBucket}">
                         <td th:text="${wo.woNumber}">WO-1</td>
                         <td th:text="${wo.invoiceNumber}">INV-1</td>
                         <td th:text="${wo.invoiceDate}">Jan 1</td>
@@ -1070,6 +1528,18 @@
                         <td th:text="${wo.dateDueClient}">Jan 5</td>
                         <td th:text="${wo.sentToClientDate}">Jan 6</td>
 
+                        <!-- Aging Status Badge -->
+                        <td class="text-center text-nowrap">
+                            <span th:if="${!wo.unpaid}" class="badge bg-success">🟢 Paid</span>
+                            <th:block th:if="${wo.unpaid}">
+                                <span th:if="${woBucket == 'critical'}" class="badge bg-danger" th:text="'🔴 Critical (' + ${wo.daysElapsed} + 'd)'">🔴 Critical (60d)</span>
+                                <span th:if="${woBucket == 'overdue'}" class="badge text-white" style="background-color: #ea580c;" th:text="'🟠 Past Due (' + ${wo.daysElapsed} + 'd)'">🟠 Past Due (50d)</span>
+                                <span th:if="${woBucket == 'standard'}" class="badge bg-warning text-dark" th:text="'🟡 Standard (' + ${wo.daysElapsed} + 'd)'">🟡 Standard (40d)</span>
+                                <span th:if="${woBucket == 'within_terms'}" class="badge bg-success" th:text="'🟢 Current (' + ${wo.daysElapsed} + 'd)'">🟢 Current (20d)</span>
+                                <span th:if="${wo.partiallyPaid}" class="badge bg-warning text-dark ms-1" th:text="'🟡 ' + ${#numbers.formatDecimal(wo.paidPercentage, 1, 0)} + '%'">Partial</span>
+                            </th:block>
+                        </td>
+
                         <td class="text-end text-danger"
                             th:text="${wo.contractorInvoiceTotal != null ? #numbers.formatCurrency(wo.contractorInvoiceTotal) : '-'}">
                             $50</td>
@@ -1079,6 +1549,8 @@
                         <td class="text-end"
                             th:text="${wo.contractorDiscountPercent != null ? wo.contractorDiscountPercent + '%' : '-'}">
                             0%</td>
+                        <td class="text-end fw-semibold" th:classappend="${wo.remainingContractorBalance > 0 ? 'text-danger' : 'text-muted'}"
+                            th:text="${wo.remainingContractorBalance != null ? #numbers.formatCurrency(wo.remainingContractorBalance) : '-'}">$0.00</td>
 
                         <td class="text-end text-primary"
                             th:text="${wo.clientInvoiceTotal != null ? #numbers.formatCurrency(wo.clientInvoiceTotal) : '-'}">
@@ -1096,6 +1568,8 @@
                         <td class="text-end text-warning"
                             th:text="${wo.writeOffAmount != null ? #numbers.formatCurrency(wo.writeOffAmount) : '-'}">
                             $0</td>
+                        <td class="text-end fw-bold" th:classappend="${wo.remainingClientBalance > 0 ? 'text-danger' : 'text-success'}"
+                            th:text="${wo.remainingClientBalance != null ? #numbers.formatCurrency(wo.remainingClientBalance) : '-'}">$0.00</td>
                     </tr>
                 </tbody>
             </table>
@@ -1138,12 +1612,27 @@
         .wo-row-hidden {
             display: none;
         }
+
+        th.sortable {
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.15s ease;
+        }
+
+        th.sortable:hover {
+            background-color: rgba(255, 255, 255, 0.15) !important;
+        }
     </style>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
+        function initReportFilters() {
             const filterButtons = document.querySelectorAll('.metric-filter');
             const tableRows = document.querySelectorAll('tbody tr[data-status]');
+            const filterBadge = document.getElementById('activeFilterBadge');
+            const filterText = document.getElementById('activeFilterText');
+            const clearBtn = document.getElementById('clearFilterBtn');
+            const clearIcon = document.getElementById('clearFilterIcon');
+
             let activeFilter = null;
             let activeFilterSeries = null;
             let activeFilterState = null;
@@ -1153,9 +1642,12 @@
             let activeFilterWorkType = null;
             let activeFilterContractor = null;
             let activeFilterPaymentStatus = null;
+            let activeFilterDueBucket = null;
 
             filterButtons.forEach(button => {
-                button.addEventListener('click', function () {
+                button.addEventListener('click', function (e) {
+                    e.preventDefault();
+
                     const filterType = this.getAttribute('data-filter-type');
                     const filterSeries = this.getAttribute('data-filter-series');
                     const filterState = this.getAttribute('data-filter-state');
@@ -1165,6 +1657,7 @@
                     const filterWorkType = this.getAttribute('data-filter-work-type');
                     const filterContractor = this.getAttribute('data-filter-contractor');
                     const filterPaymentStatus = this.getAttribute('data-filter-payment-status');
+                    const filterDueBucket = this.getAttribute('data-filter-due-bucket');
 
                     // If clicking the same filter, clear it
                     if (activeFilter === filterType &&
@@ -1175,7 +1668,8 @@
                         activeFilterAdmin === filterAdmin &&
                         activeFilterWorkType === filterWorkType &&
                         activeFilterContractor === filterContractor &&
-                        activeFilterPaymentStatus === filterPaymentStatus) {
+                        activeFilterPaymentStatus === filterPaymentStatus &&
+                        activeFilterDueBucket === filterDueBucket) {
                         clearFilter();
                         return;
                     }
@@ -1190,70 +1684,123 @@
                     activeFilterWorkType = filterWorkType;
                     activeFilterContractor = filterContractor;
                     activeFilterPaymentStatus = filterPaymentStatus;
+                    activeFilterDueBucket = filterDueBucket;
 
                     // Update button states
                     filterButtons.forEach(btn => btn.classList.remove('active'));
                     this.classList.add('active');
 
+                    // Build human-friendly filter labels
+                    const filterLabels = [];
+                    if (filterClient) filterLabels.push('Client: ' + filterClient);
+                    if (filterSeries) filterLabels.push('Series: ' + filterSeries);
+                    if (filterDueBucket) {
+                        const bName = filterDueBucket === 'all_unpaid' ? 'All Unpaid AR' :
+                                      filterDueBucket === 'within_terms' ? 'Within Terms' :
+                                      filterDueBucket === 'standard' ? 'Standard Due' :
+                                      filterDueBucket === 'overdue' ? 'Past Due' :
+                                      filterDueBucket === 'critical' ? 'Critical (60+d)' :
+                                      filterDueBucket === 'partial' ? 'Partial Paid' : filterDueBucket;
+                        filterLabels.push('Bucket: ' + bName);
+                    }
+                    if (filterStatus) filterLabels.push('Status: ' + filterStatus);
+                    if (filterAdmin) filterLabels.push('Admin: ' + filterAdmin);
+                    if (filterWorkType) filterLabels.push('Work Type: ' + filterWorkType);
+                    if (filterContractor) filterLabels.push('Contractor: ' + filterContractor);
+                    if (filterState) filterLabels.push('State: ' + filterState);
+                    if (filterType) filterLabels.push('Type: ' + filterType);
+
+                    let visibleCount = 0;
+
                     // Filter table rows
                     tableRows.forEach(row => {
-                        const rowStatus = row.getAttribute('data-status');
-                        const rowSeries = row.getAttribute('data-series');
-                        const rowState = row.getAttribute('data-state');
-                        const rowClientCode = row.getAttribute('data-client-code');
-                        const rowAdmin = row.getAttribute('data-admin');
-                        const rowWorkType = row.getAttribute('data-work-type');
-                        const rowContractor = row.getAttribute('data-contractor');
-                        const rowPaymentStatus = row.getAttribute('data-payment-status');
+                        const rowStatus = (row.getAttribute('data-status') || '').trim().toLowerCase();
+                        const rowSeries = (row.getAttribute('data-series') || '').trim().toLowerCase();
+                        const rowState = (row.getAttribute('data-state') || '').trim().toLowerCase();
+                        const rowClientCode = (row.getAttribute('data-client-code') || '').trim().toLowerCase();
+                        const rowClientName = (row.getAttribute('data-client-name') || '').trim().toLowerCase();
+                        const rowAdmin = (row.getAttribute('data-admin') || '').trim().toLowerCase();
+                        const rowWorkType = (row.getAttribute('data-work-type') || '').trim().toLowerCase();
+                        const rowContractor = (row.getAttribute('data-contractor') || '').trim().toLowerCase();
+                        const rowPaymentStatus = (row.getAttribute('data-payment-status') || '').trim();
+                        const rowDueBucket = (row.getAttribute('data-due-bucket') || '').trim();
 
                         if (!rowStatus) {
                             row.classList.add('wo-row-hidden');
                             return;
                         }
 
-                        let matchesStatus = false;
+                        let shouldShow = true;
 
-                        // Direct status filter (from Status Distribution)
+                        // Status filter
                         if (filterStatus) {
-                            matchesStatus = rowStatus.toLowerCase() === filterStatus.toLowerCase();
+                            shouldShow = shouldShow && (rowStatus === filterStatus.trim().toLowerCase());
                         } else if (filterType === 'open') {
-                            matchesStatus = !['completed', 'closed', 'cancelled', 'invoiced'].includes(rowStatus.toLowerCase());
+                            shouldShow = shouldShow && !['completed', 'closed', 'cancelled', 'invoiced'].includes(rowStatus);
                         } else if (filterType === 'closed') {
-                            matchesStatus = ['closed', 'completed'].includes(rowStatus.toLowerCase());
+                            shouldShow = shouldShow && ['closed', 'completed'].includes(rowStatus);
                         } else if (filterType === 'invoiced') {
-                            matchesStatus = rowStatus.toLowerCase() === 'invoiced';
+                            shouldShow = shouldShow && (rowStatus === 'invoiced');
                         }
 
-                        // If Series/State/Client/Admin/WorkType/Contractor/PaymentStatus filter is set, check match
-                        let shouldShow = matchesStatus || (!filterType && !filterStatus && !filterSeries && !filterState && !filterClient && !filterAdmin && !filterWorkType && !filterContractor && !filterPaymentStatus);
-
-                        // Special case: if we only have one of these category filters, we should show the row if it matches
-                        if (!filterType && !filterStatus) {
-                            shouldShow = true;
+                        // Specific criteria (case-insensitive & trimmed)
+                        if (filterSeries) {
+                            shouldShow = shouldShow && (rowSeries === filterSeries.trim().toLowerCase());
                         }
-
-                        if (filterSeries) shouldShow = shouldShow && (rowSeries === filterSeries);
-                        if (filterState) shouldShow = shouldShow && (rowState === filterState);
-                        if (filterClient) shouldShow = shouldShow && (rowClientCode === filterClient);
-                        if (filterAdmin) shouldShow = shouldShow && (rowAdmin === filterAdmin);
-                        if (filterWorkType) shouldShow = shouldShow && (rowWorkType === filterWorkType);
-                        if (filterContractor) shouldShow = shouldShow && (rowContractor === filterContractor);
-                        if (filterPaymentStatus) shouldShow = shouldShow && (rowPaymentStatus === filterPaymentStatus);
+                        if (filterState) {
+                            shouldShow = shouldShow && (rowState === filterState.trim().toLowerCase());
+                        }
+                        if (filterClient) {
+                            const fc = filterClient.trim().toLowerCase();
+                            shouldShow = shouldShow && (rowClientCode === fc || rowClientName === fc);
+                        }
+                        if (filterAdmin) {
+                            shouldShow = shouldShow && (rowAdmin === filterAdmin.trim().toLowerCase());
+                        }
+                        if (filterWorkType) {
+                            shouldShow = shouldShow && (rowWorkType === filterWorkType.trim().toLowerCase());
+                        }
+                        if (filterContractor) {
+                            shouldShow = shouldShow && (rowContractor === filterContractor.trim().toLowerCase());
+                        }
+                        if (filterPaymentStatus) {
+                            shouldShow = shouldShow && (rowPaymentStatus === filterPaymentStatus.trim());
+                        }
+                        if (filterDueBucket) {
+                            if (filterDueBucket === 'all_unpaid') {
+                                shouldShow = shouldShow && (rowDueBucket !== 'paid');
+                            } else if (filterDueBucket === 'partial') {
+                                shouldShow = shouldShow && (rowDueBucket === 'partial');
+                            } else {
+                                shouldShow = shouldShow && (rowDueBucket === filterDueBucket.trim());
+                            }
+                        }
 
                         if (shouldShow) {
                             row.classList.remove('wo-row-hidden');
+                            visibleCount++;
                         } else {
                             row.classList.add('wo-row-hidden');
                         }
                     });
 
+                    // Update UI feedback banner
+                    if (filterBadge && filterText) {
+                        filterText.textContent = filterLabels.join(' | ') + ' (' + visibleCount + ' orders)';
+                        filterBadge.classList.remove('d-none');
+                    }
+                    if (clearBtn) clearBtn.classList.remove('d-none');
+
                     // Scroll to the work orders table
                     setTimeout(() => {
-                        document.getElementById('work-orders-table').scrollIntoView({
-                            behavior: 'smooth',
-                            block: 'start'
-                        });
-                    }, 100);
+                        const tableTarget = document.getElementById('work-orders-table');
+                        if (tableTarget) {
+                            tableTarget.scrollIntoView({
+                                behavior: 'smooth',
+                                block: 'start'
+                            });
+                        }
+                    }, 80);
                 });
             });
 
@@ -1267,9 +1814,18 @@
                 activeFilterWorkType = null;
                 activeFilterContractor = null;
                 activeFilterPaymentStatus = null;
+                activeFilterDueBucket = null;
+
                 filterButtons.forEach(btn => btn.classList.remove('active'));
                 tableRows.forEach(row => row.classList.remove('wo-row-hidden'));
+
+                if (filterBadge) filterBadge.classList.add('d-none');
+                if (clearBtn) clearBtn.classList.add('d-none');
             }
+
+            window.clearReportFilter = clearFilter;
+            if (clearBtn) clearBtn.addEventListener('click', clearFilter);
+            if (clearIcon) clearIcon.addEventListener('click', clearFilter);
 
             // Admin Performance Table Sorting
             const adminTable = document.getElementById('adminPerformanceTable');
@@ -1422,8 +1978,8 @@
                 });
             }
 
-            // Included Work Orders Table Sorting
-            const woTable = document.querySelector('#work-orders-table').nextElementSibling.querySelector('table');
+            // Work Orders Detailed Table Sorting
+            const woTable = document.getElementById('work-orders-table').nextElementSibling.querySelector('table');
             if (woTable) {
                 const headers = woTable.querySelectorAll('th.sortable');
                 let currentSort = { column: null, ascending: true };
@@ -1448,9 +2004,10 @@
                             'ppwNumber': 3, 'contractor': 4, 'admin': 5, 'address': 6, 'city': 7, 'state': 8, 'zip': 9, 'loanNumber': 10,
                             'workType': 11, 'status': 12, 'client': 13, 'bank': 14,
                             'dateDue': 15, 'dateDueClient': 16, 'sentToClientDate': 17,
-                            'contractorInvoiceTotal': 18, 'contractorPaidAmount': 19, 'contractorDiscountPercent': 20,
-                            'clientInvoiceTotal': 21, 'clientPaidAmount': 22, 'clientPaidDate': 23,
-                            'clientDiscountPercent': 24, 'clientDiscountTotal': 25, 'writeOffAmount': 26
+                            'agingStatus': 18,
+                            'contractorInvoiceTotal': 19, 'contractorPaidAmount': 20, 'contractorDiscountPercent': 21, 'contractorBalance': 22,
+                            'clientInvoiceTotal': 23, 'clientPaidAmount': 24, 'clientPaidDate': 25,
+                            'clientDiscountPercent': 26, 'clientDiscountTotal': 27, 'writeOffAmount': 28, 'remainingDue': 29
                         };
 
                         const colIndex = colMap[sortType];
@@ -1461,7 +2018,7 @@
                             let bVal = b.cells[colIndex].textContent.trim();
 
                             // Numeric/Currency handling
-                            if (['contractorInvoiceTotal', 'contractorPaidAmount', 'clientInvoiceTotal', 'clientPaidAmount', 'clientDiscountTotal', 'writeOffAmount'].includes(sortType)) {
+                            if (['contractorInvoiceTotal', 'contractorPaidAmount', 'contractorBalance', 'clientInvoiceTotal', 'clientPaidAmount', 'clientDiscountTotal', 'writeOffAmount', 'remainingDue'].includes(sortType)) {
                                 aVal = parseFloat(aVal.replace(/[$,]/g, '').replace('-', '0')) || 0;
                                 bVal = parseFloat(bVal.replace(/[$,]/g, '').replace('-', '0')) || 0;
                             }
@@ -1570,8 +2127,193 @@
                 });
             }
 
+            // Client-Wise Aging Matrix Sorting
+            const clientAgingTable = document.getElementById('clientAgingTable');
+            if (clientAgingTable) {
+                const headers = clientAgingTable.querySelectorAll('th.sortable');
+                let currentSort = { column: null, ascending: true };
 
-        });
+                const colIndexMap = {
+                    'client': 0,
+                    'terms': 1,
+                    'unpaidCount': 2,
+                    'totalDue': 3,
+                    'withinTerms': 4,
+                    'standardDue': 5,
+                    'pastDue': 6,
+                    'criticalDue': 7,
+                    'partialRecv': 8,
+                    'avgOverdue': 9,
+                    'riskRating': 10
+                };
+
+                const riskWeights = { 'HIGH': 3, 'MODERATE': 2, 'LOW': 1 };
+
+                headers.forEach(header => {
+                    header.addEventListener('click', function () {
+                        const sortType = this.getAttribute('data-sort');
+                        const colIdx = colIndexMap[sortType];
+                        if (colIdx === undefined) return;
+
+                        const tbody = clientAgingTable.querySelector('tbody');
+                        if (!tbody) return;
+                        const rows = Array.from(tbody.querySelectorAll('tr'));
+                        if (rows.length <= 1) return;
+
+                        // Toggle sort direction
+                        if (currentSort.column === sortType) {
+                            currentSort.ascending = !currentSort.ascending;
+                        } else {
+                            currentSort.column = sortType;
+                            currentSort.ascending = true;
+                        }
+
+                        rows.sort((a, b) => {
+                            const aCell = a.cells[colIdx];
+                            const bCell = b.cells[colIdx];
+                            if (!aCell || !bCell) return 0;
+
+                            const aText = aCell.textContent.trim();
+                            const bText = bCell.textContent.trim();
+
+                            if (sortType === 'client') {
+                                return currentSort.ascending
+                                    ? aText.localeCompare(bText)
+                                    : bText.localeCompare(aText);
+                            }
+
+                            let aVal = 0;
+                            let bVal = 0;
+
+                            if (sortType === 'riskRating') {
+                                aVal = riskWeights[aText.toUpperCase()] || 0;
+                                bVal = riskWeights[bText.toUpperCase()] || 0;
+                            } else if (sortType === 'terms') {
+                                aVal = parseInt(aText.split('/')[0].trim()) || 0;
+                                bVal = parseInt(bText.split('/')[0].trim()) || 0;
+                            } else if (sortType === 'unpaidCount') {
+                                aVal = parseInt(aText.replace(/[^0-9]/g, '')) || 0;
+                                bVal = parseInt(bText.replace(/[^0-9]/g, '')) || 0;
+                            } else if (sortType === 'avgOverdue') {
+                                aVal = parseFloat(aText.replace(/[^0-9.]/g, '')) || 0;
+                                bVal = parseFloat(bText.replace(/[^0-9.]/g, '')) || 0;
+                            } else {
+                                aVal = parseFloat(aText.replace(/[$,]/g, '').replace('-', '0')) || 0;
+                                bVal = parseFloat(bText.replace(/[$,]/g, '').replace('-', '0')) || 0;
+                            }
+
+                            return currentSort.ascending ? aVal - bVal : bVal - aVal;
+                        });
+
+                        rows.forEach(row => tbody.appendChild(row));
+
+                        headers.forEach(h => {
+                            const icon = h.querySelector('i');
+                            if (!icon) return;
+                            if (h === header) {
+                                icon.className = currentSort.ascending
+                                    ? 'fas fa-sort-up ms-1'
+                                    : 'fas fa-sort-down ms-1';
+                            } else {
+                                icon.className = 'fas fa-sort ms-1';
+                            }
+                        });
+                    });
+                });
+            }
+
+            // Series-Wise Aging Matrix Sorting
+            const seriesAgingTable = document.getElementById('seriesAgingTable');
+            if (seriesAgingTable) {
+                const headers = seriesAgingTable.querySelectorAll('th.sortable');
+                let currentSort = { column: null, ascending: true };
+
+                const colIndexMap = {
+                    'series': 0,
+                    'clients': 1,
+                    'unpaidCount': 2,
+                    'totalDue': 3,
+                    'withinTerms': 4,
+                    'standardDue': 5,
+                    'pastDue': 6,
+                    'criticalDue': 7,
+                    'partialRecv': 8,
+                    'avgOverdue': 9
+                };
+
+                headers.forEach(header => {
+                    header.addEventListener('click', function () {
+                        const sortType = this.getAttribute('data-sort');
+                        const colIdx = colIndexMap[sortType];
+                        if (colIdx === undefined) return;
+
+                        const tbody = seriesAgingTable.querySelector('tbody');
+                        if (!tbody) return;
+                        const rows = Array.from(tbody.querySelectorAll('tr'));
+                        if (rows.length <= 1) return;
+
+                        // Toggle sort direction
+                        if (currentSort.column === sortType) {
+                            currentSort.ascending = !currentSort.ascending;
+                        } else {
+                            currentSort.column = sortType;
+                            currentSort.ascending = true;
+                        }
+
+                        rows.sort((a, b) => {
+                            const aCell = a.cells[colIdx];
+                            const bCell = b.cells[colIdx];
+                            if (!aCell || !bCell) return 0;
+
+                            const aText = aCell.textContent.trim();
+                            const bText = bCell.textContent.trim();
+
+                            if (sortType === 'series') {
+                                return currentSort.ascending
+                                    ? aText.localeCompare(bText)
+                                    : bText.localeCompare(aText);
+                            }
+
+                            let aVal = 0;
+                            let bVal = 0;
+
+                            if (sortType === 'clients' || sortType === 'unpaidCount') {
+                                aVal = parseInt(aText.replace(/[^0-9]/g, '')) || 0;
+                                bVal = parseInt(bText.replace(/[^0-9]/g, '')) || 0;
+                            } else if (sortType === 'avgOverdue') {
+                                aVal = parseFloat(aText.replace(/[^0-9.]/g, '')) || 0;
+                                bVal = parseFloat(bText.replace(/[^0-9.]/g, '')) || 0;
+                            } else {
+                                aVal = parseFloat(aText.replace(/[$,]/g, '').replace('-', '0')) || 0;
+                                bVal = parseFloat(bText.replace(/[$,]/g, '').replace('-', '0')) || 0;
+                            }
+
+                            return currentSort.ascending ? aVal - bVal : bVal - aVal;
+                        });
+
+                        rows.forEach(row => tbody.appendChild(row));
+
+                        headers.forEach(h => {
+                            const icon = h.querySelector('i');
+                            if (!icon) return;
+                            if (h === header) {
+                                icon.className = currentSort.ascending
+                                    ? 'fas fa-sort-up ms-1'
+                                    : 'fas fa-sort-down ms-1';
+                            } else {
+                                icon.className = 'fas fa-sort ms-1';
+                            }
+                        });
+                    });
+                });
+            }
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initReportFilters);
+        } else {
+            initReportFilters();
+        }
 
         // Scroll to Top Button (New Implementation)
         const scrollBtn = document.createElement("button");

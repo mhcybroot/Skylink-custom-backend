@@ -5,6 +5,7 @@ import org.apache.commons.csv.CSVRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import root.cyb.mh.attendancesystem.model.BaseWorkOrder;
 import root.cyb.mh.attendancesystem.model.Client;
 import root.cyb.mh.attendancesystem.model.Contractor;
 import root.cyb.mh.attendancesystem.model.Employee;
@@ -206,7 +207,8 @@ public class EmployeeWorkOrderService {
 
     private String getRecordValue(CSVRecord record, String column) {
         if (record.isMapped(column)) {
-            return record.get(column);
+            String val = record.get(column);
+            return BaseWorkOrder.formatRawString(val);
         }
         return null;
     }

@@ -9,6 +9,194 @@
     <div th:replace="~{layout :: layout(~{::section}, ~{::script}, 'employee-work-orders')}">
         <section>
             <style>
+                /* Soft tinted badges for modern corporate SaaS aesthetics */
+                .badge-soft-emerald {
+                    background-color: #ecfdf5 !important;
+                    color: #047857 !important;
+                    border: 1px solid #a7f3d0 !important;
+                    font-weight: 500;
+                }
+                .badge-soft-amber {
+                    background-color: #fffbeb !important;
+                    color: #b45309 !important;
+                    border: 1px solid #fde68a !important;
+                    font-weight: 500;
+                }
+                .badge-soft-orange {
+                    background-color: #fff7ed !important;
+                    color: #c2410c !important;
+                    border: 1px solid #fed7aa !important;
+                    font-weight: 500;
+                }
+                .badge-soft-rose {
+                    background-color: #fff1f2 !important;
+                    color: #be123c !important;
+                    border: 1px solid #fecdd3 !important;
+                    font-weight: 500;
+                }
+                .badge-soft-sky {
+                    background-color: #f0f9ff !important;
+                    color: #0369a1 !important;
+                    border: 1px solid #bae6fd !important;
+                    font-weight: 500;
+                }
+                .badge-soft-indigo {
+                    background-color: #eef2ff !important;
+                    color: #4338ca !important;
+                    border: 1px solid #c7d2fe !important;
+                    font-weight: 500;
+                }
+                .badge-soft-slate {
+                    background-color: #f8fafc !important;
+                    color: #475569 !important;
+                    border: 1px solid #e2e8f0 !important;
+                    font-weight: 500;
+                }
+                
+                /* Micro status indicator dots */
+                .status-dot {
+                    display: inline-block;
+                    width: 6px;
+                    height: 6px;
+                    border-radius: 50%;
+                    vertical-align: middle;
+                    margin-right: 5px;
+                }
+                .status-dot-emerald { background-color: #10b981; }
+                .status-dot-sky { background-color: #0284c7; }
+                .status-dot-amber { background-color: #f59e0b; }
+                .status-dot-slate { background-color: #94a3b8; }
+                .status-dot-rose { background-color: #ef4444; }
+
+                /* Executive KPI Cards with gradient tints & micro-interactions */
+                .kpi-card {
+                    border-radius: 12px;
+                    border: 1px solid #e2e8f0;
+                    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+                    background: #ffffff;
+                    position: relative;
+                    overflow: hidden;
+                }
+                .kpi-card:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.08), 0 6px 6px -5px rgba(0, 0, 0, 0.04);
+                }
+                .kpi-card.active-kpi {
+                    box-shadow: 0 0 0 2px var(--kpi-accent), 0 10px 20px -5px rgba(0, 0, 0, 0.12);
+                }
+                .kpi-card-emerald {
+                    --kpi-accent: #10b981;
+                    background: linear-gradient(180deg, #ffffff 0%, #f0fdf4 100%);
+                    border-color: #bbf7d0;
+                }
+                .kpi-card-amber {
+                    --kpi-accent: #f59e0b;
+                    background: linear-gradient(180deg, #ffffff 0%, #fffbeb 100%);
+                    border-color: #fde68a;
+                }
+                .kpi-card-orange {
+                    --kpi-accent: #ea580c;
+                    background: linear-gradient(180deg, #ffffff 0%, #fff7ed 100%);
+                    border-color: #fed7aa;
+                }
+                .kpi-card-rose {
+                    --kpi-accent: #ef4444;
+                    background: linear-gradient(180deg, #ffffff 0%, #fff1f2 100%);
+                    border-color: #fecdd3;
+                }
+                .kpi-card-indigo {
+                    --kpi-accent: #6366f1;
+                    background: linear-gradient(180deg, #ffffff 0%, #eef2ff 100%);
+                    border-color: #c7d2fe;
+                }
+                .kpi-accent-bar {
+                    height: 4px;
+                    width: 100%;
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    background: var(--kpi-accent);
+                }
+
+                /* Modern Segmented Navigation Bar */
+                .segmented-nav {
+                    display: inline-flex;
+                    background: #f1f5f9;
+                    padding: 4px;
+                    border-radius: 10px;
+                    border: 1px solid #e2e8f0;
+                    gap: 3px;
+                }
+                .segmented-nav-btn {
+                    border: none;
+                    background: transparent;
+                    padding: 6px 14px;
+                    font-size: 0.8125rem;
+                    font-weight: 500;
+                    color: #64748b;
+                    border-radius: 7px;
+                    transition: all 0.15s ease;
+                    text-decoration: none;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 6px;
+                    cursor: pointer;
+                }
+                .segmented-nav-btn:hover {
+                    color: #1e293b;
+                    background: rgba(255, 255, 255, 0.7);
+                }
+                .segmented-nav-btn.active {
+                    color: #0f172a;
+                    font-weight: 600;
+                    background: #ffffff;
+                    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+                }
+
+                /* Quick Filter Pill Chips */
+                .chip-pill {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 5px;
+                    padding: 4px 12px;
+                    font-size: 0.78rem;
+                    font-weight: 500;
+                    border-radius: 9999px;
+                    text-decoration: none;
+                    transition: all 0.15s ease;
+                    border: 1px solid #e2e8f0;
+                    background: #ffffff;
+                    color: #475569;
+                }
+                .chip-pill:hover {
+                    border-color: #cbd5e1;
+                    background: #f8fafc;
+                    color: #0f172a;
+                    transform: translateY(-1px);
+                }
+                .chip-pill.active {
+                    font-weight: 600;
+                    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+                }
+
+                /* Table Styling */
+                .table-sticky-header thead th {
+                    position: sticky;
+                    top: 0;
+                    z-index: 2;
+                    background-color: #f8fafc;
+                    border-bottom: 2px solid #e2e8f0;
+                    font-size: 0.72rem;
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                    color: #64748b;
+                    font-weight: 600;
+                    padding-top: 10px;
+                    padding-bottom: 10px;
+                }
+                .font-mono {
+                    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+                }
                 .sortable-th {
                     cursor: pointer;
                     user-select: none;
@@ -45,75 +233,240 @@
             </div>
 
             <!-- Page Title & Header Actions -->
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h3 class="d-flex align-items-center mb-0">
-                    <span th:text="${currentFilter != null ? currentFilter : 'Employee Work Orders'}">Employee Work Orders</span>
-                    <a th:if="${(currentFilter != null && currentFilter != 'All Employee Work Orders') || (search != null && !search.isEmpty()) || (dueBucket != null && !dueBucket.isEmpty())}"
-                        href="/employee/work-orders" class="btn btn-sm btn-outline-secondary ms-3 rounded-circle"
-                        title="Clear All Filters"
-                        style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;"><i
-                            class="fas fa-times"></i></a>
-                </h3>
-                <div class="d-flex gap-2">
-                    <button class="btn btn-outline-dark btn-sm" type="button" data-bs-toggle="collapse"
-                        data-bs-target="#advancedSearchPanel">
-                        <i class="fas fa-search me-1"></i> Search & Filter
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+                <div>
+                    <div class="d-flex align-items-center gap-2">
+                        <h4 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                            <i class="fas fa-file-invoice-dollar text-primary"></i>
+                            <span th:text="${currentFilter != null ? currentFilter : 'Employee Work Orders'}">Employee Work Orders</span>
+                        </h4>
+                        <span class="badge bg-light text-secondary border fw-normal" style="font-size: 0.75rem;">AR Aging Operations</span>
+                        <a th:if="${(currentFilter != null && currentFilter != 'All Employee Work Orders') || (search != null && !search.isEmpty()) || (dueBucket != null && !dueBucket.isEmpty())}"
+                            href="/employee/work-orders" class="btn btn-xs btn-outline-danger ms-1 rounded-pill px-2 py-0"
+                            title="Clear All Filters" style="font-size: 0.72rem;">
+                            <i class="fas fa-times me-1"></i>Reset
+                        </a>
+                    </div>
+                    <p class="text-muted small mb-0 mt-1">Receivables management, aging delinquency tracking, and contractor settlements</p>
+                </div>
+
+                <!-- Prioritized Action Hierarchy -->
+                <div class="d-flex align-items-center gap-2">
+                    <!-- Search & Filter Button with Active Badge -->
+                    <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1.5 shadow-sm" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#advancedSearchPanel">
+                        <i class="fas fa-filter text-primary"></i>
+                        <span>Search &amp; Filter</span>
+                        <span th:if="${hasActiveFilters}" class="badge bg-primary text-white rounded-pill ms-1" style="font-size: 0.68rem;" th:text="${matchingCount}">0</span>
                     </button>
-                    <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="collapse"
-                        data-bs-target="#clientPortfolioCollapse">
-                        <i class="fas fa-building me-1"></i> Client Portfolio
-                    </button>
-                    <button class="btn btn-outline-info btn-sm" type="button" data-bs-toggle="collapse"
-                        data-bs-target="#seriesPortfolioCollapse" aria-expanded="false" aria-controls="seriesPortfolioCollapse">
-                        <i class="fas fa-layer-group me-1"></i> Series Portfolio
-                    </button>
-                    <button class="btn btn-primary btn-sm" type="button" data-bs-toggle="modal"
-                        data-bs-target="#agingConfigModal">
-                        <i class="fas fa-sliders-h me-1"></i> Configure Intervals
-                    </button>
-                    <a href="/employee/imports" class="btn btn-outline-secondary btn-sm">
-                        <i class="fas fa-history me-1"></i> Import History
-                    </a>
+
+                    <!-- Export Dropdown -->
                     <div class="dropdown">
-                        <button class="btn btn-outline-success btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-file-export me-1"></i> Export Orders
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle d-flex align-items-center gap-1.5 shadow-sm" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-download text-success"></i>
+                            <span>Export</span>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end shadow-sm small">
                             <li>
-                                <a class="dropdown-item" th:href="@{/employee/work-orders/export(status=${status},clientInvoicePaid=${clientInvoicePaid},startDate=${startDate},endDate=${endDate},search=${search},workType=${workType},client=${client},dueBucket=${dueBucket},series=${series},format='excel')}">
+                                <a class="dropdown-item" th:href="@{/employee/work-orders/export(status=${status},clientInvoicePaid=${clientInvoicePaid},contractorInvoicePaid=${contractorInvoicePaid},startDate=${startDate},endDate=${endDate},search=${search},workType=${workType},client=${client},contractor=${contractor},admin=${admin},customerBank=${customerBank},state=${state},dateType=${dateType},archiveStatus=${archiveStatus},dueBucket=${dueBucket},series=${series},format='excel')}">
                                     <i class="fas fa-file-excel me-2 text-success"></i>Export to Excel (.xlsx)
                                 </a>
                             </li>
                             <li>
-                                <a class="dropdown-item" th:href="@{/employee/work-orders/export(status=${status},clientInvoicePaid=${clientInvoicePaid},startDate=${startDate},endDate=${endDate},search=${search},workType=${workType},client=${client},dueBucket=${dueBucket},series=${series},format='csv')}">
+                                <a class="dropdown-item" th:href="@{/employee/work-orders/export(status=${status},clientInvoicePaid=${clientInvoicePaid},contractorInvoicePaid=${contractorInvoicePaid},startDate=${startDate},endDate=${endDate},search=${search},workType=${workType},client=${client},contractor=${contractor},admin=${admin},customerBank=${customerBank},state=${state},dateType=${dateType},archiveStatus=${archiveStatus},dueBucket=${dueBucket},series=${series},format='csv')}">
                                     <i class="fas fa-file-csv me-2 text-info"></i>Export to CSV (.csv)
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <button type="submit" form="workOrderSearchForm" formaction="/employee/work-orders/report" formtarget="_blank" class="dropdown-item">
+                                    <i class="fas fa-file-pdf me-2 text-danger"></i>Full Executive Print Report
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Settings Dropdown -->
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle d-flex align-items-center gap-1.5 shadow-sm" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-cog text-muted"></i>
+                            <span>Settings</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm small">
+                            <li>
+                                <button class="dropdown-item" type="button" data-bs-toggle="modal" data-bs-target="#agingConfigModal">
+                                    <i class="fas fa-sliders-h me-2 text-primary"></i>Configure Due Intervals
+                                </button>
+                            </li>
+                            <li>
+                                <a href="/employee/imports" class="dropdown-item">
+                                    <i class="fas fa-history me-2 text-secondary"></i>CSV Import History
                                 </a>
                             </li>
                         </ul>
                     </div>
-                    <button class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#importWorkOrderModal">
-                        <i class="fas fa-file-import me-1"></i> Import CSV
+
+                    <!-- Primary CTA: Import CSV -->
+                    <button class="btn btn-sm btn-dark px-3 fw-semibold shadow-sm d-flex align-items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#importWorkOrderModal">
+                        <i class="fas fa-file-import"></i>
+                        <span>Import CSV</span>
                     </button>
                 </div>
             </div>
 
+            <!-- Portfolio Views Segmented Navigation Bar -->
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 pb-2 border-bottom">
+                <div class="segmented-nav">
+                    <button class="segmented-nav-btn active" type="button" id="tabBtnWorkOrders">
+                        <i class="fas fa-table-list text-primary"></i>
+                        <span>Work Orders</span>
+                        <span class="badge bg-light text-dark border rounded-pill ms-1" th:text="${matchingCount != null ? matchingCount : (workOrders != null ? workOrders.totalElements : 0)}">0</span>
+                    </button>
+                    <button class="segmented-nav-btn" type="button" data-bs-toggle="collapse" data-bs-target="#clientPortfolioCollapse" aria-expanded="false" aria-controls="clientPortfolioCollapse">
+                        <i class="fas fa-building text-info"></i>
+                        <span>Client Portfolio</span>
+                        <span class="badge bg-light text-info border rounded-pill ms-1" th:if="${agingSummary != null}" th:text="${agingSummary.clientStats.size()}">0</span>
+                    </button>
+                    <button class="segmented-nav-btn" type="button" data-bs-toggle="collapse" data-bs-target="#seriesPortfolioCollapse" aria-expanded="false" aria-controls="seriesPortfolioCollapse">
+                        <i class="fas fa-layer-group text-warning"></i>
+                        <span>Series Portfolio</span>
+                        <span class="badge bg-light text-warning border rounded-pill ms-1" th:if="${agingSummary != null}" th:text="${agingSummary.seriesStats.size()}">0</span>
+                    </button>
+                    <button class="segmented-nav-btn" type="button" data-bs-toggle="collapse" data-bs-target="#filteredExecutiveReportCollapse" aria-expanded="false" aria-controls="filteredExecutiveReportCollapse">
+                        <i class="fas fa-chart-line text-success"></i>
+                        <span>Financial Summary</span>
+                    </button>
+                </div>
+                
+                <div class="d-flex align-items-center gap-2 text-muted small">
+                    <i class="fas fa-shield-halved text-secondary"></i>
+                    <span th:if="${agingSummary != null}" th:text="'Default Intervals: ' + ${agingSummary.defaultConfig.normalDueDays} + ' / ' + ${agingSummary.defaultConfig.overdueDays} + ' / ' + ${agingSummary.defaultConfig.criticalDueDays} + 'd'">Default Intervals: 40 / 50 / 60d</span>
+                    <button class="btn btn-link p-0 text-decoration-none text-muted" data-bs-toggle="modal" data-bs-target="#agingConfigModal" title="Edit intervals">
+                        <i class="fas fa-pencil-alt"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Active Filter Status Ribbon -->
+            <div th:if="${hasActiveFilters}" class="alert alert-primary py-2 px-3 d-flex flex-wrap justify-content-between align-items-center mb-3 shadow-sm border-primary-subtle rounded-3">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-primary text-white px-2.5 py-1.5"><i class="fas fa-filter me-1"></i>Active Filter Applied</span>
+                    <span class="fw-semibold text-dark small" th:text="'Showing KPI report & aging for ' + ${matchingCount} + ' matching orders (out of ' + ${totalDbCount} + ' total records)'">
+                        Showing KPI report for 61 matching orders
+                    </span>
+                </div>
+                <div class="d-flex align-items-center gap-2 mt-1 mt-md-0">
+                    <button class="btn btn-sm btn-outline-dark py-1 px-2.5" type="button" data-bs-toggle="collapse" data-bs-target="#filteredExecutiveReportCollapse">
+                        <i class="fas fa-chart-line me-1"></i> Executive Financials
+                    </button>
+                    <button type="submit" form="workOrderSearchForm" formaction="/employee/work-orders/report" formtarget="_blank" class="btn btn-sm btn-dark py-1 px-2.5">
+                        <i class="fas fa-file-pdf me-1"></i> Full Print Report
+                    </button>
+                    <a href="/employee/work-orders" class="btn btn-sm btn-outline-danger py-1 px-2.5">
+                        <i class="fas fa-times me-1"></i> Reset Filters
+                    </a>
+                </div>
+            </div>
+
+            <!-- Filtered Executive Performance & Financial Summary Collapse -->
+            <div class="collapse mb-4" id="filteredExecutiveReportCollapse" th:classappend="${hasActiveFilters && filteredStats != null ? 'show' : ''}" th:if="${filteredStats != null}">
+                <div class="card shadow-sm border-0 border-top border-3 border-primary">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center py-2.5">
+                        <div class="d-flex align-items-center gap-2">
+                            <h6 class="mb-0 fw-bold text-dark"><i class="fas fa-chart-line me-2 text-primary"></i>Executive Financial Performance Snapshot</h6>
+                            <span class="badge bg-primary text-white" th:text="${filteredStats.totalWorkOrders} + ' Orders Included'">0 Orders</span>
+                            <span th:if="${hasActiveFilters}" class="badge bg-info text-dark">Filtered Dataset</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <button type="submit" form="workOrderSearchForm" formaction="/employee/work-orders/report" formtarget="_blank" class="btn btn-dark btn-sm py-1 px-2.5">
+                                <i class="fas fa-file-pdf me-1"></i> Full Print Report
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body p-3 bg-light">
+                        <div class="row row-cols-2 row-cols-md-3 row-cols-xl-6 g-3 text-center">
+                            <div class="col">
+                                <div class="bg-white p-2.5 rounded border shadow-sm h-100">
+                                    <div class="small text-uppercase text-muted fw-bold" style="font-size: 0.7rem;">Total Billed Value</div>
+                                    <div class="h4 fw-bold text-dark mb-0 font-monospace" th:text="${filteredStats.totalRevenue != null ? #numbers.formatCurrency(filteredStats.totalRevenue) : '$0.00'}">$0.00</div>
+                                    <div class="text-muted" style="font-size: 0.68rem;" th:text="${filteredStats.totalWorkOrders} + ' Orders'">0 Orders</div>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="bg-white p-2.5 rounded border shadow-sm h-100">
+                                    <div class="small text-uppercase text-muted fw-bold" style="font-size: 0.7rem;">Contractor Cost</div>
+                                    <div class="h4 fw-bold text-danger mb-0 font-monospace" th:text="${filteredStats.totalCost != null ? #numbers.formatCurrency(filteredStats.totalCost) : '$0.00'}">$0.00</div>
+                                    <div class="text-muted" style="font-size: 0.68rem;">Direct Job Expense</div>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="bg-white p-2.5 rounded border shadow-sm h-100">
+                                    <div class="small text-uppercase text-muted fw-bold" style="font-size: 0.7rem;">Gross Margin / Profit</div>
+                                    <div class="h4 fw-bold text-success mb-0 font-monospace" th:text="${filteredStats.totalMargin != null ? #numbers.formatCurrency(filteredStats.totalMargin) : '$0.00'}">$0.00</div>
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.7rem;"
+                                          th:text="${filteredStats.globalGrossMarginPercent != null ? #numbers.formatDecimal(filteredStats.globalGrossMarginPercent, 1, 1) + '% Margin' : '0% Margin'}">0% Margin</span>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="bg-white p-2.5 rounded border shadow-sm h-100">
+                                    <div class="small text-uppercase text-muted fw-bold" style="font-size: 0.7rem;">Realized Collections</div>
+                                    <div class="h4 fw-bold text-success mb-0 font-monospace" th:text="${filteredStats.realizedRevenue != null ? #numbers.formatCurrency(filteredStats.realizedRevenue) : '$0.00'}">$0.00</div>
+                                    <div class="text-muted" style="font-size: 0.68rem;" th:text="${filteredStats.clientPaidCount} + ' Paid WOs'">0 Paid</div>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="bg-white p-2.5 rounded border shadow-sm h-100">
+                                    <div class="small text-uppercase text-muted fw-bold" style="font-size: 0.7rem;">Unrealized Receivables</div>
+                                    <div class="h4 fw-bold text-warning-emphasis mb-0 font-monospace" th:text="${filteredStats.unrealizedRevenue != null ? #numbers.formatCurrency(filteredStats.unrealizedRevenue) : '$0.00'}">$0.00</div>
+                                    <div class="text-muted" style="font-size: 0.68rem;" th:text="${filteredStats.clientUnpaidCount} + ' Unpaid WOs'">0 Unpaid</div>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="bg-white p-2.5 rounded border shadow-sm h-100">
+                                    <div class="small text-uppercase text-muted fw-bold" style="font-size: 0.7rem;">Contractor Balance</div>
+                                    <div class="h4 fw-bold mb-0 font-monospace" th:classappend="${filteredStats.contractorUnpaidAmount != null && filteredStats.contractorUnpaidAmount.compareTo(T(java.math.BigDecimal).ZERO) > 0 ? 'text-danger' : 'text-muted'}"
+                                         th:text="${filteredStats.contractorUnpaidAmount != null ? #numbers.formatCurrency(filteredStats.contractorUnpaidAmount) : '$0.00'}">$0.00</div>
+                                    <div class="text-muted" style="font-size: 0.68rem;">Remaining Payables</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Due Payment Aging Analysis Cards (Click-to-Filter) -->
-            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-5 g-3 mb-4" th:if="${agingSummary != null}">
+            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-5 g-3 mb-4" th:if="${agingSummary != null}"
+                 th:with="totalAR=${agingSummary.totalUnpaidAmount != null && agingSummary.totalUnpaidAmount.compareTo(T(java.math.BigDecimal).ZERO) > 0 ? agingSummary.totalUnpaidAmount.doubleValue() : 0.0}">
                 <!-- Card 1: Within Terms (Current) -->
                 <div class="col">
-                    <a th:href="@{/employee/work-orders(dueBucket='within_terms')}" class="text-decoration-none">
-                        <div class="card h-100 shadow-sm border-0 border-start border-4 hover-shadow transition"
-                             style="border-color: #10b981 !important;"
-                             th:classappend="${dueBucket == 'within_terms' ? 'bg-success bg-opacity-10 ring-2 ring-success' : 'bg-white'}">
-                            <div class="card-body p-3">
-                                <div class="d-flex justify-content-between align-items-center mb-1">
-                                    <span class="small text-uppercase fw-bold text-success">Within Terms</span>
-                                    <span class="badge bg-success text-white px-2 py-1 rounded-pill small"
+                    <a th:href="@{/employee/work-orders(dueBucket='within_terms',search=${search},archiveStatus=${archiveStatus},series=${series},status=${status},clientInvoicePaid=${clientInvoicePaid},contractorInvoicePaid=${contractorInvoicePaid},client=${client},contractor=${contractor},workType=${workType},admin=${admin},customerBank=${customerBank},state=${state},dateType=${dateType},startDate=${startDate},endDate=${endDate})}" class="text-decoration-none">
+                        <div class="kpi-card kpi-card-emerald h-100 shadow-sm"
+                             th:classappend="${dueBucket == 'within_terms' ? 'active-kpi ring-2' : ''}">
+                            <div class="kpi-accent-bar"></div>
+                            <div class="p-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1.5">
+                                    <span class="text-xs fw-bold text-uppercase tracking-wider text-success" style="font-size: 0.72rem; letter-spacing: 0.05em;">Within Terms</span>
+                                    <span class="badge badge-soft-emerald px-2 py-0.5 rounded-pill" style="font-size: 0.68rem;"
                                           th:text="'<' + ${agingSummary.defaultConfig.normalDueDays} + ' Days'">&lt;40d</span>
                                 </div>
-                                <div class="h3 fw-bold mb-0 text-success" th:text="${agingSummary.withinTermsCount}">0</div>
-                                <div class="small fw-semibold text-success" th:text="'$' + ${#numbers.formatDecimal(agingSummary.withinTermsAmount, 1, 2)}">$0.00</div>
+                                <div class="d-flex align-items-baseline gap-2 mb-0.5">
+                                    <span class="h3 fw-bold mb-0 text-success" th:text="${agingSummary.withinTermsCount}">0</span>
+                                    <span class="small text-muted">orders</span>
+                                </div>
+                                <div class="fw-semibold text-dark font-mono fs-6"
+                                     th:text="'$' + ${#numbers.formatDecimal(agingSummary.withinTermsAmount != null ? agingSummary.withinTermsAmount : 0, 1, 'COMMA', 2, 'POINT')}">$0.00</div>
                                 <div class="text-muted" style="font-size: 0.72rem;">Current / Within billing terms</div>
+                                
+                                <div class="mt-2 pt-2 border-top border-light-subtle"
+                                     th:with="share=${totalAR > 0 && agingSummary.withinTermsAmount != null ? (agingSummary.withinTermsAmount.doubleValue() / totalAR * 100.0) : 0.0}">
+                                    <div class="d-flex justify-content-between align-items-center mb-1" style="font-size: 0.68rem;">
+                                        <span class="text-muted fw-semibold">SHARE OF AR</span>
+                                        <span class="fw-bold text-success font-mono" th:text="${#numbers.formatDecimal(share, 1, 1)} + '%'">0.0%</span>
+                                    </div>
+                                    <div class="progress" style="height: 4px; background-color: rgba(0,0,0,0.06); border-radius: 2px;">
+                                        <div class="progress-bar bg-success" role="progressbar" th:style="'width: ' + ${#numbers.formatDecimal(share, 1, 1)} + '%;'"></div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </a>
@@ -121,19 +474,34 @@
 
                 <!-- Card 2: Standard Due -->
                 <div class="col">
-                    <a th:href="@{/employee/work-orders(dueBucket='standard')}" class="text-decoration-none">
-                        <div class="card h-100 shadow-sm border-0 border-start border-4 hover-shadow transition"
-                             style="border-color: #f59e0b !important;"
-                             th:classappend="${dueBucket == 'standard' ? 'bg-warning bg-opacity-10 ring-2 ring-warning' : 'bg-white'}">
-                            <div class="card-body p-3">
-                                <div class="d-flex justify-content-between align-items-center mb-1">
-                                    <span class="small text-uppercase fw-bold text-muted">Standard Due</span>
-                                    <span class="badge bg-warning text-dark px-2 py-1 rounded-pill small"
+                    <a th:href="@{/employee/work-orders(dueBucket='standard',search=${search},archiveStatus=${archiveStatus},series=${series},status=${status},clientInvoicePaid=${clientInvoicePaid},contractorInvoicePaid=${contractorInvoicePaid},client=${client},contractor=${contractor},workType=${workType},admin=${admin},customerBank=${customerBank},state=${state},dateType=${dateType},startDate=${startDate},endDate=${endDate})}" class="text-decoration-none">
+                        <div class="kpi-card kpi-card-amber h-100 shadow-sm"
+                             th:classappend="${dueBucket == 'standard' ? 'active-kpi ring-2' : ''}">
+                            <div class="kpi-accent-bar"></div>
+                            <div class="p-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1.5">
+                                    <span class="text-xs fw-bold text-uppercase tracking-wider text-muted" style="font-size: 0.72rem; letter-spacing: 0.05em;">Standard Due</span>
+                                    <span class="badge badge-soft-amber px-2 py-0.5 rounded-pill" style="font-size: 0.68rem;"
                                           th:text="${agingSummary.defaultConfig.normalDueDays + '–' + (agingSummary.defaultConfig.overdueDays - 1) + ' Days'}">40-49d</span>
                                 </div>
-                                <div class="h3 fw-bold mb-0 text-dark" th:text="${agingSummary.standardDueCount}">0</div>
-                                <div class="small fw-semibold text-warning" th:text="'$' + ${#numbers.formatDecimal(agingSummary.standardDueAmount, 1, 2)}">$0.00</div>
+                                <div class="d-flex align-items-baseline gap-2 mb-0.5">
+                                    <span class="h3 fw-bold mb-0 text-dark" th:text="${agingSummary.standardDueCount}">0</span>
+                                    <span class="small text-muted">orders</span>
+                                </div>
+                                <div class="fw-semibold text-warning-emphasis font-mono fs-6"
+                                     th:text="'$' + ${#numbers.formatDecimal(agingSummary.standardDueAmount != null ? agingSummary.standardDueAmount : 0, 1, 'COMMA', 2, 'POINT')}">$0.00</div>
                                 <div class="text-muted" style="font-size: 0.72rem;">Early billing follow-up</div>
+
+                                <div class="mt-2 pt-2 border-top border-light-subtle"
+                                     th:with="share=${totalAR > 0 && agingSummary.standardDueAmount != null ? (agingSummary.standardDueAmount.doubleValue() / totalAR * 100.0) : 0.0}">
+                                    <div class="d-flex justify-content-between align-items-center mb-1" style="font-size: 0.68rem;">
+                                        <span class="text-muted fw-semibold">SHARE OF AR</span>
+                                        <span class="fw-bold text-warning-emphasis font-mono" th:text="${#numbers.formatDecimal(share, 1, 1)} + '%'">0.0%</span>
+                                    </div>
+                                    <div class="progress" style="height: 4px; background-color: rgba(0,0,0,0.06); border-radius: 2px;">
+                                        <div class="progress-bar bg-warning" role="progressbar" th:style="'width: ' + ${#numbers.formatDecimal(share, 1, 1)} + '%;'"></div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </a>
@@ -141,19 +509,34 @@
 
                 <!-- Card 3: Past Due -->
                 <div class="col">
-                    <a th:href="@{/employee/work-orders(dueBucket='overdue')}" class="text-decoration-none">
-                        <div class="card h-100 shadow-sm border-0 border-start border-4 hover-shadow transition"
-                             style="border-color: #ea580c !important;"
-                             th:classappend="${dueBucket == 'overdue' ? 'bg-danger bg-opacity-10 ring-2 ring-danger' : 'bg-white'}">
-                            <div class="card-body p-3">
-                                <div class="d-flex justify-content-between align-items-center mb-1">
-                                    <span class="small text-uppercase fw-bold text-muted">Past Due</span>
-                                    <span class="badge text-white px-2 py-1 rounded-pill small" style="background-color: #ea580c;"
+                    <a th:href="@{/employee/work-orders(dueBucket='overdue',search=${search},archiveStatus=${archiveStatus},series=${series},status=${status},clientInvoicePaid=${clientInvoicePaid},contractorInvoicePaid=${contractorInvoicePaid},client=${client},contractor=${contractor},workType=${workType},admin=${admin},customerBank=${customerBank},state=${state},dateType=${dateType},startDate=${startDate},endDate=${endDate})}" class="text-decoration-none">
+                        <div class="kpi-card kpi-card-orange h-100 shadow-sm"
+                             th:classappend="${dueBucket == 'overdue' ? 'active-kpi ring-2' : ''}">
+                            <div class="kpi-accent-bar"></div>
+                            <div class="p-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1.5">
+                                    <span class="text-xs fw-bold text-uppercase tracking-wider" style="font-size: 0.72rem; letter-spacing: 0.05em; color: #c2410c;">Past Due</span>
+                                    <span class="badge badge-soft-orange px-2 py-0.5 rounded-pill" style="font-size: 0.68rem;"
                                           th:text="${agingSummary.defaultConfig.overdueDays + '–' + (agingSummary.defaultConfig.criticalDueDays - 1) + ' Days'}">50-59d</span>
                                 </div>
-                                <div class="h3 fw-bold mb-0 text-dark" th:text="${agingSummary.pastDueCount}">0</div>
-                                <div class="small fw-semibold" style="color: #ea580c;" th:text="'$' + ${#numbers.formatDecimal(agingSummary.pastDueAmount, 1, 2)}">$0.00</div>
+                                <div class="d-flex align-items-baseline gap-2 mb-0.5">
+                                    <span class="h3 fw-bold mb-0 text-dark" th:text="${agingSummary.pastDueCount}">0</span>
+                                    <span class="small text-muted">orders</span>
+                                </div>
+                                <div class="fw-semibold font-mono fs-6" style="color: #c2410c;"
+                                     th:text="'$' + ${#numbers.formatDecimal(agingSummary.pastDueAmount != null ? agingSummary.pastDueAmount : 0, 1, 'COMMA', 2, 'POINT')}">$0.00</div>
                                 <div class="text-muted" style="font-size: 0.72rem;">Escalated follow-up required</div>
+
+                                <div class="mt-2 pt-2 border-top border-light-subtle"
+                                     th:with="share=${totalAR > 0 && agingSummary.pastDueAmount != null ? (agingSummary.pastDueAmount.doubleValue() / totalAR * 100.0) : 0.0}">
+                                    <div class="d-flex justify-content-between align-items-center mb-1" style="font-size: 0.68rem;">
+                                        <span class="text-muted fw-semibold">SHARE OF AR</span>
+                                        <span class="fw-bold font-mono" style="color: #c2410c;" th:text="${#numbers.formatDecimal(share, 1, 1)} + '%'">0.0%</span>
+                                    </div>
+                                    <div class="progress" style="height: 4px; background-color: rgba(0,0,0,0.06); border-radius: 2px;">
+                                        <div class="progress-bar" role="progressbar" style="background-color: #ea580c;" th:style="'width: ' + ${#numbers.formatDecimal(share, 1, 1)} + '%; background-color: #ea580c;'"></div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </a>
@@ -161,18 +544,34 @@
 
                 <!-- Card 4: Critical Delinquent -->
                 <div class="col">
-                    <a th:href="@{/employee/work-orders(dueBucket='critical')}" class="text-decoration-none">
-                        <div class="card h-100 shadow-sm border-0 border-start border-4 border-danger hover-shadow transition"
-                             th:classappend="${dueBucket == 'critical' ? 'bg-danger bg-opacity-10 ring-2 ring-danger' : 'bg-white'}">
-                            <div class="card-body p-3">
-                                <div class="d-flex justify-content-between align-items-center mb-1">
-                                    <span class="small text-uppercase fw-bold text-danger">Critical Delinquent</span>
-                                    <span class="badge bg-danger text-white px-2 py-1 rounded-pill small"
+                    <a th:href="@{/employee/work-orders(dueBucket='critical',search=${search},archiveStatus=${archiveStatus},series=${series},status=${status},clientInvoicePaid=${clientInvoicePaid},contractorInvoicePaid=${contractorInvoicePaid},client=${client},contractor=${contractor},workType=${workType},admin=${admin},customerBank=${customerBank},state=${state},dateType=${dateType},startDate=${startDate},endDate=${endDate})}" class="text-decoration-none">
+                        <div class="kpi-card kpi-card-rose h-100 shadow-sm"
+                             th:classappend="${dueBucket == 'critical' ? 'active-kpi ring-2' : ''}">
+                            <div class="kpi-accent-bar"></div>
+                            <div class="p-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1.5">
+                                    <span class="text-xs fw-bold text-uppercase tracking-wider text-danger" style="font-size: 0.72rem; letter-spacing: 0.05em;">Critical Delinquent</span>
+                                    <span class="badge badge-soft-rose px-2 py-0.5 rounded-pill" style="font-size: 0.68rem;"
                                           th:text="${agingSummary.defaultConfig.criticalDueDays + '+ Days'}">60+d</span>
                                 </div>
-                                <div class="h3 fw-bold mb-0 text-danger" th:text="${agingSummary.criticalDueCount}">0</div>
-                                <div class="small fw-semibold text-danger" th:text="'$' + ${#numbers.formatDecimal(agingSummary.criticalDueAmount, 1, 2)}">$0.00</div>
+                                <div class="d-flex align-items-baseline gap-2 mb-0.5">
+                                    <span class="h3 fw-bold mb-0 text-danger" th:text="${agingSummary.criticalDueCount}">0</span>
+                                    <span class="small text-muted">orders</span>
+                                </div>
+                                <div class="fw-semibold text-danger font-mono fs-6"
+                                     th:text="'$' + ${#numbers.formatDecimal(agingSummary.criticalDueAmount != null ? agingSummary.criticalDueAmount : 0, 1, 'COMMA', 2, 'POINT')}">$0.00</div>
                                 <div class="text-muted" style="font-size: 0.72rem;">Urgent collections risk</div>
+
+                                <div class="mt-2 pt-2 border-top border-light-subtle"
+                                     th:with="share=${totalAR > 0 && agingSummary.criticalDueAmount != null ? (agingSummary.criticalDueAmount.doubleValue() / totalAR * 100.0) : 0.0}">
+                                    <div class="d-flex justify-content-between align-items-center mb-1" style="font-size: 0.68rem;">
+                                        <span class="text-muted fw-semibold">SHARE OF AR</span>
+                                        <span class="fw-bold text-danger font-mono" th:text="${#numbers.formatDecimal(share, 1, 1)} + '%'">0.0%</span>
+                                    </div>
+                                    <div class="progress" style="height: 4px; background-color: rgba(0,0,0,0.06); border-radius: 2px;">
+                                        <div class="progress-bar bg-danger" role="progressbar" th:style="'width: ' + ${#numbers.formatDecimal(share, 1, 1)} + '%;'"></div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </a>
@@ -180,17 +579,32 @@
 
                 <!-- Card 5: Total Unpaid AR Portfolio -->
                 <div class="col">
-                    <a th:href="@{/employee/work-orders(dueBucket='all_unpaid')}" class="text-decoration-none">
-                        <div class="card h-100 shadow-sm border-0 border-start border-4 border-primary hover-shadow transition"
-                             th:classappend="${dueBucket == 'all_unpaid' ? 'bg-primary bg-opacity-10 ring-2 ring-primary' : 'bg-white'}">
-                            <div class="card-body p-3">
-                                <div class="d-flex justify-content-between align-items-center mb-1">
-                                    <span class="small text-uppercase fw-bold text-primary">Total Unpaid AR</span>
-                                    <span class="badge bg-primary text-white px-2 py-1 rounded-pill small">Portfolio</span>
+                    <a th:href="@{/employee/work-orders(dueBucket='all_unpaid',search=${search},archiveStatus=${archiveStatus},series=${series},status=${status},clientInvoicePaid=${clientInvoicePaid},contractorInvoicePaid=${contractorInvoicePaid},client=${client},contractor=${contractor},workType=${workType},admin=${admin},customerBank=${customerBank},state=${state},dateType=${dateType},startDate=${startDate},endDate=${endDate})}" class="text-decoration-none">
+                        <div class="kpi-card kpi-card-indigo h-100 shadow-sm"
+                             th:classappend="${dueBucket == 'all_unpaid' ? 'active-kpi ring-2' : ''}">
+                            <div class="kpi-accent-bar"></div>
+                            <div class="p-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1.5">
+                                    <span class="text-xs fw-bold text-uppercase tracking-wider text-primary" style="font-size: 0.72rem; letter-spacing: 0.05em;">Total Unpaid AR</span>
+                                    <span class="badge badge-soft-indigo px-2 py-0.5 rounded-pill" style="font-size: 0.68rem;">Portfolio</span>
                                 </div>
-                                <div class="h3 fw-bold mb-0 text-primary" th:text="${agingSummary.totalUnpaidCount}">0</div>
-                                <div class="small fw-semibold text-dark" th:text="'$' + ${#numbers.formatDecimal(agingSummary.totalUnpaidAmount, 1, 2)}">$0.00</div>
+                                <div class="d-flex align-items-baseline gap-2 mb-0.5">
+                                    <span class="h3 fw-bold mb-0 text-primary" th:text="${agingSummary.totalUnpaidCount}">0</span>
+                                    <span class="small text-muted">unpaid</span>
+                                </div>
+                                <div class="fw-semibold text-dark font-mono fs-6"
+                                     th:text="'$' + ${#numbers.formatDecimal(agingSummary.totalUnpaidAmount != null ? agingSummary.totalUnpaidAmount : 0, 1, 'COMMA', 2, 'POINT')}">$0.00</div>
                                 <div class="text-muted" style="font-size: 0.72rem;">All unpaid receivables</div>
+
+                                <div class="mt-2 pt-2 border-top border-light-subtle">
+                                    <div class="d-flex justify-content-between align-items-center mb-1" style="font-size: 0.68rem;">
+                                        <span class="text-muted fw-semibold">PORTFOLIO</span>
+                                        <span class="fw-bold text-primary font-mono">100% UNPAID</span>
+                                    </div>
+                                    <div class="progress" style="height: 4px; background-color: rgba(0,0,0,0.06); border-radius: 2px;">
+                                        <div class="progress-bar bg-primary" role="progressbar" style="width: 100%;"></div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </a>
@@ -365,31 +779,31 @@
 
                                         <!-- Total Unpaid Balance -->
                                         <td class="text-end font-monospace" th:data-sort="${cStat.totalUnpaidAmount}">
-                                            <div class="fw-bold text-dark" th:text="'$' + ${#numbers.formatDecimal(cStat.totalUnpaidAmount, 1, 2)}">$0.00</div>
+                                            <div class="fw-bold text-dark" th:text="'$' + ${#numbers.formatDecimal(cStat.totalUnpaidAmount, 1, 'COMMA', 2, 'POINT')}">$0.00</div>
                                             <span th:if="${cStat.pendingInvoiceAmount}" class="badge bg-light text-muted border" style="font-size: 0.6rem;" title="Work order imported without invoice dollar amounts">$0 / Unpriced</span>
                                         </td>
 
                                         <!-- Current (<40d) -->
                                         <td class="text-end text-success fw-semibold font-monospace" th:data-sort="${cStat.withinTermsAmount}"
-                                            th:text="'$' + ${#numbers.formatDecimal(cStat.withinTermsAmount, 1, 2)}">
+                                            th:text="'$' + ${#numbers.formatDecimal(cStat.withinTermsAmount, 1, 'COMMA', 2, 'POINT')}">
                                             $0.00
                                         </td>
 
                                         <!-- Standard Due (40-49d) -->
                                         <td class="text-end text-warning-emphasis fw-semibold font-monospace" th:data-sort="${cStat.standardDueAmount}"
-                                            th:text="'$' + ${#numbers.formatDecimal(cStat.standardDueAmount, 1, 2)}">
+                                            th:text="'$' + ${#numbers.formatDecimal(cStat.standardDueAmount, 1, 'COMMA', 2, 'POINT')}">
                                             $0.00
                                         </td>
 
                                         <!-- Past Due (50-59d) -->
                                         <td class="text-end fw-semibold font-monospace" style="color: #ea580c;" th:data-sort="${cStat.pastDueAmount}"
-                                            th:text="'$' + ${#numbers.formatDecimal(cStat.pastDueAmount, 1, 2)}">
+                                            th:text="'$' + ${#numbers.formatDecimal(cStat.pastDueAmount, 1, 'COMMA', 2, 'POINT')}">
                                             $0.00
                                         </td>
 
                                         <!-- Critical Delinquent (60+d) -->
                                         <td class="text-end text-danger fw-bold font-monospace" th:data-sort="${cStat.criticalDueAmount}"
-                                            th:text="'$' + ${#numbers.formatDecimal(cStat.criticalDueAmount, 1, 2)}">
+                                            th:text="'$' + ${#numbers.formatDecimal(cStat.criticalDueAmount, 1, 'COMMA', 2, 'POINT')}">
                                             $0.00
                                         </td>
 
@@ -426,11 +840,11 @@
                                         <td class="text-center text-primary" th:text="${agingSummary.portfolioAverageDays} + 'd'">47.2d</td>
                                         <td class="text-center text-muted">Active Overrides</td>
                                         <td class="text-center text-primary" th:text="${agingSummary.totalUnpaidCount}">460</td>
-                                        <td class="text-end text-dark" th:text="'$' + ${#numbers.formatDecimal(agingSummary.totalUnpaidAmount, 1, 2)}">$156,422.21</td>
-                                        <td class="text-end text-success" th:text="'$' + ${#numbers.formatDecimal(agingSummary.withinTermsAmount, 1, 2)}">$14,812.47</td>
-                                        <td class="text-end text-warning-emphasis" th:text="'$' + ${#numbers.formatDecimal(agingSummary.standardDueAmount, 1, 2)}">$47,177.50</td>
-                                        <td class="text-end" style="color: #ea580c;" th:text="'$' + ${#numbers.formatDecimal(agingSummary.pastDueAmount, 1, 2)}">$52,314.76</td>
-                                        <td class="text-end text-danger" th:text="'$' + ${#numbers.formatDecimal(agingSummary.criticalDueAmount, 1, 2)}">$42,117.48</td>
+                                        <td class="text-end text-dark" th:text="'$' + ${#numbers.formatDecimal(agingSummary.totalUnpaidAmount, 1, 'COMMA', 2, 'POINT')}">$156,422.21</td>
+                                        <td class="text-end text-success" th:text="'$' + ${#numbers.formatDecimal(agingSummary.withinTermsAmount, 1, 'COMMA', 2, 'POINT')}">$14,812.47</td>
+                                        <td class="text-end text-warning-emphasis" th:text="'$' + ${#numbers.formatDecimal(agingSummary.standardDueAmount, 1, 'COMMA', 2, 'POINT')}">$47,177.50</td>
+                                        <td class="text-end" style="color: #ea580c;" th:text="'$' + ${#numbers.formatDecimal(agingSummary.pastDueAmount, 1, 'COMMA', 2, 'POINT')}">$52,314.76</td>
+                                        <td class="text-end text-danger" th:text="'$' + ${#numbers.formatDecimal(agingSummary.criticalDueAmount, 1, 'COMMA', 2, 'POINT')}">$42,117.48</td>
                                         <td></td>
                                     </tr>
                                 </tfoot>
@@ -606,31 +1020,31 @@
 
                                         <!-- Total Unpaid Balance -->
                                         <td class="text-end font-monospace" th:data-sort="${sStat.totalUnpaidAmount}">
-                                            <div class="fw-bold text-dark" th:text="'$' + ${#numbers.formatDecimal(sStat.totalUnpaidAmount, 1, 2)}">$0.00</div>
-                                            <span th:if="${sStat.pendingInvoiceAmount}" class="badge bg-light text-muted border" style="font-size: 0.6rem;">$0 / Unpriced</span>
+                                            <div class="fw-bold text-dark" th:text="'$' + ${#numbers.formatDecimal(sStat.totalUnpaidAmount, 1, 'COMMA', 2, 'POINT')}">$0.00</div>
+                                            <span th:if="${sStat.pendingInvoiceAmount}" class="badge bg-light text-muted border" style="font-size: 0.6rem;" title="Work order imported without invoice dollar amounts">$0 / Unpriced</span>
                                         </td>
 
                                         <!-- Current (<40d) -->
                                         <td class="text-end text-success fw-semibold font-monospace" th:data-sort="${sStat.withinTermsAmount}"
-                                            th:text="'$' + ${#numbers.formatDecimal(sStat.withinTermsAmount, 1, 2)}">
+                                            th:text="'$' + ${#numbers.formatDecimal(sStat.withinTermsAmount, 1, 'COMMA', 2, 'POINT')}">
                                             $0.00
                                         </td>
 
                                         <!-- Standard Due (40-49d) -->
                                         <td class="text-end text-warning-emphasis fw-semibold font-monospace" th:data-sort="${sStat.standardDueAmount}"
-                                            th:text="'$' + ${#numbers.formatDecimal(sStat.standardDueAmount, 1, 2)}">
+                                            th:text="'$' + ${#numbers.formatDecimal(sStat.standardDueAmount, 1, 'COMMA', 2, 'POINT')}">
                                             $0.00
                                         </td>
 
                                         <!-- Past Due (50-59d) -->
                                         <td class="text-end fw-semibold font-monospace" style="color: #ea580c;" th:data-sort="${sStat.pastDueAmount}"
-                                            th:text="'$' + ${#numbers.formatDecimal(sStat.pastDueAmount, 1, 2)}">
+                                            th:text="'$' + ${#numbers.formatDecimal(sStat.pastDueAmount, 1, 'COMMA', 2, 'POINT')}">
                                             $0.00
                                         </td>
 
                                         <!-- Critical Delinquent (60+d) -->
                                         <td class="text-end text-danger fw-bold font-monospace" th:data-sort="${sStat.criticalDueAmount}"
-                                            th:text="'$' + ${#numbers.formatDecimal(sStat.criticalDueAmount, 1, 2)}">
+                                            th:text="'$' + ${#numbers.formatDecimal(sStat.criticalDueAmount, 1, 'COMMA', 2, 'POINT')}">
                                             $0.00
                                         </td>
 
@@ -640,7 +1054,7 @@
                                                 <a th:href="@{/employee/work-orders(series=${sStat.seriesBase},dueBucket='all_unpaid')}" 
                                                    class="btn btn-outline-primary py-0 px-2" style="font-size: 0.72rem;"
                                                    title="View all unpaid work orders in table">
-                                                    <i class="fas fa-eye me-1"></i>View
+                                                    <i class="fas fa-eye me-1"></i>Orders
                                                 </a>
                                                 <a th:href="@{/employee/work-orders/export(series=${sStat.seriesBase},dueBucket='all_unpaid',format='excel')}" 
                                                    class="btn btn-outline-success py-0 px-2" style="font-size: 0.72rem;"
@@ -664,11 +1078,11 @@
                                         <td class="text-center text-primary" th:text="${agingSummary.portfolioAverageDays} + 'd'">47.2d</td>
                                         <td class="text-center text-muted" th:text="${agingSummary.clientStats.size()} + ' Clients'">40 Clients</td>
                                         <td class="text-center text-primary" th:text="${agingSummary.totalUnpaidCount}">460</td>
-                                        <td class="text-end text-dark" th:text="'$' + ${#numbers.formatDecimal(agingSummary.totalUnpaidAmount, 1, 2)}">$156,422.21</td>
-                                        <td class="text-end text-success" th:text="'$' + ${#numbers.formatDecimal(agingSummary.withinTermsAmount, 1, 2)}">$14,812.47</td>
-                                        <td class="text-end text-warning-emphasis" th:text="'$' + ${#numbers.formatDecimal(agingSummary.standardDueAmount, 1, 2)}">$47,177.50</td>
-                                        <td class="text-end" style="color: #ea580c;" th:text="'$' + ${#numbers.formatDecimal(agingSummary.pastDueAmount, 1, 2)}">$52,314.76</td>
-                                        <td class="text-end text-danger" th:text="'$' + ${#numbers.formatDecimal(agingSummary.criticalDueAmount, 1, 2)}">$42,117.48</td>
+                                        <td class="text-end text-dark" th:text="'$' + ${#numbers.formatDecimal(agingSummary.totalUnpaidAmount, 1, 'COMMA', 2, 'POINT')}">$156,422.21</td>
+                                        <td class="text-end text-success" th:text="'$' + ${#numbers.formatDecimal(agingSummary.withinTermsAmount, 1, 'COMMA', 2, 'POINT')}">$14,812.47</td>
+                                        <td class="text-end text-warning-emphasis" th:text="'$' + ${#numbers.formatDecimal(agingSummary.standardDueAmount, 1, 'COMMA', 2, 'POINT')}">$47,177.50</td>
+                                        <td class="text-end" style="color: #ea580c;" th:text="'$' + ${#numbers.formatDecimal(agingSummary.pastDueAmount, 1, 'COMMA', 2, 'POINT')}">$52,314.76</td>
+                                        <td class="text-end text-danger" th:text="'$' + ${#numbers.formatDecimal(agingSummary.criticalDueAmount, 1, 'COMMA', 2, 'POINT')}">$42,117.48</td>
                                         <td class="text-center pe-3">
                                             <div class="btn-group btn-group-sm" role="group">
                                                 <a th:href="@{/employee/work-orders/export(dueBucket='all_unpaid',format='excel')}" 
@@ -691,22 +1105,84 @@
                 </div>
             </div>
 
-            <!-- Advanced Search Panel -->
+            <!-- Quick Filter Chips for Instant Retrieval -->
+            <div class="d-flex flex-wrap align-items-center gap-2 p-2 bg-white rounded-3 border shadow-sm mb-3">
+                <span class="small fw-bold text-muted text-uppercase ms-1 me-1" style="font-size: 0.72rem; letter-spacing: 0.05em;">
+                    <i class="fas fa-bolt text-warning me-1"></i>Quick Filters:
+                </span>
+                <a href="/employee/work-orders?archiveStatus=active" class="chip-pill"
+                   th:classappend="${archiveStatus == 'active' ? 'active bg-primary text-white border-primary' : ''}">
+                    <span class="status-dot" th:classappend="${archiveStatus == 'active' ? 'bg-white' : 'bg-primary'}"></span>
+                    <span>Active Operations</span>
+                </a>
+                <a href="/employee/work-orders?dueBucket=critical" class="chip-pill"
+                   th:classappend="${dueBucket == 'critical' ? 'active bg-danger text-white border-danger' : 'text-danger'}">
+                    <span class="status-dot" th:classappend="${dueBucket == 'critical' ? 'bg-white' : 'bg-danger'}"></span>
+                    <span>Critical (60+d)</span>
+                </a>
+                <a href="/employee/work-orders?dueBucket=overdue" class="chip-pill"
+                   th:classappend="${dueBucket == 'overdue' ? 'active text-white border-0' : ''}"
+                   th:style="${dueBucket == 'overdue' ? 'background-color: #ea580c;' : 'color: #c2410c;'}">
+                    <span class="status-dot" th:style="${dueBucket == 'overdue' ? 'background-color: #ffffff;' : 'background-color: #ea580c;'}"></span>
+                    <span>Past Due (50–59d)</span>
+                </a>
+                <a href="/employee/work-orders?dueBucket=all_unpaid" class="chip-pill"
+                   th:classappend="${dueBucket == 'all_unpaid' ? 'active bg-dark text-white border-dark' : 'text-primary'}">
+                    <i class="fas fa-file-invoice" th:classappend="${dueBucket == 'all_unpaid' ? 'text-white' : 'text-primary'}"></i>
+                    <span>All Unpaid AR</span>
+                </a>
+                <a href="/employee/work-orders?dueBucket=partial" class="chip-pill"
+                   th:classappend="${dueBucket == 'partial' ? 'active bg-warning text-dark border-warning' : 'text-warning-emphasis'}">
+                    <span class="status-dot" th:classappend="${dueBucket == 'partial' ? 'bg-dark' : 'bg-warning'}"></span>
+                    <span>Partially Paid</span>
+                </a>
+                <a href="/employee/work-orders?status=closed&clientInvoicePaid=true" class="chip-pill"
+                   th:classappend="${status == 'closed' && clientInvoicePaid == true ? 'active bg-success text-white border-success' : 'text-success'}">
+                    <i class="fas fa-check-circle" th:classappend="${status == 'closed' && clientInvoicePaid == true ? 'text-white' : 'text-success'}"></i>
+                    <span>Paid &amp; Closed</span>
+                </a>
+                <a href="/employee/work-orders?archiveStatus=archived" class="chip-pill"
+                   th:classappend="${archiveStatus == 'archived' ? 'active bg-secondary text-white border-secondary' : 'text-secondary'}">
+                    <i class="fas fa-archive" th:classappend="${archiveStatus == 'archived' ? 'text-white' : 'text-secondary'}"></i>
+                    <span>Archived History</span>
+                </a>
+                <a th:if="${(currentFilter != null && currentFilter != 'All Employee Work Orders') || search != null || dueBucket != null || status != null || client != null || contractor != null || admin != null || customerBank != null || state != null || startDate != null || archiveStatus != null || clientInvoicePaid != null || contractorInvoicePaid != null}"
+                   href="/employee/work-orders" class="chip-pill bg-light text-danger border border-danger-subtle ms-auto" title="Reset all filters">
+                    <i class="fas fa-times"></i>
+                    <span>Clear All</span>
+                </a>
+            </div>
+
+            <!-- Advanced Search & Filter Panel -->
             <div class="collapse mb-4" id="advancedSearchPanel"
-                th:classappend="${(search != null && !search.isEmpty()) || (workType != null && !workType.isEmpty()) || (dueBucket != null && !dueBucket.isEmpty()) || (series != null) ? 'show' : ''}">
+                th:classappend="${(search != null && !search.isEmpty()) || (workType != null && !workType.isEmpty()) || (dueBucket != null && !dueBucket.isEmpty()) || (series != null) || (admin != null && !admin.isEmpty()) || (customerBank != null && !customerBank.isEmpty()) || (state != null && !state.isEmpty()) || (dateType != null && !dateType.isEmpty()) || (archiveStatus != null && !archiveStatus.isEmpty()) || (clientInvoicePaid != null) || (contractorInvoicePaid != null) ? 'show' : ''}">
                 <div class="card shadow-sm border-0 bg-light">
                     <div class="card-body">
-                        <form action="/employee/work-orders" method="get" class="row g-3">
-                            <!-- Global Text Search -->
-                            <div class="col-md-12">
-                                <label class="form-label small fw-bold text-uppercase text-muted">Search (WO#, Inv#, PPW#, Loan#, Address)</label>
+                        <form action="/employee/work-orders" method="get" class="row g-3" id="workOrderSearchForm">
+                            <!-- Row 1: Smart Unified Global Search & Lifecycle Archive Mode -->
+                            <div class="col-md-8">
+                                <label class="form-label small fw-bold text-uppercase text-muted">
+                                    <i class="fas fa-search me-1 text-primary"></i>Smart Global Search
+                                </label>
                                 <div class="input-group">
                                     <span class="input-group-text bg-white"><i class="fas fa-search"></i></span>
-                                    <input type="text" class="form-control" name="search" th:value="${search}" placeholder="Type to search...">
+                                    <input type="text" class="form-control" name="search" th:value="${search}" 
+                                           placeholder="Search WO#, Inv#, PPW#, Loan#, Address, City, State, Client, Contractor, Admin, Bank, Type...">
                                 </div>
                             </div>
 
-                            <!-- Due Status Filter -->
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold text-uppercase text-muted">
+                                    <i class="fas fa-archive me-1 text-secondary"></i>Record Lifecycle (Archive)
+                                </label>
+                                <select class="form-select" name="archiveStatus">
+                                    <option value="" th:selected="${archiveStatus == null || archiveStatus == ''}">All Records (Active + Archived)</option>
+                                    <option value="active" th:selected="${archiveStatus == 'active'}">⚡ Active Operations Only</option>
+                                    <option value="archived" th:selected="${archiveStatus == 'archived'}">📦 Archived History (Closed & Paid)</option>
+                                </select>
+                            </div>
+
+                            <!-- Row 2: Status & Financial Paid Status Filters -->
                             <div class="col-md-3">
                                 <label class="form-label small fw-bold text-uppercase text-muted">Aging / Due Status</label>
                                 <select class="form-select" name="dueBucket">
@@ -720,7 +1196,6 @@
                                 </select>
                             </div>
 
-                            <!-- Client Series Filter -->
                             <div class="col-md-3">
                                 <label class="form-label small fw-bold text-uppercase text-muted">Client Series</label>
                                 <select class="form-select" name="series">
@@ -732,9 +1207,8 @@
                                 </select>
                             </div>
 
-                            <!-- Status -->
                             <div class="col-md-2">
-                                <label class="form-label small fw-bold text-uppercase text-muted">Status</label>
+                                <label class="form-label small fw-bold text-uppercase text-muted">Order Status</label>
                                 <select class="form-select" name="status">
                                     <option value="" th:selected="${status == null || status == ''}">All Statuses</option>
                                     <option value="open" th:selected="${status == 'open'}">Open / In Progress</option>
@@ -744,41 +1218,134 @@
                                 </select>
                             </div>
 
-                            <!-- Client -->
+                            <div class="col-md-2">
+                                <label class="form-label small fw-bold text-uppercase text-muted">Client Paid</label>
+                                <select class="form-select" name="clientInvoicePaid">
+                                    <option value="" th:selected="${clientInvoicePaid == null}">Any Paid Status</option>
+                                    <option value="false" th:selected="${clientInvoicePaid == false}">❌ Client Unpaid</option>
+                                    <option value="true" th:selected="${clientInvoicePaid == true}">✅ Client Paid</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-2">
+                                <label class="form-label small fw-bold text-uppercase text-muted">Cont. Paid</label>
+                                <select class="form-select" name="contractorInvoicePaid">
+                                    <option value="" th:selected="${contractorInvoicePaid == null}">Any Paid Status</option>
+                                    <option value="false" th:selected="${contractorInvoicePaid == false}">❌ Cont. Unpaid</option>
+                                    <option value="true" th:selected="${contractorInvoicePaid == true}">✅ Cont. Paid</option>
+                                </select>
+                            </div>
+
+                            <!-- Row 3: Entity & Location Filters with Datalist Suggestions -->
                             <div class="col-md-2">
                                 <label class="form-label small fw-bold text-uppercase text-muted">Client</label>
-                                <input type="text" class="form-control" name="client" th:value="${client}" placeholder="Client Name">
+                                <input type="text" class="form-control" name="client" list="clientListOptions" th:value="${client}" placeholder="Search client...">
+                                <datalist id="clientListOptions">
+                                    <option th:each="c : ${distinctClients}" th:value="${c}"></option>
+                                </datalist>
                             </div>
 
-                            <!-- Contractor -->
                             <div class="col-md-2">
                                 <label class="form-label small fw-bold text-uppercase text-muted">Contractor</label>
-                                <input type="text" class="form-control" name="contractor" th:value="${contractor}" placeholder="Contractor Name">
+                                <input type="text" class="form-control" name="contractor" list="contractorListOptions" th:value="${contractor}" placeholder="Search contractor...">
+                                <datalist id="contractorListOptions">
+                                    <option th:each="c : ${distinctContractors}" th:value="${c}"></option>
+                                </datalist>
                             </div>
 
-                            <!-- Work Type -->
-                            <div class="col-md-4">
+                            <div class="col-md-2">
                                 <label class="form-label small fw-bold text-uppercase text-muted">Work Type</label>
-                                <input type="text" class="form-control" name="workType" th:value="${workType}" placeholder="e.g. Grass Cut">
+                                <input type="text" class="form-control" name="workType" list="workTypeListOptions" th:value="${workType}" placeholder="e.g. Grass Cut">
+                                <datalist id="workTypeListOptions">
+                                    <option th:each="wt : ${distinctWorkTypes}" th:value="${wt}"></option>
+                                </datalist>
                             </div>
 
-                            <!-- Date Due Range -->
-                            <div class="col-md-8">
-                                <label class="form-label small fw-bold text-uppercase text-muted">Due Date Range</label>
+                            <div class="col-md-2">
+                                <label class="form-label small fw-bold text-uppercase text-muted">Admin / Coord.</label>
+                                <input type="text" class="form-control" name="admin" list="adminListOptions" th:value="${admin}" placeholder="Search admin...">
+                                <datalist id="adminListOptions">
+                                    <option th:each="a : ${distinctAdmins}" th:value="${a}"></option>
+                                </datalist>
+                            </div>
+
+                            <div class="col-md-2">
+                                <label class="form-label small fw-bold text-uppercase text-muted">Customer Bank</label>
+                                <input type="text" class="form-control" name="customerBank" list="bankListOptions" th:value="${customerBank}" placeholder="e.g. Chase">
+                                <datalist id="bankListOptions">
+                                    <option th:each="b : ${distinctCustomerBanks}" th:value="${b}"></option>
+                                </datalist>
+                            </div>
+
+                            <div class="col-md-2">
+                                <label class="form-label small fw-bold text-uppercase text-muted">State</label>
+                                <select class="form-select" name="state">
+                                    <option value="">All States</option>
+                                    <option th:each="st : ${distinctStates}" th:value="${st}" th:selected="${state != null && state.equalsIgnoreCase(st)}" th:text="${st}"></option>
+                                </select>
+                            </div>
+
+                            <!-- Row 4: Multi-Date Range Filtering & 1-Click Quick Presets -->
+                            <div class="col-md-3">
+                                <label class="form-label small fw-bold text-uppercase text-muted">Filter By Date Field</label>
+                                <select class="form-select" name="dateType" id="dateTypeSelector">
+                                    <option value="due" th:selected="${dateType == null || dateType == 'due'}">📅 Due Date (Client)</option>
+                                    <option value="invoice" th:selected="${dateType == 'invoice'}">📑 Invoice Date</option>
+                                    <option value="received" th:selected="${dateType == 'received'}">📥 Date Received</option>
+                                    <option value="sent_client" th:selected="${dateType == 'sent_client'}">📤 Sent to Client Date</option>
+                                    <option value="paid" th:selected="${dateType == 'paid'}">💵 Client Paid Date</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-5">
+                                <label class="form-label small fw-bold text-uppercase text-muted">Date Range</label>
                                 <div class="input-group">
-                                    <input type="date" class="form-control" name="startDate" th:value="${startDate}">
+                                    <input type="date" class="form-control" name="startDate" id="startDateInput" th:value="${startDate}">
                                     <span class="input-group-text">to</span>
-                                    <input type="date" class="form-control" name="endDate" th:value="${endDate}">
+                                    <input type="date" class="form-control" name="endDate" id="endDateInput" th:value="${endDate}">
                                 </div>
                             </div>
 
-                            <!-- Buttons -->
-                            <div class="col-12 text-end mt-3">
-                                <a href="/employee/work-orders" class="btn btn-outline-secondary btn-sm me-2">Clear All</a>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold text-uppercase text-muted">Quick Date Presets</label>
+                                <div class="d-flex flex-wrap gap-1">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm py-1 px-2 date-preset-btn" data-preset="today">Today</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm py-1 px-2 date-preset-btn" data-preset="this_week">This Week</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm py-1 px-2 date-preset-btn" data-preset="this_month">This Month</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm py-1 px-2 date-preset-btn" data-preset="last_month">Last Month</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm py-1 px-2 date-preset-btn" data-preset="this_quarter">This Qtr</button>
+                                    <button type="button" class="btn btn-outline-danger btn-sm py-1 px-2 date-preset-btn" data-preset="clear"><i class="fas fa-times"></i></button>
+                                </div>
+                            </div>
+
+                            <!-- Row 5: Action Buttons -->
+                            <div class="col-12 text-end mt-3 border-top pt-3">
+                                <a href="/employee/work-orders" class="btn btn-outline-secondary btn-sm me-2">
+                                    <i class="fas fa-undo me-1"></i>Clear All
+                                </a>
+                                <div class="btn-group btn-group-sm me-2" role="group">
+                                    <button type="button" class="btn btn-outline-success dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="fas fa-archive me-1"></i> Archive / Export Query
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow-sm small">
+                                        <li>
+                                            <button type="submit" class="dropdown-item" formaction="/employee/work-orders/export" name="format" value="excel">
+                                                <i class="fas fa-file-excel text-success me-2"></i>Download Snapshot (Excel)
+                                            </button>
+                                        </li>
+                                        <li>
+                                            <button type="submit" class="dropdown-item" formaction="/employee/work-orders/export" name="format" value="csv">
+                                                <i class="fas fa-file-csv text-info me-2"></i>Download Snapshot (CSV)
+                                            </button>
+                                        </li>
+                                    </ul>
+                                </div>
                                 <button type="submit" class="btn btn-dark btn-sm me-2" formaction="/employee/work-orders/report" formtarget="_blank">
                                     <i class="fas fa-file-pdf me-1"></i> Generate Report
                                 </button>
-                                <button type="submit" class="btn btn-primary btn-sm px-4">Apply Filters</button>
+                                <button type="submit" class="btn btn-primary btn-sm px-4">
+                                    <i class="fas fa-filter me-1"></i> Apply Filters
+                                </button>
                             </div>
                         </form>
                     </div>
@@ -786,10 +1353,10 @@
             </div>
 
             <!-- Main Work Orders Table -->
-            <div class="card shadow-sm">
+            <div class="card shadow-sm border-0 rounded-3 overflow-hidden">
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover mb-0 align-middle">
+                        <table class="table table-hover mb-0 align-middle table-sticky-header">
                             <thead class="bg-light text-nowrap">
                                 <tr>
                                     <th class="ps-3">Status</th>
@@ -811,81 +1378,96 @@
                             <tbody>
                                 <tr th:each="wo : ${workOrders.content}" class="text-nowrap">
                                     <td class="ps-3">
-                                        <span class="badge"
-                                            th:classappend="${wo.status == 'Complete' ? 'bg-success' : (wo.status == 'Imported' ? 'bg-info text-dark' : 'bg-secondary')}"
-                                            th:text="${wo.status}">Status</span>
+                                        <span class="badge badge-soft-emerald" th:if="${wo.status == 'Complete' or wo.status == 'Closed'}">
+                                            <span class="status-dot status-dot-emerald"></span>
+                                            <span th:text="${wo.status}">Closed</span>
+                                        </span>
+                                        <span class="badge badge-soft-sky" th:if="${wo.status == 'Invoiced'}">
+                                            <span class="status-dot status-dot-sky"></span>
+                                            <span th:text="${wo.status}">Invoiced</span>
+                                        </span>
+                                        <span class="badge badge-soft-slate" th:if="${wo.status != 'Complete' and wo.status != 'Closed' and wo.status != 'Invoiced'}">
+                                            <span class="status-dot status-dot-slate"></span>
+                                            <span th:text="${wo.status}">Open</span>
+                                        </span>
                                     </td>
-                                    <td class="fw-bold text-primary" th:text="${wo.invoiceNumber}">INV-123</td>
+                                    <td class="fw-semibold text-primary font-mono" th:text="${wo.displayInvoiceNumber}">INV-123</td>
                                     <td th:text="${wo.invoiceDate != null ? #temporals.format(wo.invoiceDate, 'yyyy-MM-dd') : '-'}">2026-01-01</td>
                                     <td>
                                         <!-- Aging Status Badge -->
                                         <th:block th:if="${wo.isUnpaid()}">
                                             <div th:if="${wo.isPartiallyPaid()}" class="mb-1">
-                                                <span class="badge bg-warning text-dark border border-warning shadow-sm"
-                                                      th:title="'Paid: $' + ${#numbers.formatDecimal(wo.clientPaidAmount, 1, 2)} + ' / Rem: $' + ${#numbers.formatDecimal(wo.remainingClientBalance, 1, 2)} + ' (' + ${#numbers.formatDecimal(wo.paidPercentage, 1, 0)} + '% paid)'">
+                                                <span class="badge badge-soft-indigo"
+                                                      th:title="'Paid: $' + ${#numbers.formatDecimal(wo.clientPaidAmount, 1, 'COMMA', 2, 'POINT')} + ' / Rem: $' + ${#numbers.formatDecimal(wo.remainingClientBalance, 1, 'COMMA', 2, 'POINT')} + ' (' + ${#numbers.formatDecimal(wo.paidPercentage, 1, 0)} + '% paid)'">
                                                     <i class="fas fa-adjust me-1 text-primary"></i>Partial (<span th:text="${#numbers.formatDecimal(wo.paidPercentage, 1, 0)}">50</span>%)
                                                 </span>
                                             </div>
                                             <th:block th:with="bucket=${agingService.getAgingBucket(wo, configMap, defaultConfig)}">
-                                                <span th:if="${bucket == 'critical'}" class="badge bg-danger text-white shadow-sm" title="Critical Delinquent">
+                                                <span th:if="${bucket == 'critical'}" class="badge badge-soft-rose" title="Critical Delinquent">
                                                     <i class="fas fa-exclamation-circle me-1"></i>Critical (<span th:text="${wo.daysElapsed}">0</span>d)
                                                 </span>
-                                                <span th:if="${bucket == 'overdue'}" class="badge text-white shadow-sm" style="background-color: #ea580c;" title="Past Due">
+                                                <span th:if="${bucket == 'overdue'}" class="badge badge-soft-orange" title="Past Due">
                                                     <i class="fas fa-clock me-1"></i>Past Due (<span th:text="${wo.daysElapsed}">0</span>d)
                                                 </span>
-                                                <span th:if="${bucket == 'standard'}" class="badge bg-warning text-dark shadow-sm" title="Standard Due">
+                                                <span th:if="${bucket == 'standard'}" class="badge badge-soft-amber" title="Standard Due">
                                                     <i class="fas fa-hourglass-half me-1"></i>Standard (<span th:text="${wo.daysElapsed}">0</span>d)
                                                 </span>
-                                                <span th:if="${bucket == 'within_terms'}" class="badge bg-success bg-opacity-25 text-success border border-success" title="Within Terms">
+                                                <span th:if="${bucket == 'within_terms'}" class="badge badge-soft-emerald" title="Within Terms">
                                                     <i class="fas fa-check me-1"></i>Current (<span th:text="${wo.daysElapsed}">0</span>d)
                                                 </span>
-                                                <span th:if="${bucket == 'NO_INVOICE_DATE'}" class="badge bg-secondary text-white-50">
+                                                <span th:if="${bucket == 'NO_INVOICE_DATE'}" class="badge badge-soft-slate">
                                                     No Inv Date
                                                 </span>
                                             </th:block>
                                         </th:block>
-                                        <span th:unless="${wo.isUnpaid()}" class="badge bg-light text-muted border">
+                                        <span th:unless="${wo.isUnpaid()}" class="badge badge-soft-slate">
                                             <i class="fas fa-check-double text-success me-1"></i>Paid
                                         </span>
                                     </td>
-                                    <td class="fw-bold" th:text="${wo.woNumber}">WO-101</td>
-                                    <td th:text="${wo.ppwNumber}">PPW-001</td>
-                                    <td th:text="${wo.loanNumber}">LOAN-001</td>
+                                    <td class="fw-semibold text-dark font-mono" th:text="${wo.woNumber}">WO-101</td>
+                                    <td class="font-mono text-secondary" th:text="${wo.displayPpwNumber}">PPW-001</td>
+                                    <td class="font-mono text-muted" th:text="${wo.displayLoanNumber}">LOAN-001</td>
                                     <td th:text="${wo.workType}">Work Type</td>
                                     <td th:text="${wo.client != null ? wo.client.name : (wo.originalClientString != null ? wo.originalClientString : '-')}">Client</td>
                                     <td th:text="${wo.contractor != null ? wo.contractor.name : (wo.originalContractorString != null ? wo.originalContractorString : '-')}">Contractor</td>
                                     <td th:text="${wo.address}">Address</td>
                                     <td th:text="${wo.dateDue}">Jan 1</td>
-                                    <td class="text-nowrap">
+                                    <td class="text-nowrap font-mono">
                                         <th:block th:if="${wo.isPartiallyPaid()}">
                                             <div class="fw-bold text-danger" title="Remaining balance due">
-                                                $<span th:text="${#numbers.formatDecimal(wo.remainingClientBalance, 1, 2)}">0.00</span>
-                                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle ms-1" style="font-size: 0.65rem;">Rem</span>
+                                                $<span th:text="${#numbers.formatDecimal(wo.remainingClientBalance, 1, 'COMMA', 2, 'POINT')}">0.00</span>
+                                                <span class="badge badge-soft-rose ms-1" style="font-size: 0.65rem;">Rem</span>
                                             </div>
                                             <div class="text-muted" style="font-size: 0.72rem;">
-                                                <span title="Total Invoice">$<span th:text="${#numbers.formatDecimal(wo.effectiveClientTotal, 1, 2)}">0.00</span></span>
-                                                | <span class="text-success" title="Amount Paid">-$<span th:text="${#numbers.formatDecimal(wo.clientPaidAmount, 1, 2)}">0.00</span></span>
+                                                <span title="Total Invoice">$<span th:text="${#numbers.formatDecimal(wo.effectiveClientTotal, 1, 'COMMA', 2, 'POINT')}">0.00</span></span>
+                                                | <span class="text-success" title="Amount Paid">-$<span th:text="${#numbers.formatDecimal(wo.clientPaidAmount, 1, 'COMMA', 2, 'POINT')}">0.00</span></span>
                                             </div>
                                         </th:block>
                                         <th:block th:unless="${wo.isPartiallyPaid()}">
                                             <div class="fw-bold text-dark"
-                                                th:text="${wo.effectiveClientTotal != null ? '$' + #numbers.formatDecimal(wo.effectiveClientTotal, 1, 2) : '-'}">
+                                                th:text="${wo.effectiveClientTotal != null ? '$' + #numbers.formatDecimal(wo.effectiveClientTotal, 1, 'COMMA', 2, 'POINT') : '-'}">
                                                 $0.00
                                             </div>
                                             <div th:if="${wo.discountApplied}" 
                                                  class="text-muted text-decoration-line-through" style="font-size: 0.72rem;"
-                                                 th:text="'$' + ${#numbers.formatDecimal(wo.clientInvoiceTotal, 1, 2)}"
+                                                 th:text="'$' + ${#numbers.formatDecimal(wo.clientInvoiceTotal, 1, 'COMMA', 2, 'POINT')}"
                                                  title="Original gross invoice total before discount">
                                             </div>
                                         </th:block>
                                     </td>
-                                    <td th:text="${wo.contractorInvoiceTotal != null ? '$' + #numbers.formatDecimal(wo.contractorInvoiceTotal, 1, 2) : '-'}">
+                                    <td class="font-mono" th:text="${wo.contractorInvoiceTotal != null ? '$' + #numbers.formatDecimal(wo.contractorInvoiceTotal, 1, 'COMMA', 2, 'POINT') : '-'}">
                                         $0.00</td>
                                 </tr>
                                 <tr th:if="${workOrders.content.isEmpty()}">
-                                    <td colspan="14" class="text-center py-4 text-muted">
-                                        <i class="fas fa-inbox fa-3x mb-3 d-block opacity-50"></i>
-                                        No employee work orders found matching the filter criteria.
+                                    <td colspan="14" class="text-center py-5 text-muted">
+                                        <div class="py-4">
+                                            <i class="fas fa-filter-circle-xmark fa-3x mb-3 text-secondary opacity-50"></i>
+                                            <h6 class="fw-bold text-dark">No Matching Work Orders Found</h6>
+                                            <p class="small text-muted mb-3">No records match your active search or aging criteria.</p>
+                                            <a href="/employee/work-orders" class="btn btn-sm btn-outline-primary px-3 rounded-pill">
+                                                <i class="fas fa-undo me-1"></i>Reset All Filters
+                                            </a>
+                                        </div>
                                     </td>
                                 </tr>
                             </tbody>
@@ -1093,6 +1675,62 @@
                         nameEl.value = selectEl.value;
                     });
                 }
+
+                // Segmented portfolio views interactive tab active state
+                var tabWorkOrders = document.getElementById('tabBtnWorkOrders');
+                var clientCollapse = document.getElementById('clientPortfolioCollapse');
+                var seriesCollapse = document.getElementById('seriesPortfolioCollapse');
+                var financialCollapse = document.getElementById('filteredExecutiveReportCollapse');
+                var segmentedBtns = document.querySelectorAll('.segmented-nav-btn');
+
+                function setActiveTab(btn) {
+                    segmentedBtns.forEach(function(b) { b.classList.remove('active'); });
+                    if (btn) btn.classList.add('active');
+                }
+
+                if (tabWorkOrders) {
+                    tabWorkOrders.addEventListener('click', function() {
+                        [clientCollapse, seriesCollapse, financialCollapse].forEach(function(col) {
+                            if (col && col.classList.contains('show')) {
+                                var bsCol = bootstrap.Collapse.getInstance(col) || new bootstrap.Collapse(col, {toggle: false});
+                                bsCol.hide();
+                            }
+                        });
+                        setActiveTab(tabWorkOrders);
+                    });
+                }
+
+                if (clientCollapse) {
+                    clientCollapse.addEventListener('show.bs.collapse', function() {
+                        setActiveTab(document.querySelector('[data-bs-target="#clientPortfolioCollapse"]'));
+                    });
+                    clientCollapse.addEventListener('hidden.bs.collapse', checkDefaultTab);
+                }
+
+                if (seriesCollapse) {
+                    seriesCollapse.addEventListener('show.bs.collapse', function() {
+                        setActiveTab(document.querySelector('[data-bs-target="#seriesPortfolioCollapse"]'));
+                    });
+                    seriesCollapse.addEventListener('hidden.bs.collapse', checkDefaultTab);
+                }
+
+                if (financialCollapse) {
+                    financialCollapse.addEventListener('show.bs.collapse', function() {
+                        setActiveTab(document.querySelector('[data-bs-target="#filteredExecutiveReportCollapse"]'));
+                    });
+                    financialCollapse.addEventListener('hidden.bs.collapse', checkDefaultTab);
+                }
+
+                function checkDefaultTab() {
+                    setTimeout(function() {
+                        var anyOpen = (clientCollapse && clientCollapse.classList.contains('show')) ||
+                                      (seriesCollapse && seriesCollapse.classList.contains('show')) ||
+                                      (financialCollapse && financialCollapse.classList.contains('show'));
+                        if (!anyOpen && tabWorkOrders) {
+                            setActiveTab(tabWorkOrders);
+                        }
+                    }, 150);
+                }
             });
 
             function filterClientPortfolioTable() {
@@ -1291,6 +1929,58 @@
                     tbody.appendChild(row);
                 });
             }
+
+            // Quick Date Presets Handler
+            document.querySelectorAll('.date-preset-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var preset = this.getAttribute('data-preset');
+                    var startInput = document.getElementById('startDateInput');
+                    var endInput = document.getElementById('endDateInput');
+                    if (!startInput || !endInput) return;
+
+                    var formatDate = function(d) {
+                        var year = d.getFullYear();
+                        var month = String(d.getMonth() + 1).padStart(2, '0');
+                        var day = String(d.getDate()).padStart(2, '0');
+                        return year + '-' + month + '-' + day;
+                    };
+
+                    if (preset === 'clear') {
+                        startInput.value = '';
+                        endInput.value = '';
+                        return;
+                    }
+
+                    var now = new Date();
+                    if (preset === 'today') {
+                        var todayStr = formatDate(now);
+                        startInput.value = todayStr;
+                        endInput.value = todayStr;
+                    } else if (preset === 'this_week') {
+                        var currentDay = now.getDay();
+                        var startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - currentDay);
+                        var endOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - currentDay + 6);
+                        startInput.value = formatDate(startOfWeek);
+                        endInput.value = formatDate(endOfWeek);
+                    } else if (preset === 'this_month') {
+                        var firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+                        var lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                        startInput.value = formatDate(firstDay);
+                        endInput.value = formatDate(lastDay);
+                    } else if (preset === 'last_month') {
+                        var firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                        var lastDayLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+                        startInput.value = formatDate(firstDayLastMonth);
+                        endInput.value = formatDate(lastDayLastMonth);
+                    } else if (preset === 'this_quarter') {
+                        var currentQuarter = Math.floor(now.getMonth() / 3);
+                        var firstDayQuarter = new Date(now.getFullYear(), currentQuarter * 3, 1);
+                        var lastDayQuarter = new Date(now.getFullYear(), (currentQuarter + 1) * 3, 0);
+                        startInput.value = formatDate(firstDayQuarter);
+                        endInput.value = formatDate(lastDayQuarter);
+                    }
+                });
+            });
         </script>
     </div>
 </body>

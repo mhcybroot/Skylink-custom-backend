@@ -91,9 +91,10 @@ public abstract class BaseWorkOrder {
 
     // Helper method to get series name from client code
     public String getSeries() {
-        if (client != null && client.getCode() != null) {
+        String code = (client != null && client.getCode() != null) ? client.getCode() : originalClientString;
+        if (code != null) {
             try {
-                String digits = client.getCode().replaceAll("[^0-9]", "");
+                String digits = code.replaceAll("[^0-9]", "");
                 if (!digits.isEmpty()) {
                     int clientNum = Integer.parseInt(digits);
                     int seriesBase = (clientNum / 100) * 100;
@@ -104,6 +105,36 @@ public abstract class BaseWorkOrder {
             }
         }
         return "Unknown";
+    }
+
+    public static String formatRawString(String val) {
+        if (val == null) return null;
+        String trimmed = val.trim();
+        if (trimmed.isEmpty()) return "";
+        if (trimmed.matches("^[+-]?\\d+(\\.\\d+)?[eE][+-]?\\d+$")) {
+            try {
+                BigDecimal bd = new BigDecimal(trimmed);
+                if (bd.scale() <= 0 || bd.remainder(BigDecimal.ONE).compareTo(BigDecimal.ZERO) == 0) {
+                    return bd.toBigInteger().toString();
+                } else {
+                    return bd.stripTrailingZeros().toPlainString();
+                }
+            } catch (Exception ignored) {}
+        }
+        return trimmed;
+    }
+
+    public String getDisplayInvoiceNumber() {
+        String formatted = formatRawString(invoiceNumber);
+        return (formatted != null && !formatted.isEmpty()) ? formatted : "-";
+    }
+
+    public String getDisplayLoanNumber() {
+        return formatRawString(loanNumber);
+    }
+
+    public String getDisplayPpwNumber() {
+        return formatRawString(ppwNumber);
     }
 
     public long getDaysElapsed() {
@@ -174,5 +205,19 @@ public abstract class BaseWorkOrder {
                 && clientDiscountTotal.compareTo(BigDecimal.ZERO) > 0
                 && clientInvoiceTotal != null
                 && clientDiscountTotal.compareTo(clientInvoiceTotal) < 0;
+    }
+
+    public BigDecimal getRemainingContractorBalance() {
+        if (Boolean.TRUE.equals(contractorInvoicePaid) || (status != null && status.equalsIgnoreCase("Cancelled"))) {
+            return BigDecimal.ZERO;
+        }
+        BigDecimal total = contractorInvoiceTotal != null ? contractorInvoiceTotal : BigDecimal.ZERO;
+        if (contractorDiscountPercent != null && contractorDiscountPercent.compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal discount = total.multiply(contractorDiscountPercent).divide(new BigDecimal("100"), 2, java.math.RoundingMode.HALF_UP);
+            total = total.subtract(discount);
+        }
+        BigDecimal paid = contractorPaidAmount != null ? contractorPaidAmount : BigDecimal.ZERO;
+        BigDecimal remaining = total.subtract(paid);
+        return remaining.compareTo(BigDecimal.ZERO) > 0 ? remaining : BigDecimal.ZERO;
     }
 }

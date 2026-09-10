@@ -31,4 +31,22 @@ public interface EmployeeWorkOrderRepository extends JpaRepository<EmployeeWorkO
 
     @Query("SELECT SUM(w.contractorInvoiceTotal) FROM EmployeeWorkOrder w")
     BigDecimal sumContractorInvoiceTotal();
+
+    @Query("SELECT DISTINCT w.originalClientString FROM EmployeeWorkOrder w WHERE w.originalClientString IS NOT NULL AND TRIM(w.originalClientString) <> '' ORDER BY w.originalClientString")
+    List<String> findDistinctClientStrings();
+
+    @Query("SELECT DISTINCT w.originalContractorString FROM EmployeeWorkOrder w WHERE w.originalContractorString IS NOT NULL AND TRIM(w.originalContractorString) <> '' ORDER BY w.originalContractorString")
+    List<String> findDistinctContractorStrings();
+
+    @Query("SELECT DISTINCT w.workType FROM EmployeeWorkOrder w WHERE w.workType IS NOT NULL AND TRIM(w.workType) <> '' ORDER BY w.workType")
+    List<String> findDistinctWorkTypes();
+
+    @Query("SELECT DISTINCT w.admin FROM EmployeeWorkOrder w WHERE w.admin IS NOT NULL AND TRIM(w.admin) <> '' ORDER BY w.admin")
+    List<String> findDistinctAdmins();
+
+    @Query("SELECT DISTINCT w.customerBank FROM EmployeeWorkOrder w WHERE w.customerBank IS NOT NULL AND TRIM(w.customerBank) <> '' ORDER BY w.customerBank")
+    List<String> findDistinctCustomerBanks();
+
+    @Query("SELECT DISTINCT w.state FROM EmployeeWorkOrder w WHERE w.state IS NOT NULL AND TRIM(w.state) <> '' ORDER BY w.state")
+    List<String> findDistinctStates();
 }

@@ -40,6 +40,36 @@ public class WorkOrderReportService {
                 return w.getOriginalContractorString() != null ? w.getOriginalContractorString() : "Unknown";
         }
 
+        public String getClientIdentifier(WorkOrder w) {
+                if (w.getClient() != null && w.getClient().getCode() != null && !w.getClient().getCode().trim().isEmpty()) {
+                        return w.getClient().getCode().trim();
+                }
+                if (w.getOriginalClientString() != null && !w.getOriginalClientString().trim().isEmpty()) {
+                        return w.getOriginalClientString().trim();
+                }
+                return "Unknown";
+        }
+
+        public String getClientSeriesName(WorkOrder w) {
+                String code = "";
+                if (w.getClient() != null && w.getClient().getCode() != null) {
+                        code = w.getClient().getCode().replaceAll("[^0-9]", "");
+                }
+                if (code.isEmpty() && w.getOriginalClientString() != null) {
+                        code = w.getOriginalClientString().replaceAll("[^0-9]", "");
+                }
+                if (code.isEmpty()) {
+                        return "Unknown Series";
+                }
+                try {
+                        int clientNum = Integer.parseInt(code);
+                        int seriesBase = (clientNum / 100) * 100;
+                        return "Series " + seriesBase;
+                } catch (NumberFormatException e) {
+                        return "Unknown Series";
+                }
+        }
+
         public WorkOrderDashboardDTO calculateEmployeeStatistics(List<root.cyb.mh.attendancesystem.model.EmployeeWorkOrder> workOrders) {
                 List<WorkOrder> converted = workOrders.stream().map(empWo -> {
                         WorkOrder w = new WorkOrder();
@@ -154,8 +184,8 @@ public class WorkOrderReportService {
                 // Admin Performance Metrics
                 // Count unique clients
                 long uniqueClients = workOrders.stream()
-                                .filter(wo -> wo.getClient() != null)
-                                .map(wo -> wo.getClient().getId())
+                                .map(this::getClientIdentifier)
+                                .filter(id -> id != null && !id.trim().isEmpty() && !id.equalsIgnoreCase("Unknown"))
                                 .distinct()
                                 .count();
                 stats.setUniqueClientCount((int) uniqueClients);
@@ -265,29 +295,7 @@ public class WorkOrderReportService {
 
                 // --- Series (LLC) Analysis ---
                 Map<String, List<WorkOrder>> seriesGroups = workOrders.stream()
-                                .collect(Collectors.groupingBy(w -> {
-                                        // Determine Series from Client Code (e.g. "C105" -> "Series 100")
-                                        String code = "0";
-                                        if (w.getClient() != null && w.getClient().getCode() != null) {
-                                                code = w.getClient().getCode().replaceAll("[^0-9]", ""); // Extract
-                                                                                                         // digits
-                                        } else if (w.getOriginalClientString() != null) {
-                                                // Try to parse from string if entity link missing?
-                                                // Or just fallback to 'Unknown'
-                                                // Let's rely on Client Entity Code primarily.
-                                        }
-
-                                        if (code.isEmpty())
-                                                return "Unknown Series";
-
-                                        try {
-                                                int clientNum = Integer.parseInt(code);
-                                                int seriesBase = (clientNum / 100) * 100;
-                                                return "Series " + seriesBase;
-                                        } catch (NumberFormatException e) {
-                                                return "Unknown Series";
-                                        }
-                                }));
+                                .collect(Collectors.groupingBy(this::getClientSeriesName));
 
                 List<SeriesStat> seriesStats = seriesGroups
                                 .entrySet().stream()
@@ -517,24 +525,7 @@ public class WorkOrderReportService {
 
                                         // Within each month, group by Series
                                         return monthEntry.getValue().stream()
-                                                        .collect(Collectors.groupingBy(w -> {
-                                                                // Determine Series from Client Code
-                                                                String code = "0";
-                                                                if (w.getClient() != null
-                                                                                && w.getClient().getCode() != null) {
-                                                                        code = w.getClient().getCode()
-                                                                                        .replaceAll("[^0-9]", "");
-                                                                }
-                                                                if (code.isEmpty())
-                                                                        return "Unknown Series";
-                                                                try {
-                                                                        int clientNum = Integer.parseInt(code);
-                                                                        int seriesBase = (clientNum / 100) * 100;
-                                                                        return "Series " + seriesBase;
-                                                                } catch (NumberFormatException e) {
-                                                                        return "Unknown Series";
-                                                                }
-                                                        }))
+                                                        .collect(Collectors.groupingBy(this::getClientSeriesName))
                                                         .entrySet().stream()
                                                         .map(seriesEntry -> {
                                                                 String seriesName = seriesEntry.getKey();
@@ -641,7 +632,7 @@ public class WorkOrderReportService {
                 // State × Series breakdown
                 List<WorkOrderDashboardDTO.GeographicSeriesStat> stateSeriesStats = workOrders.stream()
                                 .filter(w -> w.getState() != null && !w.getState().trim().isEmpty()
-                                                && w.getClient() != null)
+                                                && (w.getClient() != null || w.getOriginalClientString() != null))
                                 .collect(Collectors.groupingBy(w -> w.getState().trim().toUpperCase()))
                                 .entrySet().stream()
                                 .flatMap(stateEntry -> {
@@ -649,24 +640,7 @@ public class WorkOrderReportService {
 
                                         // Within each state, group by Series
                                         return stateEntry.getValue().stream()
-                                                        .collect(Collectors.groupingBy(w -> {
-                                                                // Extract Series from Client Code
-                                                                String code = "0";
-                                                                if (w.getClient() != null
-                                                                                && w.getClient().getCode() != null) {
-                                                                        code = w.getClient().getCode()
-                                                                                        .replaceAll("[^0-9]", "");
-                                                                }
-                                                                if (code.isEmpty())
-                                                                        return "Unknown Series";
-                                                                try {
-                                                                        int clientNum = Integer.parseInt(code);
-                                                                        int seriesBase = (clientNum / 100) * 100;
-                                                                        return "Series " + seriesBase;
-                                                                } catch (NumberFormatException e) {
-                                                                        return "Unknown Series";
-                                                                }
-                                                        }))
+                                                        .collect(Collectors.groupingBy(this::getClientSeriesName))
                                                         .entrySet().stream()
                                                         .map(seriesEntry -> {
                                                                 String seriesName = seriesEntry.getKey();

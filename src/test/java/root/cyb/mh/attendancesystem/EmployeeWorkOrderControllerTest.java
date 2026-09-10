@@ -351,4 +351,156 @@ class EmployeeWorkOrderControllerTest {
                 .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.containsString("attachment; filename=\"Due_Orders_partial_")))
                 .andExpect(content().contentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
     }
+
+    @Test
+    void generateReportWithDueBucketCritical() throws Exception {
+        when(employeeWorkOrderRepository.findAll(org.mockito.ArgumentMatchers.<Specification<EmployeeWorkOrder>>any(), any(Sort.class)))
+                .thenReturn(List.of());
+        when(clientDueAgingService.filterOrdersByDueBucket(any(), eq("critical"))).thenReturn(List.of());
+        when(clientDueAgingService.calculateAgingSummary(any())).thenReturn(sampleSummary);
+
+        WorkOrderDashboardDTO dto = new WorkOrderDashboardDTO();
+        WorkOrderDashboardDTO.SeriesStat seriesStat = new WorkOrderDashboardDTO.SeriesStat(
+                "Grand Total", BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
+                0L, 0L, 0L, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
+                BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
+        dto.setGrandTotalSeries(seriesStat);
+        dto.setSeriesStats(List.of());
+        when(workOrderReportService.calculateEmployeeStatistics(any())).thenReturn(dto);
+
+        mockMvc.perform(get("/employee/work-orders/report?dueBucket=critical").with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("dueBucket", "critical"))
+                .andExpect(model().attributeExists("agingSummary"))
+                .andExpect(model().attribute("reportTitle", org.hamcrest.Matchers.containsString("Critical Delinquent")))
+                .andExpect(view().name("employee/work-order/report"));
+    }
+
+    @Test
+    void generateReportWithDueBucketPartial() throws Exception {
+        when(employeeWorkOrderRepository.findAll(org.mockito.ArgumentMatchers.<Specification<EmployeeWorkOrder>>any(), any(Sort.class)))
+                .thenReturn(List.of());
+        when(clientDueAgingService.filterOrdersByDueBucket(any(), eq("partial"))).thenReturn(List.of());
+        when(clientDueAgingService.calculateAgingSummary(any())).thenReturn(sampleSummary);
+
+        WorkOrderDashboardDTO dto = new WorkOrderDashboardDTO();
+        WorkOrderDashboardDTO.SeriesStat seriesStat = new WorkOrderDashboardDTO.SeriesStat(
+                "Grand Total", BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
+                0L, 0L, 0L, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
+                BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
+        dto.setGrandTotalSeries(seriesStat);
+        dto.setSeriesStats(List.of());
+        when(workOrderReportService.calculateEmployeeStatistics(any())).thenReturn(dto);
+
+        mockMvc.perform(get("/employee/work-orders/report?dueBucket=partial").with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("dueBucket", "partial"))
+                .andExpect(model().attributeExists("agingSummary"))
+                .andExpect(model().attribute("reportTitle", org.hamcrest.Matchers.containsString("Partially Paid Work Orders")))
+                .andExpect(view().name("employee/work-order/report"));
+    }
+
+    @Test
+    void filterByAdminBankStateAndArchiveStatus() throws Exception {
+        Employee emp = new Employee();
+        emp.setId("EMP02");
+        emp.setCanAccessWorkOrders(true);
+        when(employeeRepository.findById("EMP02")).thenReturn(Optional.of(emp));
+        when(employeeWorkOrderRepository.findAll(any(Specification.class), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "id")), 0));
+
+        mockMvc.perform(get("/employee/work-orders")
+                .param("admin", "Alice")
+                .param("customerBank", "Chase")
+                .param("state", "TX")
+                .param("dateType", "invoice")
+                .param("archiveStatus", "active")
+                .with(user("EMP02").roles("EMPLOYEE")))
+                .andExpect(status().isOk())
+                .andExpect(view().name("employee/work-order/list"))
+                .andExpect(model().attribute("admin", "Alice"))
+                .andExpect(model().attribute("customerBank", "Chase"))
+                .andExpect(model().attribute("state", "TX"))
+                .andExpect(model().attribute("dateType", "invoice"))
+                .andExpect(model().attribute("archiveStatus", "active"))
+                .andExpect(model().attributeExists("distinctAdmins"))
+                .andExpect(model().attributeExists("distinctCustomerBanks"))
+                .andExpect(model().attributeExists("distinctStates"));
+    }
+
+    @Test
+    void generateReportWithNewFilters() throws Exception {
+        when(employeeWorkOrderRepository.findAll(org.mockito.ArgumentMatchers.<Specification<EmployeeWorkOrder>>any(), any(Sort.class)))
+                .thenReturn(List.of());
+        when(clientDueAgingService.calculateAgingSummary(any())).thenReturn(sampleSummary);
+
+        WorkOrderDashboardDTO dto = new WorkOrderDashboardDTO();
+        WorkOrderDashboardDTO.SeriesStat seriesStat = new WorkOrderDashboardDTO.SeriesStat(
+                "Grand Total", BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
+                0L, 0L, 0L, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
+                BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
+        dto.setGrandTotalSeries(seriesStat);
+        dto.setSeriesStats(List.of());
+        when(workOrderReportService.calculateEmployeeStatistics(any())).thenReturn(dto);
+
+        mockMvc.perform(get("/employee/work-orders/report")
+                .param("admin", "Alice")
+                .param("customerBank", "Chase")
+                .param("state", "TX")
+                .with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("admin", "Alice"))
+                .andExpect(model().attribute("customerBank", "Chase"))
+                .andExpect(model().attribute("state", "TX"))
+                .andExpect(model().attribute("hasActiveFilters", true))
+                .andExpect(model().attribute("reportTitle", org.hamcrest.Matchers.containsString("Admin: Alice")))
+                .andExpect(model().attribute("reportTitle", org.hamcrest.Matchers.containsString("Bank: Chase")))
+                .andExpect(model().attribute("reportTitle", org.hamcrest.Matchers.containsString("State: TX")))
+                .andExpect(view().name("employee/work-order/report"));
+    }
+
+    @Test
+    void listWorkOrdersWithActiveFilterProducesFilteredStats() throws Exception {
+        EmployeeWorkOrder wo = new EmployeeWorkOrder();
+        wo.setId(101L);
+        wo.setOriginalClientString("100");
+        wo.setClientInvoiceTotal(new BigDecimal("250.00"));
+        wo.setClientInvoicePaid(false);
+
+        when(employeeWorkOrderRepository.findAll(org.mockito.ArgumentMatchers.<Specification<EmployeeWorkOrder>>any(), any(Sort.class)))
+                .thenReturn(List.of(wo));
+        when(clientDueAgingService.calculateAgingSummary(any())).thenReturn(sampleSummary);
+
+        WorkOrderDashboardDTO dto = new WorkOrderDashboardDTO();
+        dto.setTotalWorkOrders(1);
+        dto.setTotalRevenue(new BigDecimal("250.00"));
+        when(workOrderReportService.calculateEmployeeStatistics(any())).thenReturn(dto);
+
+        mockMvc.perform(get("/employee/work-orders")
+                .param("client", "100")
+                .param("archiveStatus", "active")
+                .with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("hasActiveFilters", true))
+                .andExpect(model().attribute("matchingCount", 1))
+                .andExpect(model().attributeExists("filteredStats"))
+                .andExpect(model().attributeExists("agingSummary"))
+                .andExpect(view().name("employee/work-order/list"));
+    }
+
+    @Test
+    void testScientificNotationDisplayFormatting() {
+        EmployeeWorkOrder wo = new EmployeeWorkOrder();
+        wo.setInvoiceNumber("1.89698E+11");
+        org.junit.jupiter.api.Assertions.assertEquals("189698000000", wo.getDisplayInvoiceNumber());
+
+        wo.setInvoiceNumber("M15465102");
+        org.junit.jupiter.api.Assertions.assertEquals("M15465102", wo.getDisplayInvoiceNumber());
+
+        wo.setInvoiceNumber("255719");
+        org.junit.jupiter.api.Assertions.assertEquals("255719", wo.getDisplayInvoiceNumber());
+
+        wo.setInvoiceNumber(null);
+        org.junit.jupiter.api.Assertions.assertEquals("-", wo.getDisplayInvoiceNumber());
+    }
 }
