@@ -47,6 +47,8 @@ public class Employee {
     private String photoBase64;
 
     private Integer annualLeaveQuota; // Null means use global default
+    private Integer sickLeaveQuota; // Null means use global default
+    private Integer casualLeaveQuota; // Null means use global default
 
     @jakarta.persistence.Column(columnDefinition = "boolean default false")
     private boolean isGuest = false;
@@ -79,8 +81,27 @@ public class Employee {
     private String bankName;
     private String accountNumber;
 
+    public int getEffectiveSickQuota(int globalDefaultSick) {
+        if (sickLeaveQuota != null) {
+            return sickLeaveQuota;
+        }
+        return globalDefaultSick;
+    }
+
+    public int getEffectiveCasualQuota(int globalDefaultCasual) {
+        if (casualLeaveQuota != null) {
+            return casualLeaveQuota;
+        }
+        if (annualLeaveQuota != null) {
+            return annualLeaveQuota;
+        }
+        return globalDefaultCasual;
+    }
+
     public int getEffectiveQuota(int globalDefault) {
-        return annualLeaveQuota != null ? annualLeaveQuota : globalDefault;
+        int defaultSick = globalDefault / 2;
+        int defaultCasual = Math.max(0, globalDefault - defaultSick);
+        return getEffectiveSickQuota(defaultSick) + getEffectiveCasualQuota(defaultCasual);
     }
 
     public boolean isCanAccessWorkOrders() {

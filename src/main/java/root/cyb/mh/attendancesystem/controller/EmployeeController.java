@@ -84,12 +84,17 @@ public class EmployeeController {
                 existing.setAnalystController(employee.isAnalystController());
                 existing.setCanViewAllPaymentRequests(employee.isCanViewAllPaymentRequests());
                 existing.setCanAccessWorkOrders(employee.isCanAccessWorkOrders());
-                existing.setAnnualLeaveQuota(employee.getAnnualLeaveQuota()); // Update Quota
+                existing.setSickLeaveQuota(employee.getSickLeaveQuota());
+                existing.setCasualLeaveQuota(employee.getCasualLeaveQuota());
+                if (employee.getSickLeaveQuota() != null && employee.getCasualLeaveQuota() != null) {
+                    existing.setAnnualLeaveQuota(employee.getSickLeaveQuota() + employee.getCasualLeaveQuota());
+                } else {
+                    existing.setAnnualLeaveQuota(null);
+                }
                 existing.setJoiningDate(employee.getJoiningDate()); // Update Joining Date
                 existing.setDateOfBirth(employee.getDateOfBirth()); // Update Date of Birth
                 existing.setMonthlySalary(employee.getMonthlySalary()); // Update Monthly Salary
                 existing.setFixedAllowance(employee.getFixedAllowance()); // Update Fixed Allowance
-                existing.setBankName(employee.getBankName()); // Update Bank Name
                 existing.setBankName(employee.getBankName()); // Update Bank Name
                 existing.setAccountNumber(employee.getAccountNumber()); // Update Account Number
                 existing.setDesignation(employee.getDesignation());

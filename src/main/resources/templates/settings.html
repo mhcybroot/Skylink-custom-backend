@@ -48,12 +48,21 @@
 
                             <div class="row">
                                 <div class="col-md-6 mb-3">
-                                    <label class="form-label">Default Annual Leave Quota (Days)</label>
-                                    <input type="number" class="form-control" th:field="*{defaultAnnualLeaveQuota}"
-                                        required min="0">
-                                    <small class="text-muted">Paid leaves per year. Excess leaves will be counted as
-                                        Unpaid.</small>
+                                    <label class="form-label fw-bold"><i class="fas fa-notes-medical text-danger me-1"></i> Default Sick Leave Quota (Days)</label>
+                                    <input type="number" class="form-control" th:field="*{defaultSickLeaveQuota}" id="defaultSickQuota"
+                                        required min="0" oninput="updateTotalAnnualQuota()">
+                                    <small class="text-muted">Dedicated paid quota for Sick Leave requests per year.</small>
                                 </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold"><i class="fas fa-umbrella-beach text-warning me-1"></i> Default Casual & Others Leave Quota (Days)</label>
+                                    <input type="number" class="form-control" th:field="*{defaultCasualLeaveQuota}" id="defaultCasualQuota"
+                                        required min="0" oninput="updateTotalAnnualQuota()">
+                                    <small class="text-muted">Paid quota for Casual, Vacation, and Other leaves per year.</small>
+                                </div>
+                            </div>
+                            <div class="alert alert-light border py-2 px-3 mb-3 small d-flex justify-content-between align-items-center">
+                                <span><i class="fas fa-info-circle text-primary me-1"></i> Total Default Annual Quota: <strong id="totalAnnualPreview" th:text="${(schedule.defaultSickLeaveQuota != null ? schedule.defaultSickLeaveQuota : 6) + (schedule.defaultCasualLeaveQuota != null ? schedule.defaultCasualLeaveQuota : 6)}">12</strong> Days</span>
+                                <span class="text-muted">Admin can override these quotas per employee in Employees management.</span>
                             </div>
 
                             <h5 class="mt-4 text-primary"><i class="fas fa-calculator me-1"></i> Payroll Calculation
@@ -371,6 +380,14 @@
                     </div>
                 </div>
             </div>
+            <script>
+                function updateTotalAnnualQuota() {
+                    const s = parseInt(document.getElementById('defaultSickQuota').value) || 0;
+                    const c = parseInt(document.getElementById('defaultCasualQuota').value) || 0;
+                    const preview = document.getElementById('totalAnnualPreview');
+                    if (preview) preview.textContent = (s + c);
+                }
+            </script>
         </section>
     </div>
 </body>

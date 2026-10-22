@@ -27,9 +27,9 @@
                                 <thead class="table-light">
                                     <tr>
                                         <th scope="col" class="border-0 rounded-start">Employee</th>
-                                        <th scope="col" class="border-0 text-center">Quota Usage</th>
-                                        <th scope="col" class="border-0 text-center">Paid/Unpaid/Absent</th>
-                                        <th scope="col" class="border-0 text-center">Breakdown</th>
+                                        <th scope="col" class="border-0 text-center"><i class="fas fa-notes-medical text-danger me-1"></i> Sick Quota</th>
+                                        <th scope="col" class="border-0 text-center"><i class="fas fa-umbrella-beach text-warning me-1"></i> Casual & Others Quota</th>
+                                        <th scope="col" class="border-0 text-center">Total & Absences</th>
                                         <th scope="col" class="border-0 text-center rounded-end">Action</th>
                                     </tr>
                                 </thead>
@@ -37,29 +37,49 @@
                                     <tr th:each="emp : ${employeeQuotas}">
                                         <td>
                                             <div class="fw-bold text-dark" th:text="${emp.employeeName}">Employee Name</div>
+                                            <small class="text-muted" th:text="${emp.employeeId}"></small>
                                         </td>
+                                        <!-- Sick Quota -->
                                         <td class="text-center" style="min-width: 200px;">
                                             <div class="d-flex justify-content-between align-items-center mb-1">
-                                                <small class="text-muted"><span th:text="${emp.yearlyLeavesTaken}"></span> / <span th:text="${emp.annualQuota}"></span> Days</small>
-                                                <small class="fw-bold" th:classappend="${emp.usagePercentage >= 100} ? 'text-danger' : 'text-primary'" th:text="${#numbers.formatDecimal(emp.usagePercentage, 1, 1)} + '%'"></small>
+                                                <small class="text-muted"><span th:text="${emp.sickLeavesTaken}">0</span> / <span th:text="${emp.sickQuota}">6</span> Days</small>
+                                                <small class="fw-bold" th:classappend="${emp.sickUsagePercentage >= 100} ? 'text-danger' : 'text-secondary'" th:text="${#numbers.formatDecimal(emp.sickUsagePercentage, 1, 1)} + '%'"></small>
                                             </div>
-                                            <div class="progress" style="height: 6px;">
-                                                <div class="progress-bar" th:classappend="${emp.usagePercentage >= 100} ? 'bg-danger' : 'bg-primary'" role="progressbar"
-                                                    th:style="'width: ' + ${emp.usagePercentage > 100 ? 100 : emp.usagePercentage} + '%'"></div>
+                                            <div class="progress mb-2" style="height: 6px;">
+                                                <div class="progress-bar bg-danger" role="progressbar"
+                                                    th:style="'width: ' + ${emp.sickUsagePercentage > 100 ? 100 : emp.sickUsagePercentage} + '%'"></div>
+                                            </div>
+                                            <div class="d-flex justify-content-center gap-1 flex-wrap">
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill" style="font-size: 0.7rem;" th:text="'Paid: ' + ${emp.sickPaidTaken}"></span>
+                                                <span th:if="${emp.sickUnpaidTaken > 0}" class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill" style="font-size: 0.7rem;" th:text="'Unpaid: ' + ${emp.sickUnpaidTaken}"></span>
+                                                <span class="badge bg-light text-muted border rounded-pill" style="font-size: 0.7rem;" th:text="'Left: ' + ${emp.sickRemaining}"></span>
                                             </div>
                                         </td>
-                                        <td class="text-center" style="min-width: 180px;">
-                                            <div class="d-flex justify-content-center gap-2 flex-wrap">
-                                                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill" title="Paid Leaves" th:text="'Paid: ' + ${emp.paidLeavesTaken}"></span>
-                                                <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill" title="Unpaid Leaves" th:text="'Unpaid: ' + ${emp.unpaidLeavesTaken}"></span>
+                                        <!-- Casual & Others Quota -->
+                                        <td class="text-center" style="min-width: 200px;">
+                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                <small class="text-muted"><span th:text="${emp.casualLeavesTaken + emp.otherLeavesTaken}">0</span> / <span th:text="${emp.casualQuota}">6</span> Days</small>
+                                                <small class="fw-bold" th:classappend="${emp.casualUsagePercentage >= 100} ? 'text-danger' : 'text-secondary'" th:text="${#numbers.formatDecimal(emp.casualUsagePercentage, 1, 1)} + '%'"></small>
+                                            </div>
+                                            <div class="progress mb-2" style="height: 6px;">
+                                                <div class="progress-bar bg-warning" role="progressbar"
+                                                    th:style="'width: ' + ${emp.casualUsagePercentage > 100 ? 100 : emp.casualUsagePercentage} + '%'"></div>
+                                            </div>
+                                            <div class="d-flex justify-content-center gap-1 flex-wrap">
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill" style="font-size: 0.7rem;" th:text="'Paid: ' + ${emp.casualPaidTaken}"></span>
+                                                <span th:if="${emp.casualUnpaidTaken > 0}" class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill" style="font-size: 0.7rem;" th:text="'Unpaid: ' + ${emp.casualUnpaidTaken}"></span>
+                                                <span class="badge bg-light text-muted border rounded-pill" style="font-size: 0.7rem;" th:text="'Left: ' + ${emp.casualRemaining}"></span>
+                                            </div>
+                                        </td>
+                                        <!-- Total & Absent Summary -->
+                                        <td class="text-center" style="min-width: 170px;">
+                                            <div class="small fw-semibold text-dark mb-1">
+                                                Total: <span th:text="${emp.yearlyLeavesTaken}"></span> / <span th:text="${emp.annualQuota}"></span> Days
+                                            </div>
+                                            <div class="d-flex justify-content-center gap-1 flex-wrap">
                                                 <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill" title="Absent Days" th:text="'Absent: ' + ${emp.absentDays}"></span>
-                                            </div>
-                                        </td>
-                                        <td class="text-center" style="min-width: 150px;">
-                                            <div class="d-flex justify-content-center gap-2 flex-wrap">
-                                                <span class="badge bg-info text-dark rounded-pill" title="Sick">Sick: <span th:text="${emp.sickLeavesTaken}"></span></span>
-                                                <span class="badge bg-secondary rounded-pill" title="Casual">Casual: <span th:text="${emp.casualLeavesTaken}"></span></span>
-                                                <span class="badge bg-light text-dark border rounded-pill" title="Other">Other: <span th:text="${emp.otherLeavesTaken}"></span></span>
+                                                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill" th:text="'Casual: ' + ${emp.casualLeavesTaken}"></span>
+                                                <span th:if="${emp.otherLeavesTaken > 0}" class="badge bg-light text-dark border rounded-pill" th:text="'Other: ' + ${emp.otherLeavesTaken}"></span>
                                             </div>
                                         </td>
                                         <td class="text-center">
@@ -69,7 +89,7 @@
                                         </td>
                                     </tr>
                                     <tr th:if="${#lists.isEmpty(employeeQuotas)}">
-                                        <td colspan="4" class="text-center text-muted py-4">No employees found.</td>
+                                        <td colspan="5" class="text-center text-muted py-4">No employees found.</td>
                                     </tr>
                                 </tbody>
                             </table>

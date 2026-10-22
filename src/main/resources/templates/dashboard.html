@@ -434,9 +434,15 @@
                                         <small class="text-muted" style="font-size: 0.75rem;">Absent: <span class="text-danger fw-bold" th:text="${emp.absentDays}">0</span></small>
                                     </div>
                                     <div class="d-flex justify-content-between">
-                                        <span class="badge bg-info text-dark" style="font-size: 0.65rem;">Sick: <span th:text="${emp.sickLeavesTaken}"></span></span>
-                                        <span class="badge bg-secondary" style="font-size: 0.65rem;">Casual: <span th:text="${emp.casualLeavesTaken}"></span></span>
-                                        <span class="badge bg-light text-dark border" style="font-size: 0.65rem;">Other: <span th:text="${emp.otherLeavesTaken}"></span></span>
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size: 0.68rem;" title="Sick Leave Quota">
+                                            Sick: <span th:text="${emp.sickLeavesTaken}">0</span>/<span th:text="${emp.sickQuota}">6</span>
+                                        </span>
+                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size: 0.68rem;" title="Casual & Others Quota">
+                                            Casual: <span th:text="${emp.casualLeavesTaken + emp.otherLeavesTaken}">0</span>/<span th:text="${emp.casualQuota}">6</span>
+                                        </span>
+                                        <span class="badge bg-light text-muted border" style="font-size: 0.68rem;" title="Absent Days">
+                                            Absent: <span th:text="${emp.absentDays}">0</span>
+                                        </span>
                                     </div>
                                 </li>
                             </ul>

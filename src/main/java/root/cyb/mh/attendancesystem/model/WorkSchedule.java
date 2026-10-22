@@ -28,6 +28,36 @@ public class WorkSchedule {
     private String weekendDays = "6,7";
 
     private Integer defaultAnnualLeaveQuota = 12; // Days per year
+    private Integer defaultSickLeaveQuota = 6; // Sick days per year
+    private Integer defaultCasualLeaveQuota = 6; // Casual & other days per year
+
+    public Integer getDefaultSickLeaveQuota() {
+        if (defaultSickLeaveQuota != null) {
+            return defaultSickLeaveQuota;
+        }
+        if (defaultAnnualLeaveQuota != null) {
+            return defaultAnnualLeaveQuota / 2;
+        }
+        return 6;
+    }
+
+    public Integer getDefaultCasualLeaveQuota() {
+        if (defaultCasualLeaveQuota != null) {
+            return defaultCasualLeaveQuota;
+        }
+        if (defaultAnnualLeaveQuota != null) {
+            int sick = getDefaultSickLeaveQuota();
+            return Math.max(0, defaultAnnualLeaveQuota - sick);
+        }
+        return 6;
+    }
+
+    public Integer getDefaultAnnualLeaveQuota() {
+        if (defaultAnnualLeaveQuota != null) {
+            return defaultAnnualLeaveQuota;
+        }
+        return getDefaultSickLeaveQuota() + getDefaultCasualLeaveQuota();
+    }
 
     // Late Penalty Config
     private Integer latePenaltyThreshold = 3; // e.g. every 3 late days

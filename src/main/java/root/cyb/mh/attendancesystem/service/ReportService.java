@@ -740,19 +740,34 @@ public class ReportService {
                 long totalMonthBreakSecs = 0;
 
                 // Quota Calc for this month context
-                int effectiveQuota = emp.getEffectiveQuota(defaultQuota);
-                int leavesTakenBefore = countYearlyLeavesBeforeMonth(emp.getId(), year, month, allLeaves);
-                int remainingQuota = Math.max(0, effectiveQuota - leavesTakenBefore);
+                int defaultSick = globalSchedule.getDefaultSickLeaveQuota() != null ? globalSchedule.getDefaultSickLeaveQuota() : 6;
+                int defaultCasual = globalSchedule.getDefaultCasualLeaveQuota() != null ? globalSchedule.getDefaultCasualLeaveQuota() : 6;
+                int effectiveSick = emp.getEffectiveSickQuota(defaultSick);
+                int effectiveCasual = emp.getEffectiveCasualQuota(defaultCasual);
+
+                int sickTakenBefore = countYearlyLeavesBeforeMonthByType(emp.getId(), year, month, allLeaves, true);
+                int casualTakenBefore = countYearlyLeavesBeforeMonthByType(emp.getId(), year, month, allLeaves, false);
+                int remainingSickQuota = Math.max(0, effectiveSick - sickTakenBefore);
+                int remainingCasualQuota = Math.max(0, effectiveCasual - casualTakenBefore);
 
                 for (LocalDate date : monthDates) {
                     WorkSchedule schedule = resolveSchedule(emp.getId(), date, globalSchedule);
-                    boolean onLeave = isEmployeeOnLeave(emp.getId(), date, allLeaves);
+                    root.cyb.mh.attendancesystem.model.LeaveRequest matchedLeave = getEmployeeLeaveOnDate(emp.getId(), date, allLeaves);
 
-                    if (onLeave) {
+                    if (matchedLeave != null) {
                         leave++;
-                        if (remainingQuota > 0) {
+                        boolean isSick = matchedLeave.getLeaveType() != null && matchedLeave.getLeaveType().toLowerCase().contains("sick");
+                        boolean isPaid;
+                        if (isSick) {
+                            isPaid = remainingSickQuota > 0;
+                            if (isPaid) remainingSickQuota--;
+                        } else {
+                            isPaid = remainingCasualQuota > 0;
+                            if (isPaid) remainingCasualQuota--;
+                        }
+
+                        if (isPaid) {
                             paidLeave++;
-                            remainingQuota--;
                         } else {
                             unpaidLeave++;
                         }
@@ -904,9 +919,15 @@ public class ReportService {
                 .findByDateBetween(startOfMonth, endOfMonth);
 
         // Calculate Remaining Quota
-        int effectiveQuota = emp.getEffectiveQuota(defaultQuota);
-        int leavesTakenBefore = countYearlyLeavesBeforeMonth(emp.getId(), year, month, allLeaves);
-        int remainingQuota = Math.max(0, effectiveQuota - leavesTakenBefore);
+        int defaultSick = globalSchedule.getDefaultSickLeaveQuota() != null ? globalSchedule.getDefaultSickLeaveQuota() : 6;
+        int defaultCasual = globalSchedule.getDefaultCasualLeaveQuota() != null ? globalSchedule.getDefaultCasualLeaveQuota() : 6;
+        int effectiveSick = emp.getEffectiveSickQuota(defaultSick);
+        int effectiveCasual = emp.getEffectiveCasualQuota(defaultCasual);
+
+        int sickTakenBefore = countYearlyLeavesBeforeMonthByType(emp.getId(), year, month, allLeaves, true);
+        int casualTakenBefore = countYearlyLeavesBeforeMonthByType(emp.getId(), year, month, allLeaves, false);
+        int remainingSickQuota = Math.max(0, effectiveSick - sickTakenBefore);
+        int remainingCasualQuota = Math.max(0, effectiveCasual - casualTakenBefore);
 
         for (LocalDate date : monthDates) {
             WorkSchedule schedule = resolveSchedule(emp.getId(), date, globalSchedule);
@@ -923,17 +944,26 @@ public class ReportService {
             }
 
             // Priority 1: Check Leave FIRST overrides everything
-            boolean onLeave = isEmployeeOnLeave(emp.getId(), date, allLeaves);
-            if (onLeave) {
+            root.cyb.mh.attendancesystem.model.LeaveRequest matchedLeave = getEmployeeLeaveOnDate(emp.getId(), date, allLeaves);
+            if (matchedLeave != null) {
                 leaves++;
-                String leaveType = remainingQuota > 0 ? "PAID LEAVE" : "UNPAID LEAVE";
-                if (remainingQuota > 0) {
+                boolean isSick = matchedLeave.getLeaveType() != null && matchedLeave.getLeaveType().toLowerCase().contains("sick");
+                boolean isPaid;
+                if (isSick) {
+                    isPaid = remainingSickQuota > 0;
+                    if (isPaid) remainingSickQuota--;
+                } else {
+                    isPaid = remainingCasualQuota > 0;
+                    if (isPaid) remainingCasualQuota--;
+                }
+
+                if (isPaid) {
                     paidLeaves++;
-                    remainingQuota--;
                 } else {
                     unpaidLeaves++;
                 }
 
+                String leaveType = isPaid ? "PAID LEAVE" : "UNPAID LEAVE";
                 daily.setStatus(leaveType);
                 daily.setStatusColor("info");
                 details.add(daily);
@@ -1083,6 +1113,31 @@ public class ReportService {
                 .filter(l -> !l.getStartDate().isBefore(startOfYear) && l.getStartDate().isBefore(startOfMonth))
                 .mapToLong(l -> java.time.temporal.ChronoUnit.DAYS.between(l.getStartDate(), l.getEndDate()) + 1)
                 .sum();
+    }
+
+    public int countYearlyLeavesBeforeMonthByType(String employeeId, int year, int month,
+            List<root.cyb.mh.attendancesystem.model.LeaveRequest> allLeaves, boolean isSick) {
+        LocalDate startOfYear = LocalDate.of(year, 1, 1);
+        LocalDate startOfMonth = LocalDate.of(year, month, 1);
+
+        return (int) allLeaves.stream()
+                .filter(l -> l.getEmployee().getId().equals(employeeId))
+                .filter(l -> !l.getStartDate().isBefore(startOfYear) && l.getStartDate().isBefore(startOfMonth))
+                .filter(l -> {
+                    String type = l.getLeaveType() != null ? l.getLeaveType().toLowerCase() : "";
+                    return isSick ? type.contains("sick") : !type.contains("sick");
+                })
+                .mapToLong(l -> java.time.temporal.ChronoUnit.DAYS.between(l.getStartDate(), l.getEndDate()) + 1)
+                .sum();
+    }
+
+    public root.cyb.mh.attendancesystem.model.LeaveRequest getEmployeeLeaveOnDate(String employeeId, LocalDate date,
+            List<root.cyb.mh.attendancesystem.model.LeaveRequest> allLeaves) {
+        return allLeaves.stream()
+                .filter(l -> l.getEmployee().getId().equals(employeeId) &&
+                        !date.isBefore(l.getStartDate()) && !date.isAfter(l.getEndDate()))
+                .findFirst()
+                .orElse(null);
     }
 
     // Helper to calculate Working Days (Total - Weekends - Holidays)

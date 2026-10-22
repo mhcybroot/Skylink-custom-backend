@@ -151,7 +151,9 @@ public class LeaveService {
     public List<EmployeeLeaveQuotaDto> calculateAllEmployeeLeaveQuotas(LocalDate today, List<Employee> allEmployees) {
         // --- Annual Leave Quotas (Optimized Single Query) ---
         root.cyb.mh.attendancesystem.model.WorkSchedule globalSchedule = workScheduleRepository.findAll().stream().findFirst().orElse(new root.cyb.mh.attendancesystem.model.WorkSchedule());
-        int defaultQuota = globalSchedule.getDefaultAnnualLeaveQuota() != null ? globalSchedule.getDefaultAnnualLeaveQuota() : 12;
+        int defaultSickQuota = globalSchedule.getDefaultSickLeaveQuota() != null ? globalSchedule.getDefaultSickLeaveQuota() : 6;
+        int defaultCasualQuota = globalSchedule.getDefaultCasualLeaveQuota() != null ? globalSchedule.getDefaultCasualLeaveQuota() : 6;
+        int defaultQuota = globalSchedule.getDefaultAnnualLeaveQuota() != null ? globalSchedule.getDefaultAnnualLeaveQuota() : (defaultSickQuota + defaultCasualQuota);
         String weekendDays = globalSchedule.getWeekendDays() != null ? globalSchedule.getWeekendDays() : "";
 
         LocalDate startOfYear = LocalDate.of(today.getYear(), 1, 1);
@@ -179,7 +181,10 @@ public class LeaveService {
         return allEmployees.stream()
                 .filter(e -> !e.isGuest())
                 .map(emp -> {
-                    int effectiveQuota = emp.getEffectiveQuota(defaultQuota);
+                    int effectiveSickQuota = emp.getEffectiveSickQuota(defaultSickQuota);
+                    int effectiveCasualQuota = emp.getEffectiveCasualQuota(defaultCasualQuota);
+                    int effectiveQuota = effectiveSickQuota + effectiveCasualQuota;
+
                     List<root.cyb.mh.attendancesystem.model.LeaveRequest> empLeaves = leavesByEmployee.getOrDefault(emp.getId(), java.util.Collections.emptyList());
                     
                     int totalTaken = 0, sickTaken = 0, casualTaken = 0, otherTaken = 0;
@@ -202,8 +207,20 @@ public class LeaveService {
                         }
                     }
                     
-                    int paidTaken = Math.min(totalTaken, effectiveQuota);
-                    int unpaidTaken = Math.max(0, totalTaken - effectiveQuota);
+                    // Split Quota Deductions
+                    int sickPaid = Math.min(sickTaken, effectiveSickQuota);
+                    int sickUnpaid = Math.max(0, sickTaken - effectiveSickQuota);
+                    int sickRemaining = Math.max(0, effectiveSickQuota - sickTaken);
+                    double sickPercentage = effectiveSickQuota > 0 ? (sickTaken * 100.0 / effectiveSickQuota) : 0;
+
+                    int casualTotalTaken = casualTaken + otherTaken;
+                    int casualPaid = Math.min(casualTotalTaken, effectiveCasualQuota);
+                    int casualUnpaid = Math.max(0, casualTotalTaken - effectiveCasualQuota);
+                    int casualRemaining = Math.max(0, effectiveCasualQuota - casualTotalTaken);
+                    double casualPercentage = effectiveCasualQuota > 0 ? (casualTotalTaken * 100.0 / effectiveCasualQuota) : 0;
+
+                    int paidTaken = sickPaid + casualPaid;
+                    int unpaidTaken = sickUnpaid + casualUnpaid;
                     double percentage = effectiveQuota > 0 ? (totalTaken * 100.0 / effectiveQuota) : 0;
                     
                     // Calculate Absent Days
@@ -258,11 +275,35 @@ public class LeaveService {
                     dto.setCasualLeavesTaken(casualTaken);
                     dto.setOtherLeavesTaken(otherTaken);
                     dto.setUsagePercentage(percentage);
+
+                    // Split Quota DTO Fields
+                    dto.setSickQuota(effectiveSickQuota);
+                    dto.setSickPaidTaken(sickPaid);
+                    dto.setSickUnpaidTaken(sickUnpaid);
+                    dto.setSickRemaining(sickRemaining);
+                    dto.setSickUsagePercentage(sickPercentage);
+
+                    dto.setCasualQuota(effectiveCasualQuota);
+                    dto.setCasualPaidTaken(casualPaid);
+                    dto.setCasualUnpaidTaken(casualUnpaid);
+                    dto.setCasualRemaining(casualRemaining);
+                    dto.setCasualUsagePercentage(casualPercentage);
                     
                     return dto;
                 })
                 .sorted(Comparator.comparing(EmployeeLeaveQuotaDto::getUsagePercentage).reversed())
                 .collect(Collectors.toList());
+    }
+
+    public EmployeeLeaveQuotaDto calculateEmployeeQuota(Employee employee, LocalDate today) {
+        List<EmployeeLeaveQuotaDto> list = calculateAllEmployeeLeaveQuotas(today, List.of(employee));
+        if (!list.isEmpty()) {
+            return list.get(0);
+        }
+        EmployeeLeaveQuotaDto fallback = new EmployeeLeaveQuotaDto();
+        fallback.setEmployeeId(employee.getId());
+        fallback.setEmployeeName(employee.getName());
+        return fallback;
     }
     public List<MonthlyLeaveBreakdownDto> calculateMonthlyBreakdown(Employee employee, int year) {
         root.cyb.mh.attendancesystem.model.WorkSchedule globalSchedule = workScheduleRepository.findAll().stream().findFirst().orElse(new root.cyb.mh.attendancesystem.model.WorkSchedule());
@@ -284,9 +325,14 @@ public class LeaveService {
                 .collect(Collectors.toList());
 
         List<MonthlyLeaveBreakdownDto> breakdown = new ArrayList<>();
-        int effectiveQuota = employee.getEffectiveQuota(globalSchedule.getDefaultAnnualLeaveQuota() != null ? globalSchedule.getDefaultAnnualLeaveQuota() : 12);
+        int defaultSickQuota = globalSchedule.getDefaultSickLeaveQuota() != null ? globalSchedule.getDefaultSickLeaveQuota() : 6;
+        int defaultCasualQuota = globalSchedule.getDefaultCasualLeaveQuota() != null ? globalSchedule.getDefaultCasualLeaveQuota() : 6;
+        int effectiveSickQuota = employee.getEffectiveSickQuota(defaultSickQuota);
+        int effectiveCasualQuota = employee.getEffectiveCasualQuota(defaultCasualQuota);
+        int effectiveQuota = effectiveSickQuota + effectiveCasualQuota;
         
-        int cumulativeLeavesTaken = 0; // to calculate paid vs unpaid
+        int cumulativeSickTaken = 0; // to calculate paid vs unpaid for sick
+        int cumulativeCasualTaken = 0; // to calculate paid vs unpaid for casual & other
         LocalDate joiningDate = employee.getJoiningDate() != null ? employee.getJoiningDate() : startOfYear;
 
         for (int m = 1; m <= 12; m++) {
@@ -325,15 +371,26 @@ public class LeaveService {
                         String proof = proofBuilder.toString();
                         MonthlyLeaveBreakdownDto.DateProof dp = new MonthlyLeaveBreakdownDto.DateProof(d.toString(), proof);
                         
-                        if (type.contains("sick")) dto.getSickDates().add(dp);
-                        else if (type.contains("casual")) dto.getCasualDates().add(dp);
-                        else dto.getOtherDates().add(dp);
-                        
-                        if (cumulativeLeavesTaken < effectiveQuota) {
-                            dto.getPaidDates().add(dp);
-                            cumulativeLeavesTaken++;
+                        if (type.contains("sick")) {
+                            dto.getSickDates().add(dp);
+                            if (cumulativeSickTaken < effectiveSickQuota) {
+                                dto.getPaidDates().add(dp);
+                                cumulativeSickTaken++;
+                            } else {
+                                dto.getUnpaidDates().add(dp);
+                            }
                         } else {
-                            dto.getUnpaidDates().add(dp);
+                            if (type.contains("casual")) {
+                                dto.getCasualDates().add(dp);
+                            } else {
+                                dto.getOtherDates().add(dp);
+                            }
+                            if (cumulativeCasualTaken < effectiveCasualQuota) {
+                                dto.getPaidDates().add(dp);
+                                cumulativeCasualTaken++;
+                            } else {
+                                dto.getUnpaidDates().add(dp);
+                            }
                         }
                         
                         d = d.plusDays(1);

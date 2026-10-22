@@ -13,6 +13,93 @@
                 <h1 class="h2">Leave Requests</h1>
             </div>
 
+            <!-- Quota Summary Cards (Sick Leave & Casual/Others) -->
+            <div class="row g-3 mb-4" th:if="${quota != null}">
+                <!-- Sick Leave Quota Card -->
+                <div class="col-md-6">
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0 fw-bold text-danger">
+                                <i class="fas fa-notes-medical me-2"></i> Sick Leave Quota
+                            </h6>
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill">
+                                Remaining: <span th:text="${quota.sickRemaining}">6</span> Days
+                            </span>
+                        </div>
+                        <div class="card-body pt-0">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted small">Used</span>
+                                <span class="fw-bold small">
+                                    <span th:text="${quota.sickLeavesTaken}">0</span> / <span th:text="${quota.sickQuota}">6</span> Days
+                                </span>
+                            </div>
+                            <div class="progress mb-3" style="height: 8px;">
+                                <div class="progress-bar bg-danger" role="progressbar"
+                                    th:style="'width: ' + ${quota.sickUsagePercentage > 100 ? 100 : quota.sickUsagePercentage} + '%'"
+                                    th:aria-valuenow="${quota.sickLeavesTaken}" aria-valuemin="0"
+                                    th:aria-valuemax="${quota.sickQuota}"></div>
+                            </div>
+                            <div class="row text-center g-2">
+                                <div class="col-6">
+                                    <div class="p-2 border rounded bg-light">
+                                        <small class="d-block text-muted text-uppercase" style="font-size: 0.65rem;">Paid Taken</small>
+                                        <h6 class="mb-0 fw-bold text-success" th:text="${quota.sickPaidTaken}">0</h6>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="p-2 border rounded bg-light">
+                                        <small class="d-block text-muted text-uppercase" style="font-size: 0.65rem;">Unpaid Taken</small>
+                                        <h6 class="mb-0 fw-bold text-danger" th:text="${quota.sickUnpaidTaken}">0</h6>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Casual & Others Leave Quota Card -->
+                <div class="col-md-6">
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0 fw-bold text-warning">
+                                <i class="fas fa-umbrella-beach me-2"></i> Casual & Others Quota
+                            </h6>
+                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill">
+                                Remaining: <span th:text="${quota.casualRemaining}">6</span> Days
+                            </span>
+                        </div>
+                        <div class="card-body pt-0">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted small">Used</span>
+                                <span class="fw-bold small">
+                                    <span th:text="${quota.casualLeavesTaken + quota.otherLeavesTaken}">0</span> / <span th:text="${quota.casualQuota}">6</span> Days
+                                </span>
+                            </div>
+                            <div class="progress mb-3" style="height: 8px;">
+                                <div class="progress-bar bg-warning" role="progressbar"
+                                    th:style="'width: ' + ${quota.casualUsagePercentage > 100 ? 100 : quota.casualUsagePercentage} + '%'"
+                                    th:aria-valuenow="${quota.casualLeavesTaken + quota.otherLeavesTaken}" aria-valuemin="0"
+                                    th:aria-valuemax="${quota.casualQuota}"></div>
+                            </div>
+                            <div class="row text-center g-2">
+                                <div class="col-6">
+                                    <div class="p-2 border rounded bg-light">
+                                        <small class="d-block text-muted text-uppercase" style="font-size: 0.65rem;">Paid Taken</small>
+                                        <h6 class="mb-0 fw-bold text-success" th:text="${quota.casualPaidTaken}">0</h6>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="p-2 border rounded bg-light">
+                                        <small class="d-block text-muted text-uppercase" style="font-size: 0.65rem;">Unpaid Taken</small>
+                                        <h6 class="mb-0 fw-bold text-danger" th:text="${quota.casualUnpaidTaken}">0</h6>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Tabs -->
             <ul class="nav nav-tabs mb-4" id="leaveTabs" role="tablist">
                 <li class="nav-item" role="presentation">
@@ -33,13 +120,20 @@
                         <div class="card-body">
                             <form action="/leave/employee/apply" method="post" th:object="${newRequest}">
                                 <div class="mb-3">
-                                    <label class="form-label">Leave Type</label>
-                                    <select class="form-select" field="*{leaveType}" name="leaveType" required>
+                                    <label class="form-label fw-bold">Leave Type</label>
+                                    <select class="form-select" field="*{leaveType}" name="leaveType" id="leaveTypeSelect" required onchange="handleLeaveTypeChange(this)">
                                         <option value="Sick">Sick Leave</option>
-                                        <option value="Casual">Casual Leave</option>
+                                        <option value="Casual" selected>Casual Leave</option>
                                         <option value="Vacation">Vacation</option>
                                         <option value="Other">Other</option>
                                     </select>
+                                    <div id="quotaDeductionNotice" class="alert alert-warning py-2 px-3 small mt-2 d-flex align-items-center mb-0">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        <span id="quotaNoticeText">
+                                            This request will be deducted from your <strong>Casual & Others Leave Quota</strong>
+                                            <span th:if="${quota != null}">(Available: <strong th:text="${quota.casualRemaining}">6</strong> days)</span>.
+                                        </span>
+                                    </div>
                                 </div>
                                 <div class="row mb-3">
                                     <div class="col-md-6">
@@ -121,8 +215,30 @@
             </div>
         </section>
 
-        <script>
-            // Auto open history tab if hash is set (optional enhancement)
+        <script th:inline="javascript">
+            function handleLeaveTypeChange(select) {
+                const val = select.value.toLowerCase();
+                const noticeText = document.getElementById('quotaNoticeText');
+                const noticeBox = document.getElementById('quotaDeductionNotice');
+                if (!noticeText || !noticeBox) return;
+
+                /*[# th:if="${quota != null}"]*/
+                const sickRemaining = /*[[${quota.sickRemaining}]]*/ 6;
+                const casualRemaining = /*[[${quota.casualRemaining}]]*/ 6;
+                /*[/]*/
+                /*[# th:unless="${quota != null}"]*/
+                const sickRemaining = 6;
+                const casualRemaining = 6;
+                /*[/]*/
+
+                if (val === 'sick') {
+                    noticeBox.className = "alert alert-danger py-2 px-3 small mt-2 d-flex align-items-center mb-0";
+                    noticeText.innerHTML = `This request will be deducted from your <strong>Sick Leave Quota</strong> (Available: <strong>${sickRemaining}</strong> days).`;
+                } else {
+                    noticeBox.className = "alert alert-warning py-2 px-3 small mt-2 d-flex align-items-center mb-0";
+                    noticeText.innerHTML = `This request will be deducted from your <strong>Casual & Others Leave Quota</strong> (Available: <strong>${casualRemaining}</strong> days).`;
+                }
+            }
         </script>
     </div>
 </body>

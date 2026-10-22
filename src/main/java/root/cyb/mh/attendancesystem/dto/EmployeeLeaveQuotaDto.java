@@ -19,4 +19,17 @@ public class EmployeeLeaveQuotaDto {
     private int casualLeavesTaken;
     private int otherLeavesTaken;
     private double usagePercentage;
+
+    // Split Quota Fields
+    private int sickQuota;
+    private int sickPaidTaken;
+    private int sickUnpaidTaken;
+    private int sickRemaining;
+    private double sickUsagePercentage;
+
+    private int casualQuota;
+    private int casualPaidTaken;
+    private int casualUnpaidTaken;
+    private int casualRemaining;
+    private double casualUsagePercentage;
 }

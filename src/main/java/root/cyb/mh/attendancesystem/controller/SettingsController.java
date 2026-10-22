@@ -66,8 +66,12 @@ public class SettingsController {
             existing.setEndTime(schedule.getEndTime());
         existing.setLateToleranceMinutes(schedule.getLateToleranceMinutes());
         existing.setEarlyLeaveToleranceMinutes(schedule.getEarlyLeaveToleranceMinutes());
-        // Save Default Annual Leave Quota
-        existing.setDefaultAnnualLeaveQuota(schedule.getDefaultAnnualLeaveQuota());
+        // Save Default Leave Quotas
+        existing.setDefaultSickLeaveQuota(schedule.getDefaultSickLeaveQuota());
+        existing.setDefaultCasualLeaveQuota(schedule.getDefaultCasualLeaveQuota());
+        int sickQ = schedule.getDefaultSickLeaveQuota() != null ? schedule.getDefaultSickLeaveQuota() : 6;
+        int casualQ = schedule.getDefaultCasualLeaveQuota() != null ? schedule.getDefaultCasualLeaveQuota() : 6;
+        existing.setDefaultAnnualLeaveQuota(sickQ + casualQ);
 
         // Save Late Penalty Settings
         existing.setLatePenaltyThreshold(schedule.getLatePenaltyThreshold());

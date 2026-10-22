@@ -47,6 +47,9 @@ public class EmployeeDashboardController {
     private root.cyb.mh.attendancesystem.repository.LeaveRequestRepository leaveRequestRepository;
 
     @Autowired
+    private root.cyb.mh.attendancesystem.service.LeaveService leaveService;
+
+    @Autowired
     private root.cyb.mh.attendancesystem.repository.PublicHolidayRepository publicHolidayRepository;
 
     @Autowired
@@ -120,27 +123,14 @@ public class EmployeeDashboardController {
             model.addAttribute("badges", new java.util.ArrayList<>());
         }
 
-        // 5. Annual Quota Stats (Using Range Report for Year)
-        int defaultQuota = globalSchedule.getDefaultAnnualLeaveQuota() != null
-                ? globalSchedule.getDefaultAnnualLeaveQuota()
-                : 12;
-        int quota = employee.getEffectiveQuota(defaultQuota);
-
-        LocalDate startOfYear = LocalDate.of(now.getYear(), 1, 1);
-        LocalDate endOfYear = LocalDate.of(now.getYear(), 12, 31);
-
-        root.cyb.mh.attendancesystem.dto.EmployeeRangeReportDto annualReport = reportService.getEmployeeRangeReport(
-                employeeId, startOfYear, endOfYear);
-
-        int totalTaken = annualReport != null ? annualReport.getTotalLeaves() : 0;
-        // Logic for paid/unpaid split is in RangeReport? Yes, totalPaidLeaves
-        int paidTaken = annualReport != null ? annualReport.getTotalPaidLeaves() : 0;
-        int unpaidTaken = annualReport != null ? annualReport.getTotalUnpaidLeaves() : 0;
-
-        model.addAttribute("annualQuota", quota);
-        model.addAttribute("yearlyLeavesTaken", totalTaken);
-        model.addAttribute("paidLeavesTaken", paidTaken);
-        model.addAttribute("unpaidLeavesTaken", unpaidTaken);
+        // 5. Leave Quota Stats (Split into Sick and Casual Quotas)
+        root.cyb.mh.attendancesystem.dto.EmployeeLeaveQuotaDto quotaDto = 
+            leaveService.calculateEmployeeQuota(employee, now);
+        model.addAttribute("leaveQuota", quotaDto);
+        model.addAttribute("annualQuota", quotaDto.getAnnualQuota());
+        model.addAttribute("yearlyLeavesTaken", quotaDto.getYearlyLeavesTaken());
+        model.addAttribute("paidLeavesTaken", quotaDto.getPaidLeavesTaken());
+        model.addAttribute("unpaidLeavesTaken", quotaDto.getUnpaidLeavesTaken());
 
         List<LeaveRequest> recentLeaves = leaveRequestRepository.findByEmployeeIdOrderByCreatedAtDesc(employeeId);
         model.addAttribute("recentLeaves", recentLeaves);

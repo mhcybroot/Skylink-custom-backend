@@ -33,6 +33,14 @@ public class LeaveController {
     @GetMapping("/employee")
     public String employeeLeavePage(Model model, Principal principal) {
         String employeeId = principal.getName();
+        Employee employee = employeeRepository.findById(employeeId).orElse(null);
+
+        if (employee != null) {
+            root.cyb.mh.attendancesystem.dto.EmployeeLeaveQuotaDto quotaDto = 
+                leaveService.calculateEmployeeQuota(employee, java.time.LocalDate.now());
+            model.addAttribute("quota", quotaDto);
+            model.addAttribute("employee", employee);
+        }
 
         // 1. History
         List<LeaveRequest> history = leaveService.getEmployeeHistory(employeeId);

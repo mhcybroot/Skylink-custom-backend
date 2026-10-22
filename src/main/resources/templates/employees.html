@@ -135,10 +135,14 @@
                                         </td>
                                         <td th:text="${emp.email}">john@example.com</td>
                                         <td>
-                                            <span th:if="${emp.annualLeaveQuota != null}"
-                                                th:text="${emp.annualLeaveQuota}">20</span>
-                                            <span th:if="${emp.annualLeaveQuota == null}"
-                                                class="badge bg-secondary">Default</span>
+                                            <div class="d-flex flex-column gap-1">
+                                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill text-start" title="Sick Leave Quota">
+                                                    Sick: <strong th:text="${emp.sickLeaveQuota != null ? emp.sickLeaveQuota : 'Def'}">Def</strong>
+                                                </span>
+                                                <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill text-start" title="Casual & Others Quota">
+                                                    Casual: <strong th:text="${emp.casualLeaveQuota != null ? emp.casualLeaveQuota : (emp.annualLeaveQuota != null ? emp.annualLeaveQuota : 'Def')}">Def</strong>
+                                                </span>
+                                            </div>
                                         </td>
                                         <td>
                                             <button class="btn btn-warning btn-sm me-1" type="button"
@@ -146,6 +150,8 @@
                                                 th:data-role="${emp.role}" th:data-email="${emp.email}"
                                                 th:data-dept-id="${emp.department != null ? emp.department.id : ''}"
                                                 th:data-quota="${emp.annualLeaveQuota}"
+                                                th:data-sick-quota="${emp.sickLeaveQuota}"
+                                                th:data-casual-quota="${emp.casualLeaveQuota != null ? emp.casualLeaveQuota : emp.annualLeaveQuota}"
                                                 th:data-salary="${emp.monthlySalary}"
                                                 th:data-allowance="${emp.fixedAllowance}"
                                                 th:data-bank-name="${emp.bankName}"
@@ -294,11 +300,21 @@
                                             </option>
                                         </select>
                                     </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Annual Leave Quota (Days)</label>
-                                        <input type="number" class="form-control" id="empQuota" name="annualLeaveQuota"
-                                            placeholder="Leave empty to use Global Default">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label fw-bold"><i class="fas fa-notes-medical text-danger me-1"></i> Sick Leave Quota (Days)</label>
+                                            <input type="number" class="form-control" id="empSickQuota" name="sickLeaveQuota"
+                                                placeholder="Empty = Global Default" min="0">
+                                            <small class="text-muted">Overrides global default.</small>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label fw-bold"><i class="fas fa-umbrella-beach text-warning me-1"></i> Casual & Others Quota (Days)</label>
+                                            <input type="number" class="form-control" id="empCasualQuota" name="casualLeaveQuota"
+                                                placeholder="Empty = Global Default" min="0">
+                                            <small class="text-muted">Overrides global default.</small>
+                                        </div>
                                     </div>
+                                    <input type="hidden" id="empQuota" name="annualLeaveQuota">
                                     <div class="mb-3">
                                         <label class="form-label">Monthly Salary</label>
                                         <input type="number" step="0.01" class="form-control" name="monthlySalary"
@@ -399,6 +415,12 @@
                 document.getElementById('empEmail').value = email;
                 document.getElementById('empDept').value = deptId;
                 document.getElementById('empQuota').value = quota;
+                const sickQuota = btn.getAttribute('data-sick-quota') || '';
+                const casualQuota = btn.getAttribute('data-casual-quota') || '';
+                const empSickQuotaEl = document.getElementById('empSickQuota');
+                const empCasualQuotaEl = document.getElementById('empCasualQuota');
+                if (empSickQuotaEl) empSickQuotaEl.value = sickQuota;
+                if (empCasualQuotaEl) empCasualQuotaEl.value = casualQuota;
                 document.getElementById('monthlySalary').value = salary;
                 document.getElementById('fixedAllowance').value = allowance;
                 document.getElementById('bankName').value = bankName;
@@ -433,6 +455,8 @@
                 document.getElementById('empCanViewAllPaymentRequests').checked = false;
                 document.getElementById('empCanAccessWorkOrders').checked = false;
                 document.getElementById('empQuota').value = '';
+                if (document.getElementById('empSickQuota')) document.getElementById('empSickQuota').value = '';
+                if (document.getElementById('empCasualQuota')) document.getElementById('empCasualQuota').value = '';
                 document.getElementById('monthlySalary').value = '';
                 document.getElementById('fixedAllowance').value = '';
                 document.getElementById('bankName').value = '';
