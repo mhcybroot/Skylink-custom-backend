@@ -313,6 +313,13 @@
                                             </a>
                                         </th>
                                         <th class="py-3 border-bottom-0">
+                                            <a th:href="@{/payment-requests(size=${size}, view=${param.view}, sortField='clientCode', sortDir=${sortField == 'clientCode' ? reverseSortDir : 'asc'}, startDate=${startDate}, endDate=${endDate}, contractorId=${contractorId}, clientId=${clientId}, paymentMethodId=${paymentMethodId}, workOrderNumber=${workOrderNumber}, requesterName=${requesterName}, priority=${priority}, status=${status}, paymentStatus=${paymentStatus}, ppwUpdateStatus=${ppwUpdateStatus}, columns=${param.columns})}"
+                                                class="text-decoration-none text-secondary fw-bold">
+                                                Client Code <i class="fas"
+                                                    th:classappend="${sortField == 'clientCode'} ? (${sortDir == 'asc'} ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort'"></i>
+                                            </a>
+                                        </th>
+                                        <th class="py-3 border-bottom-0">
                                             <a th:href="@{/payment-requests(view=${param.view}, sortField='workOrderNumber', sortDir=${sortField == 'workOrderNumber' ? reverseSortDir : 'asc'}, startDate=${startDate}, endDate=${endDate}, contractorId=${contractorId}, clientId=${clientId}, paymentMethodId=${paymentMethodId}, workOrderNumber=${workOrderNumber}, requesterName=${requesterName}, priority=${priority}, status=${status}, paymentStatus=${paymentStatus}, ppwUpdateStatus=${ppwUpdateStatus}, columns=${param.columns})}"
                                                 class="text-decoration-none text-secondary fw-bold">
                                                 WO # <i class="fas"
@@ -397,6 +404,12 @@
                                             </div>
                                         </td>
                                         <td>
+                                            <span th:if="${req.displayClientCode != '-'}" 
+                                                  class="badge bg-light text-dark border font-monospace fw-medium"
+                                                  th:text="${req.displayClientCode}"></span>
+                                            <span th:if="${req.displayClientCode == '-'}" class="text-muted small">-</span>
+                                        </td>
+                                        <td>
                                             <div class="d-flex align-items-center gap-2">
                                                 <span class="font-monospace small text-dark" style="cursor: pointer;"
                                                     th:text="${req.workOrderNumber}"
@@ -476,7 +489,7 @@
                                         </td>
                                     </tr>
                                     <tr th:if="${#lists.isEmpty(requests)}">
-                                        <td colspan="13" class="text-center py-5">
+                                        <td colspan="14" class="text-center py-5">
                                             <div class="d-flex flex-column align-items-center">
                                                 <div class="bg-light rounded-circle p-3 mb-3">
                                                     <i class="fas fa-inbox fa-2x text-muted opacity-50"></i>

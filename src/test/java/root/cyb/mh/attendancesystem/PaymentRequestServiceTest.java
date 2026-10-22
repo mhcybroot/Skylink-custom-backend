@@ -39,4 +39,30 @@ public class PaymentRequestServiceTest {
         assertEquals(root.cyb.mh.attendancesystem.model.enums.PaymentStatus.UNPAID, created.getPaymentStatus());
         assertEquals(root.cyb.mh.attendancesystem.model.enums.PPWStatus.NOT_UPDATED, created.getPpwUpdateStatus());
     }
+
+    @Test
+    public void testDisplayClientCodeAndSorting() {
+        PaymentRequest req1 = new PaymentRequest();
+        req1.setId(1L);
+        root.cyb.mh.attendancesystem.model.Client c1 = new root.cyb.mh.attendancesystem.model.Client();
+        c1.setCode("C200");
+        req1.setClient(c1);
+
+        PaymentRequest req2 = new PaymentRequest();
+        req2.setId(2L);
+        req2.setClientCode("C100");
+
+        PaymentRequest req3 = new PaymentRequest();
+        req3.setId(3L);
+
+        assertEquals("C200", req1.getDisplayClientCode());
+        assertEquals("C100", req2.getDisplayClientCode());
+        assertEquals("-", req3.getDisplayClientCode());
+
+        java.util.List<PaymentRequest> list = new java.util.ArrayList<>(java.util.List.of(req1, req2, req3));
+        paymentRequestService.sortRequests(list, "clientCode", "asc");
+        assertEquals(3L, list.get(0).getId());
+        assertEquals(2L, list.get(1).getId());
+        assertEquals(1L, list.get(2).getId());
+    }
 }

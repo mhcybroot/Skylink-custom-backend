@@ -313,34 +313,61 @@ public class PaymentRequestController {
     @GetMapping("/new")
     public String newRequestForm(Model model) {
         model.addAttribute("paymentRequest", new PaymentRequest());
-        model.addAttribute("priorities", PaymentPriority.values());
+        populateFormModel(model);
+        return "payment-request/form";
+    }
 
-        // Master Data
+    private void populateFormModel(Model model) {
+        if (!model.containsAttribute("showDuplicateQuestions")) {
+            model.addAttribute("showDuplicateQuestions", false);
+        }
+        model.addAttribute("priorities", PaymentPriority.values());
         model.addAttribute("activeContractors", contractorRepository.findByActiveTrue());
         model.addAttribute("activeClients", clientRepository.findByActiveTrue());
         model.addAttribute("activePaymentMethods", paymentMethodRepository.findByActiveTrue());
         model.addAttribute("activeCompanies", companyRepository.findByActiveTrue());
-
-        return "payment-request/form";
     }
 
     @PostMapping
     public String submitRequest(@ModelAttribute PaymentRequest paymentRequest,
             @AuthenticationPrincipal UserDetails userDetails,
             Model model) {
-        if (paymentRequest.getWorkOrderNumber() != null && 
-                paymentRequestRepository.existsByWorkOrderNumberIgnoreCase(paymentRequest.getWorkOrderNumber().trim())) {
+        // Server-side validation
+        if (paymentRequest.getWorkOrderNumber() == null || paymentRequest.getWorkOrderNumber().trim().isEmpty()) {
+            model.addAttribute("errorMessage", "Work Order Number is required.");
+            populateFormModel(model);
+            return "payment-request/form";
+        }
+        if (paymentRequest.getAmount() == null || paymentRequest.getAmount().compareTo(java.math.BigDecimal.ZERO) <= 0) {
+            model.addAttribute("errorMessage", "Amount must be greater than 0.");
+            populateFormModel(model);
+            return "payment-request/form";
+        }
+        if (paymentRequest.getPriority() == null) {
+            model.addAttribute("errorMessage", "Payment Priority is required.");
+            populateFormModel(model);
+            return "payment-request/form";
+        }
+
+        // Duplicate Work Order validation
+        if (paymentRequestRepository.existsByWorkOrderNumberIgnoreCase(paymentRequest.getWorkOrderNumber().trim())) {
             if (paymentRequest.getIsPartialPayment() == null || paymentRequest.getDuplicateReason() == null || paymentRequest.getDuplicateReason().trim().isEmpty()) {
                 model.addAttribute("errorMessage", "Work Order Number '" + paymentRequest.getWorkOrderNumber() + "' already exists. Please indicate if this is a partial payment and explain why.");
                 model.addAttribute("showDuplicateQuestions", true);
-                model.addAttribute("priorities", PaymentPriority.values());
-                model.addAttribute("activeContractors", contractorRepository.findByActiveTrue());
-                model.addAttribute("activeClients", clientRepository.findByActiveTrue());
-                model.addAttribute("activePaymentMethods", paymentMethodRepository.findByActiveTrue());
-                model.addAttribute("activeCompanies", companyRepository.findByActiveTrue());
+                populateFormModel(model);
                 return "payment-request/form";
             }
         }
+
+        // Manual Partial Payment validation
+        if (Boolean.TRUE.equals(paymentRequest.getIsPartialPayment())) {
+            if (paymentRequest.getDuplicateReason() == null || paymentRequest.getDuplicateReason().trim().isEmpty()) {
+                model.addAttribute("errorMessage", "Please provide a reason or note explaining the partial payment.");
+                populateFormModel(model);
+                return "payment-request/form";
+            }
+        }
+
         String username = userDetails.getUsername();
 
         // 1. Try User

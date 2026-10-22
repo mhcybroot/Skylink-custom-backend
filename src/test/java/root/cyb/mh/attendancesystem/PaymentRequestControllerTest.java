@@ -147,6 +147,39 @@ public class PaymentRequestControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "employee", roles = { "EMPLOYEE" })
+    public void testSubmitValidationErrors() throws Exception {
+        // Missing workOrderNumber
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/payment-requests")
+                        .param("workOrderNumber", "")
+                        .param("amount", "100.00")
+                        .param("priority", "REGULAR")
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.model().attribute("errorMessage", org.hamcrest.Matchers.containsString("Work Order Number is required")));
+
+        // Zero amount
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/payment-requests")
+                        .param("workOrderNumber", "WO-VAL-001")
+                        .param("amount", "0")
+                        .param("priority", "REGULAR")
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.model().attribute("errorMessage", org.hamcrest.Matchers.containsString("Amount must be greater than 0")));
+
+        // Partial payment without reason
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/payment-requests")
+                        .param("workOrderNumber", "WO-VAL-002")
+                        .param("amount", "100.00")
+                        .param("priority", "REGULAR")
+                        .param("isPartialPayment", "true")
+                        .param("duplicateReason", "")
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.model().attribute("errorMessage", org.hamcrest.Matchers.containsString("Please provide a reason or note explaining the partial payment")));
+    }
+
+    @Test
     @WithMockUser(username = "admin", roles = { "ADMIN" })
     public void testBulkUpdate() throws Exception {
         root.cyb.mh.attendancesystem.model.PaymentRequest r1 = new root.cyb.mh.attendancesystem.model.PaymentRequest();

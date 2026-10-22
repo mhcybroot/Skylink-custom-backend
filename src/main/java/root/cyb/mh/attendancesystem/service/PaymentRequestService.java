@@ -319,6 +319,16 @@ public class PaymentRequestService {
                     return "";
                 });
                 break;
+            case "clientCode":
+            case "client":
+                comparator = java.util.Comparator.comparing(r -> {
+                    if (r.getClient() != null && r.getClient().getCode() != null)
+                        return r.getClient().getCode().toLowerCase();
+                    if (r.getClientCode() != null)
+                        return r.getClientCode().toLowerCase();
+                    return "";
+                });
+                break;
             case "workOrderNumber":
                 comparator = java.util.Comparator.comparing(r -> r.getWorkOrderNumber().toLowerCase());
                 break;

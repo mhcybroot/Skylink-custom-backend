@@ -34,59 +34,65 @@
                                 <div class="row g-4">
                                     <div class="col-md-6">
                                         <label class="form-label fw-bold text-secondary text-uppercase small">Company
-                                            (LLC)</label>
-                                        <div class="input-group">
+                                            (LLC) <span class="text-danger">*</span></label>
+                                        <div class="input-group has-validation">
                                             <span class="input-group-text bg-light border-0"><i
                                                     class="fas fa-building text-secondary"></i></span>
-                                            <select class="form-select bg-light border-0" th:field="*{company}"
+                                            <select class="form-select bg-light border-0" th:field="*{company}" id="company"
                                                 required>
                                                 <option value="">-- Select Company --</option>
                                                 <option th:each="c : ${activeCompanies}" th:value="${c.id}"
                                                     th:text="${c.name}"></option>
                                             </select>
+                                            <div class="invalid-feedback">Please select a company (LLC).</div>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label fw-bold text-secondary text-uppercase small">Work Order
-                                            Number</label>
-                                        <div class="input-group">
+                                            Number <span class="text-danger">*</span></label>
+                                        <div class="input-group has-validation">
                                             <span class="input-group-text bg-light border-0"><i
                                                     class="fas fa-hashtag text-secondary"></i></span>
                                             <input type="text" class="form-control bg-light border-0"
-                                                th:field="*{workOrderNumber}" placeholder="e.g. WO-2023-001" required>
+                                                th:field="*{workOrderNumber}" id="workOrderNumber" placeholder="e.g. WO-2023-001" required>
+                                            <div class="invalid-feedback">Please enter a valid work order number.</div>
                                         </div>
-                                        <div id="workOrderWarning" class="text-danger small mt-1 d-none">
-                                            <i class="fas fa-exclamation-triangle me-1"></i> Warning: This Work Order Number already exists.
+                                        <div id="workOrderWarning" class="alert alert-warning py-2 px-3 small mt-2 d-none">
+                                            <i class="fas fa-exclamation-triangle me-1"></i> <strong>Duplicate WO detected:</strong> This Work Order already exists. Please confirm if this is a partial payment and provide a reason below.
                                         </div>
                                     </div>
 
-                                    <div class="col-md-6 duplicate-question" id="partialPaymentField" th:classappend="${showDuplicateQuestions} ? '' : 'd-none'">
-                                        <label class="form-label fw-bold text-secondary text-uppercase small">Is Partial Payment?</label>
+                                    <div class="col-md-6" id="partialPaymentField">
+                                        <label class="form-label fw-bold text-secondary text-uppercase small">
+                                            Is Partial Payment? <span class="badge bg-light text-muted border ms-1 fw-normal">Optional</span>
+                                        </label>
                                         <div class="input-group">
                                             <span class="input-group-text bg-light border-0"><i
                                                     class="fas fa-percent text-secondary"></i></span>
-                                            <select class="form-select bg-light border-0" th:field="*{isPartialPayment}" id="isPartialPayment" th:required="${showDuplicateQuestions}">
-                                                <option value="">-- Select Option --</option>
-                                                <option th:value="true">Yes</option>
-                                                <option th:value="false">No</option>
+                                            <select class="form-select bg-light border-0" th:field="*{isPartialPayment}" id="isPartialPayment">
+                                                <option value="false" th:selected="*{isPartialPayment == null or !isPartialPayment}">No (Full Payment)</option>
+                                                <option value="true" th:selected="*{isPartialPayment != null and isPartialPayment}">Yes (Partial / Installment)</option>
                                             </select>
                                         </div>
                                     </div>
 
-                                    <div class="col-md-6 duplicate-question" id="duplicateReasonField" th:classappend="${showDuplicateQuestions} ? '' : 'd-none'">
-                                        <label class="form-label fw-bold text-secondary text-uppercase small">Reason to Duplicate Request</label>
-                                        <div class="input-group">
+                                    <div class="col-md-6" id="duplicateReasonField" th:classappend="${(showDuplicateQuestions != null and showDuplicateQuestions) or (paymentRequest.isPartialPayment != null and paymentRequest.isPartialPayment)} ? '' : 'd-none'">
+                                        <label class="form-label fw-bold text-secondary text-uppercase small" id="partialReasonLabel">
+                                            Partial Payment Note / Reason <span class="text-danger">*</span>
+                                        </label>
+                                        <div class="input-group has-validation">
                                             <span class="input-group-text bg-light border-0"><i
                                                     class="fas fa-comment-dots text-secondary"></i></span>
                                             <input type="text" class="form-control bg-light border-0" th:field="*{duplicateReason}" id="duplicateReason"
-                                                placeholder="e.g. Second installment of payment" th:required="${showDuplicateQuestions}">
+                                                placeholder="e.g. 1st installment of $100, 50% advance, remaining after inspection">
+                                            <div class="invalid-feedback">Please enter a note / reason for this partial payment.</div>
                                         </div>
                                     </div>
 
                                     <div class="col-md-6 position-relative">
                                         <label class="form-label fw-bold text-secondary text-uppercase small">Contractor
-                                            Name</label>
-                                        <div class="input-group">
+                                            Name <span class="text-danger">*</span></label>
+                                        <div class="input-group has-validation">
                                             <span class="input-group-text bg-light border-0"><i
                                                     class="fas fa-hard-hat text-secondary"></i></span>
                                             <!-- Search Input -->
@@ -95,13 +101,12 @@
                                                 placeholder="Type to search contractor..." autocomplete="off">
 
                                             <!-- Hidden Original Select for Form Binding -->
-                                            <!-- We keep id="contractor" here so the auto-fill script continues to work -->
-                                            <!-- Removed 'required' attribute to avoid hidden focus error; handled via JS validation -->
                                             <select class="d-none" th:field="*{contractor}" id="contractor">
                                                 <option value="">-- Select Contractor --</option>
                                                 <option th:each="c : ${activeContractors}" th:value="${c.id}"
                                                     th:text="${c.name}"></option>
                                             </select>
+                                            <div class="invalid-feedback" id="contractorFeedback">Please select a Contractor from the list.</div>
                                         </div>
                                         <!-- Dropdown Results Container -->
                                         <div id="contractorList"
@@ -112,50 +117,56 @@
 
                                     <div class="col-md-6">
                                         <label class="form-label fw-bold text-secondary text-uppercase small">Amount
-                                            ($)</label>
-                                        <div class="input-group">
+                                            ($) <span class="text-danger">*</span></label>
+                                        <div class="input-group has-validation">
                                             <span class="input-group-text bg-light border-0 fw-bold">$</span>
-                                            <input type="number" step="0.01" class="form-control bg-light border-0"
-                                                th:field="*{amount}" placeholder="0.00" required>
+                                            <input type="number" step="0.01" min="0.01" class="form-control bg-light border-0"
+                                                th:field="*{amount}" id="amount" placeholder="0.00" required>
+                                            <div class="invalid-feedback">Please enter a valid amount greater than $0.00.</div>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label fw-bold text-secondary text-uppercase small">Payment
-                                            Priority</label>
-                                        <select class="form-select bg-light border-0" th:field="*{priority}" required>
-                                            <option value="">-- Select Priority --</option>
-                                            <option th:each="p : ${priorities}" th:value="${p}" th:text="${p}"></option>
-                                        </select>
+                                            Priority <span class="text-danger">*</span></label>
+                                        <div class="input-group has-validation">
+                                            <select class="form-select bg-light border-0" th:field="*{priority}" id="priority" required>
+                                                <option value="">-- Select Priority --</option>
+                                                <option th:each="p : ${priorities}" th:value="${p}" th:text="${p}"></option>
+                                            </select>
+                                            <div class="invalid-feedback">Please select a payment priority.</div>
+                                        </div>
                                     </div>
 
                                     <div class="col-md-6">
                                         <label class="form-label fw-bold text-secondary text-uppercase small">Payment
-                                            Method</label>
-                                        <div class="input-group">
+                                            Method <span class="text-danger">*</span></label>
+                                        <div class="input-group has-validation">
                                             <span class="input-group-text bg-light border-0"><i
                                                     class="fas fa-credit-card text-secondary"></i></span>
-                                            <select class="form-select bg-light border-0" th:field="*{paymentMethod}" required>
+                                            <select class="form-select bg-light border-0" th:field="*{paymentMethod}" id="paymentMethod" required>
                                                 <option value="">-- Select Method --</option>
                                                 <option th:each="pm : ${activePaymentMethods}" th:value="${pm.id}"
                                                     th:text="${pm.methodName}"></option>
                                             </select>
+                                            <div class="invalid-feedback">Please select a payment method.</div>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label fw-bold text-secondary text-uppercase small">Account
-                                            Details / ID / Link</label>
-                                        <div class="input-group">
+                                            Details / ID / Link <span class="text-danger">*</span></label>
+                                        <div class="input-group has-validation">
                                             <span class="input-group-text bg-light border-0"><i
                                                     class="fas fa-info-circle text-secondary"></i></span>
                                             <input type="text" class="form-control bg-light border-0"
-                                                th:field="*{paymentAccountDetails}"
+                                                th:field="*{paymentAccountDetails}" id="paymentAccountDetails"
                                                 placeholder="e.g. Zelle Email, Bank Acct #" required>
+                                            <div class="invalid-feedback">Please provide account details or payment ID.</div>
                                         </div>
                                     </div>
                                     <div class="col-md-6 position-relative">
                                         <label class="form-label fw-bold text-secondary text-uppercase small">Client
-                                            Code</label>
-                                        <div class="input-group">
+                                            Code <span class="text-danger">*</span></label>
+                                        <div class="input-group has-validation">
                                             <span class="input-group-text bg-light border-0"><i
                                                     class="fas fa-code text-secondary"></i></span>
                                             <input type="text" id="clientSearch" class="form-control bg-light border-0"
@@ -165,6 +176,7 @@
                                                 <option th:each="cl : ${activeClients}" th:value="${cl.id}"
                                                     th:text="${cl.name + ' (' + cl.code + ')'}"></option>
                                             </select>
+                                            <div class="invalid-feedback" id="clientFeedback">Please select a Client Code from the list.</div>
                                         </div>
                                         <div id="clientList"
                                             class="list-group position-absolute shadow-lg d-none start-0 end-0"
@@ -174,9 +186,10 @@
 
                                     <div class="col-12">
                                         <label class="form-label fw-bold text-secondary text-uppercase small">Reason /
-                                            Description</label>
-                                        <textarea class="form-control bg-light border-0" th:field="*{reason}" rows="3"
-                                            placeholder="Provide details about this payment request..."></textarea>
+                                            Description <span class="text-danger">*</span></label>
+                                        <textarea class="form-control bg-light border-0" th:field="*{reason}" id="reason" rows="3"
+                                            placeholder="Provide details about this payment request..." required></textarea>
+                                        <div class="invalid-feedback">Please provide a reason or description for this request.</div>
                                     </div>
                                 </div>
 
@@ -311,6 +324,30 @@
                 }
             });
 
+            // --- Manual Partial Payment Toggle ---
+            const isPartialPaymentSelect = document.getElementById('isPartialPayment');
+            const duplicateReasonField = document.getElementById('duplicateReasonField');
+            const duplicateReasonInput = document.getElementById('duplicateReason');
+
+            if (isPartialPaymentSelect && duplicateReasonField) {
+                isPartialPaymentSelect.addEventListener('change', function () {
+                    if (this.value === 'true') {
+                        duplicateReasonField.classList.remove('d-none');
+                        if (duplicateReasonInput) {
+                            duplicateReasonInput.required = true;
+                            duplicateReasonInput.focus();
+                        }
+                    } else {
+                        duplicateReasonField.classList.add('d-none');
+                        if (duplicateReasonInput) {
+                            duplicateReasonInput.required = false;
+                            duplicateReasonInput.value = '';
+                            duplicateReasonInput.classList.remove('is-invalid');
+                        }
+                    }
+                });
+            }
+
             // Check Work Order Number Duplication
             const workOrderInput = document.getElementById('workOrderNumber');
             const workOrderWarning = document.getElementById('workOrderWarning');
@@ -325,33 +362,23 @@
                         .then(res => res.json())
                         .then(data => {
                             lastCheckedValue = value;
-                             const partialPaymentField = document.getElementById('partialPaymentField');
-                             const duplicateReasonField = document.getElementById('duplicateReasonField');
-                             const isPartialPayment = document.getElementById('isPartialPayment');
-                             const duplicateReason = document.getElementById('duplicateReason');
-
-                             if (data.exists) {
-                                 workOrderInput.classList.add('is-invalid');
-                                 workOrderWarning.classList.remove('d-none');
-                                 if (partialPaymentField) partialPaymentField.classList.remove('d-none');
-                                 if (duplicateReasonField) duplicateReasonField.classList.remove('d-none');
-                                 if (isPartialPayment) isPartialPayment.required = true;
-                                 if (duplicateReason) duplicateReason.required = true;
-                                 alert(`Warning: Work Order Number "${value}" already exists in the system. Please confirm if this is a partial payment and enter a reason for duplicate request.`);
-                             } else {
-                                 workOrderInput.classList.remove('is-invalid');
-                                 workOrderWarning.classList.add('d-none');
-                                 if (partialPaymentField) partialPaymentField.classList.add('d-none');
-                                 if (duplicateReasonField) duplicateReasonField.classList.add('d-none');
-                                 if (isPartialPayment) {
-                                     isPartialPayment.required = false;
-                                     isPartialPayment.value = '';
-                                 }
-                                 if (duplicateReason) {
-                                     duplicateReason.required = false;
-                                     duplicateReason.value = '';
-                                 }
-                             }
+                            if (data.exists) {
+                                workOrderInput.classList.add('is-invalid');
+                                workOrderWarning.classList.remove('d-none');
+                                if (isPartialPaymentSelect) {
+                                    isPartialPaymentSelect.value = 'true';
+                                }
+                                if (duplicateReasonField) {
+                                    duplicateReasonField.classList.remove('d-none');
+                                }
+                                if (duplicateReasonInput) {
+                                    duplicateReasonInput.required = true;
+                                    duplicateReasonInput.focus();
+                                }
+                            } else {
+                                workOrderInput.classList.remove('is-invalid');
+                                workOrderWarning.classList.add('d-none');
+                            }
                         })
                         .catch(err => console.error('Error checking Work Order Number:', err));
                 });
@@ -365,27 +392,88 @@
                 });
             }
 
-            // --- Form Validation for Hidden Dropdowns ---
+            // --- Comprehensive Form Validation (No Field Can Be Left Blank) ---
             function validateForm() {
-                const contractor = document.getElementById('contractor');
-                const client = document.getElementById('client');
-                const contractorSearch = document.getElementById('contractorSearch');
-                const clientSearch = document.getElementById('clientSearch');
+                let isValid = true;
+                let firstInvalidEl = null;
 
-                if (contractor && !contractor.value) {
-                    alert('Please select a Contractor Name from the dropdown list.');
-                    if (contractorSearch) contractorSearch.focus();
-                    return false;
+                function markField(el, isFieldValid) {
+                    if (!el) return;
+                    if (!isFieldValid) {
+                        el.classList.add('is-invalid');
+                        if (isValid) {
+                            isValid = false;
+                            firstInvalidEl = el;
+                        }
+                    } else {
+                        el.classList.remove('is-invalid');
+                    }
                 }
 
-                if (client && !client.value) {
-                    alert('Please select a Client Code from the dropdown list.');
-                    if (clientSearch) clientSearch.focus();
+                // 1. Company
+                const company = document.getElementById('company');
+                markField(company, company && company.value.trim() !== '');
+
+                // 2. Work Order Number
+                const workOrder = document.getElementById('workOrderNumber');
+                markField(workOrder, workOrder && workOrder.value.trim() !== '');
+
+                // 3. Partial Payment Note (Mandatory if Partial Payment is Yes)
+                if (isPartialPaymentSelect && isPartialPaymentSelect.value === 'true') {
+                    markField(duplicateReasonInput, duplicateReasonInput && duplicateReasonInput.value.trim() !== '');
+                }
+
+                // 4. Contractor Name
+                const contractor = document.getElementById('contractor');
+                const contractorSearch = document.getElementById('contractorSearch');
+                markField(contractorSearch, contractor && contractor.value.trim() !== '');
+
+                // 5. Amount (Must be > 0)
+                const amount = document.getElementById('amount');
+                const amountVal = amount ? parseFloat(amount.value) : 0;
+                markField(amount, amount && !isNaN(amountVal) && amountVal > 0);
+
+                // 6. Payment Priority
+                const priority = document.getElementById('priority');
+                markField(priority, priority && priority.value.trim() !== '');
+
+                // 7. Payment Method
+                const paymentMethod = document.getElementById('paymentMethod');
+                markField(paymentMethod, paymentMethod && paymentMethod.value.trim() !== '');
+
+                // 8. Account Details
+                const accountDetails = document.getElementById('paymentAccountDetails');
+                markField(accountDetails, accountDetails && accountDetails.value.trim() !== '');
+
+                // 9. Client Code
+                const client = document.getElementById('client');
+                const clientSearch = document.getElementById('clientSearch');
+                markField(clientSearch, client && client.value.trim() !== '');
+
+                // 10. Reason / Description
+                const reason = document.getElementById('reason');
+                markField(reason, reason && reason.value.trim() !== '');
+
+                if (!isValid && firstInvalidEl) {
+                    firstInvalidEl.focus();
+                    if (firstInvalidEl.scrollIntoView) {
+                        firstInvalidEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
                     return false;
                 }
 
                 return true;
             }
+
+            // Real-time error removal when user starts typing or selecting
+            document.querySelectorAll('input, select, textarea').forEach(input => {
+                input.addEventListener('input', function () {
+                    this.classList.remove('is-invalid');
+                });
+                input.addEventListener('change', function () {
+                    this.classList.remove('is-invalid');
+                });
+            });
         </script>
     </div>
 </body>

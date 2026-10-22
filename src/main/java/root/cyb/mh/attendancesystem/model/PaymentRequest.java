@@ -119,4 +119,14 @@ public class PaymentRequest {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private RequestStatus status = RequestStatus.PENDING;
+
+    public String getDisplayClientCode() {
+        if (client != null && client.getCode() != null && !client.getCode().trim().isEmpty()) {
+            return client.getCode().trim();
+        }
+        if (clientCode != null && !clientCode.trim().isEmpty()) {
+            return clientCode.trim();
+        }
+        return "-";
+    }
 }
