@@ -22,6 +22,8 @@ public interface ProcessingWorkOrderRepository
     Optional<ProcessingWorkOrder> findById(Long id);
 
     List<ProcessingWorkOrder> findByWoNumber(String woNumber);
+
+    List<ProcessingWorkOrder> findByWoNumberIn(java.util.Collection<String> woNumbers);
     
     List<ProcessingWorkOrder> findByWoNumberStartingWith(String baseWoNumber);
     

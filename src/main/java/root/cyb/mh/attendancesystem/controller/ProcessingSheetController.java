@@ -786,6 +786,98 @@ public class ProcessingSheetController {
         return ResponseEntity.ok(Map.of("success", true, "message", "Updated successfully"));
     }
 
+    @PostMapping(value = "/api/bulk-assign-analyst", produces = "application/json")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> bulkAssignAnalyst(
+            @RequestBody Map<String, Object> payload,
+            Principal principal,
+            org.springframework.security.core.Authentication auth) {
+
+        @SuppressWarnings("unchecked")
+        List<String> woNumbers = (List<String>) payload.get("woNumbers");
+        String analyst = (String) payload.get("analyst");
+
+        if (woNumbers == null || woNumbers.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "No work orders selected"));
+        }
+
+        String currentUserName = (principal != null) ? principal.getName() : "admin";
+        boolean isAdmin = (auth != null) && auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equalsIgnoreCase("ROLE_ADMIN"));
+        boolean isAnalystController = false;
+
+        Optional<Employee> emp = employeeRepository.findByUsername(currentUserName);
+        if (emp.isEmpty() && principal != null) {
+            emp = employeeRepository.findById(principal.getName());
+        }
+
+        if (emp.isPresent()) {
+            Employee currentEmp = emp.get();
+            currentUserName = currentEmp.getName();
+            isAnalystController = currentEmp.isAnalystController();
+            if ("ADMIN".equalsIgnoreCase(currentEmp.getRole()) || "ROLE_ADMIN".equalsIgnoreCase(currentEmp.getRole())) {
+                isAdmin = true;
+            }
+        }
+
+        if (!isAdmin && !isAnalystController) {
+            return ResponseEntity.status(403).body(Map.of("success", false, "message", "Unauthorized: Only Admin or Analyst Controller can bulk assign"));
+        }
+
+        String targetAnalystName = "Unassigned";
+        String targetEmployeeId = null;
+
+        if (analyst != null && !analyst.trim().isEmpty() && !"Unassigned".equalsIgnoreCase(analyst.trim())) {
+            List<Employee> activeAnalysts = employeeRepository.findByIsAnalystTrue();
+            for (Employee a : activeAnalysts) {
+                if (a.getName().equalsIgnoreCase(analyst.trim())) {
+                    targetEmployeeId = a.getId();
+                    targetAnalystName = a.getName();
+                    break;
+                }
+            }
+            if (targetEmployeeId == null) {
+                Optional<Employee> byId = employeeRepository.findById(analyst.trim());
+                if (byId.isPresent() && byId.get().isAnalyst()) {
+                    targetEmployeeId = byId.get().getId();
+                    targetAnalystName = byId.get().getName();
+                } else {
+                    return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Selected analyst was not found"));
+                }
+            }
+        }
+
+        List<ProcessingWorkOrder> wos = processingWorkOrderRepository.findByWoNumberIn(woNumbers);
+        if (wos.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "No matching work orders found"));
+        }
+
+        List<ProcessingWorkOrderHistory> histories = new ArrayList<>();
+        int updatedCount = 0;
+
+        for (ProcessingWorkOrder wo : wos) {
+            String oldAnalyst = wo.getAnalyst() != null ? wo.getAnalyst().trim() : "";
+            if (!targetAnalystName.equalsIgnoreCase(oldAnalyst)) {
+                wo.setAnalyst(targetAnalystName);
+                wo.setAssignedAnalystEmployeeId(targetEmployeeId);
+                histories.add(new ProcessingWorkOrderHistory(
+                    wo.getId(), wo.getWoNumber(), "UPDATED_ANALYST", oldAnalyst.isEmpty() ? "Unassigned" : oldAnalyst, targetAnalystName, currentUserName
+                ));
+                updatedCount++;
+            }
+        }
+
+        processingWorkOrderRepository.saveAll(wos);
+        if (!histories.isEmpty()) {
+            historyRepository.saveAll(histories);
+        }
+
+        return ResponseEntity.ok(Map.of(
+            "success", true,
+            "updatedCount", updatedCount,
+            "message", "Successfully assigned " + updatedCount + " work order(s) to " + targetAnalystName
+        ));
+    }
+
     @PostMapping(value = "/api/delete-wo", produces = "application/json")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> deleteWorkOrder(@RequestBody Map<String, String> payload, Principal principal, org.springframework.security.core.Authentication auth) {

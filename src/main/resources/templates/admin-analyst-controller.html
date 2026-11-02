@@ -205,8 +205,13 @@
                 </div>
             </div>
             <div class="card shadow mb-4">
-                <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 font-weight-bold text-primary">Work Orders by Entry Date</h6>
+                <div class="card-header py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <h6 class="m-0 font-weight-bold text-primary">Work Orders by Entry Date</h6>
+                        <button type="button" id="btnSelectAllUnassigned" class="btn btn-sm btn-outline-warning rounded-pill px-3 shadow-sm" style="font-size: 0.78rem; font-weight: 600;">
+                            <i class="fas fa-user-clock me-1"></i> Select Unassigned
+                        </button>
+                    </div>
                     <form method="get" action="/processing-sheet/analyst-controller" class="d-flex align-items-center">
                         <label class="me-3 mb-0 fw-bold text-gray-800 text-uppercase" style="font-size: 0.8rem; letter-spacing: 0.5px;">Entry Date:</label>
                         <div class="date-picker-wrapper">
@@ -220,6 +225,9 @@
                         <table class="table table-bordered table-hover" id="dataTable" width="100%" cellspacing="0">
                             <thead>
                                 <tr>
+                                    <th style="width: 36px;" class="text-center">
+                                        <input type="checkbox" id="selectAllWOs" class="form-check-input" style="cursor: pointer;" title="Select all visible">
+                                    </th>
                                     <th>WO #</th>
                                     <th>Date Due</th>
                                     <th>Client Code</th>
@@ -242,6 +250,9 @@
                             </thead>
                             <tbody>
                                 <tr th:each="wo : ${workOrders}" th:id="'wo-' + ${wo.woNumber}">
+                                    <td class="text-center">
+                                        <input type="checkbox" class="form-check-input wo-select-checkbox" th:value="${wo.woNumber}" style="cursor: pointer;">
+                                    </td>
                                     <td class="wo-hover-cell" th:data-wo="${wo.woNumber}" th:text="${wo.woNumber}"></td>
                                     <td th:text="${wo.dateDue}"></td>
                                     <td th:text="${wo.clientCode}"></td>
@@ -282,11 +293,35 @@
                                         </button>
                                     </td>
                                 </tr>
-                                <tr th:if="${#lists.isEmpty(workOrders)}">
-                                    <td colspan="18" class="text-center text-muted">No Work Orders found for this date.</td>
-                                </tr>
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Floating Bulk Actions Toolbar -->
+            <div id="bulkActionsToolbar" class="card shadow-lg border-primary border-2 position-fixed bottom-0 translate-middle-x start-50 mb-4 d-none" style="z-index: 1060; border-radius: 16px; min-width: 440px; max-width: 90vw; background: rgba(255, 255, 255, 0.98); box-shadow: 0 15px 35px rgba(0,0,0,0.2) !important;">
+                <div class="card-body py-2 px-3 d-flex align-items-center justify-content-between gap-3 flex-wrap">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-primary rounded-pill px-3 py-2 fs-6 shadow-sm" id="bulkSelectedCount">0</span>
+                        <span class="fw-bold text-dark small text-nowrap">WOs selected</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 flex-grow-1 justify-content-end">
+                        <div class="d-flex align-items-center gap-1">
+                            <label for="bulkAnalystSelect" class="small fw-bold text-muted text-nowrap mb-0 d-none d-sm-inline">Assign To:</label>
+                            <select id="bulkAnalystSelect" class="form-select form-select-sm" style="min-width: 150px; font-weight: 600;">
+                                <option value="">-- Choose Analyst --</option>
+                                <option value="Unassigned">Unassigned</option>
+                                <option th:each="emp : ${allAnalysts}" th:value="${emp.name}" th:text="${emp.name}"></option>
+                            </select>
+                        </div>
+                        <button type="button" id="btnApplyBulkAnalyst" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm d-flex align-items-center gap-1">
+                            <i class="fas fa-user-check"></i>
+                            <span>Assign</span>
+                        </button>
+                        <button type="button" id="btnClearBulkSelection" class="btn btn-outline-secondary btn-sm rounded-pill px-3" title="Clear selection">
+                            <i class="fas fa-times"></i>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -611,16 +646,205 @@
                                 responsive: true,
                                 language: {
                                     search: "",
-                                    searchPlaceholder: "Search records..."
+                                    searchPlaceholder: "Search records...",
+                                    emptyTable: "No Work Orders found for this date."
                                 },
+                                columnDefs: [
+                                    { orderable: false, targets: 0 }
+                                ],
                                 drawCallback: function() {
                                     // Make sure paginate buttons get classes correctly
                                     $('.paginate_button').addClass('page-item');
+                                    // Sync checkboxes for visible page rows
+                                    $('#dataTable tbody .wo-select-checkbox').each(function() {
+                                        this.checked = selectedWOs.has(this.value);
+                                    });
+                                    updateSelectAllBoxState();
                                 }
                             });
                         }
                     });
                 });
+
+                // Bulk Analyst Assignment Logic
+                const selectedWOs = new Set();
+                const bulkToolbar = document.getElementById('bulkActionsToolbar');
+                const bulkCountSpan = document.getElementById('bulkSelectedCount');
+                const selectAllBox = document.getElementById('selectAllWOs');
+
+                function updateBulkToolbar() {
+                    const count = selectedWOs.size;
+                    if (bulkCountSpan) bulkCountSpan.textContent = count;
+                    if (bulkToolbar) {
+                        if (count > 0) {
+                            bulkToolbar.classList.remove('d-none');
+                        } else {
+                            bulkToolbar.classList.add('d-none');
+                        }
+                    }
+                    updateSelectAllBoxState();
+                }
+
+                function updateSelectAllBoxState() {
+                    if (!selectAllBox) return;
+                    const visibleBoxes = Array.from(document.querySelectorAll('#dataTable tbody .wo-select-checkbox'));
+                    if (visibleBoxes.length === 0) {
+                        selectAllBox.checked = false;
+                        selectAllBox.indeterminate = false;
+                        return;
+                    }
+                    const checkedVisible = visibleBoxes.filter(cb => cb.checked).length;
+                    selectAllBox.checked = (checkedVisible === visibleBoxes.length);
+                    selectAllBox.indeterminate = (checkedVisible > 0 && checkedVisible < visibleBoxes.length);
+                }
+
+                // Checkbox toggle in table
+                $('#dataTable tbody').on('change', '.wo-select-checkbox', function() {
+                    if (this.checked) {
+                        selectedWOs.add(this.value);
+                    } else {
+                        selectedWOs.delete(this.value);
+                    }
+                    updateBulkToolbar();
+                });
+
+                // Select All Checkbox Handler
+                if (selectAllBox) {
+                    selectAllBox.addEventListener('change', function() {
+                        const isChecked = this.checked;
+                        if ($.fn.DataTable.isDataTable('#dataTable')) {
+                            const dt = $('#dataTable').DataTable();
+                            dt.rows({ search: 'applied' }).nodes().to$().find('.wo-select-checkbox').each(function() {
+                                this.checked = isChecked;
+                                if (isChecked) {
+                                    selectedWOs.add(this.value);
+                                } else {
+                                    selectedWOs.delete(this.value);
+                                }
+                            });
+                        } else {
+                            $('#dataTable tbody .wo-select-checkbox').each(function() {
+                                this.checked = isChecked;
+                                if (isChecked) {
+                                    selectedWOs.add(this.value);
+                                } else {
+                                    selectedWOs.delete(this.value);
+                                }
+                            });
+                        }
+                        updateBulkToolbar();
+                    });
+                }
+
+                // Select Unassigned Button Handler
+                const btnSelectUnassigned = document.getElementById('btnSelectAllUnassigned');
+                if (btnSelectUnassigned) {
+                    btnSelectUnassigned.addEventListener('click', function() {
+                        let added = 0;
+                        if ($.fn.DataTable.isDataTable('#dataTable')) {
+                            const dt = $('#dataTable').DataTable();
+                            dt.rows({ search: 'applied' }).nodes().to$().each(function() {
+                                const analystSelect = $(this).find('.analyst-dropdown')[0];
+                                const cb = $(this).find('.wo-select-checkbox')[0];
+                                if (cb && analystSelect) {
+                                    const currentAnalyst = analystSelect.value;
+                                    if (!currentAnalyst || currentAnalyst === 'Unassigned' || currentAnalyst.trim() === '') {
+                                        cb.checked = true;
+                                        selectedWOs.add(cb.value);
+                                        added++;
+                                    }
+                                }
+                            });
+                        } else {
+                            $('#dataTable tbody tr').each(function() {
+                                const analystSelect = $(this).find('.analyst-dropdown')[0];
+                                const cb = $(this).find('.wo-select-checkbox')[0];
+                                if (cb && analystSelect) {
+                                    const currentAnalyst = analystSelect.value;
+                                    if (!currentAnalyst || currentAnalyst === 'Unassigned' || currentAnalyst.trim() === '') {
+                                        cb.checked = true;
+                                        selectedWOs.add(cb.value);
+                                        added++;
+                                    }
+                                }
+                            });
+                        }
+                        // Also make sure currently visible ones reflect checked state
+                        $('#dataTable tbody .wo-select-checkbox').each(function() {
+                            this.checked = selectedWOs.has(this.value);
+                        });
+                        updateBulkToolbar();
+                        if (added === 0 && selectedWOs.size === 0) {
+                            alert('No Unassigned work orders found in current list.');
+                        }
+                    });
+                }
+
+                // Clear Selection
+                const btnClearBulk = document.getElementById('btnClearBulkSelection');
+                if (btnClearBulk) {
+                    btnClearBulk.addEventListener('click', function() {
+                        selectedWOs.clear();
+                        $('#dataTable tbody .wo-select-checkbox').prop('checked', false);
+                        if (selectAllBox) {
+                            selectAllBox.checked = false;
+                            selectAllBox.indeterminate = false;
+                        }
+                        updateBulkToolbar();
+                    });
+                }
+
+                // Apply Bulk Analyst Assignment
+                const btnApplyBulk = document.getElementById('btnApplyBulkAnalyst');
+                if (btnApplyBulk) {
+                    btnApplyBulk.addEventListener('click', async function() {
+                        if (selectedWOs.size === 0) {
+                            alert('Please select at least one Work Order.');
+                            return;
+                        }
+                        const analystSelect = document.getElementById('bulkAnalystSelect');
+                        const chosenAnalyst = analystSelect ? analystSelect.value : '';
+                        if (!chosenAnalyst) {
+                            alert('Please choose an Analyst from the dropdown.');
+                            if (analystSelect) analystSelect.focus();
+                            return;
+                        }
+
+                        const confirmMsg = `Assign "${chosenAnalyst}" to ${selectedWOs.size} selected Work Order(s)?`;
+                        if (!confirm(confirmMsg)) {
+                            return;
+                        }
+
+                        btnApplyBulk.disabled = true;
+                        btnApplyBulk.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Assigning...';
+
+                        try {
+                            const response = await fetch('/processing-sheet/api/bulk-assign-analyst', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    woNumbers: Array.from(selectedWOs),
+                                    analyst: chosenAnalyst
+                                })
+                            });
+
+                            const result = await response.json();
+                            if (result.success) {
+                                alert(result.message || 'Assigned successfully.');
+                                window.location.reload();
+                            } else {
+                                alert('Failed: ' + (result.message || 'Unknown error'));
+                                btnApplyBulk.disabled = false;
+                                btnApplyBulk.innerHTML = '<i class="fas fa-user-check me-1"></i> Assign';
+                            }
+                        } catch (err) {
+                            console.error('Error in bulk assigning analyst:', err);
+                            alert('Network error while assigning analysts.');
+                            btnApplyBulk.disabled = false;
+                            btnApplyBulk.innerHTML = '<i class="fas fa-user-check me-1"></i> Assign';
+                        }
+                    });
+                }
             });
         </script>
     </div>
