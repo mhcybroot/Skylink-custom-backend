@@ -115,18 +115,29 @@
                                 </div>
 
                                 <div class="mb-3">
-                                    <label class="form-label fw-bold small text-muted text-uppercase">Description (Optional)</label>
-                                    <input type="text" class="form-control" th:field="*{description}" placeholder="e.g. Electrical / Landscaping Services">
+                                    <label class="form-label fw-bold small text-muted text-uppercase">Business Name *</label>
+                                    <input type="text" class="form-control fw-bold" th:field="*{businessName}" required placeholder="Legal Business Name (e.g. ABC Solutions LLC)">
                                 </div>
 
                                 <div class="row g-2 mb-3">
                                     <div class="col-md-6">
-                                        <label class="form-label fw-bold small text-muted text-uppercase">Email Address</label>
-                                        <input type="email" class="form-control" th:field="*{email}" placeholder="contractor@example.com">
+                                        <label class="form-label fw-bold small text-muted text-uppercase">EIN / SSN Number *</label>
+                                        <input type="text" class="form-control" th:field="*{einSsn}" required placeholder="e.g. 12-3456789 or 123-45-6789">
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label fw-bold small text-muted text-uppercase">Phone Number</label>
-                                        <input type="text" class="form-control" th:field="*{phone}" placeholder="e.g. (214) 555-0199">
+                                        <label class="form-label fw-bold small text-muted text-uppercase">Description (Optional)</label>
+                                        <input type="text" class="form-control" th:field="*{description}" placeholder="e.g. Electrical / Landscaping">
+                                    </div>
+                                </div>
+
+                                <div class="row g-2 mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold small text-muted text-uppercase">Email Address *</label>
+                                        <input type="email" class="form-control" th:field="*{email}" required placeholder="contractor@example.com">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold small text-muted text-uppercase">Phone Number *</label>
+                                        <input type="text" class="form-control" th:field="*{phone}" required placeholder="e.g. (214) 555-0199">
                                     </div>
                                 </div>
 
@@ -141,8 +152,8 @@
                                         </div>
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label fw-bold small text-muted text-uppercase">State / Region</label>
-                                        <select class="form-select" id="inputState" th:field="*{state}">
+                                        <label class="form-label fw-bold small text-muted text-uppercase">State / Region *</label>
+                                        <select class="form-select" id="inputState" th:field="*{state}" required>
                                             <option value="">-- Select State --</option>
                                             <option th:each="st : ${usStates}" th:value="${st}" th:text="${st}"></option>
                                         </select>
@@ -150,8 +161,19 @@
                                 </div>
 
                                 <div class="mb-3">
-                                    <label class="form-label fw-bold small text-muted text-uppercase">Full Area / Location Details (City, County, Zip)</label>
-                                    <input type="text" id="inputArea" class="form-control" th:field="*{area}" placeholder="e.g. Gainesville, Cooke County, TX 76240">
+                                    <label class="form-label fw-bold small text-muted text-uppercase">Full Area / Location Details (City, County, Zip) *</label>
+                                    <input type="text" id="inputArea" class="form-control" th:field="*{area}" required placeholder="e.g. Gainesville, Cooke County, TX 76240">
+                                </div>
+
+                                <div class="row g-2 mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold small text-muted text-uppercase">Street Address *</label>
+                                        <input type="text" id="inputStreet" class="form-control" th:field="*{street}" required placeholder="e.g. 123 Main St, Suite 100">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold small text-muted text-uppercase">City *</label>
+                                        <input type="text" id="inputCity" class="form-control" th:field="*{city}" required placeholder="e.g. Dallas">
+                                    </div>
                                 </div>
 
                                 <div class="mb-3">
@@ -359,6 +381,8 @@
             function reverseGeocodeCoords(lat, lng) {
                 const zipInput = document.getElementById('inputZipCode');
                 const areaInput = document.getElementById('inputArea');
+                const streetInput = document.getElementById('inputStreet');
+                const cityInput = document.getElementById('inputCity');
 
                 fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`)
                     .then(res => res.json())
@@ -366,13 +390,18 @@
                         let zip = '';
                         let stateCode = '';
                         let fullAreaText = '';
+                        let streetText = '';
+                        let cityName = '';
 
                         if (data && data.address) {
                             zip = data.address.postcode || data.address.postal_code || '';
-                            const city = data.address.city || data.address.town || data.address.village || data.address.suburb || '';
+                            cityName = data.address.city || data.address.town || data.address.village || data.address.suburb || data.address.hamlet || '';
                             const county = data.address.county || '';
                             const iso = data.address['ISO3166-2-lvl4'] || '';
                             const fullState = data.address.state || '';
+                            const road = data.address.road || data.address.pedestrian || data.address.street || data.address.neighbourhood || '';
+                            const houseNumber = data.address.house_number || '';
+                            streetText = (houseNumber ? houseNumber + ' ' : '') + road;
 
                             if (iso.startsWith('US-')) {
                                 stateCode = iso.replace('US-', '').trim();
@@ -381,8 +410,8 @@
                             }
 
                             let parts = [];
-                            if (city) parts.push(city);
-                            if (county && county !== city && !county.toLowerCase().includes(city.toLowerCase())) parts.push(county);
+                            if (cityName) parts.push(cityName);
+                            if (county && county !== cityName && !county.toLowerCase().includes(cityName.toLowerCase())) parts.push(county);
                             if (stateCode) parts.push(stateCode);
                             if (zip) parts.push(zip.split('-')[0].trim());
 
@@ -392,6 +421,12 @@
                         if (zip) zipInput.value = zip.split('-')[0].trim();
                         if (stateCode) updateStateDropdown(stateCode);
                         if (fullAreaText && areaInput) areaInput.value = fullAreaText;
+                        if (streetText && streetInput && (!streetInput.value || streetInput.value.trim() === '')) {
+                            streetInput.value = streetText.trim();
+                        }
+                        if (cityName && cityInput && (!cityInput.value || cityInput.value.trim() === '')) {
+                            cityInput.value = cityName.trim();
+                        }
 
                         if (!stateCode || !zip) {
                             fallbackLocalReverseGeocode(lat, lng);
@@ -407,6 +442,7 @@
                         const zipInput = document.getElementById('inputZipCode');
                         const stateSelect = document.getElementById('inputState');
                         const areaInput = document.getElementById('inputArea');
+                        const cityInput = document.getElementById('inputCity');
 
                         if (data.zipCode && (!zipInput.value || zipInput.value === '')) {
                             zipInput.value = data.zipCode;
@@ -416,6 +452,9 @@
                         }
                         if (data.area && areaInput && (!areaInput.value || areaInput.value === '')) {
                             areaInput.value = data.area + (data.zipCode ? ' ' + data.zipCode : '');
+                        }
+                        if (data.city && cityInput && (!cityInput.value || cityInput.value === '')) {
+                            cityInput.value = data.city;
                         }
                     });
             }

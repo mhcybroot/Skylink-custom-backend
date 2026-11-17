@@ -46,17 +46,28 @@ public class MasterDataController {
     public String listContractors(@RequestParam(value = "search", required = false) String search,
             @RequestParam(value = "sort", required = false, defaultValue = "name") String sort,
             @RequestParam(value = "dir", required = false, defaultValue = "asc") String dir,
+            @RequestParam(value = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(value = "size", required = false, defaultValue = "25") int size,
             Model model) {
 
         org.springframework.data.domain.Sort sortObj = dir.equalsIgnoreCase("asc")
                 ? org.springframework.data.domain.Sort.by(sort).ascending()
                 : org.springframework.data.domain.Sort.by(sort).descending();
 
+        int pageNum = Math.max(page, 0);
+        int pageSize = size > 0 ? size : 25;
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(pageNum, pageSize, sortObj);
+
+        org.springframework.data.domain.Page<Contractor> contractorPage;
         if (search != null && !search.trim().isEmpty()) {
-            model.addAttribute("contractors", contractorRepository.searchContractors(search.trim(), sortObj));
+            contractorPage = contractorRepository.searchContractors(search.trim(), pageable);
         } else {
-            model.addAttribute("contractors", contractorRepository.findAll(sortObj));
+            contractorPage = contractorRepository.findAll(pageable);
         }
+
+        model.addAttribute("contractors", contractorPage.getContent());
+        model.addAttribute("page", contractorPage);
+        model.addAttribute("size", pageSize);
 
         model.addAttribute("search", search);
         model.addAttribute("sort", sort);
@@ -105,11 +116,29 @@ public class MasterDataController {
         try {
             contractor.setId(null);
             if (contractor.getName() != null) contractor.setName(contractor.getName().trim());
+            if (contractor.getBusinessName() != null) contractor.setBusinessName(contractor.getBusinessName().trim());
+            if (contractor.getEinSsn() != null) contractor.setEinSsn(contractor.getEinSsn().trim());
             if (contractor.getZipCode() != null) contractor.setZipCode(contractor.getZipCode().trim());
             if (contractor.getPhone() != null) contractor.setPhone(contractor.getPhone().trim());
             if (contractor.getEmail() != null) contractor.setEmail(contractor.getEmail().trim());
             if (contractor.getArea() != null) contractor.setArea(contractor.getArea().trim());
+            if (contractor.getStreet() != null) contractor.setStreet(contractor.getStreet().trim());
+            if (contractor.getCity() != null) contractor.setCity(contractor.getCity().trim());
             if (contractor.getState() != null) contractor.setState(contractor.getState().trim());
+
+            if (contractor.getName() == null || contractor.getName().isBlank()
+                    || contractor.getBusinessName() == null || contractor.getBusinessName().isBlank()
+                    || contractor.getEinSsn() == null || contractor.getEinSsn().isBlank()
+                    || contractor.getEmail() == null || contractor.getEmail().isBlank()
+                    || contractor.getPhone() == null || contractor.getPhone().isBlank()
+                    || contractor.getZipCode() == null || contractor.getZipCode().isBlank()
+                    || contractor.getState() == null || contractor.getState().isBlank()
+                    || contractor.getArea() == null || contractor.getArea().isBlank()
+                    || contractor.getStreet() == null || contractor.getStreet().isBlank()
+                    || contractor.getCity() == null || contractor.getCity().isBlank()) {
+                ps.addFlashAttribute("errorMessage", "All required fields marked with * must be filled out.");
+                return "redirect:/master-data/contractors/new";
+            }
 
             contractor.setActive(true);
 
@@ -149,27 +178,33 @@ public class MasterDataController {
                 String actor = (principal != null) ? principal.getName() : "System";
                 log.info("CONTRACTOR EDIT INITIATED - ID: {}, Current Name: '{}' by User: '{}'", existing.getId(), existing.getName(), actor);
 
-                if (contractor.getName() != null && !contractor.getName().isBlank()) {
-                    existing.setName(contractor.getName().trim());
+                if (contractor.getName() == null || contractor.getName().isBlank()
+                        || contractor.getBusinessName() == null || contractor.getBusinessName().isBlank()
+                        || contractor.getEinSsn() == null || contractor.getEinSsn().isBlank()
+                        || contractor.getEmail() == null || contractor.getEmail().isBlank()
+                        || contractor.getPhone() == null || contractor.getPhone().isBlank()
+                        || contractor.getZipCode() == null || contractor.getZipCode().isBlank()
+                        || contractor.getState() == null || contractor.getState().isBlank()
+                        || contractor.getArea() == null || contractor.getArea().isBlank()
+                        || contractor.getStreet() == null || contractor.getStreet().isBlank()
+                        || contractor.getCity() == null || contractor.getCity().isBlank()) {
+                    ps.addFlashAttribute("errorMessage", "All required fields marked with * must be filled out to update contractor profile.");
+                    return "redirect:/master-data/contractors/edit/" + contractor.getId();
                 }
+
+                existing.setName(contractor.getName().trim());
+                existing.setBusinessName(contractor.getBusinessName().trim());
+                existing.setEinSsn(contractor.getEinSsn().trim());
                 if (contractor.getDescription() != null) {
                     existing.setDescription(contractor.getDescription());
                 }
-                if (contractor.getEmail() != null && !contractor.getEmail().isBlank()) {
-                    existing.setEmail(contractor.getEmail().trim());
-                }
-                if (contractor.getPhone() != null && !contractor.getPhone().isBlank()) {
-                    existing.setPhone(contractor.getPhone().trim());
-                }
-                if (contractor.getZipCode() != null && !contractor.getZipCode().isBlank()) {
-                    existing.setZipCode(contractor.getZipCode().trim());
-                }
-                if (contractor.getState() != null && !contractor.getState().isBlank()) {
-                    existing.setState(contractor.getState().trim());
-                }
-                if (contractor.getArea() != null && !contractor.getArea().isBlank()) {
-                    existing.setArea(contractor.getArea().trim());
-                }
+                existing.setEmail(contractor.getEmail().trim());
+                existing.setPhone(contractor.getPhone().trim());
+                existing.setZipCode(contractor.getZipCode().trim());
+                existing.setState(contractor.getState().trim());
+                existing.setArea(contractor.getArea().trim());
+                existing.setStreet(contractor.getStreet().trim());
+                existing.setCity(contractor.getCity().trim());
 
                 if (contractor.getServiceRadiusMiles() != null) {
                     existing.setServiceRadiusMiles(contractor.getServiceRadiusMiles());

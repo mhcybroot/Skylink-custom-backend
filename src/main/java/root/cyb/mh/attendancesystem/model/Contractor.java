@@ -16,6 +16,12 @@ public class Contractor {
     @Column(nullable = false, unique = true)
     private String name;
 
+    @Column(length = 150)
+    private String businessName;
+
+    @Column(length = 50)
+    private String einSsn;
+
     @Column(columnDefinition = "TEXT")
     private String description;
 
@@ -52,6 +58,12 @@ public class Contractor {
 
     @Column(length = 150)
     private String area;
+
+    @Column(length = 200)
+    private String street;
+
+    @Column(length = 100)
+    private String city;
 
     @Column(length = 30)
     private String phone;

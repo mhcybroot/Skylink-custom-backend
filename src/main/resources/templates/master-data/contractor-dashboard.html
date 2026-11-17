@@ -23,19 +23,54 @@
                                 <i class="fas fa-user-tie fa-3x text-white opacity-75"></i>
                             </div>
                             <h4 class="fw-bold mb-1" th:text="${contractor.name}">Contractor Name</h4>
+                            <div class="text-emerald-400 small fw-bold mb-1" th:if="${contractor.businessName != null && !#strings.isEmpty(contractor.businessName)}">
+                                <i class="fas fa-building me-1 opacity-75"></i><span th:text="${contractor.businessName}"></span>
+                            </div>
                             <p class="text-white-50 small mb-2" th:text="${contractor.description}">Description</p>
-                            <span class="badge rounded-1 fw-normal border"
-                                th:classappend="${contractor.active} ? 'bg-success-subtle text-success border-success' : 'bg-secondary-subtle text-secondary border-secondary'"
-                                th:text="${contractor.active} ? 'Active' : 'Inactive'">Status</span>
+                            <div>
+                                <span class="badge rounded-1 fw-normal border me-2"
+                                    th:classappend="${contractor.active} ? 'bg-success-subtle text-success border-success' : 'bg-secondary-subtle text-secondary border-secondary'"
+                                    th:text="${contractor.active} ? 'Active' : 'Inactive'">Status</span>
+                                <a th:href="@{'/master-data/contractors/edit/' + ${contractor.id}}" class="btn btn-xs btn-outline-light rounded-pill px-3 py-1" style="font-size: 0.75rem;">
+                                    <i class="fas fa-edit me-1"></i> Edit
+                                </a>
+                            </div>
                         </div>
                         <div class="card-body p-0">
                             <div class="list-group list-group-flush small">
+                                <div th:if="${contractor.einSsn != null && !#strings.isEmpty(contractor.einSsn)}"
+                                    class="list-group-item d-flex justify-content-between align-items-center px-4 py-3">
+                                    <span class="text-muted fw-bold"><i
+                                            class="fas fa-id-card me-2 text-secondary"></i>EIN / SSN</span>
+                                    <span class="text-dark font-monospace fw-bold"
+                                        th:text="${contractor.einSsn}">-</span>
+                                </div>
                                 <div
                                     class="list-group-item d-flex justify-content-between align-items-center px-4 py-3">
                                     <span class="text-muted fw-bold"><i
                                             class="fas fa-envelope me-2 text-secondary"></i>Email</span>
                                     <span class="text-dark font-monospace"
                                         th:text="${contractor.email ?: '-'}">email@example.com</span>
+                                </div>
+                                <div th:if="${contractor.phone != null && !#strings.isEmpty(contractor.phone)}"
+                                    class="list-group-item d-flex justify-content-between align-items-center px-4 py-3">
+                                    <span class="text-muted fw-bold"><i
+                                            class="fas fa-phone me-2 text-secondary"></i>Phone</span>
+                                    <span class="text-dark font-monospace"
+                                        th:text="${contractor.phone}">-</span>
+                                </div>
+                                <div class="list-group-item px-4 py-3">
+                                    <span class="text-muted fw-bold d-block mb-1"><i
+                                            class="fas fa-map-marker-alt me-2 text-secondary"></i>Address</span>
+                                    <div class="text-dark">
+                                        <div th:if="${contractor.street != null && !#strings.isEmpty(contractor.street)}" th:text="${contractor.street}"></div>
+                                        <div>
+                                            <span th:if="${contractor.city != null && !#strings.isEmpty(contractor.city)}" th:text="${contractor.city + ', '}"></span>
+                                            <span th:if="${contractor.state != null && !#strings.isEmpty(contractor.state)}" th:text="${contractor.state + ' '}"></span>
+                                            <span th:if="${contractor.zipCode != null && !#strings.isEmpty(contractor.zipCode)}" th:text="${contractor.zipCode}"></span>
+                                        </div>
+                                        <div class="text-muted small mt-1" th:if="${contractor.area != null && !#strings.isEmpty(contractor.area)}" th:text="${contractor.area}"></div>
+                                    </div>
                                 </div>
                                 <div
                                     class="list-group-item d-flex justify-content-between align-items-center px-4 py-3">
