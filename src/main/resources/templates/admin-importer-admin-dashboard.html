@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Importer Admin Dashboard</title>
+</head>
+<body>
+    <div th:replace="~{layout :: layout(~{::section}, ~{::script}, 'importer-admin-dashboard')}">
+        <section>
+            <!-- DataTables CSS -->
+            <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+            <style>
+                .badge-subtle-primary { background-color: rgba(13, 110, 253, 0.1); color: #0d6efd; }
+                .badge-subtle-success { background-color: rgba(25, 135, 84, 0.1); color: #198754; }
+                .badge-subtle-info { background-color: rgba(13, 202, 240, 0.1); color: #055160; }
+                .badge-subtle-warning { background-color: rgba(255, 193, 7, 0.15); color: #664d03; }
+                .table-hover tbody tr:hover { background-color: rgba(0, 0, 0, 0.02); }
+                .dataTables_wrapper .dataTables_paginate .paginate_button.page-item .page-link {
+                    border-radius: 50px; margin: 0 3px; border: none; font-weight: 500; color: #5a5c69; background-color: #f8f9fc;
+                }
+                .dataTables_wrapper .dataTables_paginate .paginate_button.page-item.active .page-link {
+                    background: #0d6efd; color: white;
+                }
+                .timeline-badge {
+                    width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem;
+                }
+            </style>
+
+            <!-- Page Header -->
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+                <div>
+                    <h1 class="h3 mb-0 text-gray-800 fw-bold">
+                        <i class="fas fa-user-shield text-primary me-2"></i>Importer Admin Dashboard
+                    </h1>
+                    <p class="text-muted small mb-0">
+                        Organization-wide work order analytics, team leaderboard, and audit tracking.
+                    </p>
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    <!-- Export Dropdown -->
+                    <div class="dropdown">
+                        <button class="btn btn-outline-success btn-sm rounded-pill px-3 shadow-sm fw-bold dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-file-export me-1"></i> Download CSV
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3 mt-1 py-1" style="font-size: 0.85rem; min-width: 270px;">
+                            <li>
+                                <a class="dropdown-item py-2 fw-semibold" href="javascript:void(0)" onclick="downloadMasterWorkOrdersCsv()">
+                                    <i class="fas fa-file-csv text-success me-2 fa-lg"></i>Master Work Orders (Full CSV)
+                                    <div class="text-muted small fw-normal ms-4">Streams all filtered entries from database</div>
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider my-1"></li>
+                            <li>
+                                <a class="dropdown-item py-2 fw-semibold" href="javascript:void(0)" onclick="downloadClientSeriesCsv()">
+                                    <i class="fas fa-layer-group text-primary me-2 fa-lg"></i>Client Series Analysis (CSV)
+                                    <div class="text-muted small fw-normal ms-4">100-500 series volume & revenue summary</div>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item py-2 fw-semibold" href="javascript:void(0)" onclick="downloadCompareMatrixCsv()">
+                                    <i class="fas fa-th text-info me-2 fa-lg"></i>Work Type Compare Matrix (CSV)
+                                    <div class="text-muted small fw-normal ms-4">Pivot cross-tabulation table</div>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item py-2 fw-semibold" href="javascript:void(0)" onclick="downloadLeaderboardCsv()">
+                                    <i class="fas fa-medal text-warning me-2 fa-lg"></i>Importer Leaderboard (CSV)
+                                    <div class="text-muted small fw-normal ms-4">Team performance & contribution ranking</div>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                    <a href="/processing-sheet/importer/delete-history" class="btn btn-outline-danger btn-sm rounded-pill px-3 shadow-sm fw-bold">
+                        <i class="fas fa-trash-alt me-1"></i> Delete Archive
+                    </a>
+                    <a href="/processing-sheet/importer" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm fw-bold">
+                        <i class="fas fa-calendar-day me-1"></i> Daily Sheet
+                    </a>
+                </div>
+            </div>
+
+            <!-- Filter Card -->
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card-body p-3">
+                    <form id="adminFilterForm" method="get" action="/processing-sheet/importer/admin-dashboard" class="row g-2 align-items-end">
+                        <!-- Quick Date Presets -->
+                        <div class="col-12 mb-2 pb-2 border-bottom d-flex flex-wrap align-items-center gap-2">
+                            <span class="text-muted small fw-bold me-1"><i class="far fa-clock me-1"></i>Preset:</span>
+                            <a th:href="@{/processing-sheet/importer/admin-dashboard(filter='all', importerId=${selectedImporterId}, clientCode=${selectedClientCode}, workType=${selectedWorkType})}"
+                               class="btn btn-sm rounded-pill px-3 py-1"
+                               th:classappend="${filter == 'all' or filter == null} ? 'btn-primary' : 'btn-light border'">All Time</a>
+                            <a th:href="@{/processing-sheet/importer/admin-dashboard(filter='today', importerId=${selectedImporterId}, clientCode=${selectedClientCode}, workType=${selectedWorkType})}"
+                               class="btn btn-sm rounded-pill px-3 py-1"
+                               th:classappend="${filter == 'today'} ? 'btn-primary' : 'btn-light border'">Today</a>
+                            <a th:href="@{/processing-sheet/importer/admin-dashboard(filter='yesterday', importerId=${selectedImporterId}, clientCode=${selectedClientCode}, workType=${selectedWorkType})}"
+                               class="btn btn-sm rounded-pill px-3 py-1"
+                               th:classappend="${filter == 'yesterday'} ? 'btn-primary' : 'btn-light border'">Yesterday</a>
+                            <a th:href="@{/processing-sheet/importer/admin-dashboard(filter='this_week', importerId=${selectedImporterId}, clientCode=${selectedClientCode}, workType=${selectedWorkType})}"
+                               class="btn btn-sm rounded-pill px-3 py-1"
+                               th:classappend="${filter == 'this_week'} ? 'btn-primary' : 'btn-light border'">This Week</a>
+                            <a th:href="@{/processing-sheet/importer/admin-dashboard(filter='this_month', importerId=${selectedImporterId}, clientCode=${selectedClientCode}, workType=${selectedWorkType})}"
+                               class="btn btn-sm rounded-pill px-3 py-1"
+                               th:classappend="${filter == 'this_month'} ? 'btn-primary' : 'btn-light border'">This Month</a>
+                            <button type="button" class="btn btn-sm rounded-pill px-3 py-1"
+                                    th:classappend="${filter == 'custom'} ? 'btn-primary' : 'btn-light border'"
+                                    onclick="enableCustomDates()">Custom Range</button>
+                        </div>
+
+                        <input type="hidden" name="filter" id="filterInput" th:value="${filter}">
+
+                        <!-- Custom Dates -->
+                        <div class="col-md-2 custom-date-col" th:style="${filter == 'custom'} ? '' : 'display: none;'">
+                            <label class="form-label text-muted small fw-bold mb-1">Start Date</label>
+                            <input type="date" class="form-control form-control-sm border bg-light" name="startDate" id="startDateInput" th:value="${startDate}">
+                        </div>
+                        <div class="col-md-2 custom-date-col" th:style="${filter == 'custom'} ? '' : 'display: none;'">
+                            <label class="form-label text-muted small fw-bold mb-1">End Date</label>
+                            <input type="date" class="form-control form-control-sm border bg-light" name="endDate" id="endDateInput" th:value="${endDate}">
+                        </div>
+
+                        <!-- Importer Dropdown -->
+                        <div class="col-md-3">
+                            <label class="form-label text-muted small fw-bold mb-1"><i class="fas fa-user me-1 text-primary"></i>Importer / User</label>
+                            <select class="form-select form-select-sm border bg-light" name="importerId">
+                                <option value="">-- All Importers --</option>
+                                <option th:each="imp : ${importerList}"
+                                        th:value="${imp.id}"
+                                        th:text="${imp.name} + ' (ID: ' + ${imp.id} + ')'"
+                                        th:selected="${imp.id == selectedImporterId}"></option>
+                            </select>
+                        </div>
+
+                        <!-- Client Code Dropdown -->
+                        <div class="col-md-2">
+                            <label class="form-label text-muted small fw-bold mb-1"><i class="fas fa-building me-1 text-info"></i>Client Code</label>
+                            <select class="form-select form-select-sm border bg-light" name="clientCode">
+                                <option value="">-- All Clients --</option>
+                                <option th:each="cc : ${clientList}"
+                                        th:value="${cc}"
+                                        th:text="${cc}"
+                                        th:selected="${cc == selectedClientCode}"></option>
+                            </select>
+                        </div>
+
+                        <!-- Work Type Dropdown -->
+                        <div class="col-md-3">
+                            <label class="form-label text-muted small fw-bold mb-1"><i class="fas fa-tags me-1 text-warning"></i>Work Type</label>
+                            <select class="form-select form-select-sm border bg-light" name="workType">
+                                <option value="">-- All Work Types --</option>
+                                <option th:each="wt : ${workTypeList}"
+                                        th:value="${wt}"
+                                        th:text="${wt}"
+                                        th:selected="${wt == selectedWorkType}"></option>
+                            </select>
+                        </div>
+
+                        <!-- Submit & Reset -->
+                        <div class="col-md-2 d-flex gap-2">
+                            <button type="submit" class="btn btn-dark btn-sm rounded-pill px-3 fw-bold flex-grow-1">
+                                <i class="fas fa-filter me-1"></i> Apply
+                            </button>
+                            <a href="/processing-sheet/importer/admin-dashboard?filter=all" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                                Reset
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Top 5 KPI Cards -->
+            <div class="row g-3 mb-4">
+                <div class="col-xl col-md-4 col-sm-6">
+                    <div class="card border-0 shadow-sm rounded-3 bg-white h-100">
+                        <div class="card-body p-3 d-flex align-items-center">
+                            <div class="rounded-circle bg-primary-subtle text-primary p-3 me-3">
+                                <i class="fas fa-boxes fa-2x"></i>
+                            </div>
+                            <div>
+                                <div class="text-uppercase small fw-bold text-muted">Total Entries</div>
+                                <div class="fs-4 fw-bold text-dark" th:text="${totalWo}">0</div>
+                                <div class="small text-muted">Across all users</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl col-md-4 col-sm-6">
+                    <div class="card border-0 shadow-sm rounded-3 bg-white h-100">
+                        <div class="card-body p-3 d-flex align-items-center">
+                            <div class="rounded-circle bg-success-subtle text-success p-3 me-3">
+                                <i class="fas fa-dollar-sign fa-2x"></i>
+                            </div>
+                            <div>
+                                <div class="text-uppercase small fw-bold text-muted">Total Value</div>
+                                <div class="fs-4 fw-bold text-dark" th:text="'$' + ${#numbers.formatDecimal(totalValue != null ? totalValue : 0, 1, 'COMMA', 2, 'POINT')}">$0.00</div>
+                                <div class="small text-muted">Combined revenue</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl col-md-4 col-sm-6">
+                    <div class="card border-0 shadow-sm rounded-3 bg-white h-100">
+                        <div class="card-body p-3 d-flex align-items-center">
+                            <div class="rounded-circle bg-info-subtle text-info p-3 me-3">
+                                <i class="fas fa-users fa-2x"></i>
+                            </div>
+                            <div>
+                                <div class="text-uppercase small fw-bold text-muted">Active Importers</div>
+                                <div class="fs-4 fw-bold text-dark" th:text="${activeImporters}">0</div>
+                                <div class="small text-muted">Distinct submitters</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl col-md-6 col-sm-6">
+                    <div class="card border-0 shadow-sm rounded-3 bg-white h-100">
+                        <div class="card-body p-3 d-flex align-items-center">
+                            <div class="rounded-circle bg-warning-subtle text-warning p-3 me-3">
+                                <i class="fas fa-calculator fa-2x"></i>
+                            </div>
+                            <div>
+                                <div class="text-uppercase small fw-bold text-muted">Avg Value / WO</div>
+                                <div class="fs-4 fw-bold text-dark" th:text="'$' + ${avgValue}">$0.00</div>
+                                <div class="small text-muted" th:text="'~' + ${avgWoPerImporter} + ' WOs / Importer'">Avg productivity</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl col-md-6 col-sm-12">
+                    <div class="card border-0 shadow-sm rounded-3 bg-white h-100">
+                        <div class="card-body p-3 d-flex align-items-center">
+                            <div class="rounded-circle bg-danger-subtle text-danger p-3 me-3">
+                                <i class="fas fa-trophy fa-2x"></i>
+                            </div>
+                            <div class="text-truncate">
+                                <div class="text-uppercase small fw-bold text-muted">Top Performer</div>
+                                <div class="fs-5 fw-bold text-dark text-truncate" th:text="${topPerformer != null ? topPerformer.name : 'N/A'}">N/A</div>
+                                <div class="small text-muted" th:if="${topPerformer != null}" th:text="${topPerformer.count} + ' WOs ($' + ${topPerformer.totalValue} + ')'">0 WOs</div>
+                                <div class="small text-muted" th:if="${topPerformer == null}">No data</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analytics Row: Leaderboard + Distribution -->
+            <div class="row g-4 mb-4">
+                <!-- Importer Leaderboard -->
+                <div class="col-lg-7">
+                    <div class="card border-0 shadow-sm rounded-3 h-100">
+                        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom">
+                            <h6 class="m-0 fw-bold text-gray-800">
+                                <i class="fas fa-medal text-warning me-2"></i>Importer Performance Leaderboard
+                            </h6>
+                            <span class="badge bg-light text-dark border small" th:text="${#lists.size(importerLeaderboard)} + ' Active Importers'"></span>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="bg-light">
+                                        <tr class="text-uppercase small text-muted font-monospace" style="font-size: 0.72rem;">
+                                            <th class="ps-3 py-2">Rank</th>
+                                            <th class="py-2">Importer</th>
+                                            <th class="text-center py-2">WOs</th>
+                                            <th class="text-end py-2">Total Value</th>
+                                            <th class="text-end py-2">Avg / WO</th>
+                                            <th class="py-2">Top Work Type</th>
+                                            <th class="pe-3 py-2" style="width: 120px;">Share</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr th:each="imp, stat : ${importerLeaderboard}">
+                                            <td class="ps-3 fw-bold">
+                                                <span th:if="${stat.count == 1}" class="badge bg-warning text-dark rounded-circle px-2 py-1"><i class="fas fa-crown"></i> 1</span>
+                                                <span th:if="${stat.count == 2}" class="badge bg-secondary text-white rounded-circle px-2 py-1">2</span>
+                                                <span th:if="${stat.count == 3}" class="badge bg-danger-subtle text-danger rounded-circle px-2 py-1">3</span>
+                                                <span th:if="${stat.count > 3}" class="text-muted small ps-2" th:text="'#' + ${stat.count}"></span>
+                                            </td>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="rounded-circle bg-light border p-1 me-2 text-primary" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem;">
+                                                        <i class="fas fa-user"></i>
+                                                    </div>
+                                                    <div>
+                                                        <div class="fw-bold text-dark text-truncate" style="max-width: 140px;" th:text="${imp.name}">Name</div>
+                                                        <div class="text-muted font-monospace" style="font-size: 0.7rem;" th:text="'ID: ' + ${imp.employeeId}">ID</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="text-center fw-bold text-primary" th:text="${imp.count}">0</td>
+                                            <td class="text-end fw-bold text-success" th:text="'$' + ${imp.totalValue}">$0.00</td>
+                                            <td class="text-end text-muted small" th:text="'$' + ${imp.avgValue}">$0.00</td>
+                                            <td>
+                                                <span class="badge bg-light text-dark border text-truncate" style="max-width: 110px;" th:text="${imp.topWorkType}">Type</span>
+                                            </td>
+                                            <td class="pe-3">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="progress flex-grow-1 me-2" style="height: 6px;">
+                                                        <div class="progress-bar bg-primary" role="progressbar" th:style="'width: ' + ${imp.percentage} + '%'"></div>
+                                                    </div>
+                                                    <span class="small text-muted font-monospace" th:text="${imp.percentage} + '%'">0%</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr th:if="${#lists.isEmpty(importerLeaderboard)}">
+                                            <td colspan="7" class="text-center text-muted py-4">No importer activity found for selected filters.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Distribution Panels: Work Type & Client -->
+                <div class="col-lg-5">
+                    <div class="card border-0 shadow-sm rounded-3 h-100">
+                        <div class="card-header bg-white py-3 border-bottom">
+                            <ul class="nav nav-pills card-header-pills" id="distributionTab" role="tablist">
+                                <li class="nav-item">
+                                    <button class="nav-link active py-1 px-3 small fw-bold" id="worktype-tab" data-bs-toggle="tab" data-bs-target="#worktype-pane" type="button">
+                                        <i class="fas fa-tags me-1"></i> Work Types
+                                    </button>
+                                </li>
+                                <li class="nav-item">
+                                    <button class="nav-link py-1 px-3 small fw-bold" id="client-tab" data-bs-toggle="tab" data-bs-target="#client-pane" type="button">
+                                        <i class="fas fa-building me-1"></i> Clients
+                                    </button>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="tab-content" id="distributionTabContent">
+                                <!-- Work Types Pane -->
+                                <div class="tab-pane fade show active" id="worktype-pane" role="tabpanel">
+                                    <div class="table-responsive" style="max-height: 380px; overflow-y: auto;">
+                                        <table class="table table-hover align-middle mb-0">
+                                            <thead class="bg-light sticky-top">
+                                                <tr class="text-uppercase small text-muted font-monospace" style="font-size: 0.72rem;">
+                                                    <th class="ps-3 py-2">Work Type</th>
+                                                    <th class="text-center py-2">Count</th>
+                                                    <th class="text-end py-2">Total Value</th>
+                                                    <th class="pe-3 py-2" style="width: 100px;">Share</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr th:each="wt : ${workTypeStats}">
+                                                    <td class="ps-3 fw-bold text-dark" th:text="${wt.name}">Type</td>
+                                                    <td class="text-center fw-bold" th:text="${wt.count}">0</td>
+                                                    <td class="text-end fw-bold text-success" th:text="'$' + ${wt.totalValue}">$0.00</td>
+                                                    <td class="pe-3">
+                                                        <div class="d-flex align-items-center">
+                                                            <div class="progress flex-grow-1 me-1" style="height: 5px;">
+                                                                <div class="progress-bar bg-warning" role="progressbar" th:style="'width: ' + ${wt.percentage} + '%'"></div>
+                                                            </div>
+                                                            <span class="small text-muted font-monospace" style="font-size: 0.7rem;" th:text="${wt.percentage} + '%'">0%</span>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                <tr th:if="${#lists.isEmpty(workTypeStats)}">
+                                                    <td colspan="4" class="text-center text-muted py-4">No work types found.</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <!-- Clients Pane -->
+                                <div class="tab-pane fade" id="client-pane" role="tabpanel">
+                                    <div class="table-responsive" style="max-height: 380px; overflow-y: auto;">
+                                        <table class="table table-hover align-middle mb-0">
+                                            <thead class="bg-light sticky-top">
+                                                <tr class="text-uppercase small text-muted font-monospace" style="font-size: 0.72rem;">
+                                                    <th class="ps-3 py-2">Client Code</th>
+                                                    <th class="text-center py-2">Count</th>
+                                                    <th class="text-end py-2">Total Value</th>
+                                                    <th class="pe-3 py-2" style="width: 100px;">Share</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr th:each="cc : ${clientStats}">
+                                                    <td class="ps-3">
+                                                        <span class="badge badge-subtle-info px-2 py-1 fw-bold" th:text="${cc.name}">Client</span>
+                                                    </td>
+                                                    <td class="text-center fw-bold" th:text="${cc.count}">0</td>
+                                                    <td class="text-end fw-bold text-success" th:text="'$' + ${cc.totalValue}">$0.00</td>
+                                                    <td class="pe-3">
+                                                        <div class="d-flex align-items-center">
+                                                            <div class="progress flex-grow-1 me-1" style="height: 5px;">
+                                                                <div class="progress-bar bg-info" role="progressbar" th:style="'width: ' + ${cc.percentage} + '%'"></div>
+                                                            </div>
+                                                            <span class="small text-muted font-monospace" style="font-size: 0.7rem;" th:text="${cc.percentage} + '%'">0%</span>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                <tr th:if="${#lists.isEmpty(clientStats)}">
+                                                    <td colspan="4" class="text-center text-muted py-4">No client codes found.</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 1. Client Series Analysis Section -->
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center border-bottom gap-2">
+                    <div>
+                        <h6 class="m-0 fw-bold text-gray-800">
+                            <i class="fas fa-layer-group text-primary me-2"></i>Client Series Analysis Table
+                        </h6>
+                        <span class="text-muted small">Aggregated volume and value across client code numeric series (e.g. 100-199, 200-299, 300-399, etc.)</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="input-group input-group-sm" style="max-width: 240px;">
+                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted"></i></span>
+                            <input type="text" id="seriesSearchInput" class="form-control border-start-0 bg-light" placeholder="Search series or client..." onkeyup="filterSeriesTable()">
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" id="clientSeriesTable">
+                            <thead class="bg-light">
+                                <tr class="text-uppercase small text-muted font-monospace" style="font-size: 0.74rem;">
+                                    <th class="ps-3 py-2 cursor-pointer" onclick="sortSeriesTable(0)">Client Series <i class="fas fa-sort text-muted ms-1"></i></th>
+                                    <th class="py-2">Included Client Codes</th>
+                                    <th class="text-center py-2 cursor-pointer" onclick="sortSeriesTable(2, true)">Total WOs <i class="fas fa-sort text-muted ms-1"></i></th>
+                                    <th class="text-end py-2 cursor-pointer" onclick="sortSeriesTable(3, true)">Total Value <i class="fas fa-sort text-muted ms-1"></i></th>
+                                    <th class="text-end py-2 cursor-pointer" onclick="sortSeriesTable(4, true)">Avg / WO <i class="fas fa-sort text-muted ms-1"></i></th>
+                                    <th class="py-2">Top Work Type</th>
+                                    <th class="py-2">Top Contributor</th>
+                                    <th class="pe-3 py-2" style="width: 140px;">Volume Share</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="cs : ${clientSeriesStats}">
+                                    <td class="ps-3">
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1 fw-bold font-monospace" th:text="${cs.name}">100 - 199 Series</span>
+                                    </td>
+                                    <td>
+                                        <span class="small font-monospace text-dark" th:title="${cs.clientsList}" th:text="${cs.clientsList != null && !cs.clientsList.isEmpty() ? cs.clientsList : 'None'}"></span>
+                                        <span class="badge bg-light text-muted border ms-1" th:text="${cs.clientsCount} + ' clients'"></span>
+                                    </td>
+                                    <td class="text-center fw-bold text-primary font-monospace" th:text="${cs.count}">0</td>
+                                    <td class="text-end fw-bold text-success font-monospace" th:text="'$' + ${#numbers.formatDecimal(cs.totalValue, 1, 'COMMA', 2, 'POINT')}">$0.00</td>
+                                    <td class="text-end text-muted small font-monospace" th:text="'$' + ${cs.avgValue}">$0.00</td>
+                                    <td>
+                                        <span class="badge bg-light text-dark border" th:text="${cs.topWorkType}">Type</span>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center small">
+                                            <i class="fas fa-user-circle text-secondary me-1"></i>
+                                            <span class="fw-semibold text-dark text-truncate" style="max-width: 120px;" th:text="${cs.topImporter}">User</span>
+                                        </div>
+                                    </td>
+                                    <td class="pe-3">
+                                        <div class="d-flex align-items-center">
+                                            <div class="progress flex-grow-1 me-2" style="height: 6px;">
+                                                <div class="progress-bar bg-success" role="progressbar" th:style="'width: ' + ${cs.percentage} + '%'"></div>
+                                            </div>
+                                            <span class="small text-muted font-monospace" th:text="${cs.percentage} + '%'">0%</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(clientSeriesStats)}">
+                                    <td colspan="8" class="text-center text-muted py-4">No client series records found.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Work Type + Client Series Comparative Matrix -->
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center border-bottom gap-2">
+                    <div>
+                        <h6 class="m-0 fw-bold text-gray-800">
+                            <i class="fas fa-th text-info me-2"></i>Work Type & Client Series Comparative Matrix
+                        </h6>
+                        <span class="text-muted small">Cross-tabulation comparing Work Types distribution against each Client Series</span>
+                    </div>
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <!-- View Mode Toggle -->
+                        <div class="btn-group btn-group-sm p-1 bg-light rounded-pill border" role="group">
+                            <input type="radio" class="btn-check" name="matrixMode" id="modeBoth" autocomplete="off" checked onchange="updateMatrixDisplay('both')">
+                            <label class="btn btn-sm rounded-pill px-3 py-1 fw-bold" for="modeBoth">Both (WOs & $)</label>
+
+                            <input type="radio" class="btn-check" name="matrixMode" id="modeCount" autocomplete="off" onchange="updateMatrixDisplay('count')">
+                            <label class="btn btn-sm rounded-pill px-3 py-1 fw-bold" for="modeCount">WOs Only</label>
+
+                            <input type="radio" class="btn-check" name="matrixMode" id="modeValue" autocomplete="off" onchange="updateMatrixDisplay('value')">
+                            <label class="btn btn-sm rounded-pill px-3 py-1 fw-bold" for="modeValue">Value ($) Only</label>
+                        </div>
+                        <div class="input-group input-group-sm" style="max-width: 200px;">
+                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted"></i></span>
+                            <input type="text" id="matrixSearchInput" class="form-control border-start-0 bg-light" placeholder="Filter work type..." onkeyup="filterMatrixTable()">
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive" style="max-height: 480px; overflow-y: auto;">
+                        <table class="table table-bordered table-hover align-middle mb-0" id="compareMatrixTable">
+                            <thead class="bg-light sticky-top">
+                                <tr class="text-uppercase small text-muted font-monospace" style="font-size: 0.73rem;">
+                                    <th class="ps-3 py-2 bg-light text-nowrap cursor-pointer" onclick="sortMatrixTable(0)" style="min-width: 160px;">
+                                        Work Type <i class="fas fa-sort text-muted ms-1"></i>
+                                    </th>
+                                    <th th:each="header, hStat : ${seriesHeaders}" class="text-center py-2 bg-light text-nowrap cursor-pointer" th:onclick="'sortMatrixTable(' + (${hStat.index} + 1) + ', true)'">
+                                        <span class="badge bg-secondary-subtle text-dark border" th:text="${header}">Series</span>
+                                        <i class="fas fa-sort text-muted ms-1"></i>
+                                    </th>
+                                    <th class="text-end pe-3 py-2 bg-primary-subtle text-primary text-nowrap cursor-pointer" th:onclick="'sortMatrixTable(' + (${#lists.size(seriesHeaders)} + 1) + ', true)'" style="min-width: 140px;">
+                                        Row Total <i class="fas fa-sort text-muted ms-1"></i>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="row : ${compareMatrix}">
+                                    <td class="ps-3 fw-bold text-dark text-nowrap" th:text="${row.workType}">Work Type</td>
+                                    <td th:each="header : ${seriesHeaders}" class="text-center font-monospace small matrix-cell"
+                                        th:with="cell=${row.cells.get(header)}"
+                                        th:data-count="${cell.count}"
+                                        th:data-val="${cell.value}">
+                                        <span th:if="${cell.count > 0}">
+                                            <span class="fw-bold text-primary cell-count" th:text="${cell.count} + ' WOs'"></span>
+                                            <span class="text-success cell-val small d-block" th:text="'$' + ${#numbers.formatDecimal(cell.value, 1, 'COMMA', 2, 'POINT')}"></span>
+                                        </span>
+                                        <span th:if="${cell.count == 0}" class="text-muted opacity-50">-</span>
+                                    </td>
+                                    <td class="text-end pe-3 bg-light fw-bold font-monospace"
+                                        th:data-count="${row.totalCount}"
+                                        th:data-val="${row.totalValue}">
+                                        <span class="text-primary cell-count" th:text="${row.totalCount} + ' WOs'"></span>
+                                        <span class="text-success cell-val small d-block" th:text="'$' + ${#numbers.formatDecimal(row.totalValue, 1, 'COMMA', 2, 'POINT')}"></span>
+                                    </td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(compareMatrix)}">
+                                    <td th:colspan="${#lists.size(seriesHeaders) + 2}" class="text-center text-muted py-4">No comparative data found for selected criteria.</td>
+                                </tr>
+                            </tbody>
+                            <tfoot th:if="${!#lists.isEmpty(compareMatrix)}" class="bg-light fw-bold border-top-2">
+                                <tr class="text-dark">
+                                    <td class="ps-3 text-uppercase font-monospace small bg-light">Grand Total</td>
+                                    <td th:each="header : ${seriesHeaders}" class="text-center font-monospace small bg-light"
+                                        th:with="cTot=${seriesColumnTotals.counts.get(header)}, vTot=${seriesColumnTotals.values.get(header)}">
+                                        <span class="text-primary cell-count" th:text="${cTot} + ' WOs'"></span>
+                                        <span class="text-success cell-val small d-block" th:text="'$' + ${#numbers.formatDecimal(vTot != null ? vTot : 0, 1, 'COMMA', 2, 'POINT')}"></span>
+                                    </td>
+                                    <td class="text-end pe-3 bg-primary text-white font-monospace">
+                                        <span class="cell-count" th:text="${totalWo} + ' WOs'"></span>
+                                        <span class="cell-val small d-block" th:text="'$' + ${#numbers.formatDecimal(totalValue != null ? totalValue : 0, 1, 'COMMA', 2, 'POINT')}"></span>
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Master Data Table -->
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center border-bottom gap-2">
+                    <div>
+                        <h6 class="m-0 fw-bold text-gray-800">
+                            <i class="fas fa-list me-2 text-primary"></i>All Work Orders Master Registry
+                        </h6>
+                        <span class="text-muted small" th:text="'Displaying ' + ${#lists.size(workOrders)} + ' work order records'"></span>
+                    </div>
+                </div>
+                <div class="card-body p-3">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" id="adminWorkOrderTable" width="100%">
+                            <thead class="bg-light">
+                                <tr class="text-uppercase small text-muted font-monospace" style="font-size: 0.75rem;">
+                                    <th class="ps-3">#</th>
+                                    <th>WO #</th>
+                                    <th>Client Code</th>
+                                    <th>Work Type</th>
+                                    <th>Value ($)</th>
+                                    <th>Importer Name</th>
+                                    <th>Importer ID</th>
+                                    <th>Entry Date</th>
+                                    <th>Created At</th>
+                                    <th class="text-end pe-3">Lifeline</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="wo, stat : ${workOrders}">
+                                    <td class="ps-3 text-muted small" th:text="${stat.count}">1</td>
+                                    <td class="fw-bold text-dark font-monospace" th:text="${wo.woNumber}">WO-000</td>
+                                    <td>
+                                        <span class="badge badge-subtle-info px-2 py-1 font-monospace" th:text="${wo.clientCode != null && !wo.clientCode.isBlank() ? wo.clientCode : 'N/A'}"></span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light text-dark border px-2 py-1" th:text="${wo.workType != null && !wo.workType.isBlank() ? wo.workType : 'Unassigned'}"></span>
+                                    </td>
+                                    <td>
+                                        <span class="fw-bold text-success font-monospace" th:text="${wo.value != null ? '$' + #numbers.formatDecimal(wo.value, 1, 'COMMA', 2, 'POINT') : '-'}">-</span>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-user-circle text-secondary me-2"></i>
+                                            <span class="fw-bold text-dark" th:text="${wo.importerName != null ? wo.importerName : 'Unknown'}">Importer</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary-subtle text-secondary font-monospace" th:text="${wo.importerEmployeeId}">ID</span>
+                                    </td>
+                                    <td class="font-monospace text-muted small" th:text="${wo.entryDate}">2026-11-18</td>
+                                    <td class="font-monospace text-muted small" th:text="${#temporals.format(wo.createdAt, 'yyyy-MM-dd HH:mm')}">2026-11-18 10:00</td>
+                                    <td class="text-end pe-3">
+                                        <button class="btn btn-sm btn-outline-primary rounded-pill px-2 py-1 lifeline-btn shadow-sm"
+                                                th:data-wo="${wo.woNumber}"
+                                                title="View Full Lifecycle Trail"
+                                                onclick="openLifelineModal(this.getAttribute('data-wo'))">
+                                            <i class="fas fa-history me-1"></i> Lifeline
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lifeline Modal -->
+            <div class="modal fade" id="lifelineModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-lg">
+                    <div class="modal-content border-0 shadow rounded-4">
+                        <div class="modal-header bg-primary text-white border-0 py-3">
+                            <h5 class="modal-title fw-bold">
+                                <i class="fas fa-history me-2"></i>Audit Lifeline: <span id="lifelineWoNumber"></span>
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body p-4">
+                            <div id="lifelineLoading" class="text-center py-4">
+                                <div class="spinner-border text-primary" role="status"></div>
+                                <div class="text-muted small mt-2">Loading lifecycle audit events...</div>
+                            </div>
+                            <div id="lifelineEmpty" class="text-center py-4 d-none text-muted">
+                                <i class="fas fa-clock fa-2x mb-2 text-secondary"></i>
+                                <p>No audit trail recorded for this work order yet.</p>
+                            </div>
+                            <div id="lifelineTimeline" class="d-none">
+                                <div class="timeline" id="timelineContainer"></div>
+                            </div>
+                        </div>
+                        <div class="modal-footer border-0 bg-light py-2">
+                            <button type="button" class="btn btn-secondary btn-sm rounded-pill px-4" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Scripts -->
+        <script th:inline="javascript">
+            function enableCustomDates() {
+                document.getElementById('filterInput').value = 'custom';
+                document.querySelectorAll('.custom-date-col').forEach(el => el.style.display = 'block');
+            }
+
+            // Lifeline Modal Handler
+            function openLifelineModal(woNumber) {
+                document.getElementById('lifelineWoNumber').textContent = woNumber;
+                const modal = new bootstrap.Modal(document.getElementById('lifelineModal'));
+                modal.show();
+
+                const loadingEl = document.getElementById('lifelineLoading');
+                const emptyEl = document.getElementById('lifelineEmpty');
+                const timelineEl = document.getElementById('lifelineTimeline');
+                const container = document.getElementById('timelineContainer');
+
+                loadingEl.classList.remove('d-none');
+                emptyEl.classList.add('d-none');
+                timelineEl.classList.add('d-none');
+                container.innerHTML = '';
+
+                fetch(`/processing-sheet/importer/api/lifeline?woNumber=${encodeURIComponent(woNumber)}`)
+                    .then(res => res.json())
+                    .then(events => {
+                        loadingEl.classList.add('d-none');
+                        if (!events || events.length === 0) {
+                            emptyEl.classList.remove('d-none');
+                            return;
+                        }
+
+                        timelineEl.classList.remove('d-none');
+                        let html = '<div class="list-group list-group-flush">';
+                        events.forEach(ev => {
+                            let actionBadge = 'bg-primary text-white';
+                            let icon = 'fa-plus';
+                            if (ev.actionType.startsWith('UPDATED')) {
+                                actionBadge = 'bg-warning text-dark';
+                                icon = 'fa-edit';
+                            } else if (ev.actionType === 'DELETED') {
+                                actionBadge = 'bg-danger text-white';
+                                icon = 'fa-trash';
+                            }
+
+                            html += `
+                                <div class="list-group-item px-0 py-3 border-bottom">
+                                    <div class="d-flex w-100 justify-content-between align-items-center mb-1">
+                                        <div>
+                                            <span class="badge ${actionBadge} rounded-pill px-2 py-1 me-2 font-monospace">
+                                                <i class="fas ${icon} me-1"></i>${ev.actionType}
+                                            </span>
+                                            <strong class="text-dark">${ev.fieldName ? 'Field: ' + ev.fieldName : 'Record'}</strong>
+                                        </div>
+                                        <small class="text-muted font-monospace">${ev.changedAtFormatted || ev.changedAt}</small>
+                                    </div>
+                                    <div class="small text-muted mb-2">
+                                        <i class="fas fa-user-circle me-1"></i>By <strong>${ev.changedByName || 'System'}</strong> (ID: ${ev.changedByEmployeeId || 'N/A'})
+                                    </div>
+                                    ${ev.oldValue || ev.newValue ? `
+                                        <div class="bg-light p-2 rounded small font-monospace">
+                                            ${ev.oldValue ? `<div class="text-danger"><del>Old: ${ev.oldValue}</del></div>` : ''}
+                                            ${ev.newValue ? `<div class="text-success fw-bold">New: ${ev.newValue}</div>` : ''}
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            `;
+                        });
+                        html += '</div>';
+                        container.innerHTML = html;
+                    })
+                    .catch(err => {
+                        loadingEl.classList.add('d-none');
+                        emptyEl.classList.remove('d-none');
+                        emptyEl.innerHTML = '<span class="text-danger"><i class="fas fa-exclamation-triangle me-1"></i>Failed to load lifecycle events.</span>';
+                    });
+            }
+
+            // Filter Client Series Table
+            function filterSeriesTable() {
+                const query = document.getElementById('seriesSearchInput').value.toLowerCase();
+                const rows = document.querySelectorAll('#clientSeriesTable tbody tr');
+                rows.forEach(row => {
+                    const text = row.innerText.toLowerCase();
+                    row.style.display = text.includes(query) ? '' : 'none';
+                });
+            }
+
+            // Sort Client Series Table
+            let seriesSortDir = {};
+            function sortSeriesTable(colIndex, isNumeric = false) {
+                const table = document.getElementById('clientSeriesTable');
+                const tbody = table.querySelector('tbody');
+                const rows = Array.from(tbody.querySelectorAll('tr'));
+                if (rows.length <= 1) return;
+
+                seriesSortDir[colIndex] = !seriesSortDir[colIndex];
+                const asc = seriesSortDir[colIndex];
+
+                rows.sort((a, b) => {
+                    let cellA = a.children[colIndex].innerText.trim();
+                    let cellB = b.children[colIndex].innerText.trim();
+
+                    if (isNumeric) {
+                        let numA = parseFloat(cellA.replace(/[^0-9.-]+/g, '')) || 0;
+                        let numB = parseFloat(cellB.replace(/[^0-9.-]+/g, '')) || 0;
+                        return asc ? numA - numB : numB - numA;
+                    }
+                    return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+                });
+
+                rows.forEach(r => tbody.appendChild(r));
+            }
+
+            // Matrix View Mode: Both / Count Only / Value Only
+            function updateMatrixDisplay(mode) {
+                const counts = document.querySelectorAll('#compareMatrixTable .cell-count');
+                const vals = document.querySelectorAll('#compareMatrixTable .cell-val');
+
+                if (mode === 'count') {
+                    counts.forEach(el => el.style.display = '');
+                    vals.forEach(el => el.style.display = 'none');
+                } else if (mode === 'value') {
+                    counts.forEach(el => el.style.display = 'none');
+                    vals.forEach(el => el.style.display = '');
+                } else {
+                    counts.forEach(el => el.style.display = '');
+                    vals.forEach(el => el.style.display = '');
+                }
+            }
+
+            // Filter Comparative Matrix Table
+            function filterMatrixTable() {
+                const query = document.getElementById('matrixSearchInput').value.toLowerCase();
+                const rows = document.querySelectorAll('#compareMatrixTable tbody tr');
+                rows.forEach(row => {
+                    const wt = row.children[0].innerText.toLowerCase();
+                    row.style.display = wt.includes(query) ? '' : 'none';
+                });
+            }
+
+            // Sort Comparative Matrix Table
+            let matrixSortDir = {};
+            function sortMatrixTable(colIndex, isNumeric = false) {
+                const table = document.getElementById('compareMatrixTable');
+                const tbody = table.querySelector('tbody');
+                const rows = Array.from(tbody.querySelectorAll('tr'));
+                if (rows.length <= 1) return;
+
+                matrixSortDir[colIndex] = !matrixSortDir[colIndex];
+                const asc = matrixSortDir[colIndex];
+
+                rows.sort((a, b) => {
+                    let cellA = a.children[colIndex];
+                    let cellB = b.children[colIndex];
+
+                    if (isNumeric) {
+                        let countA = parseFloat(cellA.getAttribute('data-count')) || 0;
+                        let countB = parseFloat(cellB.getAttribute('data-count')) || 0;
+                        return asc ? countA - countB : countB - countA;
+                    } else {
+                        let textA = cellA.innerText.trim();
+                        let textB = cellB.innerText.trim();
+                        return asc ? textA.localeCompare(textB) : textB.localeCompare(textA);
+                    }
+                });
+
+                rows.forEach(r => tbody.appendChild(r));
+            }
+
+            // 1. Download Master Work Orders CSV (Backend Streaming with Active Filters)
+            function downloadMasterWorkOrdersCsv() {
+                const form = document.getElementById('adminFilterForm');
+                const formData = new FormData(form);
+                const params = new URLSearchParams(formData);
+                const exportUrl = '/processing-sheet/importer/admin-dashboard/export-csv?' + params.toString();
+                window.location.href = exportUrl;
+            }
+
+            // Utility to trigger CSV download from string
+            function triggerCsvDownload(csvString, filename) {
+                const BOM = '\uFEFF';
+                const blob = new Blob([BOM + csvString], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+
+            // 2. Download Client Series Analysis CSV
+            function downloadClientSeriesCsv() {
+                const table = document.getElementById('clientSeriesTable');
+                let csv = [];
+                const rows = table.querySelectorAll('tr');
+
+                for (let i = 0; i < rows.length; i++) {
+                    let row = [];
+                    const cols = rows[i].querySelectorAll('td, th');
+                    for (let j = 0; j < cols.length; j++) {
+                        let text = cols[j].innerText.replace(/"/g, '""').replace(/\r?\n|\r/g, ' ').trim();
+                        row.push('"' + text + '"');
+                    }
+                    if (row.length > 0) csv.push(row.join(','));
+                }
+
+                const filename = `client_series_analysis_${new Date().toISOString().slice(0, 10)}.csv`;
+                triggerCsvDownload(csv.join('\n'), filename);
+            }
+
+            // 3. Download Work Type Comparative Matrix CSV
+            function downloadCompareMatrixCsv() {
+                const table = document.getElementById('compareMatrixTable');
+                let csv = [];
+                const rows = table.querySelectorAll('tr');
+
+                for (let i = 0; i < rows.length; i++) {
+                    let row = [];
+                    const cols = rows[i].querySelectorAll('td, th');
+                    for (let j = 0; j < cols.length; j++) {
+                        let text = cols[j].innerText.replace(/"/g, '""').replace(/\r?\n|\r/g, ' ').trim();
+                        row.push('"' + text + '"');
+                    }
+                    if (row.length > 0) csv.push(row.join(','));
+                }
+
+                const filename = `work_type_series_matrix_${new Date().toISOString().slice(0, 10)}.csv`;
+                triggerCsvDownload(csv.join('\n'), filename);
+            }
+
+            // 4. Download Importer Leaderboard CSV
+            function downloadLeaderboardCsv() {
+                const table = document.querySelector('.card .table-hover');
+                let csv = [];
+                if (table) {
+                    const rows = table.querySelectorAll('tr');
+                    for (let i = 0; i < rows.length; i++) {
+                        let row = [];
+                        const cols = rows[i].querySelectorAll('td, th');
+                        for (let j = 0; j < cols.length; j++) {
+                            let text = cols[j].innerText.replace(/"/g, '""').replace(/\r?\n|\r/g, ' ').trim();
+                            row.push('"' + text + '"');
+                        }
+                        if (row.length > 0) csv.push(row.join(','));
+                    }
+                }
+
+                const filename = `importer_leaderboard_${new Date().toISOString().slice(0, 10)}.csv`;
+                triggerCsvDownload(csv.join('\n'), filename);
+            }
+        </script>
+    </div>
+</body>
+</html>

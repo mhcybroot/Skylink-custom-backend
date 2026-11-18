@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Importer Delete History</title>
+</head>
+<body>
+    <div th:replace="~{layout :: layout(~{::section}, ~{::script}, 'importer-sheet')}">
+        <section>
+            <!-- Page Header -->
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+                <div>
+                    <h1 class="h3 mb-0 text-gray-800 fw-bold">
+                        <i class="fas fa-trash-restore text-danger me-2"></i>Importer Delete History
+                    </h1>
+                    <p class="text-muted small mb-0">Audit archive of deleted importer work orders with full lifecycle tracking.</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="/processing-sheet/importer/dashboard" class="btn btn-outline-primary btn-sm rounded-pill px-3 shadow-sm fw-bold">
+                        <i class="fas fa-chart-line me-1"></i> All Entries Dashboard
+                    </a>
+                    <a href="/processing-sheet/importer" class="btn btn-secondary btn-sm rounded-pill px-3 shadow-sm fw-bold">
+                        <i class="fas fa-arrow-left me-1"></i> Back to Importer Sheet
+                    </a>
+                </div>
+            </div>
+
+            <!-- Table Card -->
+            <div class="card border-0 shadow-sm rounded-3 mb-4">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom">
+                    <h6 class="m-0 fw-bold text-gray-800">
+                        <i class="fas fa-archive me-2 text-secondary"></i>Deleted Records Archive
+                    </h6>
+                    <span class="badge bg-danger-subtle text-danger border border-danger fw-normal"
+                          th:text="${#lists.size(workOrders)} + ' deleted records'"></span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" id="deletedTable" width="100%">
+                            <thead class="bg-light">
+                                <tr class="text-uppercase small text-muted font-monospace" style="font-size: 0.75rem;">
+                                    <th class="ps-4 py-3">#</th>
+                                    <th class="py-3">WO #</th>
+                                    <th class="py-3">Client Code</th>
+                                    <th class="py-3">Work Type</th>
+                                    <th class="py-3">Value ($)</th>
+                                    <th class="py-3">Original Importer</th>
+                                    <th class="py-3">Deleted By</th>
+                                    <th class="py-3">Deleted At</th>
+                                    <th class="text-end pe-4 py-3">Lifeline</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="wo, iter : ${workOrders}" class="border-bottom">
+                                    <td class="ps-4 text-muted small" th:text="${iter.count}">1</td>
+                                    <td class="fw-bold font-monospace text-dark" th:text="${wo.woNumber}">WO-101</td>
+                                    <td class="fw-medium text-muted" th:text="${wo.clientCode != null ? wo.clientCode : '-'}">-</td>
+                                    <td class="text-secondary" th:text="${wo.workType != null ? wo.workType : '-'}">-</td>
+                                    <td class="fw-bold font-monospace text-dark"
+                                        th:text="${wo.value != null ? '$' + #numbers.formatDecimal(wo.value, 1, 'COMMA', 2, 'POINT') : '-'}">-</td>
+                                    <td>
+                                        <span class="badge rounded-pill bg-light text-dark border fw-normal">
+                                            <i class="fas fa-user me-1 text-secondary"></i><span th:text="${wo.importerName}">User</span>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge rounded-pill bg-danger-subtle text-danger border border-danger fw-normal">
+                                            <i class="fas fa-user-times me-1"></i><span th:text="${wo.deletedByName}">User</span>
+                                        </span>
+                                    </td>
+                                    <td class="small text-muted font-monospace" th:text="${#temporals.format(wo.deletedAt, 'yyyy-MM-dd HH:mm:ss')}">2026-11-18 22:00</td>
+                                    <td class="text-end pe-4">
+                                        <button class="btn btn-sm btn-outline-primary lifeline-btn rounded-pill px-3 py-1"
+                                                th:data-wo="${wo.woNumber}" title="View Lifecycle History" onclick="openLifelineModal(this.getAttribute('data-wo'))">
+                                            <i class="fas fa-history me-1"></i> Lifeline
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(workOrders)}">
+                                    <td colspan="9" class="text-center py-5">
+                                        <div class="d-flex flex-column align-items-center">
+                                            <div class="bg-light rounded-circle p-3 mb-3 text-muted">
+                                                <i class="fas fa-trash-alt fa-2x opacity-50"></i>
+                                            </div>
+                                            <h6 class="text-muted fw-bold">No deleted work orders found.</h6>
+                                            <p class="text-muted small mb-0">Records deleted from the Importer Sheet will be archived here.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lifeline / Lifecycle Modal -->
+            <div class="modal fade" id="lifelineModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-lg">
+                    <div class="modal-content border-0 shadow-lg rounded-4">
+                        <div class="modal-header bg-dark text-white py-3 px-4 rounded-top-4">
+                            <h5 class="modal-title fw-bold">
+                                <i class="fas fa-history text-primary me-2"></i>Lifecycle History: WO #<span id="modalWoNumber" class="text-primary font-monospace"></span>
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body p-4">
+                            <div id="lifelineSpinner" class="text-center py-4">
+                                <span class="spinner-border text-primary"></span>
+                                <p class="text-muted small mt-2 mb-0">Loading lifecycle events...</p>
+                            </div>
+                            <div id="lifelineEmpty" class="text-center py-4 d-none text-muted">
+                                <i class="fas fa-info-circle fa-2x mb-2 opacity-50"></i>
+                                <p class="mb-0">No lifecycle history found for this work order.</p>
+                            </div>
+                            <div id="lifelineTimeline" class="d-none">
+                                <ul class="list-group list-group-flush" id="timelineList">
+                                    <!-- Dynamic history items -->
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="modal-footer bg-light py-2 px-4 rounded-bottom-4 border-top">
+                            <button type="button" class="btn btn-secondary btn-sm rounded-pill px-4" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Script for Lifeline Modal -->
+        <script th:inline="javascript">
+            async function openLifelineModal(woNumber) {
+                document.getElementById('modalWoNumber').textContent = woNumber;
+                const spinner = document.getElementById('lifelineSpinner');
+                const empty = document.getElementById('lifelineEmpty');
+                const timeline = document.getElementById('lifelineTimeline');
+                const list = document.getElementById('timelineList');
+
+                spinner.classList.remove('d-none');
+                empty.classList.add('d-none');
+                timeline.classList.add('d-none');
+                list.innerHTML = '';
+
+                const modal = new bootstrap.Modal(document.getElementById('lifelineModal'));
+                modal.show();
+
+                try {
+                    const response = await fetch(`/processing-sheet/importer/api/lifeline?woNumber=${encodeURIComponent(woNumber)}`);
+                    const data = await response.json();
+
+                    spinner.classList.add('d-none');
+                    if (!data || data.length === 0) {
+                        empty.classList.remove('d-none');
+                        return;
+                    }
+
+                    timeline.classList.remove('d-none');
+                    data.forEach(item => {
+                        const li = document.createElement('li');
+                        li.className = 'list-group-item px-0 py-3 border-bottom';
+
+                        let badgeClass = 'bg-primary-subtle text-primary border border-primary';
+                        let actionLabel = item.actionType;
+                        let icon = 'fas fa-info-circle';
+
+                        if (item.actionType === 'CREATED') {
+                            badgeClass = 'bg-success-subtle text-success border border-success';
+                            icon = 'fas fa-plus-circle';
+                        } else if (item.actionType === 'DELETED') {
+                            badgeClass = 'bg-danger-subtle text-danger border border-danger';
+                            icon = 'fas fa-trash-alt';
+                        } else if (item.actionType.startsWith('UPDATED_')) {
+                            badgeClass = 'bg-info-subtle text-info border border-info';
+                            icon = 'fas fa-edit';
+                        }
+
+                        let descHtml = '';
+                        if (item.actionType === 'CREATED') {
+                            descHtml = `<div class="text-dark small fw-medium mt-1">${escapeHtml(item.newValue || 'Created Work Order')}</div>`;
+                        } else if (item.actionType === 'DELETED') {
+                            descHtml = `<div class="text-danger small fw-medium mt-1">${escapeHtml(item.oldValue || 'Deleted')}</div>`;
+                        } else {
+                            descHtml = `<div class="text-dark small mt-1">
+                                <span class="text-muted text-decoration-line-through">${escapeHtml(item.oldValue || '(empty)')}</span> 
+                                <i class="fas fa-arrow-right mx-1 text-secondary fa-xs"></i> 
+                                <strong class="text-primary">${escapeHtml(item.newValue || '(empty)')}</strong>
+                            </div>`;
+                        }
+
+                        const formattedDate = item.changedAt ? new Date(item.changedAt).toLocaleString() : '-';
+
+                        li.innerHTML = `
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="badge ${badgeClass} rounded-pill px-3 py-1">
+                                    <i class="${icon} me-1"></i>${escapeHtml(actionLabel)}
+                                </span>
+                                <span class="text-muted small font-monospace"><i class="far fa-clock me-1"></i>${formattedDate}</span>
+                            </div>
+                            ${descHtml}
+                            <div class="small text-muted mt-1">
+                                <i class="fas fa-user-circle me-1 text-secondary"></i>Performed by: <strong>${escapeHtml(item.changedByName || 'System')}</strong>
+                            </div>
+                        `;
+                        list.appendChild(li);
+                    });
+                } catch (e) {
+                    spinner.classList.add('d-none');
+                    empty.classList.remove('d-none');
+                    empty.innerHTML = `<p class="text-danger">Failed to load lifecycle events.</p>`;
+                }
+            }
+
+            function escapeHtml(str) {
+                return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            }
+        </script>
+    </div>
+</body>
+</html>

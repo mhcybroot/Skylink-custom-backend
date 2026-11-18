@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Importer Dashboard</title>
+</head>
+<body>
+    <div th:replace="~{layout :: layout(~{::section}, ~{::script}, 'importer-sheet')}">
+        <section>
+            <!-- Page Header -->
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+                <div>
+                    <h1 class="h3 mb-0 text-gray-800 fw-bold">
+                        <i class="fas fa-file-import text-primary me-2"></i>Processing Sheet: Importer
+                    </h1>
+                    <p class="text-muted small mb-0">Record and review your imported work orders for the day.</p>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <a sec:authorize="hasAnyRole('ADMIN', 'HR')" href="/processing-sheet/importer/admin-dashboard" class="btn btn-outline-dark btn-sm rounded-pill px-3 shadow-sm fw-bold">
+                        <i class="fas fa-user-shield me-1"></i> Admin Overview
+                    </a>
+                    <a href="/processing-sheet/importer/dashboard" class="btn btn-outline-primary btn-sm rounded-pill px-3 shadow-sm fw-bold">
+                        <i class="fas fa-chart-line me-1"></i> All Entries Dashboard
+                    </a>
+                    <a href="/processing-sheet/importer/delete-history" class="btn btn-outline-danger btn-sm rounded-pill px-3 shadow-sm fw-bold">
+                        <i class="fas fa-trash-alt me-1"></i> Delete History
+                    </a>
+                    <form method="get" action="/processing-sheet/importer" class="d-flex align-items-center bg-white p-1 rounded-pill shadow-sm border px-3">
+                        <label class="me-2 mb-0 small fw-bold text-gray-700 text-nowrap"><i class="far fa-calendar-alt me-1 text-primary"></i>Entry Date:</label>
+                        <input type="date" name="date" class="form-control form-control-sm border-0 bg-transparent fw-bold text-dark" th:value="${currentDate}" onchange="this.form.submit()">
+                    </form>
+                    <button class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#bulkAddModal">
+                        <i class="fas fa-plus-circle me-1"></i> Bulk Add Work Orders
+                    </button>
+                </div>
+            </div>
+
+            <!-- Summary KPI Cards -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm rounded-3 bg-white h-100">
+                        <div class="card-body d-flex align-items-center p-3">
+                            <div class="rounded-circle bg-primary-subtle text-primary p-3 me-3">
+                                <i class="fas fa-clipboard-list fa-2x"></i>
+                            </div>
+                            <div>
+                                <div class="text-uppercase small fw-bold text-muted">My Work Orders</div>
+                                <div class="fs-4 fw-bold text-dark" th:text="${totalWo}">0</div>
+                                <div class="small text-muted" th:text="'For ' + ${currentDate}"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm rounded-3 bg-white h-100">
+                        <div class="card-body d-flex align-items-center p-3">
+                            <div class="rounded-circle bg-success-subtle text-success p-3 me-3">
+                                <i class="fas fa-dollar-sign fa-2x"></i>
+                            </div>
+                            <div>
+                                <div class="text-uppercase small fw-bold text-muted">Total Value</div>
+                                <div class="fs-4 fw-bold text-dark" th:text="'$' + ${#numbers.formatDecimal(totalValue != null ? totalValue : 0, 1, 'COMMA', 2, 'POINT')}">$0.00</div>
+                                <div class="small text-muted">Combined Work Value</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm rounded-3 bg-white h-100">
+                        <div class="card-body d-flex align-items-center p-3">
+                            <div class="rounded-circle bg-info-subtle text-info p-3 me-3">
+                                <i class="fas fa-user-check fa-2x"></i>
+                            </div>
+                            <div>
+                                <div class="text-uppercase small fw-bold text-muted">Logged Importer</div>
+                                <div class="fs-5 fw-bold text-dark text-truncate" style="max-width: 220px;" th:text="${importerName}">User</div>
+                                <div class="small text-muted" th:text="'ID: ' + ${importerId}"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table Card -->
+            <div class="card border-0 shadow-sm rounded-3 mb-4">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom">
+                    <h6 class="m-0 fw-bold text-gray-800">
+                        <i class="fas fa-list me-2 text-primary"></i>My Entries for <span class="badge bg-light text-dark border ms-1" th:text="${currentDate}"></span>
+                    </h6>
+                    <span class="badge bg-secondary-subtle text-dark border fw-normal" th:text="${#lists.size(workOrders)} + ' records'"></span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" id="importerTable" width="100%">
+                            <thead class="bg-light">
+                                <tr class="text-uppercase small text-muted font-monospace" style="font-size: 0.75rem;">
+                                    <th class="ps-4 py-3">#</th>
+                                    <th class="py-3">WO #</th>
+                                    <th class="py-3">Client Code</th>
+                                    <th class="py-3">Work Type</th>
+                                    <th class="py-3">Value ($)</th>
+                                    <th class="py-3">Importer</th>
+                                    <th class="py-3">Date</th>
+                                    <th class="text-end pe-4 py-3">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="wo, iter : ${workOrders}" th:id="'wo-row-' + ${wo.id}" class="border-bottom">
+                                    <td class="ps-4 text-muted small" th:text="${iter.count}">1</td>
+                                    <td class="fw-bold font-monospace text-primary editable-cell"
+                                        th:data-id="${wo.id}" data-field="woNumber" th:text="${wo.woNumber}">WO-101</td>
+                                    <td class="editable-cell fw-medium"
+                                        th:data-id="${wo.id}" data-field="clientCode" th:text="${wo.clientCode != null ? wo.clientCode : '-'}">-</td>
+                                    <td class="editable-cell text-secondary"
+                                        th:data-id="${wo.id}" data-field="workType" th:text="${wo.workType != null ? wo.workType : '-'}">-</td>
+                                    <td class="editable-cell fw-bold font-monospace text-dark"
+                                        th:data-id="${wo.id}" data-field="value" th:text="${wo.value != null ? '$' + #numbers.formatDecimal(wo.value, 1, 'COMMA', 2, 'POINT') : '-'}">-</td>
+                                    <td>
+                                        <span class="badge rounded-pill bg-light text-dark border fw-normal">
+                                            <i class="fas fa-user-circle me-1 text-secondary"></i><span th:text="${wo.importerName}">User</span>
+                                        </span>
+                                    </td>
+                                    <td class="small text-muted font-monospace" th:text="${wo.entryDate}">2026-11-18</td>
+                                    <td class="text-end pe-4 text-nowrap">
+                                        <button class="btn btn-sm btn-outline-primary lifeline-btn rounded-pill px-2 py-0 me-1"
+                                                th:data-wo="${wo.woNumber}" title="View Lifecycle" onclick="openLifelineModal(this.getAttribute('data-wo'))">
+                                            <i class="fas fa-history fa-xs"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger rounded-pill px-2 py-0"
+                                                th:onclick="'deleteRow(' + ${wo.id} + ')'" title="Delete Entry">
+                                            <i class="fas fa-trash-alt fa-xs"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(workOrders)}">
+                                    <td colspan="8" class="text-center py-5">
+                                        <div class="d-flex flex-column align-items-center">
+                                            <div class="bg-light rounded-circle p-3 mb-3 text-muted">
+                                                <i class="fas fa-folder-open fa-2x opacity-50"></i>
+                                            </div>
+                                            <h6 class="text-muted fw-bold">No work orders recorded for this date.</h6>
+                                            <p class="text-muted small mb-3">Click below to bulk add work orders to your daily sheet.</p>
+                                            <button class="btn btn-outline-primary btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#bulkAddModal">
+                                                <i class="fas fa-plus me-1"></i> Add Work Orders
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bulk Add Modal -->
+            <div class="modal fade" id="bulkAddModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-xl">
+                    <div class="modal-content border-0 shadow-lg rounded-4">
+                        <div class="modal-header bg-dark text-white py-3 px-4 rounded-top-4">
+                            <h5 class="modal-title fw-bold">
+                                <i class="fas fa-file-import me-2 text-primary"></i>Bulk Add Work Orders
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body p-4">
+                            <!-- Target Date & Quick Info -->
+                            <div class="row align-items-center mb-3 g-2 bg-light p-3 rounded-3 border">
+                                <div class="col-md-5">
+                                    <label class="form-label small fw-bold text-muted text-uppercase mb-1">Target Entry Date</label>
+                                    <input type="date" id="modalEntryDate" class="form-control form-control-sm rounded-2" th:value="${currentDate}">
+                                </div>
+                                <div class="col-md-7">
+                                    <label class="form-label small fw-bold text-muted text-uppercase mb-1">Importer Information</label>
+                                    <div class="small text-dark fw-bold">
+                                        <i class="fas fa-user-check text-success me-1"></i> <span th:text="${importerName}">User</span> 
+                                        <span class="text-muted fw-normal">(Auto-assigned)</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Tabs for input method -->
+                            <ul class="nav nav-pills mb-3 gap-2" id="inputMethodTab" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active rounded-pill px-4 fw-bold small" id="paste-tab" data-bs-toggle="pill" data-bs-target="#pasteView" type="button" role="tab">
+                                        <i class="fas fa-paste me-1"></i> Fast Paste (Excel / Sheets)
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link rounded-pill px-4 fw-bold small" id="manual-tab" data-bs-toggle="pill" data-bs-target="#manualView" type="button" role="tab">
+                                        <i class="fas fa-table me-1"></i> Manual Grid Entry
+                                    </button>
+                                </li>
+                            </ul>
+
+                            <div class="tab-content" id="inputMethodTabContent">
+                                <!-- Fast Paste View -->
+                                <div class="tab-pane fade show active" id="pasteView" role="tabpanel">
+                                    <div class="alert alert-info py-2 px-3 small border-0 rounded-3 mb-3">
+                                        <i class="fas fa-info-circle me-1"></i> Copy columns from your Spreadsheet (<strong>WO #, Client Code, Work Type, Value</strong>) and paste below. Tab-separated and comma-separated rows are automatically detected!
+                                    </div>
+                                    <div class="mb-3">
+                                        <textarea id="pasteTextarea" class="form-control font-monospace small rounded-3" rows="6" placeholder="Example:
+WO-1001&#9;CLIENT-A&#9;Initial Inspection&#9;150.00
+WO-1002&#9;CLIENT-B&#9;Grass Cut&#9;85.50
+WO-1003&#9;CLIENT-A&#9;Winterization&#9;120.00"></textarea>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" onclick="parsePastedText()">
+                                            <i class="fas fa-sync-alt me-1"></i> Parse & Preview
+                                        </button>
+                                        <span class="small text-muted" id="parsedRowCountText">0 row(s) ready</span>
+                                    </div>
+
+                                    <!-- Parsed Live Preview Table -->
+                                    <div id="pastePreviewContainer" class="border rounded-3 overflow-hidden d-none mb-3" style="max-height: 250px; overflow-y: auto;">
+                                        <table class="table table-sm table-striped align-middle mb-0" style="font-size: 0.85rem;">
+                                            <thead class="table-dark">
+                                                <tr>
+                                                    <th>WO #</th>
+                                                    <th>Client Code</th>
+                                                    <th>Work Type</th>
+                                                    <th>Value ($)</th>
+                                                    <th class="text-end">Remove</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="pastePreviewTbody"></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <!-- Manual Grid View -->
+                                <div class="tab-pane fade" id="manualView" role="tabpanel">
+                                    <div class="table-responsive border rounded-3 mb-3" style="max-height: 300px; overflow-y: auto;">
+                                        <table class="table table-sm align-middle mb-0" id="manualTable">
+                                            <thead class="bg-light text-uppercase small text-muted font-monospace">
+                                                <tr>
+                                                    <th style="width: 25%;">WO # *</th>
+                                                    <th style="width: 25%;">Client Code</th>
+                                                    <th style="width: 25%;">Work Type</th>
+                                                    <th style="width: 20%;">Value ($)</th>
+                                                    <th style="width: 5%;" class="text-end"></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="manualTbody">
+                                                <!-- Dynamic rows inserted here -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" onclick="addManualRow()">
+                                        <i class="fas fa-plus me-1"></i> Add Row
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer bg-light py-3 px-4 rounded-bottom-4 border-top">
+                            <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" id="submitBulkBtn" class="btn btn-primary btn-sm rounded-pill px-4 fw-bold" onclick="submitBulkWorkOrders()">
+                                <i class="fas fa-check-circle me-1"></i> Submit Work Orders
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lifeline / Lifecycle Modal -->
+            <div class="modal fade" id="lifelineModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-lg">
+                    <div class="modal-content border-0 shadow-lg rounded-4">
+                        <div class="modal-header bg-dark text-white py-3 px-4 rounded-top-4">
+                            <h5 class="modal-title fw-bold">
+                                <i class="fas fa-history text-primary me-2"></i>Lifecycle: WO #<span id="modalWoNumber" class="text-primary font-monospace"></span>
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body p-4">
+                            <div id="lifelineSpinner" class="text-center py-4">
+                                <span class="spinner-border text-primary"></span>
+                                <p class="text-muted small mt-2 mb-0">Loading lifecycle events...</p>
+                            </div>
+                            <div id="lifelineEmpty" class="text-center py-4 d-none text-muted">
+                                <i class="fas fa-info-circle fa-2x mb-2 opacity-50"></i>
+                                <p class="mb-0">No lifecycle history found for this work order.</p>
+                            </div>
+                            <div id="lifelineTimeline" class="d-none">
+                                <ul class="list-group list-group-flush" id="timelineList">
+                                    <!-- Dynamic history items -->
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="modal-footer bg-light py-2 px-4 rounded-bottom-4 border-top">
+                            <button type="button" class="btn btn-secondary btn-sm rounded-pill px-4" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Global Datalist for Selectable Work Types -->
+            <datalist id="workTypesList">
+                <option th:each="wt : ${workTypes}" th:value="${wt}" th:text="${wt}"></option>
+            </datalist>
+        </section>
+
+        <!-- Script for Inline Editing and Bulk Add Logic -->
+        <script th:inline="javascript">
+            let parsedItems = [];
+
+            // Add initial 3 manual rows on load
+            document.addEventListener('DOMContentLoaded', function() {
+                for (let i = 0; i < 3; i++) {
+                    addManualRow();
+                }
+                setupInlineEditing();
+            });
+
+            // Parse pasted spreadsheet data
+            function parsePastedText() {
+                const text = document.getElementById('pasteTextarea').value.trim();
+                const previewContainer = document.getElementById('pastePreviewContainer');
+                const tbody = document.getElementById('pastePreviewTbody');
+                tbody.innerHTML = '';
+                parsedItems = [];
+
+                if (!text) {
+                    previewContainer.classList.add('d-none');
+                    document.getElementById('parsedRowCountText').textContent = '0 row(s) ready';
+                    return;
+                }
+
+                const lines = text.split(/\r?\n/);
+                lines.forEach((line, idx) => {
+                    if (!line.trim()) return;
+                    
+                    // Split by tab (Excel/Sheets) or comma
+                    let parts = line.includes('\t') ? line.split('\t') : line.split(',');
+                    parts = parts.map(p => p.trim().replace(/^["']|["']$/g, ''));
+
+                    const woNumber = parts[0] || '';
+                    if (!woNumber) return;
+
+                    const clientCode = parts[1] || '';
+                    const workType = parts[2] || '';
+                    let rawVal = parts[3] || '';
+                    rawVal = rawVal.replace('$', '').replace(/,/g, '').trim();
+                    const value = rawVal && !isNaN(rawVal) ? parseFloat(rawVal) : null;
+
+                    parsedItems.push({ woNumber, clientCode, workType, value });
+                });
+
+                renderParsedPreview();
+            }
+
+            function renderParsedPreview() {
+                const previewContainer = document.getElementById('pastePreviewContainer');
+                const tbody = document.getElementById('pastePreviewTbody');
+                tbody.innerHTML = '';
+
+                if (parsedItems.length === 0) {
+                    previewContainer.classList.add('d-none');
+                    document.getElementById('parsedRowCountText').textContent = '0 row(s) ready';
+                    return;
+                }
+
+                parsedItems.forEach((item, index) => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="fw-bold font-monospace text-primary">${escapeHtml(item.woNumber)}</td>
+                        <td>${escapeHtml(item.clientCode || '-')}</td>
+                        <td>
+                            <input type="text" list="workTypesList" class="form-control form-control-sm py-0 font-monospace" 
+                                   value="${escapeHtml(item.workType || '')}" onchange="updateParsedItemWorkType(${index}, this.value)" 
+                                   placeholder="Select or type..." autocomplete="off">
+                        </td>
+                        <td class="font-monospace">${item.value != null ? '$' + item.value.toFixed(2) : '-'}</td>
+                        <td class="text-end">
+                            <button type="button" class="btn btn-outline-danger btn-sm py-0 px-2 rounded-pill" onclick="removeParsedItem(${index})">
+                                <i class="fas fa-times fa-xs"></i>
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                previewContainer.classList.remove('d-none');
+                document.getElementById('parsedRowCountText').textContent = `${parsedItems.length} row(s) ready`;
+            }
+
+            function removeParsedItem(index) {
+                parsedItems.splice(index, 1);
+                renderParsedPreview();
+            }
+
+            function updateParsedItemWorkType(index, val) {
+                if (parsedItems[index]) {
+                    parsedItems[index].workType = val.trim();
+                }
+            }
+
+            // Manual Row Functions
+            function addManualRow() {
+                const tbody = document.getElementById('manualTbody');
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><input type="text" class="form-control form-control-sm row-wo" placeholder="e.g. WO-12345" required></td>
+                    <td><input type="text" class="form-control form-control-sm row-client" placeholder="e.g. CLIENT-A"></td>
+                    <td><input type="text" list="workTypesList" class="form-control form-control-sm row-type" placeholder="Select or type..." autocomplete="off"></td>
+                    <td><input type="number" step="0.01" class="form-control form-control-sm row-value" placeholder="0.00"></td>
+                    <td class="text-end">
+                        <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2 rounded-circle" onclick="this.closest('tr').remove()">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            }
+
+            // Submit Bulk Work Orders
+            async function submitBulkWorkOrders() {
+                const activeTab = document.querySelector('#inputMethodTab .nav-link.active').id;
+                let items = [];
+
+                if (activeTab === 'paste-tab') {
+                    // If user hasn't pressed parse yet, parse now
+                    if (parsedItems.length === 0 && document.getElementById('pasteTextarea').value.trim()) {
+                        parsePastedText();
+                    }
+                    items = parsedItems;
+                } else {
+                    const rows = document.querySelectorAll('#manualTbody tr');
+                    rows.forEach(row => {
+                        const woNumber = row.querySelector('.row-wo').value.trim();
+                        if (woNumber) {
+                            const clientCode = row.querySelector('.row-client').value.trim();
+                            const workType = row.querySelector('.row-type').value.trim();
+                            const rawVal = row.querySelector('.row-value').value.trim();
+                            const value = rawVal && !isNaN(rawVal) ? parseFloat(rawVal) : null;
+                            items.push({ woNumber, clientCode, workType, value });
+                        }
+                    });
+                }
+
+                if (items.length === 0) {
+                    alert('Please enter or paste at least one valid Work Order with a WO #.');
+                    return;
+                }
+
+                const entryDate = document.getElementById('modalEntryDate').value;
+                const submitBtn = document.getElementById('submitBulkBtn');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Submitting...`;
+
+                try {
+                    const response = await fetch('/processing-sheet/importer/api/bulk-add', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ entryDate, items })
+                    });
+
+                    const res = await response.json();
+                    if (res.success) {
+                        window.location.href = `/processing-sheet/importer?date=${entryDate}`;
+                    } else {
+                        alert(res.message || 'Failed to submit work orders.');
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = `<i class="fas fa-check-circle me-1"></i> Submit Work Orders`;
+                    }
+                } catch (err) {
+                    alert('An error occurred during submission.');
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = `<i class="fas fa-check-circle me-1"></i> Submit Work Orders`;
+                }
+            }
+
+            // Inline Editing
+            function setupInlineEditing() {
+                document.querySelectorAll('.editable-cell').forEach(cell => {
+                    cell.style.cursor = 'pointer';
+                    cell.addEventListener('click', function() {
+                        if (this.querySelector('input')) return;
+
+                        const id = this.getAttribute('data-id');
+                        const field = this.getAttribute('data-field');
+                        let currentValue = this.textContent.trim();
+                        if (currentValue === '-') currentValue = '';
+                        if (field === 'value' && currentValue.startsWith('$')) {
+                            currentValue = currentValue.replace('$', '').replace(/,/g, '');
+                        }
+
+                        const input = document.createElement('input');
+                        input.type = field === 'value' ? 'number' : 'text';
+                        if (field === 'value') input.step = '0.01';
+                        if (field === 'workType') {
+                            input.setAttribute('list', 'workTypesList');
+                            input.setAttribute('autocomplete', 'off');
+                            input.placeholder = 'Select or type...';
+                        }
+                        input.className = 'form-control form-control-sm font-monospace';
+                        input.value = currentValue;
+
+                        this.innerHTML = '';
+                        this.appendChild(input);
+                        input.focus();
+
+                        const save = async () => {
+                            const newVal = input.value.trim();
+                            if (newVal === currentValue) {
+                                renderCellValue(this, field, currentValue);
+                                return;
+                            }
+
+                            this.innerHTML = `<span class="spinner-border spinner-border-sm text-primary"></span>`;
+
+                            try {
+                                const response = await fetch('/processing-sheet/importer/api/update-wo', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ id, field, value: newVal })
+                                });
+                                const res = await response.json();
+                                if (res.success) {
+                                    renderCellValue(this, field, newVal);
+                                } else {
+                                    alert(res.message || 'Update failed');
+                                    renderCellValue(this, field, currentValue);
+                                }
+                            } catch (e) {
+                                alert('Network error');
+                                renderCellValue(this, field, currentValue);
+                            }
+                        };
+
+                        input.addEventListener('blur', save);
+                        input.addEventListener('keypress', function(e) {
+                            if (e.key === 'Enter') input.blur();
+                        });
+                    });
+                });
+            }
+
+            function renderCellValue(cell, field, val) {
+                if (!val) {
+                    cell.textContent = '-';
+                    return;
+                }
+                if (field === 'value') {
+                    cell.textContent = '$' + parseFloat(val).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                } else {
+                    cell.textContent = val;
+                }
+            }
+
+            // Delete Row
+            async function deleteRow(id) {
+                if (!confirm('Are you sure you want to delete this work order entry?')) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/processing-sheet/importer/api/delete-wo', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id })
+                    });
+                    const res = await response.json();
+                    if (res.success) {
+                        const row = document.getElementById('wo-row-' + id);
+                        if (row) row.remove();
+                    } else {
+                        alert(res.message || 'Failed to delete');
+                    }
+                } catch (e) {
+                    alert('Error deleting entry');
+                }
+            }
+
+            // Lifeline Modal Function
+            async function openLifelineModal(woNumber) {
+                document.getElementById('modalWoNumber').textContent = woNumber;
+                const spinner = document.getElementById('lifelineSpinner');
+                const empty = document.getElementById('lifelineEmpty');
+                const timeline = document.getElementById('lifelineTimeline');
+                const list = document.getElementById('timelineList');
+
+                spinner.classList.remove('d-none');
+                empty.classList.add('d-none');
+                timeline.classList.add('d-none');
+                list.innerHTML = '';
+
+                const modal = new bootstrap.Modal(document.getElementById('lifelineModal'));
+                modal.show();
+
+                try {
+                    const response = await fetch(`/processing-sheet/importer/api/lifeline?woNumber=${encodeURIComponent(woNumber)}`);
+                    const data = await response.json();
+
+                    spinner.classList.add('d-none');
+                    if (!data || data.length === 0) {
+                        empty.classList.remove('d-none');
+                        return;
+                    }
+
+                    timeline.classList.remove('d-none');
+                    data.forEach(item => {
+                        const li = document.createElement('li');
+                        li.className = 'list-group-item px-0 py-3 border-bottom';
+
+                        let badgeClass = 'bg-primary-subtle text-primary border border-primary';
+                        let actionLabel = item.actionType;
+                        let icon = 'fas fa-info-circle';
+
+                        if (item.actionType === 'CREATED') {
+                            badgeClass = 'bg-success-subtle text-success border border-success';
+                            icon = 'fas fa-plus-circle';
+                        } else if (item.actionType === 'DELETED') {
+                            badgeClass = 'bg-danger-subtle text-danger border border-danger';
+                            icon = 'fas fa-trash-alt';
+                        } else if (item.actionType.startsWith('UPDATED_')) {
+                            badgeClass = 'bg-info-subtle text-info border border-info';
+                            icon = 'fas fa-edit';
+                        }
+
+                        let descHtml = '';
+                        if (item.actionType === 'CREATED') {
+                            descHtml = `<div class="text-dark small fw-medium mt-1">${escapeHtml(item.newValue || 'Created Work Order')}</div>`;
+                        } else if (item.actionType === 'DELETED') {
+                            descHtml = `<div class="text-danger small fw-medium mt-1">${escapeHtml(item.oldValue || 'Deleted')}</div>`;
+                        } else {
+                            descHtml = `<div class="text-dark small mt-1">
+                                <span class="text-muted text-decoration-line-through">${escapeHtml(item.oldValue || '(empty)')}</span> 
+                                <i class="fas fa-arrow-right mx-1 text-secondary fa-xs"></i> 
+                                <strong class="text-primary">${escapeHtml(item.newValue || '(empty)')}</strong>
+                            </div>`;
+                        }
+
+                        const formattedDate = item.changedAt ? new Date(item.changedAt).toLocaleString() : '-';
+
+                        li.innerHTML = `
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="badge ${badgeClass} rounded-pill px-3 py-1">
+                                    <i class="${icon} me-1"></i>${escapeHtml(actionLabel)}
+                                </span>
+                                <span class="text-muted small font-monospace"><i class="far fa-clock me-1"></i>${formattedDate}</span>
+                            </div>
+                            ${descHtml}
+                            <div class="small text-muted mt-1">
+                                <i class="fas fa-user-circle me-1 text-secondary"></i>Performed by: <strong>${escapeHtml(item.changedByName || 'System')}</strong>
+                            </div>
+                        `;
+                        list.appendChild(li);
+                    });
+                } catch (e) {
+                    spinner.classList.add('d-none');
+                    empty.classList.remove('d-none');
+                    empty.innerHTML = `<p class="text-danger">Failed to load lifecycle events.</p>`;
+                }
+            }
+
+            function escapeHtml(str) {
+                return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            }
+        </script>
+    </div>
+</body>
+</html>

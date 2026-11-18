@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Importer All Entries Dashboard</title>
+</head>
+<body>
+    <div th:replace="~{layout :: layout(~{::section}, ~{::script}, 'importer-sheet')}">
+        <section>
+            <!-- Page Header -->
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+                <div>
+                    <h1 class="h3 mb-0 text-gray-800 fw-bold">
+                        <i class="fas fa-chart-line text-primary me-2"></i>Importer Dashboard: All Entries
+                    </h1>
+                    <p class="text-muted small mb-0">
+                        Performance analytics and all work order entries for 
+                        <strong class="text-dark" th:text="${importerName}">User</strong>
+                    </p>
+                </div>
+                <div class="d-flex gap-2">
+                    <a sec:authorize="hasAnyRole('ADMIN', 'HR')" href="/processing-sheet/importer/admin-dashboard" class="btn btn-outline-dark btn-sm rounded-pill px-3 shadow-sm fw-bold">
+                        <i class="fas fa-user-shield me-1"></i> Admin Overview
+                    </a>
+                    <a href="/processing-sheet/importer/delete-history" class="btn btn-outline-danger btn-sm rounded-pill px-3 shadow-sm fw-bold">
+                        <i class="fas fa-trash-alt me-1"></i> Delete History
+                    </a>
+                    <a href="/processing-sheet/importer" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm fw-bold">
+                        <i class="fas fa-calendar-day me-1"></i> Back to Daily Sheet
+                    </a>
+                </div>
+            </div>
+
+            <!-- Filter Card -->
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card-body p-3">
+                    <form id="filterForm" class="row g-2 align-items-end" action="/processing-sheet/importer/dashboard" method="get">
+                        <div class="col-md-3">
+                            <label class="form-label text-muted small fw-bold mb-1">Time Range</label>
+                            <select class="form-select form-select-sm border bg-light" name="filter" id="timeFilter" onchange="toggleFilterFields()">
+                                <option value="all" th:selected="${filter == 'all'}">All Time</option>
+                                <option value="monthly" th:selected="${filter == 'monthly'}">By Month</option>
+                                <option value="custom" th:selected="${filter == 'custom'}">Custom Range</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-3 monthly-group" style="display: none;">
+                            <label class="form-label text-muted small fw-bold mb-1">Select Month</label>
+                            <select class="form-select form-select-sm border bg-light" name="monthString">
+                                <option th:each="m : ${availableMonths}"
+                                        th:value="${m.value}"
+                                        th:text="${m.label}"
+                                        th:selected="${m.value == monthString}"></option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-3 custom-group" style="display: none;">
+                            <label class="form-label text-muted small fw-bold mb-1">Start Date</label>
+                            <input type="date" class="form-control form-control-sm border bg-light" name="startDate" th:value="${startDate}">
+                        </div>
+
+                        <div class="col-md-3 custom-group" style="display: none;">
+                            <label class="form-label text-muted small fw-bold mb-1">End Date</label>
+                            <input type="date" class="form-control form-control-sm border bg-light" name="endDate" th:value="${endDate}">
+                        </div>
+
+                        <div class="col-md-auto d-flex gap-2">
+                            <button type="submit" class="btn btn-dark btn-sm rounded-pill px-3 fw-bold">
+                                <i class="fas fa-filter me-1"></i> Apply Filter
+                            </button>
+                            <a href="/processing-sheet/importer/dashboard?filter=all" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                                Reset
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Metrics Cards -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <div class="card border-0 shadow-sm rounded-3 bg-white h-100">
+                        <div class="card-body p-3 d-flex align-items-center">
+                            <div class="rounded-circle bg-primary-subtle text-primary p-3 me-3">
+                                <i class="fas fa-file-invoice fa-2x"></i>
+                            </div>
+                            <div>
+                                <div class="text-uppercase small fw-bold text-muted">Total Entries</div>
+                                <div class="fs-4 fw-bold text-dark" th:text="${totalWo}">0</div>
+                                <div class="small text-muted">All Recorded WOs</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card border-0 shadow-sm rounded-3 bg-white h-100">
+                        <div class="card-body p-3 d-flex align-items-center">
+                            <div class="rounded-circle bg-success-subtle text-success p-3 me-3">
+                                <i class="fas fa-dollar-sign fa-2x"></i>
+                            </div>
+                            <div>
+                                <div class="text-uppercase small fw-bold text-muted">Total Value</div>
+                                <div class="fs-4 fw-bold text-dark" th:text="'$' + ${#numbers.formatDecimal(totalValue != null ? totalValue : 0, 1, 'COMMA', 2, 'POINT')}">$0.00</div>
+                                <div class="small text-muted">Accumulated Value</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card border-0 shadow-sm rounded-3 bg-white h-100">
+                        <div class="card-body p-3 d-flex align-items-center">
+                            <div class="rounded-circle bg-info-subtle text-info p-3 me-3">
+                                <i class="fas fa-calendar-check fa-2x"></i>
+                            </div>
+                            <div>
+                                <div class="text-uppercase small fw-bold text-muted">Active Days</div>
+                                <div class="fs-4 fw-bold text-dark" th:text="${activeDays}">0</div>
+                                <div class="small text-muted">Unique Entry Dates</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card border-0 shadow-sm rounded-3 bg-white h-100">
+                        <div class="card-body p-3 d-flex align-items-center">
+                            <div class="rounded-circle bg-warning-subtle text-warning p-3 me-3">
+                                <i class="fas fa-coins fa-2x"></i>
+                            </div>
+                            <div>
+                                <div class="text-uppercase small fw-bold text-muted">Avg Value / WO</div>
+                                <div class="fs-4 fw-bold text-dark" th:text="'$' + ${#numbers.formatDecimal(avgValue != null ? avgValue : 0, 1, 'COMMA', 2, 'POINT')}">$0.00</div>
+                                <div class="small text-muted">Average per Order</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Breakdown Cards Row -->
+            <div class="row g-4 mb-4">
+                <!-- Work Type Breakdown -->
+                <div class="col-lg-6">
+                    <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
+                        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                            <h6 class="m-0 fw-bold text-gray-800">
+                                <i class="fas fa-tools text-primary me-2"></i>Work Type Breakdown
+                            </h6>
+                            <span class="badge bg-light text-dark border fw-normal" th:text="${#lists.size(workTypeStats)} + ' types'"></span>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive" style="max-height: 280px; overflow-y: auto;">
+                                <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                                    <thead class="bg-light text-muted small text-uppercase">
+                                        <tr>
+                                            <th class="ps-3 py-2">Work Type</th>
+                                            <th class="py-2 text-center">Orders</th>
+                                            <th class="py-2 text-center">% of Total</th>
+                                            <th class="pe-3 py-2 text-end">Total ($)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr th:each="stat : ${workTypeStats}" class="border-bottom">
+                                            <td class="ps-3 fw-bold text-dark" th:text="${stat.name}">Type</td>
+                                            <td class="text-center font-monospace" th:text="${stat.count}">0</td>
+                                            <td class="text-center" style="width: 140px;">
+                                                <div class="d-flex align-items-center gap-1 justify-content-center">
+                                                    <div class="progress flex-grow-1" style="height: 6px;">
+                                                        <div class="progress-bar bg-primary" role="progressbar" th:style="'width: ' + ${stat.percentage} + '%'"></div>
+                                                    </div>
+                                                    <span class="small text-muted font-monospace" style="min-width: 38px;" th:text="${stat.percentage} + '%'"></span>
+                                                </div>
+                                            </td>
+                                            <td class="pe-3 text-end font-monospace fw-bold text-dark"
+                                                th:text="'$' + ${#numbers.formatDecimal(stat.totalValue, 1, 'COMMA', 2, 'POINT')}">$0.00</td>
+                                        </tr>
+                                        <tr th:if="${#lists.isEmpty(workTypeStats)}">
+                                            <td colspan="4" class="text-center py-4 text-muted small">No data available</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Client Code Breakdown -->
+                <div class="col-lg-6">
+                    <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
+                        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                            <h6 class="m-0 fw-bold text-gray-800">
+                                <i class="fas fa-building text-success me-2"></i>Client Code Breakdown
+                            </h6>
+                            <span class="badge bg-light text-dark border fw-normal" th:text="${#lists.size(clientStats)} + ' clients'"></span>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive" style="max-height: 280px; overflow-y: auto;">
+                                <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                                    <thead class="bg-light text-muted small text-uppercase">
+                                        <tr>
+                                            <th class="ps-3 py-2">Client Code</th>
+                                            <th class="py-2 text-center">Orders</th>
+                                            <th class="pe-3 py-2 text-end">Total ($)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr th:each="c : ${clientStats}" class="border-bottom">
+                                            <td class="ps-3 fw-bold font-monospace text-dark" th:text="${c.name}">Client</td>
+                                            <td class="text-center font-monospace" th:text="${c.count}">0</td>
+                                            <td class="pe-3 text-end font-monospace fw-bold text-dark"
+                                                th:text="'$' + ${#numbers.formatDecimal(c.totalValue, 1, 'COMMA', 2, 'POINT')}">$0.00</td>
+                                        </tr>
+                                        <tr th:if="${#lists.isEmpty(clientStats)}">
+                                            <td colspan="3" class="text-center py-4 text-muted small">No data available</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Client Series Breakdown -->
+            <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white">
+                <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 fw-bold text-gray-800">
+                        <i class="fas fa-layer-group text-primary me-2"></i>My Client Series Breakdown
+                    </h6>
+                    <span class="badge bg-light text-dark border fw-normal" th:text="${#lists.size(clientSeriesStats)} + ' series'"></span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                            <thead class="bg-light text-muted small text-uppercase">
+                                <tr>
+                                    <th class="ps-3 py-2">Series Name</th>
+                                    <th class="py-2 text-center">Orders</th>
+                                    <th class="py-2" style="width: 35%;">Volume Share</th>
+                                    <th class="pe-3 py-2 text-end">Total ($)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="cs : ${clientSeriesStats}" class="border-bottom">
+                                    <td class="ps-3 fw-bold font-monospace text-dark">
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle" th:text="${cs.name}"></span>
+                                    </td>
+                                    <td class="text-center font-monospace fw-bold" th:text="${cs.count}">0</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="progress flex-grow-1 me-2" style="height: 6px;">
+                                                <div class="progress-bar bg-primary" role="progressbar" th:style="'width: ' + ${cs.percentage} + '%'"></div>
+                                            </div>
+                                            <span class="small text-muted font-monospace" th:text="${cs.percentage} + '%'">0%</span>
+                                        </div>
+                                    </td>
+                                    <td class="pe-3 text-end font-monospace fw-bold text-success"
+                                        th:text="'$' + ${#numbers.formatDecimal(cs.totalValue, 1, 'COMMA', 2, 'POINT')}">$0.00</td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(clientSeriesStats)}">
+                                    <td colspan="4" class="text-center py-4 text-muted small">No client series records found</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Complete Work Orders Table -->
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <h6 class="m-0 fw-bold text-gray-800">
+                        <i class="fas fa-list-alt text-primary me-2"></i>All Work Order Records
+                    </h6>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="input-group input-group-sm" style="max-width: 250px;">
+                            <span class="input-group-text bg-light border-0"><i class="fas fa-search text-muted"></i></span>
+                            <input type="text" id="tableFilterInput" class="form-control border-0 bg-light" placeholder="Search entries..." onkeyup="filterTable()">
+                        </div>
+                        <span class="badge bg-secondary-subtle text-dark border fw-normal" th:text="${#lists.size(workOrders)} + ' total entries'"></span>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" id="allOrdersTable" width="100%">
+                            <thead class="bg-light">
+                                <tr class="text-uppercase small text-muted font-monospace" style="font-size: 0.75rem;">
+                                    <th class="ps-4 py-3">#</th>
+                                    <th class="py-3">WO #</th>
+                                    <th class="py-3">Client Code</th>
+                                    <th class="py-3">Work Type</th>
+                                    <th class="py-3">Value ($)</th>
+                                    <th class="py-3">Entry Date</th>
+                                    <th class="text-end pe-4 py-3">Lifeline</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="wo, iter : ${workOrders}" class="border-bottom order-row">
+                                    <td class="ps-4 text-muted small" th:text="${iter.count}">1</td>
+                                    <td class="fw-bold font-monospace text-primary" th:text="${wo.woNumber}">WO-101</td>
+                                    <td class="fw-medium text-dark font-monospace" th:text="${wo.clientCode != null ? wo.clientCode : '-'}">-</td>
+                                    <td class="text-secondary" th:text="${wo.workType != null ? wo.workType : '-'}">-</td>
+                                    <td class="fw-bold font-monospace text-dark"
+                                        th:text="${wo.value != null ? '$' + #numbers.formatDecimal(wo.value, 1, 'COMMA', 2, 'POINT') : '-'}">-</td>
+                                    <td class="small text-muted font-monospace" th:text="${wo.entryDate}">2026-11-18</td>
+                                    <td class="text-end pe-4">
+                                        <button class="btn btn-sm btn-outline-primary lifeline-btn rounded-pill px-3 py-1"
+                                                th:data-wo="${wo.woNumber}" title="View Lifecycle History" onclick="openLifelineModal(this.getAttribute('data-wo'))">
+                                            <i class="fas fa-history me-1"></i> Lifeline
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(workOrders)}">
+                                    <td colspan="7" class="text-center py-5">
+                                        <div class="d-flex flex-column align-items-center">
+                                            <div class="bg-light rounded-circle p-3 mb-3 text-muted">
+                                                <i class="fas fa-folder-open fa-2x opacity-50"></i>
+                                            </div>
+                                            <h6 class="text-muted fw-bold">No work orders found for this filter.</h6>
+                                            <p class="text-muted small mb-0">Try adjusting your time range or add new entries from the Daily Sheet.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lifeline / Lifecycle Modal -->
+            <div class="modal fade" id="lifelineModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-lg">
+                    <div class="modal-content border-0 shadow-lg rounded-4">
+                        <div class="modal-header bg-dark text-white py-3 px-4 rounded-top-4">
+                            <h5 class="modal-title fw-bold">
+                                <i class="fas fa-history text-primary me-2"></i>Lifecycle History: WO #<span id="modalWoNumber" class="text-primary font-monospace"></span>
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body p-4">
+                            <div id="lifelineSpinner" class="text-center py-4">
+                                <span class="spinner-border text-primary"></span>
+                                <p class="text-muted small mt-2 mb-0">Loading lifecycle events...</p>
+                            </div>
+                            <div id="lifelineEmpty" class="text-center py-4 d-none text-muted">
+                                <i class="fas fa-info-circle fa-2x mb-2 opacity-50"></i>
+                                <p class="mb-0">No lifecycle history found for this work order.</p>
+                            </div>
+                            <div id="lifelineTimeline" class="d-none">
+                                <ul class="list-group list-group-flush" id="timelineList">
+                                    <!-- Dynamic history items -->
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="modal-footer bg-light py-2 px-4 rounded-bottom-4 border-top">
+                            <button type="button" class="btn btn-secondary btn-sm rounded-pill px-4" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Script for Filtering and Lifeline -->
+        <script th:inline="javascript">
+            function toggleFilterFields() {
+                const val = document.getElementById('timeFilter').value;
+                const monthlyGroups = document.querySelectorAll('.monthly-group');
+                const customGroups = document.querySelectorAll('.custom-group');
+
+                monthlyGroups.forEach(el => el.style.display = (val === 'monthly') ? 'block' : 'none');
+                customGroups.forEach(el => el.style.display = (val === 'custom') ? 'block' : 'none');
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+                toggleFilterFields();
+            });
+
+            // Live Table Filter
+            function filterTable() {
+                const query = document.getElementById('tableFilterInput').value.toLowerCase().trim();
+                const rows = document.querySelectorAll('#allOrdersTable tbody tr.order-row');
+                rows.forEach(row => {
+                    const text = row.textContent.toLowerCase();
+                    row.style.display = text.includes(query) ? '' : 'none';
+                });
+            }
+
+            // Lifeline Modal Function
+            async function openLifelineModal(woNumber) {
+                document.getElementById('modalWoNumber').textContent = woNumber;
+                const spinner = document.getElementById('lifelineSpinner');
+                const empty = document.getElementById('lifelineEmpty');
+                const timeline = document.getElementById('lifelineTimeline');
+                const list = document.getElementById('timelineList');
+
+                spinner.classList.remove('d-none');
+                empty.classList.add('d-none');
+                timeline.classList.add('d-none');
+                list.innerHTML = '';
+
+                const modal = new bootstrap.Modal(document.getElementById('lifelineModal'));
+                modal.show();
+
+                try {
+                    const response = await fetch(`/processing-sheet/importer/api/lifeline?woNumber=${encodeURIComponent(woNumber)}`);
+                    const data = await response.json();
+
+                    spinner.classList.add('d-none');
+                    if (!data || data.length === 0) {
+                        empty.classList.remove('d-none');
+                        return;
+                    }
+
+                    timeline.classList.remove('d-none');
+                    data.forEach(item => {
+                        const li = document.createElement('li');
+                        li.className = 'list-group-item px-0 py-3 border-bottom';
+
+                        let badgeClass = 'bg-primary-subtle text-primary border border-primary';
+                        let actionLabel = item.actionType;
+                        let icon = 'fas fa-info-circle';
+
+                        if (item.actionType === 'CREATED') {
+                            badgeClass = 'bg-success-subtle text-success border border-success';
+                            icon = 'fas fa-plus-circle';
+                        } else if (item.actionType === 'DELETED') {
+                            badgeClass = 'bg-danger-subtle text-danger border border-danger';
+                            icon = 'fas fa-trash-alt';
+                        } else if (item.actionType.startsWith('UPDATED_')) {
+                            badgeClass = 'bg-info-subtle text-info border border-info';
+                            icon = 'fas fa-edit';
+                        }
+
+                        let descHtml = '';
+                        if (item.actionType === 'CREATED') {
+                            descHtml = `<div class="text-dark small fw-medium mt-1">${escapeHtml(item.newValue || 'Created Work Order')}</div>`;
+                        } else if (item.actionType === 'DELETED') {
+                            descHtml = `<div class="text-danger small fw-medium mt-1">${escapeHtml(item.oldValue || 'Deleted')}</div>`;
+                        } else {
+                            descHtml = `<div class="text-dark small mt-1">
+                                <span class="text-muted text-decoration-line-through">${escapeHtml(item.oldValue || '(empty)')}</span> 
+                                <i class="fas fa-arrow-right mx-1 text-secondary fa-xs"></i> 
+                                <strong class="text-primary">${escapeHtml(item.newValue || '(empty)')}</strong>
+                            </div>`;
+                        }
+
+                        const formattedDate = item.changedAt ? new Date(item.changedAt).toLocaleString() : '-';
+
+                        li.innerHTML = `
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="badge ${badgeClass} rounded-pill px-3 py-1">
+                                    <i class="${icon} me-1"></i>${escapeHtml(actionLabel)}
+                                </span>
+                                <span class="text-muted small font-monospace"><i class="far fa-clock me-1"></i>${formattedDate}</span>
+                            </div>
+                            ${descHtml}
+                            <div class="small text-muted mt-1">
+                                <i class="fas fa-user-circle me-1 text-secondary"></i>Performed by: <strong>${escapeHtml(item.changedByName || 'System')}</strong>
+                            </div>
+                        `;
+                        list.appendChild(li);
+                    });
+                } catch (e) {
+                    spinner.classList.add('d-none');
+                    empty.classList.remove('d-none');
+                    empty.innerHTML = `<p class="text-danger">Failed to load lifecycle events.</p>`;
+                }
+            }
+
+            function escapeHtml(str) {
+                return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            }
+        </script>
+    </div>
+</body>
+</html>
