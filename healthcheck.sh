@@ -74,7 +74,8 @@ fi
 echo -e "${CYAN}${BOLD}╔══════════════════════════════════════════════════════════════════════╗${NC}"
 echo -e "${CYAN}${BOLD}║   🩺 Attendance System Service Health & Log Diagnostic Dashboard     ║${NC}"
 echo -e "${CYAN}${BOLD}╚══════════════════════════════════════════════════════════════════════╝${NC}"
-echo -e "${GRAY}Report Generated: $(date '+%Y-%m-%d %H:%M:%S %Z') | Host: $(hostname)${NC}\n"
+HOST_NAME=$(hostname 2>/dev/null || uname -n 2>/dev/null || echo "${HOSTNAME:-localhost}")
+echo -e "${GRAY}Report Generated: $(date '+%Y-%m-%d %H:%M:%S %Z') | Host: ${HOST_NAME}${NC}\n"
 
 # ==============================================================================
 # 1. Systemd Service Status & Process Check
@@ -200,8 +201,8 @@ if [ -z "${LOG_DATA}" ]; then
     echo -e "  ${YELLOW}ℹ️  No journalctl or local log file found for ${SERVICE_NAME}.${NC}"
     echo -e "     (If running in development, logs are displayed on active terminal/bootRun)${NC}"
 else
-    # Count occurrences
-    ERROR_COUNT=$(echo "${LOG_DATA}" | grep -E -i "ERROR|Exception|FATAL|SEVERE" | wc -l)
+    # Count occurrences (excluding normal WebSocket INFO stats)
+    ERROR_COUNT=$(echo "${LOG_DATA}" | grep -E -i "ERROR|Exception|FATAL|SEVERE" | grep -v "WebSocketMessageBrokerStats" | wc -l)
     WARN_COUNT=$(echo "${LOG_DATA}" | grep -E -i "WARN|Warning|Notice|mismatch" | grep -v -E "INFO|DEBUG" | wc -l)
     INFO_BOOT=$(echo "${LOG_DATA}" | grep -i "Started AttendanceSystemApplication" | tail -n 1 || echo "")
 
@@ -215,7 +216,7 @@ else
     # Display Top Errors if any
     if [ "${ERROR_COUNT}" -gt 0 ] || [ "$SHOW_ERRORS_ONLY" = true ]; then
         echo -e "\n  ${RED}${BOLD}🔴 Recent Error / Exception Snippets:${NC}"
-        echo "${LOG_DATA}" | grep -E -i "ERROR|Exception|FATAL|SEVERE" -B 1 -A 2 | tail -n 15 | while IFS= read -r line; do
+        echo "${LOG_DATA}" | grep -E -i "ERROR|Exception|FATAL|SEVERE" | grep -v "WebSocketMessageBrokerStats" -B 1 -A 2 | tail -n 15 | while IFS= read -r line; do
             echo -e "    ${RED}›${NC} ${line}"
         done
     fi

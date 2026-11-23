@@ -451,7 +451,7 @@ public class ImporterSheetController {
                     map.put("percentage", Math.round(pct * 10.0) / 10.0);
                     return map;
                 })
-                .sorted((a, b) -> Integer.compare((int) b.get("count"), (int) a.get("count")))
+                .sorted((a, b) -> Long.compare(((Number) b.get("count")).longValue(), ((Number) a.get("count")).longValue()))
                 .collect(Collectors.toList());
         model.addAttribute("workTypeStats", workTypeStats);
 
@@ -470,7 +470,7 @@ public class ImporterSheetController {
                     map.put("totalValue", val);
                     return map;
                 })
-                .sorted((a, b) -> Integer.compare((int) b.get("count"), (int) a.get("count")))
+                .sorted((a, b) -> Long.compare(((Number) b.get("count")).longValue(), ((Number) a.get("count")).longValue()))
                 .collect(Collectors.toList());
         model.addAttribute("clientStats", clientStats);
 
@@ -523,7 +523,7 @@ public class ImporterSheetController {
                     map.put("topImporter", topImp);
                     return map;
                 })
-                .sorted((a, b) -> Integer.compare((int) b.get("count"), (int) a.get("count")))
+                .sorted((a, b) -> Long.compare(((Number) b.get("count")).longValue(), ((Number) a.get("count")).longValue()))
                 .collect(Collectors.toList());
         model.addAttribute("clientSeriesStats", clientSeriesStats);
 
@@ -741,7 +741,7 @@ public class ImporterSheetController {
                     map.put("topWorkType", topWt);
                     return map;
                 })
-                .sorted((a, b) -> Long.compare((long) b.get("count"), (long) a.get("count")))
+                .sorted((a, b) -> Long.compare(((Number) b.get("count")).longValue(), ((Number) a.get("count")).longValue()))
                 .collect(Collectors.toList());
         model.addAttribute("importerLeaderboard", importerLeaderboard);
 
@@ -767,7 +767,7 @@ public class ImporterSheetController {
                     map.put("percentage", Math.round(pct * 10.0) / 10.0);
                     return map;
                 })
-                .sorted((a, b) -> Integer.compare((int) b.get("count"), (int) a.get("count")))
+                .sorted((a, b) -> Long.compare(((Number) b.get("count")).longValue(), ((Number) a.get("count")).longValue()))
                 .collect(Collectors.toList());
         model.addAttribute("workTypeStats", workTypeStats);
 
@@ -788,7 +788,7 @@ public class ImporterSheetController {
                     map.put("percentage", Math.round(pct * 10.0) / 10.0);
                     return map;
                 })
-                .sorted((a, b) -> Integer.compare((int) b.get("count"), (int) a.get("count")))
+                .sorted((a, b) -> Long.compare(((Number) b.get("count")).longValue(), ((Number) a.get("count")).longValue()))
                 .collect(Collectors.toList());
         model.addAttribute("clientStats", clientStats);
 
@@ -841,7 +841,7 @@ public class ImporterSheetController {
                     map.put("topImporter", topImp);
                     return map;
                 })
-                .sorted((a, b) -> Integer.compare((int) b.get("count"), (int) a.get("count")))
+                .sorted((a, b) -> Long.compare(((Number) b.get("count")).longValue(), ((Number) a.get("count")).longValue()))
                 .collect(Collectors.toList());
         model.addAttribute("clientSeriesStats", clientSeriesStats);
 
