@@ -356,7 +356,18 @@ public class DashboardController {
 
                                         DailyAttendanceDto stat = reportMap.get(emp.getId());
                                         if (stat != null) {
-                                                dto.setStatus(stat.getStatus());
+                                                String rawStatus = stat.getStatus() != null ? stat.getStatus() : "ABSENT";
+                                                String liveStatus;
+                                                if (rawStatus.contains("LATE")) {
+                                                        liveStatus = "LATE";
+                                                } else if (rawStatus.contains("LEAVE") && !rawStatus.contains("EARLY LEAVE")) {
+                                                        liveStatus = rawStatus;
+                                                } else if (rawStatus.contains("PRESENT") || rawStatus.equals("EARLY LEAVE")) {
+                                                        liveStatus = "PRESENT";
+                                                } else {
+                                                        liveStatus = "ABSENT";
+                                                }
+                                                dto.setStatus(liveStatus);
                                                 dto.setTime(stat.getInTime() != null ? stat.getInTime().toString()
                                                                 : "-");
                                         } else {
