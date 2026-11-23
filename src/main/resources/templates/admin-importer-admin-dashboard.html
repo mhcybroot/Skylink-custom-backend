@@ -16,9 +16,28 @@
                 .table-hover tbody tr:hover { background-color: rgba(0, 0, 0, 0.02); }
                 .dataTables_wrapper .dataTables_paginate .paginate_button.page-item .page-link {
                     border-radius: 50px; margin: 0 3px; border: none; font-weight: 500; color: #5a5c69; background-color: #f8f9fc;
+                    transition: all 0.2s;
+                }
+                .dataTables_wrapper .dataTables_paginate .paginate_button.page-item:not(.active) .page-link:hover {
+                    background-color: #eaecf4; color: #0d6efd;
                 }
                 .dataTables_wrapper .dataTables_paginate .paginate_button.page-item.active .page-link {
-                    background: #0d6efd; color: white;
+                    background: #0d6efd; color: white; box-shadow: 0 2px 6px rgba(13, 110, 253, 0.3);
+                }
+                .dataTables_wrapper .dataTables_filter input {
+                    border-radius: 50px; border: 1px solid #dee2e6; padding: 5px 14px; background-color: #f8f9fc; outline: none; transition: all 0.2s; font-size: 0.85rem;
+                }
+                .dataTables_wrapper .dataTables_filter input:focus {
+                    background-color: #fff; border-color: #86b7fe; box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
+                }
+                .dataTables_wrapper .dataTables_length select {
+                    border-radius: 8px; border: 1px solid #dee2e6; padding: 4px 10px; font-size: 0.85rem; background-color: #f8f9fc;
+                }
+                .dataTables_wrapper .dataTables_info {
+                    font-size: 0.85rem; color: #6c757d; padding-top: 0.5rem;
+                }
+                .dataTables_wrapper .dataTables_paginate {
+                    padding-top: 0.5rem;
                 }
                 .timeline-badge {
                     width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem;
@@ -660,10 +679,54 @@
                     </div>
                 </div>
             </div>
+
+            <!-- DataTables JS -->
+            <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+            <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
         </section>
 
         <!-- Scripts -->
         <script th:inline="javascript">
+            // Initialize DataTables for Master Work Orders Table
+            function initDataTable() {
+                if (window.jQuery && $.fn.DataTable && !$.fn.DataTable.isDataTable('#adminWorkOrderTable')) {
+                    $('#adminWorkOrderTable').DataTable({
+                        pageLength: 10,
+                        lengthMenu: [10, 25, 50, 100],
+                        order: [], // Preserve backend default sort
+                        columnDefs: [
+                            { targets: [0, 9], orderable: false } // # and Lifeline button non-orderable
+                        ],
+                        language: {
+                            search: "_INPUT_",
+                            searchPlaceholder: "Search work orders...",
+                            lengthMenu: "Show _MENU_ entries",
+                            info: "Showing _START_ to _END_ of _TOTAL_ work orders",
+                            infoEmpty: "Showing 0 to 0 of 0 work orders",
+                            infoFiltered: "(filtered from _MAX_ total records)",
+                            paginate: {
+                                first: '<i class="fas fa-angle-double-left"></i>',
+                                last: '<i class="fas fa-angle-double-right"></i>',
+                                next: '<i class="fas fa-chevron-right"></i>',
+                                previous: '<i class="fas fa-chevron-left"></i>'
+                            }
+                        }
+                    });
+                }
+            }
+
+            if (typeof $.fn.DataTable === 'undefined') {
+                $.getScript("https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js", function() {
+                    $.getScript("https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js", function() {
+                        initDataTable();
+                    });
+                });
+            } else {
+                $(document).ready(function() {
+                    initDataTable();
+                });
+            }
+
             function enableCustomDates() {
                 document.getElementById('filterInput').value = 'custom';
                 document.querySelectorAll('.custom-date-col').forEach(el => el.style.display = 'block');
