@@ -136,19 +136,21 @@ public class DashboardController {
                 });
 
                 // Leaves Today (Excluding Guests)
-                List<root.cyb.mh.attendancesystem.model.LeaveRequest> todayLeaves = leaveRequestRepository
-                                .findByStartDateLessThanEqualAndEndDateGreaterThanEqualAndStatus(
-                                                today, today,
-                                                root.cyb.mh.attendancesystem.model.LeaveRequest.Status.APPROVED);
-
-                long leaveCount = todayLeaves.stream()
-                                .filter(l -> !guestIds.contains(l.getEmployee().getId()))
+                long leaveCount = dailyReport.stream()
+                                .filter(d -> !guestIds.contains(d.getEmployeeId()))
+                                .filter(d -> d.getStatus().contains("LEAVE") && !d.getStatus().contains("EARLY"))
                                 .count();
 
                 // Late Count (Excluding Guests)
                 long lateCount = dailyReport.stream()
                                 .filter(d -> !guestIds.contains(d.getEmployeeId()))
                                 .filter(d -> d.getStatus().contains("LATE"))
+                                .count();
+
+                // Absent Count (Excluding Guests)
+                long absentCount = dailyReport.stream()
+                                .filter(d -> !guestIds.contains(d.getEmployeeId()))
+                                .filter(d -> d.getStatus().contains("ABSENT"))
                                 .count();
 
                 // --- INSPIRATION METRICS ---
@@ -250,9 +252,6 @@ public class DashboardController {
                 model.addAttribute("streakEmployee", streakTop);
 
                 // Status Breakdown
-                long absentCount = totalEmployees - presentCount - leaveCount;
-                if (absentCount < 0)
-                        absentCount = 0;
 
                 model.addAttribute("totalEmployees", totalEmployees);
                 model.addAttribute("totalDepartments", totalDepartments);
